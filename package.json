@@ -1,0 +1,35 @@
+{
+  "name": "playcanvas-viewer",
+  "version": "1.0.0",
+  "author": "PlayCanvas<support@playcanvas.com>",
+  "homepage": "https://playcanvas.com",
+  "description": "PlayCanvas glTF Viewer",
+  "keywords": [
+    "2d",
+    "3d",
+    "html5",
+    "gltf",
+    "webgl",
+    "webgl2",
+    "viewer"
+  ],
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/playcanvas/playcanvas-viewer/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/playcanvas/playcanvas-viewer.git"
+  },
+  "eslintConfig": {
+    "extends": "@playcanvas/eslint-config"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "eslint": "^7.3.1",
+    "@playcanvas/eslint-config": "^1.0.6"
+  },
+  "scripts":{
+    "lint": "eslint --ext .js scripts src"
+  }
+}
