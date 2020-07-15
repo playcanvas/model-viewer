@@ -6,7 +6,28 @@
     <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
     <link rel="icon" type="image/png" href="./playcanvas-logo.png" />
     <link rel="stylesheet" href="style.css">
-    <script src="./playcanvas.js"></script>
+    <script>
+        // extract query params. taken from https://stackoverflow.com/a/21152762
+        var urlParams = {};
+        if (location.search) {
+            location.search.substr(1).split("&").forEach(function (item) {
+                var s = item.split("="),
+                    k = s[0],
+                    v = s[1] && decodeURIComponent(s[1]);
+                (urlParams[k] = urlParams[k] || []).push(v);
+            });
+        }
+
+        // load the engine with optional use_local_engine override
+        var localEngineUrl = urlParams.hasOwnProperty('use_local_engine') ? urlParams.use_local_engine[0] : null;
+        var engineScript = document.createElement('script');
+        engineScript.setAttribute('src', localEngineUrl || "./playcanvas.js");
+        engineScript.onload = function () {
+            // load the asset manifest
+            pc.http.get("asset_manifest.json", { cache: true, responseType: "text", retry: false }, handleAssetManifest);
+        };
+        document.head.appendChild(engineScript);
+    </script>
     <script src="./playcanvas-extras.js"></script>
     <script src="./scripts/hdr-texture.js"></script>
     <script src="./scripts/download-texture.js"></script>
@@ -59,8 +80,5 @@
     <script src="./src/controls.js"></script>
     <script src="./src/graph.js"></script>
     <script src="./src/debug.js"></script>
-    <script>
-        // load the asset manifest
-        pc.http.get("asset_manifest.json", { cache: true, responseType: "text", retry: false }, handleAssetManifest);
-    </script></body>
+</body>
 </html>

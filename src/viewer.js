@@ -152,28 +152,15 @@ var Viewer = function (canvas) {
     // start the application
     app.start();
 
-    // load url parameters
-
-    // taken from https://stackoverflow.com/a/21152762
-    var qd = {};
-    if (location.search) {
-        location.search.substr(1).split("&").forEach(function (item) {
-            var s = item.split("="),
-                k = s[0],
-                v = s[1] && decodeURIComponent(s[1]);
-            (qd[k] = qd[k] || []).push(v);
-        });
-    }
-
     // load urls
-    var loadUrls = (qd.hasOwnProperty('load') ? qd.load : []).concat(qd.hasOwnProperty('assetUrl') ? qd.assetUrl : []);
+    var loadUrls = (urlParams.load || []).concat(urlParams.assetUrl || []);
     if (loadUrls.length > 0) {
         this.load(loadUrls);
     }
 
     // set camera position
-    if (qd.hasOwnProperty('cameraPosition')) {
-        var pos = qd.cameraPosition[0].split(',').map(Number);
+    if (urlParams.hasOwnProperty('cameraPosition')) {
+        var pos = urlParams.cameraPosition[0].split(',').map(Number);
         if (pos.length === 3) {
             this.cameraPosition = new pc.Vec3(pos);
         }
