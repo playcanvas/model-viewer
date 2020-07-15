@@ -224,7 +224,9 @@ Object.assign(Viewer.prototype, {
                 cubemap: true,
                 width: skybox.width / 4,
                 height: skybox.width / 4,
-                type: pc.TEXTURETYPE_RGBM
+                type: pc.TEXTURETYPE_RGBM,
+                addressU: pc.ADDRESS_CLAMP_TO_EDGE,
+                addressV: pc.ADDRESS_CLAMP_TO_EDGE
             });
 
             pc.reprojectTexture(device, skybox, faces);
@@ -240,7 +242,9 @@ Object.assign(Viewer.prototype, {
                 name: 'skyboxPrefilter' + i,
                 width: sizes[i],
                 height: sizes[i],
-                type: pc.TEXTURETYPE_RGBM
+                type: pc.TEXTURETYPE_RGBM,
+                addressU: pc.ADDRESS_CLAMP_TO_EDGE,
+                addressV: pc.ADDRESS_CLAMP_TO_EDGE
             });
             pc.reprojectTexture(device, cubemaps[1] || skybox, prefilter, specPower[i]);
             cubemaps.push(prefilter);
@@ -272,7 +276,9 @@ Object.assign(Viewer.prototype, {
                     // assume jps/pngs are RGBM
                     texture.type = pc.TEXTURETYPE_RGBM;
                 }
-                texture.minFilter = pc.FILTER_NEAREST;
+                if (texture.type === pc.TEXTURETYPE_RGBL) {
+                    texture.minFilter = pc.FILTER_NEAREST;
+                }
                 self._initSkyboxFromTexture(texture);
             });
             app.assets.add(textureAsset);
