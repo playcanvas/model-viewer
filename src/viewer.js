@@ -276,7 +276,8 @@ Object.assign(Viewer.prototype, {
                     // assume jps/pngs are RGBM
                     texture.type = pc.TEXTURETYPE_RGBM;
                 }
-                if (texture.type === pc.TEXTURETYPE_RGBL) {
+                if (texture.type === pc.TEXTURETYPE_RGBE) {
+                    // you can't filter RGBE pixels
                     texture.minFilter = pc.FILTER_NEAREST;
                 }
                 self._initSkyboxFromTexture(texture);
