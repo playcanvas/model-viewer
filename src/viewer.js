@@ -457,7 +457,7 @@ Object.assign(Viewer.prototype, {
                 return url.filename === gltfTexture.uri;
             });
             if (u) {
-                var textureAsset = new pc.Asset(u.filename, 'texture', { url: u.url, filename: u.filename }, { flipY: false } );
+                var textureAsset = new pc.Asset(u.filename, 'texture', { url: u.url, filename: u.filename });
                 textureAsset.on('load', function () {
                     continuation(null, textureAsset);
                 });
@@ -473,7 +473,7 @@ Object.assign(Viewer.prototype, {
                 return url.filename === gltfBuffer.uri;
             });
             if (u) {
-                var bufferAsset = new pc.Asset(u.filename, 'binary', { url: u.url, filename: u.filename }, null );
+                var bufferAsset = new pc.Asset(u.filename, 'binary', { url: u.url, filename: u.filename });
                 bufferAsset.on('load', function () {
                     continuation(null, new Uint8Array(bufferAsset.resource));
                 });
