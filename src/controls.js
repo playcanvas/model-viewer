@@ -82,12 +82,14 @@ var animList = document.getElementById('anim-list');
 // called when animations are loaded
 var onAnimationsLoaded = function (animationList) {
     // clear previous list
-    animList.innerHTML = "";
+    while (animList.firstChild) {
+        animList.removeChild(animList.firstChild);
+    }
 
     var theviewer = viewer;
     for (var i = 0; i < animationList.length; ++i) {
         var button = document.createElement('button');
-        button.innerHTML += animationList[i];
+        button.textContent += animationList[i];
         button.onclick = (function (animation) {
             return function () {
                 theviewer.play(animation);
@@ -102,7 +104,9 @@ var onAnimationsLoaded = function (animationList) {
 var morphListElement = document.getElementById('morph-targets');
 
 var onMorphTargetsLoaded = function (morphList) {
-    morphListElement.innerHTML = "";
+    while (morphListElement.firstChild) {
+        morphListElement.removeChild(morphListElement.firstChild);
+    }
     morphListElement.height = 150;
 
     var theviewer = viewer;
@@ -110,7 +114,7 @@ var onMorphTargetsLoaded = function (morphList) {
         var morph = morphList[i];
         var input;
         var label = document.createElement('label');
-        label.innerHTML += morph.name;
+        label.textContent += morph.name;
         label.style.width = "130px";
 
         if (morph.hasOwnProperty("weight")) {
