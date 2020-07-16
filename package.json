@@ -26,10 +26,12 @@
   },
   "dependencies": {},
   "devDependencies": {
+    "@playcanvas/eslint-config": "^1.0.6",
     "eslint": "^7.3.1",
-    "@playcanvas/eslint-config": "^1.0.6"
+    "http-server": "^0.12.3"
   },
   "scripts": {
-    "lint": "eslint --ext .js scripts src"
+    "lint": "eslint --ext .js scripts src",
+    "serve": "http-server . -a localhost -p 8080"
   }
 }
