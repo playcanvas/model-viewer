@@ -26,6 +26,7 @@ var Viewer = function (canvas) {
     window.addEventListener("resize", function () {
         var canvasSize = getCanvasSize();
         app.resizeCanvas(canvasSize.width, canvasSize.height);
+        app.renderNextFrame = true;
     });
 
     // create the orbit camera
