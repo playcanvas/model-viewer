@@ -17,7 +17,7 @@ body {
 }
 
 #panel {
-    width: 250px;
+    width: 300px;
     height: 100%;
     background-color: #374346;
     overflow-y: overlay;
@@ -104,4 +104,36 @@ input {
 
 #scrub-container input {
     width: 40px;
+}
+
+.panel-option {
+    display: flex;
+}
+
+.panel-option > .pcui-label {
+    min-width: 30%;
+    font-size: 14px;
+}
+
+.panel-option > .pcui-select-input {
+    flex-grow: 1;
+}
+
+.animation-buttons {
+    display: flex;
+}
+
+.animation-list-container {
+    display: flex;
+    flex-direction: column;
+    margin-right: 12px;
+}
+
+.morph-target-panel {
+    margin: 6px;
+    border: 1px solid #232e30 !important;
+}
+
+.morph-target-label {
+    min-width: 24% !important;
 }

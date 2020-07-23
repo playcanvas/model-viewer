@@ -12,7 +12,7 @@ var Viewer = function (canvas) {
 
     var getCanvasSize = function () {
         return {
-            width: document.body.clientWidth - 250,
+            width: document.body.clientWidth - 300,
             height: document.body.clientHeight
         };
     };

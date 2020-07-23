@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
     <link rel="icon" type="image/png" href="./playcanvas-logo.png" />
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="static/css/main.f437aff0.chunk.css">
     <script>
         // extract query params. taken from https://stackoverflow.com/a/21152762
         var urlParams = {};
@@ -38,44 +39,13 @@
     <div id="flex-container">
         <div id="panel">
             <div class="header" href="#"><a href="#"><img src="playcanvas-logo.png"/><div><b>PLAY</b>CANVAS <span>viewer</span></div></a></div>
-            <h3>SHOW</h3>
-            <div class="controls">
-                <div><label>Shiny Ball</label><input id="shiny" type="checkbox"></input></div>
-                <div><label>Stats</label><input id="stats" type="checkbox"></input></div>
-                <div><label>Wframe</label><input id="wireframe" type="checkbox"></input></div>
-                <div><label>Bounds</label><input id="bounds" type="checkbox"></input></div>
-                <div><label>Skeleton</label><input id="skeleton" type="checkbox"></input></div>
-                <div><label>Normals</label><input id="normals" type="range" min="0" max="1" value="0" step="any"></input></div>
-                <div><label>Fov</label><input id="fov" type="range" min="30" max="150" value="75" step="any"></input></div>
-            </div>
-            <h3>LIGHTING</h3>
-            <div class="controls">
-                <div><label>Skybox</label>
-                    <select id="skybox">
-                        <option value="">None</option>
-                    </select>
-                </div>
-                <div><label>Direct</label><input id="directl" type="range" min="0" max="6" value="1" step="any"></input></div>
-                <div><label>Env</label><input id="envl" type="range" min="0" max="6" value="1" step="any"></input></div>
-            </div>
-            <h3>ANIMATION</h3>
-            <div class="controls">
-                <div id="scrub-container">
-                    <input id="play" type='button' value="&#x25b6;" />
-                    <input id="stop" type='button' value="&#x25fc;" />
-                </div>
-                <div><label>Speed</label><input id="speed" type="range" min="0" max="2" value="1" step="any"></input></div>
-                <div><label>Graphs</label><input id="graphs" type="checkbox"></input></div>
-                <ul id="anim-list"></ul>
-            </div>
-            <h3>MORPH TARGETS</h3>
-            <div class="controls">
-                <ul id="morph-targets"></ul>
-            </div>
+            <div id="controls"></div>
         </div>
         <!-- The canvas element -->
         <canvas id="application-canvas"></canvas>
     </div>
+    <script src="./static/js/main.e4d9c307.chunk.js"></script>
+    <script src="./static/js/runtime-main.8ff4e7ef.js"></script>
     <script src="./src/viewer.js"></script>
     <script src="./src/controls.js"></script>
     <script src="./src/graph.js"></script>
