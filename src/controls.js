@@ -145,7 +145,7 @@ var handleAssetManifest = function (err, result) {      // eslint-disable-line n
             v: null, t: 'None'
         }];
         result.skyboxes.forEach(function (skybox) {
-            skyboxOptions.push({v: skybox.url, t: skybox.label});
+            skyboxOptions.push({ v: skybox.url, t: skybox.label });
         });
         lightingPanel.buildDom([buildSelect('skybox', 'string', skyboxOptions)]);
 
@@ -172,17 +172,17 @@ var animationPanelDom = function () {
                 {
                     playButton: new pcui.Button({
                         icon: 'E286'
-                    }),
+                    })
                 },
                 {
                     stopButton: new pcui.Button({
                         icon: 'E376'
-                    }),
+                    })
                 }
             ]
         },
         buildSlider('speed', 2, 0, 2, 1),
-        buildToggle('graphs'),
+        buildToggle('graphs')
     ];
 };
 
@@ -223,7 +223,7 @@ var onAnimationsLoaded = function (animationList) {
 
     var theviewer = viewer;
     for (var i = 0; i < animationList.length; ++i) {
-        var button = new pcui.Button({text: animationList[i]});
+        var button = new pcui.Button({ text: animationList[i] });
         button.on('click', (function (animation) {
             return function () {
                 theviewer.play(animation);
