@@ -290,6 +290,6 @@ var onSceneReset = function () {
         delete morphTargetPanel._morphTargetList;
     }
     document.getElementById('panel').style.overflowY = 'overlay';
-}
+};
 
 // /* eslint-enable no-unused-vars */
