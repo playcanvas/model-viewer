@@ -2,7 +2,7 @@
 
 var controlsDiv = document.getElementById('controls');
 
-var buildToggle = function (name) {
+var buildToggle = function (name, label) {
     var toggleDom = {
         root: {},
         children: [
@@ -13,7 +13,7 @@ var buildToggle = function (name) {
         class: 'panel-option'
     });
     toggleDom.children[0][name + 'ToggleLabel'] = new pcui.Label({
-        text: name
+        text: label ? label : name.substring(0, 1).toUpperCase() + name.substring(1, name.length)
     });
     toggleDom.children[1][name + 'Toggle'] = new pcui.BooleanInput({
         type: 'toggle'
@@ -21,7 +21,7 @@ var buildToggle = function (name) {
     return toggleDom;
 };
 
-var buildSlider = function (name, precision, min, max, value) {
+var buildSlider = function (name, precision, min, max, value, label) {
     var sliderDom = {
         root: {},
         children: [
@@ -32,7 +32,7 @@ var buildSlider = function (name, precision, min, max, value) {
         class: 'panel-option'
     });
     sliderDom.children[0][name + 'SliderLabel'] = new pcui.Label({
-        text: name
+        text: label ? label : name.substring(0, 1).toUpperCase() + name.substring(1, name.length)
     });
     sliderDom.children[1][name + 'Slider'] = new pcui.SliderInput({
         min: min,
@@ -46,7 +46,7 @@ var buildSlider = function (name, precision, min, max, value) {
     return sliderDom;
 };
 
-var buildSelect = function (name, type, options) {
+var buildSelect = function (name, type, options, label) {
     var selectDom = {
         root: {},
         children: [
@@ -57,7 +57,7 @@ var buildSelect = function (name, type, options) {
         class: 'panel-option'
     });
     selectDom.children[0][name + 'SelectLabel'] = new pcui.Label({
-        text: name
+        text: label ? label : name.substring(0, 1).toUpperCase() + name.substring(1, name.length)
     });
     selectDom.children[1][name + 'Select'] = new pcui.SelectInput({
         type: type,
@@ -70,7 +70,7 @@ var buildSelect = function (name, type, options) {
 
 var showPanelDom = function () {
     return [
-        buildToggle('shiny'),
+        buildToggle('shiny', 'Shiny Ball'),
         buildToggle('stats'),
         buildToggle('wireframe'),
         buildToggle('bounds'),
