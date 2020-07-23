@@ -2,7 +2,7 @@
 
 var controlsDiv = document.getElementById('controls');
 
-var buildToggle = function(name) {
+var buildToggle = function (name) {
     var toggleDom = {
         root: {},
         children: [
@@ -21,7 +21,7 @@ var buildToggle = function(name) {
     return toggleDom;
 };
 
-var buildSlider = function(name, precision, min, max, value) {
+var buildSlider = function (name, precision, min, max, value) {
     var sliderDom = {
         root: {},
         children: [
@@ -46,7 +46,7 @@ var buildSlider = function(name, precision, min, max, value) {
     return sliderDom;
 };
 
-var buildSelect = function(name, type, options) {
+var buildSelect = function (name, type, options) {
     var selectDom = {
         root: {},
         children: [
@@ -68,7 +68,7 @@ var buildSelect = function(name, type, options) {
 
 /* SHOW PANEL */
 
-var showPanelDom = function() {
+var showPanelDom = function () {
     return [
         buildToggle('shiny'),
         buildToggle('stats'),
@@ -87,25 +87,25 @@ var showPanel = new pcui.Panel({
 
 showPanel.buildDom(showPanelDom());
 
-showPanel._shinyToggle.on('change', function(value) {
+showPanel._shinyToggle.on('change', function (value) {
     viewer.setShowShinyBall(value);
 });
-showPanel._statsToggle.on('change', function(value) {
+showPanel._statsToggle.on('change', function (value) {
     viewer.setStats(value);
 });
-showPanel._wireframeToggle.on('change', function(value) {
+showPanel._wireframeToggle.on('change', function (value) {
     viewer.setShowWireframe(value);
 });
-showPanel._boundsToggle.on('change', function(value) {
+showPanel._boundsToggle.on('change', function (value) {
     viewer.setShowBounds(value);
 });
-showPanel._skeletonToggle.on('change', function(value) {
+showPanel._skeletonToggle.on('change', function (value) {
     viewer.setShowSkeleton(value);
 });
-showPanel._normalsSlider.on('change', function(value) {
+showPanel._normalsSlider.on('change', function (value) {
     viewer.setNormalLength(Number.parseFloat(value));
 });
-showPanel._fovSlider.on('change', function(value) {
+showPanel._fovSlider.on('change', function (value) {
     viewer.setFov(Number.parseFloat(value));
 });
 
@@ -113,7 +113,7 @@ controlsDiv.append(showPanel.dom);
 
 /* LIGHTING PANEL */
 
-var lightingPanelDom = function() {
+var lightingPanelDom = function () {
     return [
         buildSlider('direct', 2, 0, 6, 1),
         buildSlider('env', 2, 0, 6, 1)
@@ -127,10 +127,10 @@ var lightingPanel = new pcui.Panel({
 
 lightingPanel.buildDom(lightingPanelDom());
 
-lightingPanel._directSlider.on('change', function(value) {
+lightingPanel._directSlider.on('change', function (value) {
     viewer.setDirectLighting(Number.parseFloat(value));
 });
-lightingPanel._envSlider.on('change', function(value) {
+lightingPanel._envSlider.on('change', function (value) {
     viewer.setEnvLighting(Number.parseFloat(value));
 });
 
@@ -149,7 +149,7 @@ var handleAssetManifest = function (err, result) {      // eslint-disable-line n
         });
         lightingPanel.buildDom([buildSelect('skybox', 'string', skyboxOptions)]);
 
-        lightingPanel._skyboxSelect.on('change', function(value) {
+        lightingPanel._skyboxSelect.on('change', function (value) {
             if (value) {
                 viewer.load(value);
             } else {
@@ -160,7 +160,7 @@ var handleAssetManifest = function (err, result) {      // eslint-disable-line n
 };
 /* ANIMATION PANEL */
 
-var animationPanelDom = function() {
+var animationPanelDom = function () {
     return [
         {
             root: {
@@ -193,24 +193,24 @@ var animationPanel = new pcui.Panel({
 
 animationPanel.buildDom(animationPanelDom());
 
-animationPanel._playButton.on('click', function() {
+animationPanel._playButton.on('click', function () {
     viewer.play();
 });
-animationPanel._stopButton.on('click', function() {
+animationPanel._stopButton.on('click', function () {
     viewer.stop();
 });
-animationPanel._speedSlider.on('change', function(value) {
+animationPanel._speedSlider.on('change', function (value) {
     viewer.setSpeed(Number.parseFloat(value));
 });
-animationPanel._graphsToggle.on('change', function(value) {
+animationPanel._graphsToggle.on('change', function (value) {
     viewer.setShowGraphs(value);
 });
 
 controlsDiv.append(animationPanel.dom);
 
-// /* eslint-disable no-unused-vars */
+/* eslint-disable no-unused-vars */
 
-// // called when animations are loaded
+// called when animations are loaded
 var onAnimationsLoaded = function (animationList) {
     if (animationPanel._animationList) {
         animationPanel.remove(animationPanel._animationList);
