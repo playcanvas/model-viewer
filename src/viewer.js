@@ -409,6 +409,8 @@ Object.assign(Viewer.prototype, {
         this.graph.clear();
         this.meshInstances = [];
 
+        onSceneReset();
+
         this.animationMap = { };
         onAnimationsLoaded([]);
 

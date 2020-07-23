@@ -250,6 +250,8 @@ var onMorphTargetsLoaded = function (morphList) {
         delete morphTargetPanel._morphTargetList;
     }
 
+    if (morphList.length === 0) return;
+
     morphTargetPanel._morphTargetList = new pcui.Container({
         class: 'morph-target-list-container'
     });
@@ -281,5 +283,13 @@ var onMorphTargetsLoaded = function (morphList) {
     morphTargetPanel.append(morphTargetPanel._morphTargetList);
     document.getElementById('panel').style.overflowY = 'scroll';
 };
+
+var onSceneReset = function () {
+    if (morphTargetPanel._morphTargetList) {
+        morphTargetPanel.remove(morphTargetPanel._morphTargetList);
+        delete morphTargetPanel._morphTargetList;
+    }
+    document.getElementById('panel').style.overflowY = 'overlay';
+}
 
 // /* eslint-enable no-unused-vars */
