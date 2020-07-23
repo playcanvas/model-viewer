@@ -32,6 +32,7 @@
     <script src="./scripts/hdr-texture.js"></script>
     <script src="./scripts/download-texture.js"></script>
     <script src="./scripts/wasm-loader.js"></script>
+    <script src="./lib/meshopt/meshopt_decoder.js"></script>
 </head>
 
 <body onload="main()">
@@ -69,9 +70,7 @@
                 <ul id="anim-list"></ul>
             </div>
             <h3>MORPH TARGETS</h3>
-            <div class="controls">
-                <ul id="morph-targets"></ul>
-            </div>
+            <table class="controls" id="morph-target-table"></table>
         </div>
         <!-- The canvas element -->
         <canvas id="application-canvas"></canvas>

@@ -101,31 +101,29 @@ var onAnimationsLoaded = function (animationList) {
     }
 };
 
-var morphListElement = document.getElementById('morph-targets');
-
+var table = document.getElementById('morph-target-table');
 var onMorphTargetsLoaded = function (morphList) {
-    while (morphListElement.firstChild) {
-        morphListElement.removeChild(morphListElement.firstChild);
+    while (table.firstChild) {
+        table.removeChild(table.firstChild);
     }
-    morphListElement.height = 150;
 
     var theviewer = viewer;
     for (var i = 0; i < morphList.length; ++i) {
         var morph = morphList[i];
-        var input;
-        var label = document.createElement('label');
-        label.textContent += morph.name;
-        label.style.width = "130px";
 
+        var row = document.createElement('tr');
+
+        var label = document.createElement('td');
+        label.textContent = morph.name.substring(0, 10);
+        row.appendChild(label);
+
+        var input = document.createElement('input');
+        input.style.width = "100%";
+        input.step = 'any';
+        input.type = 'range';
+        input.min = 0;
+        input.max = 1;
         if (morph.hasOwnProperty("weight")) {
-
-            input = document.createElement('input');
-            input.style.width = "100px";
-            input.class = 'setting';
-            input.step = 'any';
-            input.type = 'range';
-            input.min = 0;
-            input.max = 1;
             input.value = morph.weight.toString();
             input.oninput = (function (morph) {
                 return function () {
@@ -134,14 +132,18 @@ var onMorphTargetsLoaded = function (morphList) {
             })(morph.name);
         }
 
-        var div = document.createElement('div');
-        div.appendChild(label);
+        var inputTd = document.createElement('td');
+        inputTd.appendChild(input);
+        row.appendChild(inputTd);
 
-        if (input) {
-            div.appendChild(input);
-        }
+        // var div = document.createElement('div');
+        // div.appendChild(label);
 
-        morphListElement.appendChild(div);
+        // if (input) {
+        //     div.appendChild(input);
+        // }
+
+        table.appendChild(row);
     }
 };
 

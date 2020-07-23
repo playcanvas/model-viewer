@@ -453,7 +453,45 @@ Object.assign(Viewer.prototype, {
 
     // load glb model
     _loadGlb: function (url) {
-        this.app.assets.loadFromUrlAndFilename(url.url, url.filename, "container", this._onLoaded.bind(this));
+        var self = this;
+
+        var processBufferView = function (gltfBuffer, buffers, continuation) {
+            if (gltfBuffer.extensions && gltfBuffer.extensions['EXT_meshopt_compression']) {
+                var extensionDef = gltfBuffer.extensions['EXT_meshopt_compression'];
+
+                var decoder = MeshoptDecoder;
+
+                decoder.ready.then(function (res) {
+                    var byteOffset = extensionDef.byteOffset || 0;
+                    var byteLength = extensionDef.byteLength || 0;
+
+                    var count = extensionDef.count;
+                    var stride = extensionDef.byteStride;
+
+                    var result = new Uint8Array(count * stride);
+                    var source = new Uint8Array(buffers[extensionDef.buffer].buffer,
+                                                buffers[extensionDef.buffer].byteOffset + byteOffset,
+                                                byteLength);
+
+                    decoder.decodeGltfBuffer(result, count, stride, source, extensionDef.mode, extensionDef.filter);
+
+                    continuation(null, result);
+                });
+            } else {
+                continuation(null, null);
+            }
+        };
+
+        var containerAsset = new pc.Asset(url, 'container', url, null, {
+            bufferView: {
+                processAsync: processBufferView
+            }
+        });
+        containerAsset.on('load', function () {
+            self._onLoaded(null, containerAsset);
+        });
+        self.app.assets.add(containerAsset);
+        self.app.assets.load(containerAsset);
     },
 
     // load gltf model given its url and list of external urls
@@ -472,7 +510,7 @@ Object.assign(Viewer.prototype, {
                 self.app.assets.add(textureAsset);
                 self.app.assets.load(textureAsset);
             } else {
-                continuation("failed to load uri=" + gltfTexture.uri);
+                continuation(null, null);
             }
         };
 
@@ -488,7 +526,7 @@ Object.assign(Viewer.prototype, {
                 self.app.assets.add(bufferAsset);
                 self.app.assets.load(bufferAsset);
             } else {
-                continuation("failed to load uri=" + gltfBuffer.uri);
+                continuation(null, null);
             }
         };
 
