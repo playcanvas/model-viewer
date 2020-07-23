@@ -7,6 +7,25 @@
     <link rel="icon" type="image/png" href="./playcanvas-logo.png" />
     <link rel="stylesheet" href="http://code.playcanvas.com/pcui.css">
     <link rel="stylesheet" href="style.css">
+    <script src="./playcanvas-extras.js"></script>
+    <script src="./scripts/hdr-texture.js"></script>
+    <script src="./scripts/download-texture.js"></script>
+    <script src="./scripts/wasm-loader.js"></script>
+</head>
+
+<body onload="main()">
+    <div id="flex-container">
+        <div id="panel">
+            <div class="header" href="#"><a href="#"><img src="playcanvas-logo.png"/><div><b>PLAY</b>CANVAS <span>viewer</span></div></a></div>
+            <div id="controls"></div>
+        </div>
+        <!-- The canvas element -->
+        <canvas id="application-canvas"></canvas>
+    </div>
+    <script src="http://code.playcanvas.com/pcui-main.chunk.js"></script>
+    <script src="http://code.playcanvas.com/pcui-runtime-main.js"></script>
+    <script src="./src/viewer.js"></script>
+    <script src="./src/controls.js"></script>
     <script>
         // extract query params. taken from https://stackoverflow.com/a/21152762
         var urlParams = {};
@@ -29,25 +48,6 @@
         };
         document.head.appendChild(engineScript);
     </script>
-    <script src="./playcanvas-extras.js"></script>
-    <script src="./scripts/hdr-texture.js"></script>
-    <script src="./scripts/download-texture.js"></script>
-    <script src="./scripts/wasm-loader.js"></script>
-</head>
-
-<body onload="main()">
-    <div id="flex-container">
-        <div id="panel">
-            <div class="header" href="#"><a href="#"><img src="playcanvas-logo.png"/><div><b>PLAY</b>CANVAS <span>viewer</span></div></a></div>
-            <div id="controls"></div>
-        </div>
-        <!-- The canvas element -->
-        <canvas id="application-canvas"></canvas>
-    </div>
-    <script src="http://code.playcanvas.com/pcui-main.chunk.js"></script>
-    <script src="http://code.playcanvas.com/pcui-runtime-main.js"></script>
-    <script src="./src/viewer.js"></script>
-    <script src="./src/controls.js"></script>
     <script src="./src/graph.js"></script>
     <script src="./src/debug.js"></script>
 </body>

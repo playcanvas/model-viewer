@@ -21,6 +21,7 @@ body {
     height: 100%;
     background-color: #374346;
     overflow-y: overlay;
+    user-select: none;
 }
 
 #application-canvas {
