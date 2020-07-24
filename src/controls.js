@@ -1,4 +1,5 @@
 import * as pcui from './lib/pcui.js';
+import { http } from 'playcanvas';
 
 // Build controls
 var controlsDiv = document.getElementById('controls');
@@ -109,8 +110,14 @@ lightingPanel.buildDom(lightingPanelDom());
 controlsDiv.append(lightingPanel.dom);
 
 // populate select inputs with manifest assets
-export var handleAssetManifest = function(viewer) {
-    return function (err, result) {      // eslint-disable-line no-unused-vars
+http.get(
+    "asset_manifest.json",
+    {
+        cache: true,
+        responseType: "text",
+        retry: false
+    },
+    function (err, result) {      // eslint-disable-line no-unused-vars
         if (err) {
             console.warn(err);
         } else {
@@ -131,7 +138,7 @@ export var handleAssetManifest = function(viewer) {
             });
         }
     }
-};
+);
 
 /* ANIMATION PANEL */
 

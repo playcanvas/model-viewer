@@ -164,6 +164,17 @@ var Viewer = function (canvas, onSceneReset, onAnimationsLoaded, onMorphTargetsL
     // start the application
     app.start();
 
+    // extract query params. taken from https://stackoverflow.com/a/21152762
+    var urlParams = {};
+    if (location.search) {
+        location.search.substr(1).split("&").forEach(function (item) {
+            var s = item.split("="),
+                k = s[0],
+                v = s[1] && decodeURIComponent(s[1]);
+            (urlParams[k] = urlParams[k] || []).push(v);
+        });
+    }
+
     // load urls
     // var loadUrls = (urlParams.load || []).concat(urlParams.assetUrl || []);
     // if (loadUrls.length > 0) {
@@ -474,14 +485,36 @@ Object.assign(Viewer.prototype, {
         light.light.shadowDistance = distance * 2;
     },
 
-    // load glb model
-    _loadGlb: function (url) {
-        this.app.assets.loadFromUrlAndFilename(url.url, url.filename, "container", this._onLoaded.bind(this));
-    },
-
     // load gltf model given its url and list of external urls
     _loadGltf: function (gltfUrl, externalUrls) {
         var self = this;
+
+        var processBufferView = function (gltfBuffer, buffers, continuation) {
+            if (gltfBuffer.extensions && gltfBuffer.extensions.EXT_meshopt_compression) {
+                var extensionDef = gltfBuffer.extensions.EXT_meshopt_compression;
+
+                var decoder = MeshoptDecoder;
+
+                decoder.ready.then(function (res) {
+                    var byteOffset = extensionDef.byteOffset || 0;
+                    var byteLength = extensionDef.byteLength || 0;
+
+                    var count = extensionDef.count;
+                    var stride = extensionDef.byteStride;
+
+                    var result = new Uint8Array(count * stride);
+                    var source = new Uint8Array(buffers[extensionDef.buffer].buffer,
+                                                buffers[extensionDef.buffer].byteOffset + byteOffset,
+                                                byteLength);
+
+                    decoder.decodeGltfBuffer(result, count, stride, source, extensionDef.mode, extensionDef.filter);
+
+                    continuation(null, result);
+                });
+            } else {
+                continuation(null, null);
+            }
+        };
 
         var processTexture = function (gltfTexture, continuation) {
             var u = externalUrls.find(function (url) {
@@ -495,7 +528,7 @@ Object.assign(Viewer.prototype, {
                 self.app.assets.add(textureAsset);
                 self.app.assets.load(textureAsset);
             } else {
-                continuation("failed to load uri=" + gltfTexture.uri);
+                continuation(null, null);
             }
         };
 
@@ -511,11 +544,14 @@ Object.assign(Viewer.prototype, {
                 self.app.assets.add(bufferAsset);
                 self.app.assets.load(bufferAsset);
             } else {
-                continuation("failed to load uri=" + gltfBuffer.uri);
+                continuation(null, null);
             }
         };
 
         var containerAsset = new pc.Asset(gltfUrl.filename, 'container', gltfUrl, null, {
+            bufferView: {
+                processAsync: processBufferView
+            },
             texture: {
                 processAsync: processTexture
             },
@@ -547,44 +583,20 @@ Object.assign(Viewer.prototype, {
             } : url;
         });
 
-        var ext = function (filename) {
-            return pc.path.getExtension(filename).toLowerCase();
-        };
-
-        // extract gltf url
-        var gltfUrl;
-        var externalUrls = urls.filter(function (url) {
-            switch (ext(url.filename)) {
-                case '.gltf':
-                    gltfUrl = url;
-                    return false;
-                default:
-                    return true;
+        // step through urls loading gltf/glb models
+        var self = this;
+        var result = false;
+        urls.forEach(function (url) {
+            var filenameExt = pc.path.getExtension(url.filename).toLowerCase();
+            if (filenameExt === '.gltf' || filenameExt === '.glb') {
+                self._loadGltf(url, urls);
+                result = true;
             }
         });
 
-        var result = false;
-        var self = this;
-        if (gltfUrl) {
-            self._loadGltf(gltfUrl, externalUrls);
-            result = true;
-        } else {
-            // load glbs
-            var imageUrls = urls.filter(function (url) {
-                switch (ext(url.filename)) {
-                    case '.glb':
-                        self._loadGlb(url);
-                        result = true;
-                        return false;
-                    default:
-                        return true;
-                }
-            });
-
-            // load textures
-            if (imageUrls.length > 0) {
-                self._loadSkybox(imageUrls);
-            }
+        if (!result) {
+            // if no models were loaded, load the files as skydome images instead
+            self._loadSkybox(urls);
         }
 
         // return true if a model/scene was loaded and false otherwise
@@ -728,6 +740,31 @@ Object.assign(Viewer.prototype, {
     _dropHandler: function (event) {
         var self = this;
 
+        var removeCommonPrefix = function (urls) {
+            var split = function (pathname) {
+                var parts = pathname.split(pc.path.delimiter);
+                var base = parts[0];
+                var rest = parts.slice(1).join(pc.path.delimiter);
+                return [base, rest];
+            };
+            while (true) {
+                var parts = split(urls[0].filename);
+                if (parts[1].length === 0) {
+                    return;
+                }
+                var i;
+                for (i = 1; i < urls.length; ++i) {
+                    var other = split(urls[i].filename);
+                    if (parts[0] !== other[0]) {
+                        return;
+                    }
+                }
+                for (i = 0; i < urls.length; ++i) {
+                    urls[i].filename = split(urls[i].filename)[1];
+                }
+            }
+        };
+
         var resolveFiles = function (entries) {
             var urls = [];
             entries.forEach(function (entry) {
@@ -737,6 +774,12 @@ Object.assign(Viewer.prototype, {
                         filename: entry.fullPath.substring(1)
                     });
                     if (urls.length === entries.length) {
+                        // remove common prefix from files in order to support dragging in the
+                        // root of a folder containing related assets
+                        if (urls.length > 1) {
+                            removeCommonPrefix(urls);
+                        }
+
                         // if a scene was loaded (and not just a skybox), clear the current scene
                         if (self.load(urls) && !event.shiftKey) {
                             self.resetScene();

@@ -2,7 +2,7 @@ import * as pc from 'playcanvas';
 import { wasmSupported, loadWasmModuleAsync } from './lib/wasm-loader.js';
 
 import Viewer from './viewer.js';
-import { handleAssetManifest, onSceneReset, onAnimationsLoaded, onMorphTargetsLoaded, registerElementEvents } from './controls.js';
+import { onSceneReset, onAnimationsLoaded, onMorphTargetsLoaded, registerElementEvents } from './controls.js';
 
 import './style.css';
 
@@ -12,7 +12,6 @@ var viewer;
 function startViewer() {
     viewer = new Viewer(document.getElementById("application-canvas"), onSceneReset, onAnimationsLoaded, onMorphTargetsLoaded);
     registerElementEvents(viewer);
-    pc.http.get("asset_manifest.json", { cache: true, responseType: "text", retry: false }, handleAssetManifest(viewer));
 }
 
 pc.basisDownload(
