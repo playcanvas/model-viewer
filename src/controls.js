@@ -285,7 +285,7 @@ export var registerElementEvents = function (viewer) {
         viewer.setFov(Number.parseFloat(value));
     });
 
-    //Lighting events
+    // Lighting events
     lightingPanel._directSlider.on('change', function (value) {
         viewer.setDirectLighting(Number.parseFloat(value));
     });
@@ -293,7 +293,7 @@ export var registerElementEvents = function (viewer) {
         viewer.setEnvLighting(Number.parseFloat(value));
     });
 
-    //Animation events
+    // Animation events
     animationPanel._playButton.on('click', function () {
         viewer.play();
     });
@@ -306,6 +306,6 @@ export var registerElementEvents = function (viewer) {
     animationPanel._graphsToggle.on('change', function (value) {
         viewer.setShowGraphs(value);
     });
-}
+};
 
 // /* eslint-enable no-unused-vars */

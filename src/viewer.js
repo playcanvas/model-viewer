@@ -175,22 +175,6 @@ var Viewer = function (canvas, onSceneReset, onAnimationsLoaded, onMorphTargetsL
         });
     }
 
-    // load urls
-    // var loadUrls = (urlParams.load || []).concat(urlParams.assetUrl || []);
-    // if (loadUrls.length > 0) {
-    //     this.load(loadUrls);
-    // }
-
-    var urlParams = {};
-    if (location.search) {
-        location.search.substr(1).split("&").forEach(function (item) {
-            var s = item.split("="),
-                k = s[0],
-                v = s[1] && decodeURIComponent(s[1]);
-            (urlParams[k] = urlParams[k] || []).push(v);
-        });
-    }
-
     // set camera position
     if (urlParams.hasOwnProperty('cameraPosition')) {
         var pos = urlParams.cameraPosition[0].split(',').map(Number);

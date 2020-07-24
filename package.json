@@ -37,7 +37,7 @@
     "webpack-cli": "^3.3.12"
   },
   "scripts": {
-    "lint": "eslint --ext .js scripts src",
+    "lint": "eslint --ignore-pattern 'src/lib' --ext .js src",
     "serve": "http-server . -a localhost -p 8080",
     "watch": "node_modules/.bin/webpack --config webpack.config.js --watch",
     "build:local": "node_modules/.bin/webpack --env.production --config webpack.config.js",
