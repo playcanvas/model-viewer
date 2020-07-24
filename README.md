@@ -1,3 +1,4 @@
 # playcanvas-viewer
 
-This repo contains the PlayCanvas model viewer.
+The PlayCanvas glTF and GLB model viewer.
+

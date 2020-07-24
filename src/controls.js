@@ -137,27 +137,36 @@ lightingPanel._envSlider.on('change', function (value) {
 controlsDiv.append(lightingPanel.dom);
 
 // populate select inputs with manifest assets
-var handleAssetManifest = function (err, result) {      // eslint-disable-line no-unused-vars
-    if (err) {
-        console.warn(err);
-    } else {
-        var skyboxOptions = [{
-            v: null, t: 'None'
-        }];
-        result.skyboxes.forEach(function (skybox) {
-            skyboxOptions.push({ v: skybox.url, t: skybox.label });
-        });
-        lightingPanel.buildDom([buildSelect('skybox', 'string', skyboxOptions)]);
+pc.http.get(
+    "asset_manifest.json",
+    {
+        cache: true,
+        responseType: "text",
+        retry: false
+    },
+    function (err, result) {      // eslint-disable-line no-unused-vars
+        if (err) {
+            console.warn(err);
+        } else {
+            var skyboxOptions = [{
+                v: null, t: 'None'
+            }];
+            result.skyboxes.forEach(function (skybox) {
+                skyboxOptions.push({ v: skybox.url, t: skybox.label });
+            });
+            lightingPanel.buildDom([buildSelect('skybox', 'string', skyboxOptions)]);
 
-        lightingPanel._skyboxSelect.on('change', function (value) {
-            if (value) {
-                viewer.load(value);
-            } else {
-                viewer.clearSkybox();
-            }
-        });
+            lightingPanel._skyboxSelect.on('change', function (value) {
+                if (value) {
+                    viewer.load(value);
+                } else {
+                    viewer.clearSkybox();
+                }
+            });
+        }
     }
-};
+);
+
 /* ANIMATION PANEL */
 
 var animationPanelDom = function () {

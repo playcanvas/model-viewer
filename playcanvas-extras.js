@@ -1,6 +1,6 @@
 /**
  * @license
- * PlayCanvas Engine v1.33.0-dev revision 508c108d
+ * PlayCanvas Engine v1.33.0-dev revision 1360e956
  * Copyright 2011-2020 PlayCanvas Ltd. All rights reserved.
  */
 (function (global, factory) {
@@ -451,6 +451,7 @@
 			dest.set([0, 0, 0, 255], i * 4);
 		}
 		texture.unlock();
+		device.setTexture(texture, 0);
 		var graphs = [
 			new Graph('Frame', app, new FrameTimer(app), texture, 1),
 			new Graph('CPU', app, new CpuTimer(app), texture, 2)
