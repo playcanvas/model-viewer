@@ -38,10 +38,9 @@
             });
         }
 
-        // load the engine with optional use_local_engine override
-        var localEngineUrl = urlParams.hasOwnProperty('use_local_engine') ? urlParams.use_local_engine[0] : null;
+        // load the engine
         var engineScript = document.createElement('script');
-        engineScript.setAttribute('src', localEngineUrl || "./playcanvas.js");
+        engineScript.setAttribute('src', "./playcanvas.js");
         engineScript.onload = function () {
             // load the asset manifest
             pc.http.get("asset_manifest.json", { cache: true, responseType: "text", retry: false }, handleAssetManifest);
