@@ -220,3 +220,5 @@ Object.assign(HdrParser.prototype, {
         // #endif
     }
 });
+
+export default HdrParser;

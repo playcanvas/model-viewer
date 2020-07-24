@@ -1,8 +1,18 @@
-var assetsFolder = ".";
+import * as pc from 'playcanvas';
+import { MiniStats } from 'playcanvas/build/playcanvas-extras.js';
+import Graph from './graph.js';
+import DebugLines from './debug.js';
+import HdrParser from './lib/hdr-texture.js';
+import MeshoptDecoder from './lib/meshopt_decoder.js';
+import { getAssetPath } from './helpers.js';
 
-var Viewer = function (canvas) {
+var Viewer = function (canvas, onSceneReset, onAnimationsLoaded, onMorphTargetsLoaded) {
 
     var self = this;
+
+    this.onSceneReset = onSceneReset;
+    this.onAnimationsLoaded = onAnimationsLoaded;
+    this.onMorphTargetsLoaded = onMorphTargetsLoaded;
 
     // create the application
     var app = new pc.Application(canvas, {
@@ -38,7 +48,7 @@ var Viewer = function (canvas) {
 
     // load orbit script
     app.assets.loadFromUrl(
-        assetsFolder + "/scripts/orbit-camera.js",
+        getAssetPath("scripts/orbit-camera.js"),
         "script",
         function (err, asset) {
             // setup orbit script component
@@ -127,13 +137,11 @@ var Viewer = function (canvas) {
     this.debugNormals = new DebugLines(app, camera);
 
     // construct ministats, default off
-    this.miniStats = new pcx.MiniStats(app);
+    this.miniStats = new MiniStats(app);
     this.miniStats.enabled = false;
 
     // initialize the envmap
     app.loader.getHandler(pc.ASSET_TEXTURE).parsers.hdr = new HdrParser(app.assets, false);
-    // this.load(assetsFolder + '/textures/wooden_motel_2k.hdr');
-    // this.load(assetsFolder + '/models/playcanvas-cube.glb');
 
     // construct debug shiny ball
     var shiny = new pc.StandardMaterial();
@@ -162,12 +170,6 @@ var Viewer = function (canvas) {
                 v = s[1] && decodeURIComponent(s[1]);
             (urlParams[k] = urlParams[k] || []).push(v);
         });
-    }
-
-    // load urls
-    var loadUrls = (urlParams.load || []).concat(urlParams.assetUrl || []);
-    if (loadUrls.length > 0) {
-        this.load(loadUrls);
     }
 
     // set camera position
@@ -366,7 +368,7 @@ Object.assign(Viewer.prototype, {
         var app = self.app;
 
         var cubemap = new pc.Asset('helipad', 'cubemap', {
-            url: assetsFolder + "/cubemaps/Helipad.dds"
+            url: getAssetPath("cubemaps/Helipad.dds")
         }, {
             magFilter: pc.FILTER_LINEAR,
             minFilter: pc.FILTER_LINEAR_MIPMAP_LINEAR,
@@ -420,14 +422,14 @@ Object.assign(Viewer.prototype, {
         this.graph.clear();
         this.meshInstances = [];
 
-        onSceneReset();
+        this.onSceneReset();
 
         this.animationMap = { };
-        onAnimationsLoaded([]);
+        this.onAnimationsLoaded(this, []);
 
         this.morphMap = { };
         this.morphs = [];
-        onMorphTargetsLoaded([]);
+        this.onMorphTargetsLoaded(this, []);
 
         this.dirtyWireframe = this.dirtyBounds = this.dirtySkeleton = this.dirtyNormals = true;
 
@@ -846,7 +848,7 @@ Object.assign(Viewer.prototype, {
                 this.animationMap[animAsset.resource.name] = animAsset.name;
             }
 
-            onAnimationsLoaded(Object.keys(this.animationMap));
+            this.onAnimationsLoaded(this, Object.keys(this.animationMap));
 
             var createAnimGraphs = function () {
                 var extract = function (value, component) {
@@ -905,7 +907,7 @@ Object.assign(Viewer.prototype, {
                 });
             });
 
-            onMorphTargetsLoaded(morphs);
+            this.onMorphTargetsLoaded(this, morphs);
         }
 
         this.assets.push(asset);
@@ -935,6 +937,7 @@ Object.assign(Viewer.prototype, {
 
         if (!this.firstFrame) {                          // don't update on the first frame
             var i;
+            var meshInstance;
 
             // wireframe
             if (this.dirtyWireframe) {
@@ -1026,31 +1029,4 @@ Object.assign(Viewer.prototype, {
     }
 });
 
-/* eslint-disable no-unused-vars */
-
-var viewer;
-function startViewer() {
-    viewer = new Viewer(document.getElementById("application-canvas"));
-}
-
-document.body.onload = function () {
-    pc.basisDownload(
-        './lib/basis/basis.wasm.js',
-        './lib/basis/basis.wasm.wasm',
-        './lib/basis/basis.js',
-        function () {
-            if (wasmSupported()) {
-                loadWasmModuleAsync('DracoDecoderModule',
-                                    './lib/draco/draco.wasm.js',
-                                    './lib/draco/draco.wasm.wasm',
-                                    startViewer);
-            } else {
-                loadWasmModuleAsync('DracoDecoderModule',
-                                    './lib/draco/draco.js',
-                                    '',
-                                    startViewer);
-            }
-        });
-};
-
-/* eslint-enable no-unused-vars */
+export default Viewer;
