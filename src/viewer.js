@@ -464,8 +464,8 @@ Object.assign(Viewer.prototype, {
         light.light.shadowDistance = distance * 2;
     },
 
-    // load glb model
-    _loadGlb: function (url) {
+    // load gltf model given its url and list of external urls
+    _loadGltf: function (gltfUrl, externalUrls) {
         var self = this;
 
         var processBufferView = function (gltfBuffer, buffers, continuation) {
@@ -494,22 +494,6 @@ Object.assign(Viewer.prototype, {
                 continuation(null, null);
             }
         };
-
-        var containerAsset = new pc.Asset(url, 'container', url, null, {
-            bufferView: {
-                processAsync: processBufferView
-            }
-        });
-        containerAsset.on('load', function () {
-            self._onLoaded(null, containerAsset);
-        });
-        self.app.assets.add(containerAsset);
-        self.app.assets.load(containerAsset);
-    },
-
-    // load gltf model given its url and list of external urls
-    _loadGltf: function (gltfUrl, externalUrls) {
-        var self = this;
 
         var processTexture = function (gltfTexture, continuation) {
             var u = externalUrls.find(function (url) {
@@ -544,6 +528,9 @@ Object.assign(Viewer.prototype, {
         };
 
         var containerAsset = new pc.Asset(gltfUrl.filename, 'container', gltfUrl, null, {
+            bufferView: {
+                processAsync: processBufferView
+            },
             texture: {
                 processAsync: processTexture
             },
@@ -575,44 +562,20 @@ Object.assign(Viewer.prototype, {
             } : url;
         });
 
-        var ext = function (filename) {
-            return pc.path.getExtension(filename).toLowerCase();
-        };
-
-        // extract gltf url
-        var gltfUrl;
-        var externalUrls = urls.filter(function (url) {
-            switch (ext(url.filename)) {
-                case '.gltf':
-                    gltfUrl = url;
-                    return false;
-                default:
-                    return true;
+        // step through urls loading gltf/glb models
+        var self = this;
+        var result = false;
+        urls.forEach(function (url) {
+            var filenameExt = pc.path.getExtension(url.filename).toLowerCase();
+            if (filenameExt === '.gltf' || filenameExt === '.glb') {
+                self._loadGltf(url, urls);
+                result = true;
             }
         });
 
-        var result = false;
-        var self = this;
-        if (gltfUrl) {
-            self._loadGltf(gltfUrl, externalUrls);
-            result = true;
-        } else {
-            // load glbs
-            var imageUrls = urls.filter(function (url) {
-                switch (ext(url.filename)) {
-                    case '.glb':
-                        self._loadGlb(url);
-                        result = true;
-                        return false;
-                    default:
-                        return true;
-                }
-            });
-
-            // load textures
-            if (imageUrls.length > 0) {
-                self._loadSkybox(imageUrls);
-            }
+        if (!result) {
+            // if no models were loaded, load the files as skydome images instead
+            self._loadSkybox(urls);
         }
 
         // return true if a model/scene was loaded and false otherwise
@@ -756,6 +719,31 @@ Object.assign(Viewer.prototype, {
     _dropHandler: function (event) {
         var self = this;
 
+        var removeCommonPrefix = function (urls) {
+            var split = function (pathname) {
+                var parts = pathname.split(pc.path.delimiter);
+                var base = parts[0];
+                var rest = parts.slice(1).join(pc.path.delimiter);
+                return [base, rest];
+            };
+            while (true) {
+                var parts = split(urls[0].filename);
+                if (parts[1].length === 0) {
+                    return;
+                }
+                var i;
+                for (i = 1; i < urls.length; ++i) {
+                    var other = split(urls[i].filename);
+                    if (parts[0] !== other[0]) {
+                        return;
+                    }
+                }
+                for (i = 0; i < urls.length; ++i) {
+                    urls[i].filename = split(urls[i].filename)[1];
+                }
+            }
+        };
+
         var resolveFiles = function (entries) {
             var urls = [];
             entries.forEach(function (entry) {
@@ -765,6 +753,12 @@ Object.assign(Viewer.prototype, {
                         filename: entry.fullPath.substring(1)
                     });
                     if (urls.length === entries.length) {
+                        // remove common prefix from files in order to support dragging in the
+                        // root of a folder containing related assets
+                        if (urls.length > 1) {
+                            removeCommonPrefix(urls);
+                        }
+
                         // if a scene was loaded (and not just a skybox), clear the current scene
                         if (self.load(urls) && !event.shiftKey) {
                             self.resetScene();
@@ -1039,7 +1033,7 @@ function startViewer() {
     viewer = new Viewer(document.getElementById("application-canvas"));
 }
 
-var main = function () {
+document.body.onload = function () {
     pc.basisDownload(
         './lib/basis/basis.wasm.js',
         './lib/basis/basis.wasm.wasm',
