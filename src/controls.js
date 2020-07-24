@@ -1,5 +1,3 @@
-import './lib/css/main.f437aff0.chunk.css';
-import './lib/js/main.3e3040e1.chunk.js';
 import * as pcui from './lib/pcui.js';
 
 // Build controls
