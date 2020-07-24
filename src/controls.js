@@ -1,5 +1,6 @@
 import * as pcui from './lib/pcui.js';
 import { http } from 'playcanvas';
+import { getAssetPath } from './helpers.js';
 
 // Build controls
 var controlsDiv = document.getElementById('controls');
@@ -111,7 +112,7 @@ controlsDiv.append(lightingPanel.dom);
 
 // populate select inputs with manifest assets
 http.get(
-    "asset_manifest.json",
+    getAssetPath("asset_manifest.json"),
     {
         cache: true,
         responseType: "text",
@@ -125,7 +126,7 @@ http.get(
                 v: null, t: 'None'
             }];
             result.skyboxes.forEach(function (skybox) {
-                skyboxOptions.push({ v: skybox.url, t: skybox.label });
+                skyboxOptions.push({ v: getAssetPath(skybox.url), t: skybox.label });
             });
             lightingPanel.buildDom([buildSelect('skybox', 'string', skyboxOptions)]);
 

@@ -3,6 +3,7 @@ import { wasmSupported, loadWasmModuleAsync } from './lib/wasm-loader.js';
 
 import Viewer from './viewer.js';
 import { onSceneReset, onAnimationsLoaded, onMorphTargetsLoaded, registerElementEvents } from './controls.js';
+import { getAssetPath } from './helpers.js';
 
 import './style.css';
 
@@ -15,18 +16,18 @@ function startViewer() {
 }
 
 pc.basisDownload(
-    './lib/basis/basis.wasm.js',
-    './lib/basis/basis.wasm.wasm',
-    './lib/basis/basis.js',
+    getAssetPath('lib/basis/basis.wasm.js'),
+    getAssetPath('lib/basis/basis.wasm.wasm'),
+    getAssetPath('lib/basis/basis.js'),
     function () {
         if (wasmSupported()) {
             loadWasmModuleAsync('DracoDecoderModule',
-                                './lib/draco/draco.wasm.js',
-                                './lib/draco/draco.wasm.wasm',
+                                getAssetPath('lib/draco/draco.wasm.js'),
+                                getAssetPath('lib/draco/draco.wasm.wasm'),
                                 startViewer);
         } else {
             loadWasmModuleAsync('DracoDecoderModule',
-                                './lib/draco/draco.js',
+                                getAssetPath('lib/draco/draco.js'),
                                 '',
                                 startViewer);
         }

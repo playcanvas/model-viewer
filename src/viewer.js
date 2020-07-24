@@ -4,8 +4,7 @@ import Graph from './graph.js';
 import DebugLines from './debug.js';
 import HdrParser from './lib/hdr-texture.js';
 import MeshoptDecoder from './lib/meshopt_decoder.js';
-
-var assetsFolder = ".";
+import { getAssetPath } from './helpers.js';
 
 var Viewer = function (canvas, onSceneReset, onAnimationsLoaded, onMorphTargetsLoaded) {
 
@@ -49,7 +48,7 @@ var Viewer = function (canvas, onSceneReset, onAnimationsLoaded, onMorphTargetsL
 
     // load orbit script
     app.assets.loadFromUrl(
-        assetsFolder + "/scripts/orbit-camera.js",
+        getAssetPath("scripts/orbit-camera.js"),
         "script",
         function (err, asset) {
             // setup orbit script component
@@ -143,8 +142,6 @@ var Viewer = function (canvas, onSceneReset, onAnimationsLoaded, onMorphTargetsL
 
     // initialize the envmap
     app.loader.getHandler(pc.ASSET_TEXTURE).parsers.hdr = new HdrParser(app.assets, false);
-    // this.load(assetsFolder + '/textures/wooden_motel_2k.hdr');
-    // this.load(assetsFolder + '/models/playcanvas-cube.glb');
 
     // construct debug shiny ball
     var shiny = new pc.StandardMaterial();
@@ -371,7 +368,7 @@ Object.assign(Viewer.prototype, {
         var app = self.app;
 
         var cubemap = new pc.Asset('helipad', 'cubemap', {
-            url: assetsFolder + "/cubemaps/Helipad.dds"
+            url: getAssetPath("cubemaps/Helipad.dds")
         }, {
             magFilter: pc.FILTER_LINEAR,
             minFilter: pc.FILTER_LINEAR_MIPMAP_LINEAR,
