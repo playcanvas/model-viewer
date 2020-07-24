@@ -956,6 +956,7 @@ Object.assign(Viewer.prototype, {
 
         if (!this.firstFrame) {                          // don't update on the first frame
             var i;
+            var meshInstance;
 
             // wireframe
             if (this.dirtyWireframe) {
