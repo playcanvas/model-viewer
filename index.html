@@ -29,20 +29,5 @@
     <script src="./src/controls.js"></script>
     <script src="./src/graph.js"></script>
     <script src="./src/debug.js"></script>
-    <script>
-        // extract query params. taken from https://stackoverflow.com/a/21152762
-        var urlParams = {};
-        if (location.search) {
-            location.search.substr(1).split("&").forEach(function (item) {
-                var s = item.split("="),
-                    k = s[0],
-                    v = s[1] && decodeURIComponent(s[1]);
-                (urlParams[k] = urlParams[k] || []).push(v);
-            });
-        }
-
-        // load the asset manifest
-        pc.http.get("asset_manifest.json", { cache: true, responseType: "text", retry: false }, handleAssetManifest);
-    </script>
 </body>
 </html>

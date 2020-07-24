@@ -153,6 +153,17 @@ var Viewer = function (canvas) {
     // start the application
     app.start();
 
+    // extract query params. taken from https://stackoverflow.com/a/21152762
+    var urlParams = {};
+    if (location.search) {
+        location.search.substr(1).split("&").forEach(function (item) {
+            var s = item.split("="),
+                k = s[0],
+                v = s[1] && decodeURIComponent(s[1]);
+            (urlParams[k] = urlParams[k] || []).push(v);
+        });
+    }
+
     // load urls
     var loadUrls = (urlParams.load || []).concat(urlParams.assetUrl || []);
     if (loadUrls.length > 0) {
@@ -458,8 +469,8 @@ Object.assign(Viewer.prototype, {
         var self = this;
 
         var processBufferView = function (gltfBuffer, buffers, continuation) {
-            if (gltfBuffer.extensions && gltfBuffer.extensions['EXT_meshopt_compression']) {
-                var extensionDef = gltfBuffer.extensions['EXT_meshopt_compression'];
+            if (gltfBuffer.extensions && gltfBuffer.extensions.EXT_meshopt_compression) {
+                var extensionDef = gltfBuffer.extensions.EXT_meshopt_compression;
 
                 var decoder = MeshoptDecoder;
 
