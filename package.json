@@ -24,11 +24,23 @@
   "eslintConfig": {
     "extends": "@playcanvas/eslint-config"
   },
-  "dependencies": {},
   "devDependencies": {
+    "@babel/preset-es2015": "^7.0.0-beta.53",
     "@playcanvas/eslint-config": "^1.0.6",
+    "babel-loader": "^8.1.0",
+    "babel-plugin-syntax-dynamic-import": "^6.18.0",
+    "copy-webpack-plugin": "^6.0.3",
+    "css-loader": "^3.6.0",
     "eslint": "^7.3.1",
-    "http-server": "^0.12.3"
+    "html-webpack-plugin": "^4.3.0",
+    "http-server": "^0.12.3",
+    "playcanvas": "^1.32.2",
+    "style-loader": "^1.2.1",
+    "terser-webpack-plugin": "^3.0.7",
+    "webpack": "^4.43.0",
+    "webpack-cli": "^3.3.12",
+    "webpack-dev-server": "^3.11.0",
+    "workbox-webpack-plugin": "^5.1.3"
   },
   "scripts": {
     "lint": "eslint --ext .js scripts src",

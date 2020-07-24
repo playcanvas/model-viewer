@@ -1,0 +1,144 @@
+html {
+    height: 100%;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+body { 
+    margin: 0px;
+    height: 100%;
+    max-height: 100%;
+}
+
+#flex-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: stretch;
+}
+
+#panel {
+    width: 300px;
+    height: 100%;
+    background-color: #374346;
+    overflow-y: overlay;
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+#application-canvas {
+    width: 500px;
+    height: 500px;
+}
+
+h3 {
+    margin: 0px;
+    padding: 5px;
+    font-size: 9pt;
+    color: #fff;
+    background-color: #293538;
+}
+
+label {
+    display: inline-block;
+    vertical-align: middle;
+    font-size: 10pt;
+    color: #bbb;
+    width: 60px;
+}
+
+button {
+    width: 100%;
+    text-align: left;
+}
+
+ul {
+    list-style-type: none;
+    list-style-position: inside;
+    margin: 0px;
+    padding: 0px;
+}
+
+input {
+    font-size: 10pt;
+    width: 170px;
+    margin: 0px;
+    vertical-align: middle;
+    background-color: 293538;
+}
+
+.header {
+    margin: 0px;
+    height: 32px;
+    line-height: 32px;
+}
+
+.header img {
+    width: 32px;
+    height: 32px;
+}
+
+.header div {
+    color: #fff;
+    display: inline-block;
+    vertical-align: top;
+    line-height: 32px;
+    padding: 0px 0px 0px 8px;
+}
+
+.header span {
+    color: #777;
+}
+
+.controls {
+    margin: 0px;
+    padding: 10px 4px;
+    background-color: #374346;
+}
+
+.controls div {
+    margin: 3px 0px;
+}
+
+#scrub-container {
+    text-align: center;
+    margin: 2px 0px 10px 0px;
+}
+
+#scrub-container input {
+    width: 40px;
+}
+
+.panel-option {
+    display: flex;
+}
+
+.panel-option > .pcui-label {
+    min-width: 30%;
+    font-size: 14px;
+}
+
+.panel-option > .pcui-select-input {
+    flex-grow: 1;
+}
+
+.animation-buttons {
+    display: flex;
+}
+
+.animation-list-container {
+    display: flex;
+    flex-direction: column;
+    margin-right: 12px;
+}
+
+.morph-target-panel {
+    margin: 6px;
+    border: 1px solid #232e30 !important;
+}
+
+.morph-target-label {
+    min-width: 24% !important;
+}

@@ -1,8 +1,19 @@
+import * as pc from 'playcanvas';
+import { MiniStats } from 'playcanvas/build/playcanvas-extras.js';
+import Graph from './graph.js';
+import DebugLines from './debug.js';
+// import HdrParser from './lib/download-texture.js';
+import HdrParser from './lib/hdr-texture.js';
+
 var assetsFolder = ".";
 
-var Viewer = function (canvas) {
+var Viewer = function (canvas, onSceneReset, onAnimationsLoaded, onMorphTargetsLoaded) {
 
     var self = this;
+
+    this.onSceneReset = onSceneReset;
+    this.onAnimationsLoaded = onAnimationsLoaded;
+    this.onMorphTargetsLoaded = onMorphTargetsLoaded;
 
     // create the application
     var app = new pc.Application(canvas, {
@@ -127,7 +138,7 @@ var Viewer = function (canvas) {
     this.debugNormals = new DebugLines(app, camera);
 
     // construct ministats, default off
-    this.miniStats = new pcx.MiniStats(app);
+    this.miniStats = new MiniStats(app);
     this.miniStats.enabled = false;
 
     // initialize the envmap
@@ -154,9 +165,19 @@ var Viewer = function (canvas) {
     app.start();
 
     // load urls
-    var loadUrls = (urlParams.load || []).concat(urlParams.assetUrl || []);
-    if (loadUrls.length > 0) {
-        this.load(loadUrls);
+    // var loadUrls = (urlParams.load || []).concat(urlParams.assetUrl || []);
+    // if (loadUrls.length > 0) {
+    //     this.load(loadUrls);
+    // }
+
+    var urlParams = {};
+    if (location.search) {
+        location.search.substr(1).split("&").forEach(function (item) {
+            var s = item.split("="),
+                k = s[0],
+                v = s[1] && decodeURIComponent(s[1]);
+            (urlParams[k] = urlParams[k] || []).push(v);
+        });
     }
 
     // set camera position
@@ -409,14 +430,14 @@ Object.assign(Viewer.prototype, {
         this.graph.clear();
         this.meshInstances = [];
 
-        onSceneReset();
+        this.onSceneReset();
 
         this.animationMap = { };
-        onAnimationsLoaded([]);
+        this.onAnimationsLoaded(this, []);
 
         this.morphMap = { };
         this.morphs = [];
-        onMorphTargetsLoaded([]);
+        this.onMorphTargetsLoaded(this, []);
 
         this.dirtyWireframe = this.dirtyBounds = this.dirtySkeleton = this.dirtyNormals = true;
 
@@ -803,7 +824,7 @@ Object.assign(Viewer.prototype, {
                 this.animationMap[animAsset.resource.name] = animAsset.name;
             }
 
-            onAnimationsLoaded(Object.keys(this.animationMap));
+            this.onAnimationsLoaded(this, Object.keys(this.animationMap));
 
             var createAnimGraphs = function () {
                 var extract = function (value, component) {
@@ -862,7 +883,7 @@ Object.assign(Viewer.prototype, {
                 });
             });
 
-            onMorphTargetsLoaded(morphs);
+            this.onMorphTargetsLoaded(this, morphs);
         }
 
         this.assets.push(asset);
@@ -983,31 +1004,4 @@ Object.assign(Viewer.prototype, {
     }
 });
 
-/* eslint-disable no-unused-vars */
-
-var viewer;
-function startViewer() {
-    viewer = new Viewer(document.getElementById("application-canvas"));
-}
-
-var main = function () {
-    pc.basisDownload(
-        './lib/basis/basis.wasm.js',
-        './lib/basis/basis.wasm.wasm',
-        './lib/basis/basis.js',
-        function () {
-            if (wasmSupported()) {
-                loadWasmModuleAsync('DracoDecoderModule',
-                                    './lib/draco/draco.wasm.js',
-                                    './lib/draco/draco.wasm.wasm',
-                                    startViewer);
-            } else {
-                loadWasmModuleAsync('DracoDecoderModule',
-                                    './lib/draco/draco.js',
-                                    '',
-                                    startViewer);
-            }
-        });
-};
-
-/* eslint-enable no-unused-vars */
+export default Viewer;

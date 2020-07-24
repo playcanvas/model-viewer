@@ -195,3 +195,5 @@ Object.assign(DebugLines.prototype, {
         }
     }
 });
+
+export default DebugLines;

@@ -119,3 +119,5 @@ Object.assign(Graph.prototype, {
         }
     }
 });
+
+export default Graph;
