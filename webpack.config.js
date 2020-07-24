@@ -165,7 +165,6 @@ module.exports = {
         new CopyWebpackPlugin({
             patterns: [
                 { from: 'static', to: '' },
-                { from: 'scripts', to: 'scripts' },
             ]
         })
     ],
