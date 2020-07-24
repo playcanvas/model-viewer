@@ -2,8 +2,8 @@ import * as pc from 'playcanvas';
 import { MiniStats } from 'playcanvas/build/playcanvas-extras.js';
 import Graph from './graph.js';
 import DebugLines from './debug.js';
-// import HdrParser from './lib/download-texture.js';
 import HdrParser from './lib/hdr-texture.js';
+import MeshoptDecoder from './lib/meshopt_decoder.js';
 
 var assetsFolder = ".";
 
