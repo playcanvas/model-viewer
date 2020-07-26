@@ -9,10 +9,10 @@ import './style.css';
 
 window.pc = pc;
 
-var viewer;
 function startViewer() {
-    viewer = new Viewer(document.getElementById("application-canvas"), onSceneReset, onAnimationsLoaded, onMorphTargetsLoaded);
+    var viewer = new Viewer(document.getElementById("application-canvas"), onSceneReset, onAnimationsLoaded, onMorphTargetsLoaded);
     registerElementEvents(viewer);
+    window.viewer = viewer;
 }
 
 pc.basisDownload(
