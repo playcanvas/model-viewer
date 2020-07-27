@@ -535,7 +535,7 @@ Object.assign(Viewer.prototype, {
                 processAsync: processBufferView
             },
             image: {
-                processAsync: processImage,
+                processAsync: processImage
             },
             buffer: {
                 processAsync: processBuffer
