@@ -497,9 +497,10 @@ Object.assign(Viewer.prototype, {
             }
         };
 
-        var processTexture = function (gltfTexture, continuation) {
+        var processImage = function (gltfImage, continuation) {
+
             var u = externalUrls.find(function (url) {
-                return url.filename === gltfTexture.uri;
+                return url.filename === gltfImage.uri;
             });
             if (u) {
                 var textureAsset = new pc.Asset(u.filename, 'texture', { url: u.url, filename: u.filename });
@@ -533,8 +534,8 @@ Object.assign(Viewer.prototype, {
             bufferView: {
                 processAsync: processBufferView
             },
-            texture: {
-                processAsync: processTexture
+            image: {
+                processAsync: processImage
             },
             buffer: {
                 processAsync: processBuffer
