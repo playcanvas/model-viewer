@@ -706,7 +706,7 @@ Object.assign(Viewer.prototype, {
             // copy (possibly) animated morph weights to UI widgets
             for (var i = 0; i < this.morphs.length; ++i) {
                 var morph = this.morphs[i];
-                if (morph.hasOwnProperty('onWeightChanged')) {
+                if (morph.onWeightChanged) {
                     morph.onWeightChanged();
                 }
             }
