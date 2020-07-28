@@ -226,28 +226,31 @@ export var onMorphTargetsLoaded = function (viewer, morphList) {
         class: 'morph-target-list-container'
     });
 
-
     var theviewer = viewer;
     var currentMeshPanel;
     for (var i = 0; i < morphList.length; ++i) {
         var morph = morphList[i];
-        if (!Number.isFinite(morph.weight)) {
+        if (morph.hasOwnProperty('getWeight')) {
+            var morphTargetContainer = new pcui.Container();
+            morphTargetContainer.buildDom([buildSlider(morph.name, 10, 0, 1, morph.getWeight())]);
+            var slider = morphTargetContainer['_' + morph.name + 'Slider'];
+            slider.on('change', function (morph) {
+                if (this.value !== morph.getWeight()) {
+                    morph.setWeight(this.value);
+                }
+            }.bind(slider, morph));
+            morph.onWeightChanged = function (morph) {
+                this.value = morph.getWeight();
+            }.bind(slider, morph);
+            morphTargetContainer['_' + morph.name + 'SliderLabel'].class.add('morph-target-label');
+            currentMeshPanel.append(morphTargetContainer);
+        } else {
             currentMeshPanel = new pcui.Panel({
                 headerText: morph.name,
                 collapsible: true,
                 class: 'morph-target-panel'
             });
             morphTargetPanel._morphTargetList.append(currentMeshPanel);
-        } else {
-            var morphTargetContainer = new pcui.Container();
-            morphTargetContainer.buildDom([buildSlider(morph.name, 2, 0, 1, morph.weight)]);
-            morphTargetContainer['_' + morph.name + 'Slider'].on('change', (function (morph) {
-                return function () {
-                    theviewer.setMorphWeight(morph, this.value);
-                };
-            })(morph.name));
-            morphTargetContainer['_' + morph.name + 'SliderLabel'].class.add('morph-target-label');
-            currentMeshPanel.append(morphTargetContainer);
         }
     }
     morphTargetPanel.append(morphTargetPanel._morphTargetList);

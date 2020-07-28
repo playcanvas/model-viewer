@@ -29,7 +29,7 @@ module.exports = {
         ],
         extensions: ['.js', '.css']
     },
-    devtool: 'source-map',
+    devtool: 'inline-source-map',
     context: __dirname,
     target: 'web',
     devServer: {
