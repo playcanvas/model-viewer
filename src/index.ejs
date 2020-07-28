@@ -4,13 +4,21 @@
     <title>PlayCanvas Glb Viewer</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <% if (htmlWebpackPlugin.options.hasPublicPath) { %>
+    <link rel="icon" type="image/png" href="/viewer/playcanvas-logo.png" />
+    <% } else { %>
     <link rel="icon" type="image/png" href="./playcanvas-logo.png" />
+    <% } %>
 </head>
 
 <body>
     <div id="flex-container">
         <div id="panel">
-            <div class="header" href="#"><a href="#"><img src="playcanvas-logo.png"/><div><b>PLAY</b>CANVAS <span>viewer</span></div></a></div>
+            <% if (htmlWebpackPlugin.options.hasPublicPath) { %>
+            <div class="header" href="#"><a href="#"><img src="/viewer/playcanvas-logo.png"/><div><b>PLAY</b>CANVAS <span>viewer</span></div></a></div>
+            <% } else { %>
+            <div class="header" href="#"><a href="#"><img src="./playcanvas-logo.png"/><div><b>PLAY</b>CANVAS <span>viewer</span></div></a></div>
+            <% } %>
             <div id="controls"></div>
         </div>
         <!-- The canvas element -->
