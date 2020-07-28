@@ -851,17 +851,15 @@ Object.assign(Viewer.prototype, {
             }
 
             var stateGraph = {
-                layers: [ ],
+                layers: [],
                 parameters: { }
             };
 
             // create a layer per animation so we can play them all simultaniously if needed
             for (i = 0; i < resource.animations.length; ++i) {
-                var layerName = asset.name + '_layer_' + i;
-
                 // construct a state graph to include the loaded animations
                 stateGraph.layers.push( {
-                    name: layerName,
+                    name: asset.name + '_layer_' + i,
                     states: [
                         { name: 'START' },
                         { name: 'default', speed: 1 },
@@ -873,7 +871,7 @@ Object.assign(Viewer.prototype, {
                             "to": "default",
                             "time": 0,
                             "priority": 0
-                        },
+                        }
                     ]
                 } );
             }
@@ -884,8 +882,7 @@ Object.assign(Viewer.prototype, {
             // set animations on each layer
             for (i = 0; i < resource.animations.length; ++i) {
                 var animTrack = resource.animations[i].resource;
-                var layerName = asset.name + '_layer_' + i;
-                var layer = entity.anim.findAnimationLayer(layerName);
+                var layer = entity.anim.findAnimationLayer(asset.name + '_layer_' + i);
                 layer.assignAnimation('default', animTrack);
                 layer.pause();
                 this.animationMap[animTrack.name] = layer;
