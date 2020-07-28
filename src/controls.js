@@ -42,10 +42,10 @@ var buildSlider = function (name, precision, min, max, value, label) {
         max: max,
         sliderMin: min,
         sliderMax: max,
-        step: 0.01
+        step: 0.01,
+        precision: precision
     });
     sliderDom.children[1][name + 'Slider'].value = value;
-    sliderDom.children[1][name + 'Slider'].precision = precision;
     return sliderDom;
 };
 
@@ -232,7 +232,7 @@ export var onMorphTargetsLoaded = function (viewer, morphList) {
         var morph = morphList[i];
         if (morph.hasOwnProperty('getWeight')) {
             var morphTargetContainer = new pcui.Container();
-            morphTargetContainer.buildDom([buildSlider(morph.name, 10, 0, 1, morph.getWeight())]);
+            morphTargetContainer.buildDom([buildSlider(morph.name, 24, 0, 1, morph.getWeight())]);
             var slider = morphTargetContainer['_' + morph.name + 'Slider'];
             slider.on('change', function (morph) {
                 if (this.value !== morph.getWeight()) {
