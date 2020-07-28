@@ -932,13 +932,14 @@ Object.assign(Viewer.prototype, {
             // make a list of all the morph instance target names
             var morphs = this.morphs;
             morphInstances.forEach(function (morphInstance, morphIndex) {
-                // mesh name line
                 var meshInstance = morphInstance.meshInstance;
-                var name = meshInstance && meshInstance.node && meshInstance.node.name;
+
+                // mesh name line
                 morphs.push({
-                    name: name || "Mesh " + morphIndex
+                    name: (meshInstance && meshInstance.node && meshInstance.node.name) || "Mesh " + morphIndex
                 });
 
+                // morph targets
                 morphInstance.morph._targets.forEach(function (target, targetIndex) {
                     morphs.push({
                         name: target.name,
