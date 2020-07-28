@@ -164,7 +164,7 @@ var animationPanelDom = function () {
                 }
             ]
         },
-        buildSlider('speed', 2, 0, 2, 1),
+        buildSlider('speed', 2, 0, 4, 1),
         buildToggle('graphs')
     ];
 };
@@ -195,8 +195,8 @@ export var onAnimationsLoaded = function (viewer, animationList) {
     for (var i = 0; i < animationList.length; ++i) {
         var button = new pcui.Button({ text: animationList[i] });
         button.on('click', (function (animation) {
-            return function () {
-                theviewer.play(animation);
+            return function (evt) {
+                theviewer.play(animation, evt.shiftKey);
             };
         })(animationList[i]));
         animationPanel._animationList.append(button);
