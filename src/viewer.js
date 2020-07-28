@@ -115,7 +115,6 @@ var Viewer = function (canvas, onSceneReset, onAnimationsLoaded, onMorphTargetsL
     this.graph = graph;
     this.meshInstances = [];
     this.animationMap = { };
-    this.morphMap = { };
     this.morphs = [];
     this.firstFrame = false;
     this.skyboxLoaded = false;
@@ -427,7 +426,6 @@ Object.assign(Viewer.prototype, {
         this.animationMap = { };
         this.onAnimationsLoaded(this, []);
 
-        this.morphMap = { };
         this.morphs = [];
         this.onMorphTargetsLoaded(this, []);
 
@@ -680,18 +678,6 @@ Object.assign(Viewer.prototype, {
         this.renderNextFrame();
     },
 
-    // set the morphing value
-    setMorphWeight: function (name, weight) {
-        if (this.morphMap.hasOwnProperty(name)) {
-            var morphs = this.morphMap[name];
-            morphs.forEach(function (morph) {
-                morph.instance.setWeight(morph.targetIndex, weight);
-            });
-            this.dirtyNormals = true;
-            this.renderNextFrame();
-        }
-    },
-
     update: function () {
         // if the camera has moved since the last render
         var cameraWorldTransform = this.camera.getWorldTransform();
@@ -701,15 +687,27 @@ Object.assign(Viewer.prototype, {
         }
 
         // or an animation is loaded and we're animating
+        var isAnimationPlaying = false;
         for (var key in this.animationMap) {
             if (this.animationMap.hasOwnProperty(key)) {
-                var layer = this.animationMap[key];
-                if (layer.playing) {
-                    this.dirtyBounds = true;
-                    this.dirtySkeleton = true;
-                    this.dirtyNormals = true;
-                    this.renderNextFrame();
+                if (this.animationMap[key].playing) {
+                    isAnimationPlaying = true;
                     break;
+                }
+            }
+        }
+
+        if (isAnimationPlaying) {
+            this.dirtyBounds = true;
+            this.dirtySkeleton = true;
+            this.dirtyNormals = true;
+            this.renderNextFrame();
+
+            // copy (possibly) animated morph weights to UI widgets
+            for (var i = 0; i < this.morphs.length; ++i) {
+                var morph = this.morphs[i];
+                if (morph.onWeightChanged) {
+                    morph.onWeightChanged();
                 }
             }
         }
@@ -820,6 +818,7 @@ Object.assign(Viewer.prototype, {
             return;
         }
 
+        var self = this;
         var resource = asset.resource;
 
         var entity;
@@ -931,20 +930,27 @@ Object.assign(Viewer.prototype, {
         if (entity.model && entity.model.model && entity.model.model.morphInstances.length > 0) {
             var morphInstances = entity.model.model.morphInstances;
             // make a list of all the morph instance target names
-            var morphMap = this.morphMap;
             var morphs = this.morphs;
             morphInstances.forEach(function (morphInstance, morphIndex) {
-                // mesh name line
-                morphs.push({ name: "Mesh " + morphIndex });
+                var meshInstance = morphInstance.meshInstance;
 
+                // mesh name line
+                morphs.push({
+                    name: (meshInstance && meshInstance.node && meshInstance.node.name) || "Mesh " + morphIndex
+                });
+
+                // morph targets
                 morphInstance.morph._targets.forEach(function (target, targetIndex) {
-                    var targetName = morphIndex + "-" + target.name;
-                    if (!morphMap.hasOwnProperty(targetName)) {
-                        morphMap[targetName] = [{ instance: morphInstance, targetIndex: targetIndex }];
-                        morphs.push({ name: targetName, weight: target.defaultWeight });
-                    } else {
-                        morphMap[targetName].push({ instance: morphInstance, targetIndex: targetIndex });
-                    }
+                    morphs.push({
+                        name: target.name,
+                        setWeight: function (targetIndex, weight) {
+                            this.setWeight(targetIndex, weight);
+                            self.dirtyNormals = true;
+                            self.renderNextFrame();
+                        }.bind(morphInstance, targetIndex),
+                        getWeight: pc.MorphInstance.prototype.getWeight.bind(morphInstance, targetIndex),
+                        onWeightChanged: null    // controls can set this to a function for receiving weight updates
+                    });
                 });
             });
 
