@@ -470,6 +470,8 @@ Object.assign(Viewer.prototype, {
     _loadGltf: function (gltfUrl, externalUrls) {
         var self = this;
 
+        // provide buffer view callback so we can handle meshoptimizer'd models
+        // https://github.com/zeux/meshoptimizer
         var processBufferView = function (gltfBuffer, buffers, continuation) {
             if (gltfBuffer.extensions && gltfBuffer.extensions.EXT_meshopt_compression) {
                 var extensionDef = gltfBuffer.extensions.EXT_meshopt_compression;
@@ -498,7 +500,6 @@ Object.assign(Viewer.prototype, {
         };
 
         var processImage = function (gltfImage, continuation) {
-
             var u = externalUrls.find(function (url) {
                 return url.filename === gltfImage.uri;
             });
@@ -585,28 +586,29 @@ Object.assign(Viewer.prototype, {
         return result;
     },
 
-    // play the animation
-    play: function (animationName) {
-        for (var i = 0; i < this.entities.length; ++i) {
-            var entity = this.entities[i];
-            if (entity.animation) {
-                entity.animation.enabled = true;
-                if (animationName) {
-                    entity.animation.play(this.animationMap[animationName], 1);
-                } else {
-                    entity.animation.playing = true;
+    // play an animation / play all the animations
+    play: function (animationName, appendAnimation) {
+        if (!animationName || !appendAnimation) {
+            for (var key in this.animationMap) {
+                if (this.animationMap.hasOwnProperty(key)) {
+                    if (animationName) {
+                        this.animationMap[key].pause();
+                    } else {
+                        this.animationMap[key].play('default');
+                    }
                 }
             }
+        }
+        if (animationName) {
+            this.animationMap[animationName].play('default');
         }
     },
 
     // stop playing animations
     stop: function () {
-        for (var i = 0; i < this.entities.length; ++i) {
-            var entity = this.entities[i];
-            if (entity.animation) {
-                entity.animation.enabled = false;
-                entity.animation.playing = false;
+        for (var key in this.animationMap) {
+            if (this.animationMap.hasOwnProperty(key)) {
+                this.animationMap[key].pause();
             }
         }
     },
@@ -614,8 +616,8 @@ Object.assign(Viewer.prototype, {
     setSpeed: function (speed) {
         for (var i = 0; i < this.entities.length; ++i) {
             var entity = this.entities[i];
-            if (entity.animation) {
-                entity.animation.speed = speed;
+            if (entity.anim) {
+                entity.anim.speed = speed;
             }
         }
     },
@@ -697,17 +699,21 @@ Object.assign(Viewer.prototype, {
             this.prevCameraMat.copy(cameraWorldTransform);
             this.renderNextFrame();
         }
+
         // or an animation is loaded and we're animating
-        for (var i = 0; i < this.entities.length; ++i) {
-            var entity = this.entities[i];
-            if (entity.animation && entity.animation.playing) {
-                this.dirtyBounds = true;
-                this.dirtySkeleton = true;
-                this.dirtyNormals = true;
-                this.renderNextFrame();
-                break;
+        for (var key in this.animationMap) {
+            if (this.animationMap.hasOwnProperty(key)) {
+                var layer = this.animationMap[key];
+                if (layer.playing) {
+                    this.dirtyBounds = true;
+                    this.dirtySkeleton = true;
+                    this.dirtyNormals = true;
+                    this.renderNextFrame();
+                    break;
+                }
             }
         }
+
         // or the ministats is enabled
         if (this.miniStats.enabled) {
             this.renderNextFrame();
@@ -808,6 +814,7 @@ Object.assign(Viewer.prototype, {
         resolveDirectories(entries);
     },
 
+    // container asset has been loaded, add it to the scene
     _onLoaded: function (err, asset) {
         if (err) {
             return;
@@ -834,23 +841,59 @@ Object.assign(Viewer.prototype, {
 
         // create animations
         if (resource.animations && resource.animations.length > 0) {
-            if (!entity.animation) {
-                entity.addComponent('animation', {
-                    speed: 1
+            var i;
+
+            // create the anim component if there isn't one already
+            if (!entity.anim) {
+                entity.addComponent('anim', {
+                    activate: true
                 });
             }
 
-            entity.animation.assets = entity.animation.assets.concat(resource.animations.map(function (asset) {
-                return asset.id;
-            }));
+            var stateGraph = {
+                layers: [ ],
+                parameters: { }
+            };
 
-            for (var i = 0; i < resource.animations.length; ++i) {
-                var animAsset = resource.animations[i];
-                this.animationMap[animAsset.resource.name] = animAsset.name;
+            // create a layer per animation so we can play them all simultaniously if needed
+            for (i = 0; i < resource.animations.length; ++i) {
+                var layerName = asset.name + '_layer_' + i;
+
+                // construct a state graph to include the loaded animations
+                stateGraph.layers.push( {
+                    name: layerName,
+                    states: [
+                        { name: 'START' },
+                        { name: 'default', speed: 1 },
+                        { name: 'END' }
+                    ],
+                    transitions: [
+                        {
+                            "from": "START",
+                            "to": "default",
+                            "time": 0,
+                            "priority": 0
+                        },
+                    ]
+                } );
+            }
+
+            // construct an anim layer for this set of animations
+            entity.anim.loadStateGraph(new pc.AnimStateGraph(stateGraph));
+
+            // set animations on each layer
+            for (i = 0; i < resource.animations.length; ++i) {
+                var animTrack = resource.animations[i].resource;
+                var layerName = asset.name + '_layer_' + i;
+                var layer = entity.anim.findAnimationLayer(layerName);
+                layer.assignAnimation('default', animTrack);
+                layer.pause();
+                this.animationMap[animTrack.name] = layer;
             }
 
             this.onAnimationsLoaded(this, Object.keys(this.animationMap));
 
+            // create animation graphs
             var createAnimGraphs = function () {
                 var extract = function (value, component) {
                     return function () {
@@ -887,7 +930,7 @@ Object.assign(Viewer.prototype, {
             setTimeout(createAnimGraphs.bind(this), 1000);
         }
 
-        // setup morph targets
+        // initialize morph targets
         if (entity.model && entity.model.model && entity.model.model.morphInstances.length > 0) {
             var morphInstances = entity.model.model.morphInstances;
             // make a list of all the morph instance target names
@@ -911,7 +954,11 @@ Object.assign(Viewer.prototype, {
             this.onMorphTargetsLoaded(this, morphs);
         }
 
+        // store the loaded asset
         this.assets.push(asset);
+
+        // construct a list of meshInstances so we can quick access them when configuring
+        // wireframe rendering etc.
         this.meshInstances = this.meshInstances.concat(
             Viewer._distinct(
                 Viewer._flatten(entity)
@@ -920,6 +967,7 @@ Object.assign(Viewer.prototype, {
                     })
                     .flat()));
 
+        // dirty everything
         this.dirtyWireframe = this.dirtyBounds = this.dirtySkeleton = this.dirtyNormals = true;
 
         // we can't refocus the camera here because the scene hierarchy only gets updated
