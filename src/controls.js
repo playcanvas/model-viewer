@@ -46,6 +46,7 @@ var buildSlider = function (name, precision, min, max, value, label) {
         precision: precision
     });
     sliderDom.children[1][name + 'Slider'].value = value;
+    sliderDom.children[1][name + 'Slider'].precision = precision;
     return sliderDom;
 };
 
