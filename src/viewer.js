@@ -171,17 +171,23 @@ var Viewer = function (canvas, onSceneReset, onAnimationsLoaded, onMorphTargetsL
         });
     }
 
+    // handle load url param
+    var loadUrls = (urlParams.load || []).concat(urlParams.assetUrl || []);	
+    if (loadUrls.length > 0) {	
+        this.load(loadUrls);
+    }
+
+    // load the default skybox if one wasn't specified in url params
+    if (!this.skyboxLoaded) {
+        this._loadHeliSkybox();
+    }
+
     // set camera position
     if (urlParams.hasOwnProperty('cameraPosition')) {
         var pos = urlParams.cameraPosition[0].split(',').map(Number);
         if (pos.length === 3) {
             this.cameraPosition = new pc.Vec3(pos);
         }
-    }
-
-    // load the default skybox if one wasn't specified in url params
-    if (!this.skyboxLoaded) {
-        this._loadHeliSkybox();
     }
 };
 
