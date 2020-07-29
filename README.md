@@ -2,7 +2,7 @@
 
 The PlayCanvas glTF scene viewer is blazingly fast and 100% compliant with the glTF 2.0 spec. You can find a live version at:
 
-https://playcanvas.com/viewer.
+https://playcanvas.com/viewer
 
 The viewer can load any glTF 2.0 scene. Embedded glTF and binary glTF (GLB) can be dragged directly into the 3D view. To load an unpacked glTF scene, drag its parent folder into the 3D view. You can also load scenes via the `load` URL query parameter. An example would be:
 
