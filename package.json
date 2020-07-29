@@ -31,7 +31,7 @@
     "eslint": "^7.3.1",
     "html-webpack-plugin": "^4.3.0",
     "http-server": "^0.12.3",
-    "playcanvas": "^1.32.2",
+    "playcanvas": "^1.32.3",
     "style-loader": "^1.2.1",
     "webpack": "^4.43.0",
     "webpack-cli": "^3.3.12",
