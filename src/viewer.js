@@ -172,8 +172,8 @@ var Viewer = function (canvas, onSceneReset, onAnimationsLoaded, onMorphTargetsL
     }
 
     // handle load url param
-    var loadUrls = (urlParams.load || []).concat(urlParams.assetUrl || []);	
-    if (loadUrls.length > 0) {	
+    var loadUrls = (urlParams.load || []).concat(urlParams.assetUrl || []);
+    if (loadUrls.length > 0) {
         this.load(loadUrls);
     }
 
