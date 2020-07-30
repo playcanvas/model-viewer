@@ -30,7 +30,7 @@
     "css-loader": "^4.0.0",
     "eslint": "^7.5.0",
     "html-webpack-plugin": "^4.3.0",
-    "http-server": "^0.12.3",
+    "serve": "^11.3.2",
     "playcanvas": "^1.32.3",
     "style-loader": "^1.2.1",
     "webpack": "^4.44.0",
@@ -39,9 +39,12 @@
   },
   "scripts": {
     "lint": "eslint --ignore-pattern 'src/lib' --ext .js src",
-    "serve": "http-server . -a localhost -p 8080",
-    "watch": "node_modules/.bin/webpack --config webpack.config.js --watch",
-    "build:local": "webpack --config webpack.config.js",
-    "build:server": "ENVIRONMENT=production PUBLIC_PATH=/viewer/ node_modules/.bin/webpack --config webpack.config.js"
+    "serve": "serve dist",
+    "build": "webpack --config webpack.config.js",
+    "build:watch": "webpack --config webpack.config.js --watch",
+    "build:server": "ENVIRONMENT=production PUBLIC_PATH=/viewer/ webpack --config webpack.config.js"
+  },
+  "dependencies": {
+    "serve": "^11.3.2"
   }
 }
