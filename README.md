@@ -30,9 +30,11 @@ You can also drag and drop images into the 3D view to set a background. Options 
 Ensure you have [Node.js](https://nodejs.org) installed (v10.0+). Then, from a command prompt, run:
 
     npm install
-    npm build:local
+    npm run build
 
-This will invoke Webpack and output the built viewer to the `dist` folder.
+This will invoke Webpack and output the built viewer to the `dist` folder. To invoke Webpack with the `--switch` flag, do:
+
+    npm run build:watch
 
 ## How to run
 
