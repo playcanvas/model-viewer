@@ -174,7 +174,9 @@ var Viewer = function (canvas, onSceneReset, onAnimationsLoaded, onMorphTargetsL
     // handle load url param
     var loadUrls = (urlParams.load || []).concat(urlParams.assetUrl || []);
     if (loadUrls.length > 0) {
-        this.load(loadUrls);
+        for (var i = 0; i < loadUrls.length; ++i) {
+            this.load(loadUrls[i]);
+        }
     }
 
     // load the default skybox if one wasn't specified in url params
