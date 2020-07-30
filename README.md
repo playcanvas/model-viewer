@@ -32,7 +32,7 @@ Ensure you have [Node.js](https://nodejs.org) installed (v10.0+). Then, from a c
     npm install
     npm run build
 
-This will invoke Webpack and output the built viewer to the `dist` folder. To invoke Webpack with the `--switch` flag, do:
+This will invoke Webpack and output the built viewer to the `dist` folder. To invoke Webpack with the `--watch` flag (which rebuilds the viewer on saving any source file), do:
 
     npm run build:watch
 
