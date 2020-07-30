@@ -41,7 +41,7 @@
     "lint": "eslint --ignore-pattern 'src/lib' --ext .js src",
     "serve": "http-server . -a localhost -p 8080",
     "watch": "node_modules/.bin/webpack --config webpack.config.js --watch",
-    "build:local": "ENVIRONMENT=production node_modules/.bin/webpack --config webpack.config.js",
+    "build:local": "webpack --config webpack.config.js",
     "build:server": "ENVIRONMENT=production PUBLIC_PATH=/viewer/ node_modules/.bin/webpack --config webpack.config.js"
   }
 }
