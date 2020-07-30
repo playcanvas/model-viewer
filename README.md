@@ -1,6 +1,10 @@
 # PlayCanvas glTF Viewer
 
-The PlayCanvas glTF scene viewer is blazingly fast and 100% compliant with the glTF 2.0 spec. You can find a live version at:
+The PlayCanvas glTF scene viewer is blazingly fast and 100% compliant with the glTF 2.0 spec. 
+
+[![PlayCanvas Viewer](images/viewer.png)](https://playcanvas.com/viewer)
+
+You can find a live version at:
 
 https://playcanvas.com/viewer
 
