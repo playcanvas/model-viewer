@@ -26,7 +26,6 @@ body {
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
-    opacity: 0.75;
     position: relative;
 }
 
@@ -36,16 +35,8 @@ body {
     overflow-y: hidden !important;
 }
 
-#panel > #controls, #panel > .header {
-    opacity: 1.0;
-}
-
 #panel.collapsed > #controls, #panel.collapsed > .header {
     opacity: 0.0;
-}
-
-#panel.no-cta {
-    opacity: 1.0;
 }
 
 #panel-toggle {
@@ -85,11 +76,6 @@ body {
     width: 0 !important;
     flex-grow: 1;
     height: 500px;
-    opacity: 0.75;
-}
-
-#application-canvas.no-cta {
-    opacity: 1.0;
 }
 
 h3 {
