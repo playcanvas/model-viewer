@@ -28,7 +28,6 @@ body {
     -ms-user-select: none;
     opacity: 0.75;
     position: relative;
-    transition: all 0.25s;
 }
 
 #panel.collapsed {
@@ -39,7 +38,6 @@ body {
 
 #panel > #controls, #panel > .header {
     opacity: 1.0;
-    transition: all 0.2s;
 }
 
 #panel.collapsed > #controls, #panel.collapsed > .header {
@@ -176,7 +174,6 @@ input {
     margin: 0px;
     padding: 10px 4px;
     background-color: #374346;
-    transition: all 0.25s;
 }
 
 .controls div {

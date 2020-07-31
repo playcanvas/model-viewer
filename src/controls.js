@@ -311,9 +311,7 @@ export var registerElementEvents = function (viewer) {
     panelToggleDiv.addEventListener('click', function () {
         var panel = document.getElementById('panel');
         panel.classList.toggle('collapsed');
-        setTimeout(function () {
-            viewer.resizeCanvas();
-        }, 300);
+        viewer.resizeCanvas();
     });
 };
 
