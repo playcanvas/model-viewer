@@ -74,7 +74,6 @@ var buildSelect = function (name, type, options, label) {
 
 var showPanelDom = function () {
     return [
-        buildToggle('shiny', 'Shiny Ball'),
         buildToggle('stats'),
         buildToggle('wireframe'),
         buildToggle('bounds'),
@@ -267,10 +266,6 @@ export var onSceneReset = function () {
 };
 
 export var registerElementEvents = function (viewer) {
-    // Show events
-    showPanel._shinyToggle.on('change', function (value) {
-        viewer.setShowShinyBall(value);
-    });
     showPanel._statsToggle.on('change', function (value) {
         viewer.setStats(value);
     });
@@ -310,6 +305,15 @@ export var registerElementEvents = function (viewer) {
     });
     animationPanel._graphsToggle.on('change', function (value) {
         viewer.setShowGraphs(value);
+    });
+    // Build panel toggle
+    var panelToggleDiv = document.getElementById('panel-toggle');
+    panelToggleDiv.addEventListener('click', function () {
+        var panel = document.getElementById('panel');
+        panel.classList.toggle('collapsed');
+        setTimeout(function () {
+            viewer.resizeCanvas();
+        }, 300);
     });
 };
 

@@ -19,25 +19,17 @@ var Viewer = function (canvas, onSceneReset, onAnimationsLoaded, onMorphTargetsL
         mouse: new pc.Mouse(canvas),
         touch: new pc.TouchDevice(canvas)
     });
-
-    var getCanvasSize = function () {
-        return {
-            width: document.body.clientWidth - 300,
-            height: document.body.clientHeight
-        };
-    };
+    this.app = app;
 
     app.graphicsDevice.maxPixelRatio = window.devicePixelRatio;
 
+    var canvasSize = this._getCanvasSize();
     // Set the canvas to fill the window and automatically change resolution to be the same as the canvas size
-    var canvasSize = getCanvasSize();
     app.setCanvasFillMode(pc.FILLMODE_NONE, canvasSize.width, canvasSize.height);
     app.setCanvasResolution(pc.RESOLUTION_AUTO);
     window.addEventListener("resize", function () {
-        var canvasSize = getCanvasSize();
-        app.resizeCanvas(canvasSize.width, canvasSize.height);
-        app.renderNextFrame = true;
-    });
+        this.resizeCanvas();
+    }.bind(this));
 
     // create the orbit camera
     var camera = new pc.Entity("Camera");
@@ -104,7 +96,6 @@ var Viewer = function (canvas, onSceneReset, onAnimationsLoaded, onMorphTargetsL
     app.root.addChild(debugRoot);
 
     // store app things
-    this.app = app;
     this.camera = camera;
     this.cameraPosition = null;
     this.light = light;
@@ -141,21 +132,6 @@ var Viewer = function (canvas, onSceneReset, onAnimationsLoaded, onMorphTargetsL
 
     // initialize the envmap
     app.loader.getHandler(pc.ASSET_TEXTURE).parsers.hdr = new HdrParser(app.assets, false);
-
-    // construct debug shiny ball
-    var shiny = new pc.StandardMaterial();
-    shiny.metalness = 1;
-    shiny.shininess = 100;
-    shiny.useMetalness = true;
-    shiny.update();
-
-    var sphere = new pc.Entity();
-    sphere.addComponent("model", {
-        material: shiny,
-        type: "sphere"
-    });
-    sphere.setLocalPosition(0, 0, 0);
-    this.sphere = sphere;
 
     // start the application
     app.start();
@@ -403,6 +379,19 @@ Object.assign(Viewer.prototype, {
         app.assets.add(cubemap);
         app.assets.load(cubemap);
         this.skyboxLoaded = true;
+    },
+
+    _getCanvasSize: function () {
+        return {
+            width: document.body.clientWidth - document.getElementById("panel").offsetWidth,
+            height: document.body.clientHeight
+        };
+    },
+
+    resizeCanvas: function () {
+        var canvasSize = this._getCanvasSize();
+        this.app.resizeCanvas(canvasSize.width, canvasSize.height);
+        this.app.renderNextFrame = true;
     },
 
     // reset the viewer, unloading resources
@@ -818,6 +807,12 @@ Object.assign(Viewer.prototype, {
         resolveDirectories(entries);
     },
 
+    clearCta() {
+        document.querySelector('#panel').classList.add('no-cta');
+        document.querySelector('#application-canvas').classList.add('no-cta');
+        document.querySelector('.initial-cta').classList.add('no-cta');
+    },
+
     // container asset has been loaded, add it to the scene
     _onLoaded: function (err, asset) {
         if (err) {
@@ -984,6 +979,7 @@ Object.assign(Viewer.prototype, {
         // then focus the camera.
         this.firstFrame = true;
         this.renderNextFrame();
+        this.clearCta();
     },
 
     // generate and render debug elements on prerender

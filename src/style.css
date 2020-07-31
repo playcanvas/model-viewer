@@ -26,11 +26,72 @@ body {
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
+    opacity: 0.75;
+    position: relative;
+    transition: all 0.25s;
+}
+
+#panel.collapsed {
+    width: 32px;
+    overflow: hidden;
+    overflow-y: hidden !important;
+}
+
+#panel > #controls, #panel > .header {
+    opacity: 1.0;
+    transition: all 0.2s;
+}
+
+#panel.collapsed > #controls, #panel.collapsed > .header {
+    opacity: 0.0;
+}
+
+#panel.no-cta {
+    opacity: 1.0;
+}
+
+#panel-toggle {
+    width: 32px;
+    height: 32px;
+    position: absolute;
+    right: 0;
+    top: 0;
+    z-index: 1000;
+    padding: 0;
+    cursor: pointer;
+}
+
+#panel-toggle::before {
+    font-family: 'pc-icon';
+    content: '\E183';
+    font-weight: 200;
+    font-size: 14px;
+    margin-right: 10px;
+    text-align: center;
+    color: #f60;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translateY(-50%) translateX(-50%);
+}
+
+#panel-toggle:hover::before {
+    color: white;
+}
+
+#panel.collapsed > #panel-toggle::before {
+    transform: translateY(-50%) translateX(-50%) rotateZ(90deg);
 }
 
 #application-canvas {
-    width: 500px;
+    width: 0 !important;
+    flex-grow: 1;
     height: 500px;
+    opacity: 0.75;
+}
+
+#application-canvas.no-cta {
+    opacity: 1.0;
 }
 
 h3 {
@@ -70,6 +131,7 @@ input {
 }
 
 .header {
+    display: block !important;
     margin: 0px;
     height: 32px;
     line-height: 32px;
@@ -89,13 +151,32 @@ input {
 }
 
 .header span {
-    color: #777;
+    color: #b1b8ba;;
+}
+
+.initial-cta {
+    border-radius: 8px;
+    font-size: 16px;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translateY(-50%) translateX(-50%);
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+.initial-cta.no-cta {
+    display: none !important;
 }
 
 .controls {
     margin: 0px;
     padding: 10px 4px;
     background-color: #374346;
+    transition: all 0.25s;
 }
 
 .controls div {
@@ -142,3 +223,18 @@ input {
 .morph-target-label {
     min-width: 24% !important;
 }
+
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+::-webkit-scrollbar-track {
+    background: #20292b;
+}
+::-webkit-scrollbar-thumb {
+    background: #5b7073;
+}
+/* ::-webkit-scrollbar-corner {
+    background: $editor-tooltip-bg;
+} */
+

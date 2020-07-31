@@ -4,6 +4,7 @@ import { wasmSupported, loadWasmModuleAsync } from './lib/wasm-loader.js';
 import Viewer from './viewer.js';
 import { onSceneReset, onAnimationsLoaded, onMorphTargetsLoaded, registerElementEvents } from './controls.js';
 import { getAssetPath } from './helpers.js';
+import './cta.js';
 
 import './style.css';
 
