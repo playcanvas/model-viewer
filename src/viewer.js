@@ -114,6 +114,11 @@ var Viewer = function (canvas, onSceneReset, onAnimationsLoaded, onMorphTargetsL
     this.assets = [];
     this.graph = graph;
     this.meshInstances = [];
+    this.stateGraph = {
+        layers: [],
+        parameters: { }
+    };
+    this.animTracks = [];
     this.animationMap = { };
     this.morphs = [];
     this.firstFrame = false;
@@ -142,21 +147,6 @@ var Viewer = function (canvas, onSceneReset, onAnimationsLoaded, onMorphTargetsL
     // initialize the envmap
     app.loader.getHandler(pc.ASSET_TEXTURE).parsers.hdr = new HdrParser(app.assets, false);
 
-    // construct debug shiny ball
-    var shiny = new pc.StandardMaterial();
-    shiny.metalness = 1;
-    shiny.shininess = 100;
-    shiny.useMetalness = true;
-    shiny.update();
-
-    var sphere = new pc.Entity();
-    sphere.addComponent("model", {
-        material: shiny,
-        type: "sphere"
-    });
-    sphere.setLocalPosition(0, 0, 0);
-    this.sphere = sphere;
-
     // start the application
     app.start();
 
@@ -174,7 +164,9 @@ var Viewer = function (canvas, onSceneReset, onAnimationsLoaded, onMorphTargetsL
     // handle load url param
     var loadUrls = (urlParams.load || []).concat(urlParams.assetUrl || []);
     if (loadUrls.length > 0) {
-        this.load(loadUrls);
+        for (var i = 0; i < loadUrls.length; ++i) {
+            this.load(loadUrls[i]);
+        }
     }
 
     // load the default skybox if one wasn't specified in url params
@@ -233,23 +225,33 @@ Object.assign(Viewer.prototype, {
 
         var cubemaps = [];
 
-        if (skybox.cubemap) {
-            // store cubemap for faces
-            cubemaps.push(skybox);
-        } else {
+        var reprojectToCubemap = function (src, size) {
             // generate faces cubemap
             var faces = new pc.Texture(device, {
                 name: 'skyboxFaces',
                 cubemap: true,
-                width: skybox.width / 4,
-                height: skybox.width / 4,
+                width: size,
+                height: size,
                 type: pc.TEXTURETYPE_RGBM,
                 addressU: pc.ADDRESS_CLAMP_TO_EDGE,
                 addressV: pc.ADDRESS_CLAMP_TO_EDGE
             });
+            pc.reprojectTexture(device, src, faces);
+            return faces;
+        };
 
-            pc.reprojectTexture(device, skybox, faces);
-            cubemaps.push(faces);
+        if (skybox.cubemap) {
+            if (skybox.type === pc.TEXTURETYPE_DEFAULT ||
+                skybox.type === pc.TEXTURETYPE_RGBM) {
+                // cubemap format is acceptible, use it directly
+                cubemaps.push(skybox);
+            } else {
+                // cubemap must be rgbm or default to be used on the skybox
+                cubemaps.push(reprojectToCubemap(skybox, skybox.width));
+            }
+        } else {
+            // reproject equirect to cubemap for skybox
+            cubemaps.push(reprojectToCubemap(skybox, skybox.width / 4));
         }
 
         // generate prefiltered lighting data
@@ -291,13 +293,9 @@ Object.assign(Viewer.prototype, {
             });
             textureAsset.ready(function () {
                 var texture = textureAsset.resource;
-                if (texture.type === pc.TEXTURETYPE_DEFAULT) {
-                    // assume jps/pngs are RGBM
+                if (texture.type === pc.TEXTURETYPE_DEFAULT && texture.format === pc.PIXELFORMAT_R8_G8_B8_A8) {
+                    // assume RGBA data (pngs) are RGBM
                     texture.type = pc.TEXTURETYPE_RGBM;
-                }
-                if (texture.type === pc.TEXTURETYPE_RGBE) {
-                    // you can't filter RGBE pixels
-                    texture.minFilter = pc.FILTER_NEAREST;
                 }
                 self._initSkyboxFromTexture(texture);
             });
@@ -318,7 +316,7 @@ Object.assign(Viewer.prototype, {
                 for (var i = 0; i < names.length; ++i) {
                     var nameList = names[i];
                     for (var j = 0; j < nameList.length; ++j) {
-                        if (fn.indexOf('_' + nameList[j] + '.') !== -1) {
+                        if (fn.indexOf(nameList[j] + '.') !== -1) {
                             return j;
                         }
                     }
@@ -346,20 +344,11 @@ Object.assign(Viewer.prototype, {
             var cubemapAsset = new pc.Asset('skybox_cubemap', 'cubemap', null, {
                 textures: faceAssets.map(function (faceAsset) {
                     return faceAsset.id;
-                }),
-                magFilter: pc.FILTER_LINEAR,
-                minFilter: pc.FILTER_LINEAR_MIPMAP_LINEAR,
-                anisotropy: 1,
-                type: pc.TEXTURETYPE_RGBM
+                })
             });
             cubemapAsset.loadFaces = true;
             cubemapAsset.on('load', function () {
-                var cubemap = cubemapAsset.resource;
-                if (cubemap) {
-                    cubemap.type = pc.TEXTURETYPE_RGBM;
-                    cubemap.minFilter = pc.FILTER_NEAREST;
-                    self._initSkyboxFromTexture(cubemap);
-                }
+                self._initSkyboxFromTexture(cubemapAsset.resource);
             });
             app.assets.add(cubemapAsset);
             app.assets.load(cubemapAsset);
@@ -429,6 +418,12 @@ Object.assign(Viewer.prototype, {
 
         this.onSceneReset();
 
+        // reset animation state
+        this.stateGraph = {
+            layers: [],
+            parameters: { }
+        };
+        this.animTracks = [];
         this.animationMap = { };
         this.onAnimationsLoaded(this, []);
 
@@ -665,15 +660,6 @@ Object.assign(Viewer.prototype, {
         this.renderNextFrame();
     },
 
-    setShowShinyBall: function (show) {
-        if (show) {
-            this.debugRoot.addChild(this.sphere);
-        } else {
-            this.debugRoot.removeChild(this.sphere);
-        }
-        this.renderNextFrame();
-    },
-
     setDirectLighting: function (factor) {
         this.light.light.intensity = factor;
         this.renderNextFrame();
@@ -855,16 +841,13 @@ Object.assign(Viewer.prototype, {
                 });
             }
 
-            var stateGraph = {
-                layers: [],
-                parameters: { }
-            };
+            var stateGraph = this.stateGraph;
 
             // create a layer per animation so we can play them all simultaniously if needed
             for (i = 0; i < resource.animations.length; ++i) {
                 // construct a state graph to include the loaded animations
                 stateGraph.layers.push( {
-                    name: asset.name + '_layer_' + i,
+                    name: 'layer_' + this.animTracks.length,
                     states: [
                         { name: 'START' },
                         { name: 'default', speed: 1 },
@@ -879,15 +862,18 @@ Object.assign(Viewer.prototype, {
                         }
                     ]
                 } );
+
+                // store anim track
+                this.animTracks.push(resource.animations[i].resource);
             }
 
-            // construct an anim layer for this set of animations
+            // load the new state graph
             entity.anim.loadStateGraph(new pc.AnimStateGraph(stateGraph));
 
             // set animations on each layer
-            for (i = 0; i < resource.animations.length; ++i) {
-                var animTrack = resource.animations[i].resource;
-                var layer = entity.anim.findAnimationLayer(asset.name + '_layer_' + i);
+            for (i = 0; i < this.animTracks.length; ++i) {
+                var animTrack = this.animTracks[i];
+                var layer = entity.anim.findAnimationLayer('layer_' + i);
                 layer.assignAnimation('default', animTrack);
                 layer.pause();
                 this.animationMap[animTrack.name] = layer;
