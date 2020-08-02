@@ -8,9 +8,9 @@ You can find a live version at:
 
 https://playcanvas.com/viewer
 
-The viewer can load any glTF 2.0 scene. Embedded glTF and binary glTF (GLB) can be dragged directly into the 3D view. To load an unpacked glTF scene, drag its parent folder into the 3D view. You can also load scenes via the `load` URL query parameter. An example would be:
+## Viewing Scenes
 
-https://playcanvas.com/viewer/?load=https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/DamagedHelmet/glTF-Binary/DamagedHelmet.glb
+The viewer can load any glTF 2.0 scene. Embedded glTF and binary glTF (GLB) can be dragged directly into the 3D view. To load an unpacked glTF scene, drag its parent folder into the 3D view.
 
 You can also drag and drop images into the 3D view to set a background. Options are:
 
@@ -24,6 +24,15 @@ You can also drag and drop images into the 3D view to set a background. Options 
 | right   |  left   | up      | down    | front   | back    |
 | right   |  left   | top     | bottom  | forward | backward|
 | 0       |  1      | 2       | 3       | 4       | 5       |
+
+### Supported URL Parameters
+
+Some URL query parameters are available to override certain aspects of the viewer:
+
+| Parameter         | Description                          | Example |
+|-------------------|--------------------------------------|---------|
+| `load`/`assetUrl` | Specify URL to a glTF scene to load  | [?load=URL](https://playcanvas.com/viewer/?load=https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/DamagedHelmet/glTF-Binary/DamagedHelmet.glb) |
+| `cameraPosition`  | Override the initial camera position | [?cameraPosition=0,0,20](https://playcanvas.com/viewer/?load=https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/DamagedHelmet/glTF-Binary/DamagedHelmet.glb&cameraPosition=0,0,20) |
 
 ## How to build
 
