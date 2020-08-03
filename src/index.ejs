@@ -7,9 +7,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
     <% if (htmlWebpackPlugin.options.hasPublicPath) { %>
-    <link rel="icon" type="image/png" href="/viewer/playcanvas-logo.png" />
+    <link rel="icon" type="image/png" href="/viewer/static/playcanvas-logo.png" />
     <% } else { %>
-    <link rel="icon" type="image/png" href="./playcanvas-logo.png" />
+    <link rel="icon" type="image/png" href="./static/playcanvas-logo.png" />
     <% } %>
 </head>
 
@@ -18,9 +18,9 @@
         <div id="panel">
             <div id="panel-toggle"></div>
             <% if (htmlWebpackPlugin.options.hasPublicPath) { %>
-            <div class="header" href="#" style="display: none;"><a href="#"><img src="/viewer/playcanvas-logo.png"/><div><b>PLAY</b>CANVAS <span>viewer</span></div></a></div>
+            <div class="header" href="#" style="display: none;"><a href="#"><img src="/viewer/static/playcanvas-logo.png"/><div><b>PLAY</b>CANVAS <span>viewer</span></div></a></div>
             <% } else { %>
-            <div class="header" href="#" style="display: none;"><a href="#"><img src="./playcanvas-logo.png"/><div><b>PLAY</b>CANVAS <span>viewer</span></div></a></div>
+            <div class="header" href="#" style="display: none;"><a href="#"><img src="./static/playcanvas-logo.png"/><div><b>PLAY</b>CANVAS <span>viewer</span></div></a></div>
             <% } %>
             <div id="controls"></div>
         </div>

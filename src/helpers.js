@@ -1,7 +1,7 @@
 var getAssetPath = function (assetPath) {
-    var prefix = '';
+    var prefix = '/static/';
     // #if process.env.PUBLIC_PATH
-    prefix = '/viewer/';
+    prefix = '/viewer/static/';
     // #endif
     return prefix + assetPath;
 };
