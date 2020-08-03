@@ -51,7 +51,7 @@ module.exports = {
         }),
         new CopyWebpackPlugin({
             patterns: [
-                { from: 'static', to: 'static' }
+                { from: 'static', to: '' }
             ]
         })
     ]
