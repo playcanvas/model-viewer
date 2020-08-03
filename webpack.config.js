@@ -6,7 +6,7 @@ module.exports = {
     mode: process.env.ENVIRONMENT || 'development',
     entry: './src/index.js',
     output: {
-        path: path.resolve(__dirname, 'dist'),
+        path: path.resolve(__dirname, 'dist/static'),
         publicPath: process.env.PUBLIC_PATH || undefined,
         filename: 'bundle.[contenthash].js'
     },
@@ -50,7 +50,7 @@ module.exports = {
         }),
         new CopyWebpackPlugin({
             patterns: [
-                { from: 'static', to: '' }
+                { from: 'static', to: 'static' }
             ]
         })
     ]
