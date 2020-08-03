@@ -46,6 +46,7 @@ module.exports = {
     plugins: [
         new HtmlWebpackPlugin({
             template: 'src/index.ejs',
+            filename: '../index.html',
             hasPublicPath: !!process.env.PUBLIC_PATH
         }),
         new CopyWebpackPlugin({
