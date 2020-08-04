@@ -80,7 +80,9 @@ Object.assign(HdrParser.prototype, {
             height: textureData.height,
             levels: textureData.levels,
             format: pc.PIXELFORMAT_R8_G8_B8_A8,
-            type: pc.TEXTURETYPE_RGBE
+            type: pc.TEXTURETYPE_RGBE,
+            // RGBE can't be filtered, so mipmaps are out of the question! (unless we generated them ourselves)
+            mipmaps: false
         });
 
         texture.upload();
