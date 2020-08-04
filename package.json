@@ -42,7 +42,7 @@
     "serve": "serve dist",
     "build": "webpack --config webpack.config.js",
     "build:watch": "webpack --config webpack.config.js --watch",
-    "build:server": "ENVIRONMENT=production PUBLIC_PATH=/viewer/ webpack --config webpack.config.js"
+    "build:server": "ENVIRONMENT=production PUBLIC_PATH=/viewer/static/ webpack --config webpack.config.js"
   },
   "dependencies": {
     "serve": "^11.3.2"
