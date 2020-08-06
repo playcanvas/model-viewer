@@ -1,5 +1,5 @@
-const pc = require(__PLAYCANVAS_IMPORT__);
-const pcx = require(__PLAYCANVAS_EXTRAS_IMPORT__);
+var pc = require(__PLAYCANVAS_IMPORT__);
+var pcx = require(__PLAYCANVAS_EXTRAS_IMPORT__);
 import Graph from './graph.js';
 import DebugLines from './debug.js';
 import HdrParser from './lib/hdr-texture.js';
