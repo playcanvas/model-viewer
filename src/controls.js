@@ -1,6 +1,6 @@
 import * as pcui from './lib/pcui.js';
 import { getAssetPath } from './helpers.js';
-var pc = require(__PLAYCANVAS_IMPORT__);
+var pc = require(__PLAYCANVAS_PATH__);
 
 // Build controls
 var controlsDiv = document.getElementById('controls');

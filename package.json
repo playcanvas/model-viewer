@@ -41,8 +41,8 @@
     "serve": "serve dist",
     "build": "webpack --config webpack.config.js",
     "build:watch": "webpack --config webpack.config.js --watch",
-    "build:localplaycanvas": "PLAYCANVAS_IMPORT=local webpack --config webpack.config.js --watch",
-    "build:localplaycanvasdbg": "PLAYCANVAS_IMPORT=localdebug webpack --config webpack.config.js --watch",
+    "build:localplaycanvas": "PLAYCANVAS_PATH=local webpack --config webpack.config.js --watch",
+    "build:localplaycanvasdbg": "PLAYCANVAS_PATH=localdebug webpack --config webpack.config.js --watch",
     "build:server": "ENVIRONMENT=production PUBLIC_PATH=/viewer/static/ webpack --config webpack.config.js"
   },
   "dependencies": {

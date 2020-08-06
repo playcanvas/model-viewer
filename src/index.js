@@ -1,4 +1,4 @@
-var pc = require(__PLAYCANVAS_IMPORT__);
+var pc = require(__PLAYCANVAS_PATH__);
 import { wasmSupported, loadWasmModuleAsync } from './lib/wasm-loader.js';
 
 import Viewer from './viewer.js';

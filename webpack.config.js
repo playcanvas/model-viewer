@@ -3,8 +3,8 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const webpack = require('webpack');
 
-function getPlaycanvasImport() {
-    switch (process.env.PLAYCANVAS_IMPORT) {
+function getPlaycanvasPath() {
+    switch (process.env.PLAYCANVAS_PATH) {
         case 'local':
             return JSON.stringify('./engine/playcanvas.js');
         case 'localdebug':
@@ -14,8 +14,8 @@ function getPlaycanvasImport() {
     }
 }
 
-function getPlaycanvasExtrasImport() {
-    switch (process.env.PLAYCANVAS_IMPORT) {
+function getPlaycanvasExtrasPath() {
+    switch (process.env.PLAYCANVAS_PATH) {
         case 'local':
         case 'localdebug':
             return JSON.stringify('./engine/playcanvas-extras.js');
@@ -73,8 +73,8 @@ module.exports = {
             ]
         }),
         new webpack.DefinePlugin({
-            __PLAYCANVAS_IMPORT__: getPlaycanvasImport(),
-            __PLAYCANVAS_EXTRAS_IMPORT__: getPlaycanvasExtrasImport(),
+            __PLAYCANVAS_PATH__: getPlaycanvasPath(),
+            __PLAYCANVAS_EXTRAS_PATH__: getPlaycanvasExtrasPath(),
             __PUBLIC_PATH__: JSON.stringify(process.env.PUBLIC_PATH)
         })
     ]
