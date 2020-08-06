@@ -1,6 +1,6 @@
 import * as pcui from './lib/pcui.js';
-import { http } from 'playcanvas';
 import { getAssetPath } from './helpers.js';
+const pc = require(__PLAYCANVAS_IMPORT__);
 
 // Build controls
 var controlsDiv = document.getElementById('controls');
@@ -111,7 +111,7 @@ lightingPanel.buildDom(lightingPanelDom());
 controlsDiv.append(lightingPanel.dom);
 
 // populate select inputs with manifest assets
-http.get(
+pc.http.get(
     getAssetPath("asset_manifest.json"),
     {
         cache: true,

@@ -1,5 +1,5 @@
-import * as pc from 'playcanvas';
-import { MiniStats } from 'playcanvas/build/playcanvas-extras.js';
+const pc = require(__PLAYCANVAS_IMPORT__);
+const pcx = require(__PLAYCANVAS_EXTRAS_IMPORT__);
 import Graph from './graph.js';
 import DebugLines from './debug.js';
 import HdrParser from './lib/hdr-texture.js';
@@ -132,7 +132,7 @@ var Viewer = function (canvas, onSceneReset, onAnimationsLoaded, onMorphTargetsL
     this.debugNormals = new DebugLines(app, camera);
 
     // construct ministats, default off
-    this.miniStats = new MiniStats(app);
+    this.miniStats = new pcx.MiniStats(app);
     this.miniStats.enabled = false;
 
     // initialize the envmap

@@ -1,6 +1,28 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
+const webpack = require('webpack');
+
+function getPlaycanvasImport() {
+    switch (process.env.PLAYCANVAS_IMPORT) {
+        case 'local':
+            return JSON.stringify('./engine/playcanvas.js');
+        case 'localdebug':
+            return JSON.stringify('./engine/playcanvas.dbg.js');
+        default:
+            return JSON.stringify('playcanvas');
+    }
+}
+
+function getPlaycanvasExtrasImport() {
+    switch (process.env.PLAYCANVAS_IMPORT) {
+        case 'local':
+        case 'localdebug':
+            return JSON.stringify('./engine/playcanvas-extras.js');
+        default:
+            return JSON.stringify('playcanvas/build/playcanvas-extras.js');
+    }
+}
 
 module.exports = {
     mode: process.env.ENVIRONMENT || 'development',
@@ -15,10 +37,6 @@ module.exports = {
             {
                 test: /\.css$/,
                 use: ['style-loader', 'css-loader']
-            },
-            {
-                test: /\.js$/,
-                use: ['webpack-conditional-loader']
             }
         ]
     },
@@ -53,6 +71,11 @@ module.exports = {
             patterns: [
                 { from: 'static', to: '' }
             ]
+        }),
+        new webpack.DefinePlugin({
+            __PLAYCANVAS_IMPORT__: getPlaycanvasImport(),
+            __PLAYCANVAS_EXTRAS_IMPORT__: getPlaycanvasExtrasImport(),
+            __PUBLIC_PATH__: JSON.stringify(process.env.PUBLIC_PATH)
         })
     ]
 };
