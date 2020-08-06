@@ -3,27 +3,6 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const webpack = require('webpack');
 
-function getPlaycanvasPath() {
-    switch (process.env.PLAYCANVAS_PATH) {
-        case 'local':
-            return JSON.stringify('./engine/playcanvas.js');
-        case 'localdebug':
-            return JSON.stringify('./engine/playcanvas.dbg.js');
-        default:
-            return JSON.stringify('playcanvas');
-    }
-}
-
-function getPlaycanvasExtrasPath() {
-    switch (process.env.PLAYCANVAS_PATH) {
-        case 'local':
-        case 'localdebug':
-            return JSON.stringify('./engine/playcanvas-extras.js');
-        default:
-            return JSON.stringify('playcanvas/build/playcanvas-extras.js');
-    }
-}
-
 module.exports = {
     mode: process.env.ENVIRONMENT || 'development',
     entry: './src/index.js',
@@ -73,8 +52,8 @@ module.exports = {
             ]
         }),
         new webpack.DefinePlugin({
-            __PLAYCANVAS_PATH__: getPlaycanvasPath(),
-            __PLAYCANVAS_EXTRAS_PATH__: getPlaycanvasExtrasPath(),
+            __PLAYCANVAS_PATH__: JSON.stringify(process.env.ENGINE_PATH ? path.resolve(__dirname, process.env.ENGINE_PATH) : 'playcanvas'),
+            __PLAYCANVAS_EXTRAS_PATH__: JSON.stringify('playcanvas/build/playcanvas-extras.js'),
             __PUBLIC_PATH__: JSON.stringify(process.env.PUBLIC_PATH)
         })
     ]
