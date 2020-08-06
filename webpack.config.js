@@ -53,7 +53,7 @@ module.exports = {
         }),
         new webpack.DefinePlugin({
             __PLAYCANVAS_PATH__: JSON.stringify(process.env.ENGINE_PATH ? path.resolve(__dirname, process.env.ENGINE_PATH) : 'playcanvas'),
-            __PLAYCANVAS_EXTRAS_PATH__: JSON.stringify('playcanvas/build/playcanvas-extras.js'),
+            __PLAYCANVAS_EXTRAS_PATH__: JSON.stringify(process.env.EXTRAS_PATH ? path.resolve(__dirname, process.env.EXTRAS_PATH) : 'playcanvas/build/playcanvas-extras.js'),
             __PUBLIC_PATH__: JSON.stringify(process.env.PUBLIC_PATH)
         })
     ]
