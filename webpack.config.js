@@ -1,6 +1,7 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
+const webpack = require('webpack');
 
 module.exports = {
     mode: process.env.ENVIRONMENT || 'development',
@@ -15,10 +16,6 @@ module.exports = {
             {
                 test: /\.css$/,
                 use: ['style-loader', 'css-loader']
-            },
-            {
-                test: /\.js$/,
-                use: ['webpack-conditional-loader']
             }
         ]
     },
@@ -53,6 +50,11 @@ module.exports = {
             patterns: [
                 { from: 'static', to: '' }
             ]
+        }),
+        new webpack.DefinePlugin({
+            __PLAYCANVAS_PATH__: JSON.stringify(process.env.ENGINE_PATH ? path.resolve(__dirname, process.env.ENGINE_PATH) : 'playcanvas'),
+            __PLAYCANVAS_EXTRAS_PATH__: JSON.stringify('playcanvas/build/playcanvas-extras.js'),
+            __PUBLIC_PATH__: JSON.stringify(process.env.PUBLIC_PATH)
         })
     ]
 };
