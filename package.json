@@ -26,12 +26,13 @@
   },
   "devDependencies": {
     "@playcanvas/eslint-config": "^1.0.6",
+    "concurrently": "^5.2.0",
     "copy-webpack-plugin": "^6.0.3",
     "css-loader": "^4.0.0",
     "eslint": "^7.5.0",
     "html-webpack-plugin": "^4.3.0",
-    "serve": "^11.3.2",
     "playcanvas": "^1.32.4",
+    "serve": "^11.3.2",
     "style-loader": "^1.2.1",
     "webpack": "^4.44.0",
     "webpack-cli": "^3.3.12"
@@ -41,7 +42,8 @@
     "serve": "serve dist",
     "build": "webpack --config webpack.config.js",
     "build:watch": "webpack --config webpack.config.js --watch",
-    "build:server": "ENVIRONMENT=production PUBLIC_PATH=/viewer/static/ webpack --config webpack.config.js"
+    "build:server": "ENVIRONMENT=production PUBLIC_PATH=/viewer/static/ webpack --config webpack.config.js",
+    "local": "concurrently --kill-others \"npm run build:watch\" \"npm run serve\""
   },
   "dependencies": {
     "serve": "^11.3.2"
