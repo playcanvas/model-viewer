@@ -3,9 +3,9 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const webpack = require('webpack');
 
-module.exports = {
+const config = {
     mode: process.env.ENVIRONMENT || 'development',
-    entry: './src/index.js',
+    entry: './src/index.ts',
     output: {
         path: path.resolve(__dirname, 'dist/static'),
         publicPath: process.env.PUBLIC_PATH || undefined,
@@ -16,15 +16,22 @@ module.exports = {
             {
                 test: /\.css$/,
                 use: ['style-loader', 'css-loader']
+            },
+            {
+                test: /\.tsx?$/,
+                use: 'awesome-typescript-loader'
             }
         ]
     },
     resolve: {
         modules: [
-            'node_modules',
-            path.resolve(__dirname, 'src')
+            path.resolve(__dirname, 'src'),
+            'node_modules'
         ],
-        extensions: ['.js', '.css']
+        alias: {
+            lib: path.resolve(__dirname, 'lib')
+        },
+        extensions: ['.ts', '.js', '.css']
     },
     devtool: process.env.ENVIRONMENT === 'production' ? 'source-map' : 'eval-source-map',
     context: __dirname,
@@ -52,9 +59,19 @@ module.exports = {
             ]
         }),
         new webpack.DefinePlugin({
-            __PLAYCANVAS_PATH__: JSON.stringify(process.env.ENGINE_PATH ? path.resolve(__dirname, process.env.ENGINE_PATH) : 'playcanvas'),
             __PLAYCANVAS_EXTRAS_PATH__: JSON.stringify(process.env.EXTRAS_PATH ? path.resolve(__dirname, process.env.EXTRAS_PATH) : 'playcanvas/build/playcanvas-extras.js'),
             __PUBLIC_PATH__: JSON.stringify(process.env.PUBLIC_PATH)
         })
     ]
 };
+
+if (process.env.ENGINE_PATH) {
+    config.plugins.push(
+        new webpack.NormalModuleReplacementPlugin(
+            /^playcanvas$/,
+            path.resolve(__dirname, process.env.ENGINE_PATH)
+        )
+    );
+}
+
+module.exports = config;

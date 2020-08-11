@@ -1,10 +1,10 @@
-var pc = require(__PLAYCANVAS_PATH__);
+import * as pc from 'playcanvas';
 var pcx = require(__PLAYCANVAS_EXTRAS_PATH__);
 import Graph from './graph.js';
 import DebugLines from './debug.js';
-import HdrParser from './lib/hdr-texture.js';
-import MeshoptDecoder from './lib/meshopt_decoder.js';
-import { getAssetPath } from './helpers.js';
+import HdrParser from 'lib/hdr-texture.js';
+import MeshoptDecoder from 'lib/meshopt_decoder.js';
+import { getAssetPath } from './helpers.ts';
 
 var Viewer = function (canvas, onSceneReset, onAnimationsLoaded, onMorphTargetsLoaded) {
 
