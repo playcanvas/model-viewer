@@ -49,9 +49,9 @@ This will invoke Webpack and output the built viewer to the `dist` folder. To in
 
 You can set the npm build scripts to use local versions of the playcanvas engine & playcanvas extras builds by setting the following environment variables when launching the npm build scripts:
 
-    ENGINE_PATH=./path/to/playcanvas.js
+    ENGINE_PATH=./path/to/playcanvas.js npm run build
 
-    EXTRAS_PATH=./path/to/playcanvas-extras.js
+    EXTRAS_PATH=./path/to/playcanvas-extras.js npm run build
 
 ## How to run
 
