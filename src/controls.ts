@@ -1,6 +1,7 @@
 import * as pcui from '../lib/pcui.js';
 import { getAssetPath } from './helpers';
 import * as pc from 'playcanvas';
+import Viewer from './viewer.js';
 
 // Build controls
 const controlsDiv = document.getElementById('controls');
@@ -55,7 +56,7 @@ const buildSlider = function (name: string, precision: number, min: number, max:
     return sliderDom;
 };
 
-const buildSelect = function (name: string, type: string, options: object, label?: string) {
+const buildSelect = function (name: string, type: string, options: Record<any, any>, label?: string) {
     const selectDom: ControlDom = {
         root: {},
         children: [
@@ -134,7 +135,7 @@ new pc.Http().get(
         responseType: "text",
         retry: false
     },
-    function (err: string, result: { skyboxes: Array<Skybox> }) {      // eslint-disable-line no-unused-consts
+    function (err: string, result: { skyboxes: Array<Skybox> }) {
         if (err) {
             console.warn(err);
         } else {
@@ -196,8 +197,6 @@ animationPanel.buildDom(animationPanelDom());
 
 controlsDiv.append(animationPanel.dom);
 
-/* eslint-disable no-unused-consts */
-
 // called when animations are loaded
 export const onAnimationsLoaded = function (viewer: any, animationList: Array<string>) {
     if (animationPanel._animationList) {
@@ -233,12 +232,12 @@ controlsDiv.append(morphTargetPanel.dom);
 
 interface Morph {
     name: string,
-    getWeight: Function,
-    setWeight: Function,
-    onWeightChanged: Function
+    getWeight?: () => number,
+    setWeight?: (weight: number) => void,
+    onWeightChanged: () => void
 }
 
-export const onMorphTargetsLoaded = function (viewer: any, morphList: Array<Morph>) {
+export const onMorphTargetsLoaded = function (viewer: Viewer, morphList: Array<Morph>) {
 
     if (morphTargetPanel._morphTargetList) {
         morphTargetPanel.remove(morphTargetPanel._morphTargetList);
@@ -258,11 +257,11 @@ export const onMorphTargetsLoaded = function (viewer: any, morphList: Array<Morp
             const morphTargetContainer = new pcui.Container();
             morphTargetContainer.buildDom([buildSlider(morph.name, 24, 0, 1, morph.getWeight())]);
             const slider = morphTargetContainer['_' + morph.name + 'Slider'];
-            slider.on('change', function (morph: Morph) {
-                if (this.value !== morph.getWeight()) {
-                    morph.setWeight(this.value);
+            slider.on('change', (value: number) => {
+                if (value !== morph.getWeight()) {
+                    morph.setWeight(value);
                 }
-            }.bind(slider, morph));
+            });
             morph.onWeightChanged = function (morph: Morph) {
                 this.value = morph.getWeight();
             }.bind(slider, morph);
@@ -338,5 +337,3 @@ export const registerElementEvents = function (viewer: any) {
         viewer.resizeCanvas();
     });
 };
-
-// /* eslint-enable no-unused-consts */

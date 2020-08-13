@@ -1,14 +1,20 @@
-var debugLayerFront: pc.Layer = null;
-var debugLayerBack: pc.Layer = null;
+let debugLayerFront: pc.Layer = null;
+let debugLayerBack: pc.Layer = null;
 
 class DebugLines {
 
     app: pc.Application;
+
     mesh: pc.Mesh;
+
     meshInstance: pc.MeshInstance;
+
     vertexFormat: pc.VertexFormat;
+
     vertexCursor: number;
+
     vertexData: Float32Array;
+
     colourData: Uint32Array;
 
     constructor(app: pc.Application, camera: pc.Entity) {
@@ -37,15 +43,15 @@ class DebugLines {
             camera.camera.layers = camera.camera.layers.concat([debugLayerFront.id, debugLayerBack.id]);
         }
 
-        var device = app.graphicsDevice;
+        const device = app.graphicsDevice;
 
-        var vertexFormat = new pc.VertexFormat(device, [
+        const vertexFormat = new pc.VertexFormat(device, [
             { semantic: pc.SEMANTIC_POSITION, components: 3, type: pc.TYPE_FLOAT32 },
             { semantic: pc.SEMANTIC_COLOR, components: 4, type: pc.TYPE_UINT8, normalize: true }
         ]);
 
         // construct the mesh
-        var mesh = new pc.Mesh();
+        const mesh = new pc.Mesh();
         mesh.vertexBuffer = new pc.VertexBuffer(device, vertexFormat, 1024, pc.BUFFER_DYNAMIC);
         mesh.primitive[0].type = pc.PRIMITIVE_LINES;
         mesh.primitive[0].base = 0;
@@ -53,12 +59,12 @@ class DebugLines {
         mesh.primitive[0].count = 0;
 
         // construct the material
-        var material = new pc.BasicMaterial();
+        const material = new pc.BasicMaterial();
         material.blendType = pc.BLEND_NORMAL;
         material.update();
 
         // construct the mesh instance
-        var meshInstance = new pc.MeshInstance(new pc.GraphNode(), mesh, material);
+        const meshInstance = new pc.MeshInstance(new pc.GraphNode(), mesh, material);
         meshInstance.cull = false;
         meshInstance.visible = false;
 
@@ -76,17 +82,17 @@ class DebugLines {
 
     private static matrixMad(result: pc.Mat4, mat: pc.Mat4, factor: number) {
         if (factor > 0) {
-            for (var i = 0; i < 16; ++i) {
+            for (let i = 0; i < 16; ++i) {
                 result.data[i] += mat.data[i] * factor;
             }
         }
-    };
+    }
 
-    clear() {
+    clear(): void {
         this.vertexCursor = 0;
     }
 
-    box(min: pc.Vec3, max: pc.Vec3) {
+    box(min: pc.Vec3, max: pc.Vec3): void {
         this.line(new pc.Vec3(min.x, min.y, min.z), new pc.Vec3(max.x, min.y, min.z));
         this.line(new pc.Vec3(max.x, min.y, min.z), new pc.Vec3(max.x, min.y, max.z));
         this.line(new pc.Vec3(max.x, min.y, max.z), new pc.Vec3(min.x, min.y, max.z));
@@ -103,26 +109,28 @@ class DebugLines {
         this.line(new pc.Vec3(min.x, min.y, max.z), new pc.Vec3(min.x, max.y, max.z));
     }
 
-    line(v0: pc.Vec3, v1: pc.Vec3) {
+    line(v0: pc.Vec3, v1: pc.Vec3): void {
         if (this.vertexCursor >= this.vertexData.length / 8) {
-            var oldVBuffer = this.mesh.vertexBuffer;
-            var byteSize = oldVBuffer.lock().byteLength * 2;
-            var arrayBuffer = new ArrayBuffer(byteSize);
+            const oldVBuffer = this.mesh.vertexBuffer;
+            const byteSize = oldVBuffer.lock().byteLength * 2;
+            const arrayBuffer = new ArrayBuffer(byteSize);
 
-            this.mesh.vertexBuffer = new pc.VertexBuffer(this.app.graphicsDevice,
-                                                         oldVBuffer.getFormat(),
-                                                         oldVBuffer.getNumVertices() * 2,
-                                                         pc.BUFFER_DYNAMIC,
-                                                         arrayBuffer);
+            this.mesh.vertexBuffer = new pc.VertexBuffer(
+                this.app.graphicsDevice,
+                oldVBuffer.getFormat(),
+                oldVBuffer.getNumVertices() * 2,
+                pc.BUFFER_DYNAMIC,
+                arrayBuffer
+            );
             this.vertexData = new Float32Array(arrayBuffer);
             this.colourData = new Uint32Array(arrayBuffer);
 
             this.colourData.set(new Uint32Array(oldVBuffer.lock()));
         }
 
-        var vertex = this.vertexCursor;
-        var vertexData = this.vertexData;
-        var colourData = this.colourData;
+        const vertex = this.vertexCursor;
+        const vertexData = this.vertexData;
+        const colourData = this.colourData;
         vertexData[vertex * 8 + 0] = v0.x;
         vertexData[vertex * 8 + 1] = v0.y;
         vertexData[vertex * 8 + 2] = v0.z;
@@ -135,18 +143,18 @@ class DebugLines {
     }
 
     generateNormals(vertexBuffer: pc.VertexBuffer, worldMat: pc.Mat4, length: number, skinMatrices: Array<pc.Mat4>) {
-        var it = new pc.VertexIterator(vertexBuffer);
-        var positions = it.element[pc.SEMANTIC_POSITION];
-        var normals = it.element[pc.SEMANTIC_NORMAL];
-        var blendIndices = it.element[pc.SEMANTIC_BLENDINDICES];
-        var blendWeights = it.element[pc.SEMANTIC_BLENDWEIGHT];
+        const it = new pc.VertexIterator(vertexBuffer);
+        const positions = it.element[pc.SEMANTIC_POSITION];
+        const normals = it.element[pc.SEMANTIC_NORMAL];
+        const blendIndices = it.element[pc.SEMANTIC_BLENDINDICES];
+        const blendWeights = it.element[pc.SEMANTIC_BLENDWEIGHT];
 
-        var numVertices = vertexBuffer.getNumVertices();
-        var p0 = new pc.Vec3();
-        var p1 = new pc.Vec3();
-        var skinMat = new pc.Mat4();
+        const numVertices = vertexBuffer.getNumVertices();
+        const p0 = new pc.Vec3();
+        const p1 = new pc.Vec3();
+        const skinMat = new pc.Mat4();
 
-        for (var i = 0; i < numVertices; ++i) {
+        for (let i = 0; i < numVertices; ++i) {
             // get local/morphed positions and normals
             p0.set(positions.get(0), positions.get(1), positions.get(2));
             p1.set(normals.get(0), normals.get(1), normals.get(2));
@@ -154,10 +162,12 @@ class DebugLines {
             if (blendIndices && blendWeights && skinMatrices) {
                 // transform by skinning matricess
                 skinMat.copy(pc.Mat4.ZERO);
-                for (var j = 0; j < 4; ++j) {
-                    DebugLines.matrixMad(skinMat,
-                                          skinMatrices[blendIndices.get(j)],
-                                          blendWeights.get(j));
+                for (let j = 0; j < 4; ++j) {
+                    DebugLines.matrixMad(
+                        skinMat,
+                        skinMatrices[blendIndices.get(j)],
+                        blendWeights.get(j)
+                    );
                 }
                 skinMat.mul2(worldMat, skinMat);
                 skinMat.transformPoint(p0, p0);
@@ -176,14 +186,13 @@ class DebugLines {
     }
 
     generateSkeleton(node: pc.GraphNode) {
-        var self = this;
 
-        var recurse = function (curr: pc.GraphNode) {
+        const recurse = (curr: pc.GraphNode) => {
             if (curr.enabled) {
                 // render child links
-                for (var i = 0; i < curr.children.length; ++i) {
-                    var child = curr.children[i];
-                    self.line(curr.getPosition(), child.getPosition());
+                for (let i = 0; i < curr.children.length; ++i) {
+                    const child = curr.children[i];
+                    this.line(curr.getPosition(), child.getPosition());
                     recurse(child);
                 }
             }
@@ -193,7 +202,7 @@ class DebugLines {
     }
 
     update() {
-        var empty = this.vertexCursor === 0;
+        const empty = this.vertexCursor === 0;
         if (!empty) {
             this.meshInstance.visible = true;
             this.mesh.vertexBuffer.unlock();
@@ -204,9 +213,5 @@ class DebugLines {
         }
     }
 }
-
-
-Object.assign(DebugLines.prototype, {
-});
 
 export default DebugLines;

@@ -74,4 +74,13 @@ if (process.env.ENGINE_PATH) {
     );
 }
 
+if (process.env.EXTRAS_PATH) {
+    config.plugins.push(
+        new webpack.NormalModuleReplacementPlugin(
+            /^playcanvas\/build\/playcanvas-extras\.js$/,
+            path.resolve(__dirname, process.env.EXTRAS_PATH)
+        )
+    );
+}
+
 module.exports = config;

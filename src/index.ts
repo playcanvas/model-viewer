@@ -13,7 +13,7 @@ import './style.css';
 window.pc = pc;
 
 function startViewer() {
-    var viewer = new Viewer(document.getElementById("application-canvas"), onSceneReset, onAnimationsLoaded, onMorphTargetsLoaded);
+    const viewer = new Viewer(document.getElementById("application-canvas"), onSceneReset, onAnimationsLoaded, onMorphTargetsLoaded);
     registerElementEvents(viewer);
     // @ts-ignore: Assign global viewer
     window.viewer = viewer;

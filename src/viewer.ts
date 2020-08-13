@@ -1,18 +1,17 @@
 import * as pc from 'playcanvas';
-// @ts-ignore: Build time text replacement
-var pcx = require(__PLAYCANVAS_EXTRAS_PATH__);
+// @ts-ignore: No extras declarations
+import * as pcx from 'playcanvas/build/playcanvas-extras.js';
 import Graph from './graph';
 import DebugLines from './debug';
 import HdrParser from '../lib/hdr-texture.js';
 import * as MeshoptDecoder from '../lib/meshopt_decoder.js';
 import { getAssetPath } from './helpers';
-import { InputFileSystem } from 'webpack';
 
 interface Morph {
     name: string,
-    getWeight?: Function,
-    setWeight?: Function,
-    onWeightChanged?: Function
+    getWeight?: () => number,
+    setWeight?: (target: number, weight: number) => void,
+    onWeightChanged?: () => void
 }
 
 interface URL {
@@ -21,64 +20,94 @@ interface URL {
 }
 
 interface Animation {
-    play: Function,
-    pause: Function,
+    play: (animation?: string) => void,
+    pause: () => void,
     playing: boolean
 }
 
 class Viewer {
-    onSceneReset: Function;
-    onAnimationsLoaded: Function;
-    onMorphTargetsLoaded: Function;
+    onSceneReset: (viewer?: Viewer) => void;
+
+    onAnimationsLoaded: (viewer: Viewer, animationList: Array<string>) => void;
+
+    onMorphTargetsLoaded: (viewer: Viewer, morphs: Array<Morph>) => void;
+
     app: pc.Application;
+
     prevCameraMat: pc.Mat4;
+
     camera: pc.Entity;
+
     cameraPosition: pc.Vec3 | null;
+
     light: pc.Entity;
+
     sceneRoot: pc.Entity;
+
     debugRoot: pc.Entity;
+
     entities: Array<pc.Entity>;
+
     assets: Array<pc.Asset>;
+
     graph: Graph;
+
     meshInstances: Array<pc.MeshInstance>;
+
     stateGraph: {
-        layers: Array<object>,
-        parameters: object
+        layers: Array<any>,
+        parameters: any
     };
-    
-    //TODO replace with Array<pc.AnimTrack> when definition is available in pc
+
+    // TODO replace with Array<pc.AnimTrack> when definition is available in pc
     animTracks: Array<any>;
+
     animationMap: Record<string, Animation>;
+
     morphs: Array<Morph>;
+
     firstFrame: boolean;
+
     skyboxLoaded: boolean;
 
     showGraphs: boolean;
+
     showWireframe: boolean;
+
     showBounds: boolean;
+
     showSkeleton: boolean;
+
     normalLength: number;
+
     directLightingFactor: number;
+
     envLightingFactor: number;
 
     dirtyWireframe: boolean;
+
     dirtyBounds: boolean;
+
     dirtySkeleton: boolean;
+
     dirtyNormals: boolean;
+
     debugBounds: DebugLines;
+
     debugSkeleton: DebugLines;
+
     debugNormals: DebugLines;
 
     miniStats: any;
 
-    constructor(canvas: any, onSceneReset: Function, onAnimationsLoaded: Function, onMorphTargetsLoaded: Function) {
+    constructor(canvas: any, onSceneReset: (viewer: Viewer) => void, onAnimationsLoaded: (viewer: Viewer, animationList:Array<string>) => void, onMorphTargetsLoaded: (viewer: Viewer, morphs: Array<Morph>) => void) {
 
         this.onSceneReset = onSceneReset;
         this.onAnimationsLoaded = onAnimationsLoaded;
         this.onMorphTargetsLoaded = onMorphTargetsLoaded;
 
         // create the application
-        var app = new pc.Application(canvas, {
+        const app = new pc.Application(canvas, {
             mouse: new pc.Mouse(canvas),
             touch: new pc.TouchDevice(canvas)
         });
@@ -86,7 +115,7 @@ class Viewer {
 
         app.graphicsDevice.maxPixelRatio = window.devicePixelRatio;
 
-        var canvasSize = this.getCanvasSize();
+        const canvasSize = this.getCanvasSize();
         // Set the canvas to fill the window and automatically change resolution to be the same as the canvas size
         app.setCanvasFillMode(pc.FILLMODE_NONE, canvasSize.width, canvasSize.height);
         app.setCanvasResolution(pc.RESOLUTION_AUTO);
@@ -95,7 +124,7 @@ class Viewer {
         }.bind(this));
 
         // create the orbit camera
-        var camera = new pc.Entity("Camera");
+        const camera = new pc.Entity("Camera");
         camera.addComponent("camera", {
             fov: 75,
             clearColor: new pc.Color(0.4, 0.45, 0.5)
@@ -119,7 +148,7 @@ class Viewer {
             });
 
         // create the light
-        var light = new pc.Entity();
+        const light = new pc.Entity();
         light.addComponent("light", {
             type: "directional",
             color: new pc.Color(1, 1, 1),
@@ -139,7 +168,7 @@ class Viewer {
         app.on('update', this.update.bind(this));
 
         // configure drag and drop
-        var preventDefault = function (ev: { preventDefault: Function }) {
+        const preventDefault = function (ev: { preventDefault: () => void }) {
             ev.preventDefault();
         };
 
@@ -147,15 +176,15 @@ class Viewer {
         window.addEventListener('dragover', preventDefault, false);
         window.addEventListener('drop', this.dropHandler.bind(this), false);
 
-        var graph = new Graph(app, 128);
+        const graph = new Graph(app, 128);
         app.on('prerender', this.onPrerender, this);
         app.on('frameend', this.onFrameend, this);
 
         // create the scene and debug root nodes
-        var sceneRoot = new pc.Entity("sceneRoot", app);
+        const sceneRoot = new pc.Entity("sceneRoot", app);
         app.root.addChild(sceneRoot);
 
-        var debugRoot = new pc.Entity("debugRoot", app);
+        const debugRoot = new pc.Entity("debugRoot", app);
         app.root.addChild(debugRoot);
 
         // store app things
@@ -206,10 +235,10 @@ class Viewer {
         app.start();
 
         // extract query params. taken from https://stackoverflow.com/a/21152762
-        var urlParams: any = {};
+        const urlParams: any = {};
         if (location.search) {
             location.search.substr(1).split("&").forEach(function (item) {
-                var s = item.split("="),
+                const s = item.split("="),
                     k = s[0],
                     v = s[1] && decodeURIComponent(s[1]);
                 (urlParams[k] = urlParams[k] || []).push(v);
@@ -217,9 +246,9 @@ class Viewer {
         }
 
         // handle load url param
-        var loadUrls = (urlParams.load || []).concat(urlParams.assetUrl || []);
+        const loadUrls = (urlParams.load || []).concat(urlParams.assetUrl || []);
         if (loadUrls.length > 0) {
-            for (var i = 0; i < loadUrls.length; ++i) {
+            for (let i = 0; i < loadUrls.length; ++i) {
                 this.load(loadUrls[i]);
             }
         }
@@ -231,35 +260,36 @@ class Viewer {
 
         // set camera position
         if (urlParams.hasOwnProperty('cameraPosition')) {
-            var pos = urlParams.cameraPosition[0].split(',').map(Number);
+            const pos = urlParams.cameraPosition[0].split(',').map(Number);
             if (pos.length === 3) {
                 this.cameraPosition = new pc.Vec3(pos);
             }
         }
     }
+
     // flatten a hierarchy of nodes
     private static flatten(node: pc.GraphNode){
-        var result: Array<pc.GraphNode> = [];
+        const result: Array<pc.GraphNode> = [];
         node.forEach(function (n) {
             result.push(n);
         });
         return result;
-    };
+    }
 
     // get the set of unique values from the array
     private static distinct(array: Array<any>) {
-        var result = [];
-        for (var i = 0; i < array.length; ++i) {
+        const result = [];
+        for (let i = 0; i < array.length; ++i) {
             if (result.indexOf(array[i]) === -1) {
                 result.push(array[i]);
             }
         }
         return result;
-    };
+    }
 
     private static calcBoundingBox(meshInstances: Array<pc.MeshInstance>) {
-        var bbox = new pc.BoundingBox();
-        for (var i = 0; i < meshInstances.length; ++i) {
+        const bbox = new pc.BoundingBox();
+        for (let i = 0; i < meshInstances.length; ++i) {
             if (i === 0) {
                 bbox.copy(meshInstances[i].aabb);
             } else {
@@ -268,18 +298,18 @@ class Viewer {
         }
         return bbox;
     }
+
     // initialize the faces and prefiltered lighting data from the given
     // skybox texture, which is either a cubemap or equirect texture.
     private initSkyboxFromTexture(skybox: pc.Texture) {
-        var self = this;
-        var app = self.app;
-        var device = app.graphicsDevice;
+        const app = this.app;
+        const device = app.graphicsDevice;
 
-        var cubemaps = [];
+        const cubemaps = [];
 
-        var reprojectToCubemap = function (src: pc.Texture, size: number) {
+        const reprojectToCubemap = function (src: pc.Texture, size: number) {
             // generate faces cubemap
-            var faces = new pc.Texture(device, {
+            const faces = new pc.Texture(device, {
                 name: 'skyboxFaces',
                 cubemap: true,
                 width: size,
@@ -293,7 +323,7 @@ class Viewer {
         };
 
         if (skybox.cubemap) {
-            // @ts-ignore TODO type property missing from pc.Texture 
+            // @ts-ignore TODO type property missing from pc.Texture
             if (skybox.type === pc.TEXTURETYPE_DEFAULT || skybox.type === pc.TEXTURETYPE_RGBM) {
                 // cubemap format is acceptible, use it directly
                 cubemaps.push(skybox);
@@ -307,15 +337,15 @@ class Viewer {
         }
 
         // generate prefiltered lighting data
-        var sizes = [128, 64, 32, 16, 8, 4];
-        var specPower = [undefined, 512, 128, 32, 8, 2];
-        for (var i = 0; i < sizes.length; ++i) {
-            var prefilter = new pc.Texture(device, {
+        const sizes = [128, 64, 32, 16, 8, 4];
+        const specPower = [undefined, 512, 128, 32, 8, 2];
+        for (let i = 0; i < sizes.length; ++i) {
+            const prefilter = new pc.Texture(device, {
                 cubemap: true,
                 name: 'skyboxPrefilter' + i,
                 width: sizes[i],
                 height: sizes[i],
-                // @ts-ignore TODO type property missing from pc.Texture 
+                // @ts-ignore TODO type property missing from pc.Texture
                 type: pc.TEXTURETYPE_RGBM,
                 addressU: pc.ADDRESS_CLAMP_TO_EDGE,
                 addressV: pc.ADDRESS_CLAMP_TO_EDGE
@@ -335,22 +365,21 @@ class Viewer {
     // load the image files into the skybox. this function supports loading a single equirectangular
     // skybox image or 6 cubemap faces.
     private loadSkybox(files: Array<URL>) {
-        var self = this;
-        var app = self.app;
+        const app = this.app;
 
         if (files.length !== 6) {
             // load equirectangular skybox
-            var textureAsset = new pc.Asset('skybox_equi', 'texture', {
+            const textureAsset = new pc.Asset('skybox_equi', 'texture', {
                 url: files[0].url,
                 filename: files[0].filename
             });
-            textureAsset.ready(function () {
-                var texture = textureAsset.resource;
+            textureAsset.ready(() => {
+                const texture = textureAsset.resource;
                 if (texture.type === pc.TEXTURETYPE_DEFAULT && texture.format === pc.PIXELFORMAT_R8_G8_B8_A8) {
                     // assume RGBA data (pngs) are RGBM
                     texture.type = pc.TEXTURETYPE_RGBM;
                 }
-                self.initSkyboxFromTexture(texture);
+                this.initSkyboxFromTexture(texture);
             });
             app.assets.add(textureAsset);
             app.assets.load(textureAsset);
@@ -364,11 +393,11 @@ class Viewer {
                 ['0', '1', '2', '3', '4', '5']
             ];
 
-            var getOrder = function (filename: string) {
-                var fn = filename.toLowerCase();
-                for (var i = 0; i < names.length; ++i) {
-                    var nameList = names[i];
-                    for (var j = 0; j < nameList.length; ++j) {
+            const getOrder = function (filename: string) {
+                const fn = filename.toLowerCase();
+                for (let i = 0; i < names.length; ++i) {
+                    const nameList = names[i];
+                    for (let j = 0; j < nameList.length; ++j) {
                         if (fn.indexOf(nameList[j] + '.') !== -1) {
                             return j;
                         }
@@ -377,24 +406,24 @@ class Viewer {
                 return 0;
             };
 
-            var sortPred = function (first: URL, second: URL) {
-                var firstOrder = getOrder(first.filename);
-                var secondOrder = getOrder(second.filename);
+            const sortPred = function (first: URL, second: URL) {
+                const firstOrder = getOrder(first.filename);
+                const secondOrder = getOrder(second.filename);
                 return firstOrder < secondOrder ? -1 : (secondOrder < firstOrder ? 1 : 0);
             };
 
             files.sort(sortPred);
 
             // construct an asset for each cubemap face
-            var faceAssets = files.map(function (file, index) {
-                var faceAsset = new pc.Asset('skybox_face' + index, 'texture', file);
+            const faceAssets = files.map(function (file, index) {
+                const faceAsset = new pc.Asset('skybox_face' + index, 'texture', file);
                 app.assets.add(faceAsset);
                 app.assets.load(faceAsset);
                 return faceAsset;
             });
 
             // construct the cubemap asset
-            var cubemapAsset = new pc.Asset('skybox_cubemap', 'cubemap', null, {
+            const cubemapAsset = new pc.Asset('skybox_cubemap', 'cubemap', null, {
                 textures: faceAssets.map(function (faceAsset) {
                     return faceAsset.id;
                 })
@@ -402,7 +431,7 @@ class Viewer {
             // @ts-ignore TODO not defined in pc
             cubemapAsset.loadFaces = true;
             cubemapAsset.on('load', function () {
-                self.initSkyboxFromTexture(cubemapAsset.resource);
+                this.initSkyboxFromTexture(cubemapAsset.resource);
             });
             app.assets.add(cubemapAsset);
             app.assets.load(cubemapAsset);
@@ -412,10 +441,9 @@ class Viewer {
 
     // load the built in helipad cubemap
     private loadHeliSkybox() {
-        var self = this;
-        var app = self.app;
+        const app = this.app;
 
-        var cubemap = new pc.Asset('helipad', 'cubemap', {
+        const cubemap = new pc.Asset('helipad', 'cubemap', {
             url: getAssetPath("cubemaps/Helipad.dds")
         }, {
             magFilter: pc.FILTER_LINEAR,
@@ -432,7 +460,7 @@ class Viewer {
 
             // generate Helipad_equi.png from cubemaps
             // reproject the heli to equirect
-            // var equi = new pc.Texture(app.graphicsDevice, {
+            // const equi = new pc.Texture(app.graphicsDevice, {
             //     name: 'heli_equirect',
             //     width: 2048,
             //     height: 1024,
@@ -455,26 +483,26 @@ class Viewer {
         };
     }
 
-    resizeCanvas () {
-        var canvasSize = this.getCanvasSize();
+    resizeCanvas() {
+        const canvasSize = this.getCanvasSize();
         this.app.resizeCanvas(canvasSize.width, canvasSize.height);
         this.app.renderNextFrame = true;
     }
 
     // reset the viewer, unloading resources
     resetScene() {
-        var app = this.app;
-        var i;
+        const app = this.app;
+        let i;
 
-        for (i = 0; i < this.entities.length; ++i) {
-            var entity = this.entities[i];
+        for (let i = 0; i < this.entities.length; ++i) {
+            const entity = this.entities[i];
             this.sceneRoot.removeChild(entity);
             entity.destroy();
         }
         this.entities = [];
 
-        for (i = 0; i < this.assets.length; ++i) {
-            var asset = this.assets[i];
+        for (let i = 0; i < this.assets.length; ++i) {
+            const asset = this.assets[i];
             app.assets.remove(asset);
             asset.unload();
         }
@@ -510,14 +538,14 @@ class Viewer {
 
     // move the camera to view the loaded object
     focusCamera() {
-        var camera = this.camera.camera;
+        const camera = this.camera.camera;
         // @ts-ignore TODO not defined in pc
-        var orbitCamera = this.camera.script.orbitCamera;
+        const orbitCamera = this.camera.script.orbitCamera;
 
         // calculate scene bounding box
-        var bbox = Viewer.calcBoundingBox(this.meshInstances);
-        var radius = bbox.halfExtents.length();
-        var distance = (radius * 1.4) / Math.sin(0.5 * camera.fov * camera.aspectRatio * pc.math.DEG_TO_RAD);
+        const bbox = Viewer.calcBoundingBox(this.meshInstances);
+        const radius = bbox.halfExtents.length();
+        const distance = (radius * 1.4) / Math.sin(0.5 * camera.fov * camera.aspectRatio * pc.math.DEG_TO_RAD);
 
         if (this.cameraPosition) {
             orbitCamera.resetAndLookAtPoint(this.cameraPosition, bbox.center);
@@ -529,33 +557,32 @@ class Viewer {
         camera.nearClip = distance / 10;
         camera.farClip = distance * 10;
 
-        var light = this.light;
+        const light = this.light;
         light.light.shadowDistance = distance * 2;
     }
 
     // load gltf model given its url and list of external urls
     private loadGltf(gltfUrl: URL, externalUrls: Array<URL>) {
-        var self = this;
 
         // provide buffer view callback so we can handle meshoptimizer'd models
         // https://github.com/zeux/meshoptimizer
-        var processBufferView = function (gltfBuffer: any, buffers: Array<any>, continuation: Function) {
+        const processBufferView = function (gltfBuffer: any, buffers: Array<any>, continuation: (err: string, result: any) => void) {
             if (gltfBuffer.extensions && gltfBuffer.extensions.EXT_meshopt_compression) {
-                var extensionDef = gltfBuffer.extensions.EXT_meshopt_compression;
+                const extensionDef = gltfBuffer.extensions.EXT_meshopt_compression;
 
-                var decoder = MeshoptDecoder;
+                const decoder = MeshoptDecoder;
 
                 decoder.ready.then(function (res) {
-                    var byteOffset = extensionDef.byteOffset || 0;
-                    var byteLength = extensionDef.byteLength || 0;
+                    const byteOffset = extensionDef.byteOffset || 0;
+                    const byteLength = extensionDef.byteLength || 0;
 
-                    var count = extensionDef.count;
-                    var stride = extensionDef.byteStride;
+                    const count = extensionDef.count;
+                    const stride = extensionDef.byteStride;
 
-                    var result = new Uint8Array(count * stride);
-                    var source = new Uint8Array(buffers[extensionDef.buffer].buffer,
-                                                buffers[extensionDef.buffer].byteOffset + byteOffset,
-                                                byteLength);
+                    const result = new Uint8Array(count * stride);
+                    const source = new Uint8Array(buffers[extensionDef.buffer].buffer,
+                                                  buffers[extensionDef.buffer].byteOffset + byteOffset,
+                                                  byteLength);
 
                     decoder.decodeGltfBuffer(result, count, stride, source, extensionDef.mode, extensionDef.filter);
 
@@ -566,39 +593,39 @@ class Viewer {
             }
         };
 
-        var processImage = function (gltfImage: any, continuation: Function) {
-            var u: URL = externalUrls.find(function (url) {
+        const processImage = function (gltfImage: any, continuation: (err: string, result: any) => void) {
+            const u: URL = externalUrls.find(function (url) {
                 return url.filename === gltfImage.uri;
             });
             if (u) {
-                var textureAsset = new pc.Asset(u.filename, 'texture', { url: u.url, filename: u.filename });
+                const textureAsset = new pc.Asset(u.filename, 'texture', { url: u.url, filename: u.filename });
                 textureAsset.on('load', function () {
                     continuation(null, textureAsset);
                 });
-                self.app.assets.add(textureAsset);
-                self.app.assets.load(textureAsset);
+                this.app.assets.add(textureAsset);
+                this.app.assets.load(textureAsset);
             } else {
                 continuation(null, null);
             }
         };
 
-        var processBuffer = function (gltfBuffer: any, continuation: Function) {
-            var u = externalUrls.find(function (url) {
+        const processBuffer = function (gltfBuffer: any, continuation: (err: string, result: any) => void) {
+            const u = externalUrls.find(function (url) {
                 return url.filename === gltfBuffer.uri;
             });
             if (u) {
-                var bufferAsset = new pc.Asset(u.filename, 'binary', { url: u.url, filename: u.filename });
+                const bufferAsset = new pc.Asset(u.filename, 'binary', { url: u.url, filename: u.filename });
                 bufferAsset.on('load', function () {
                     continuation(null, new Uint8Array(bufferAsset.resource));
                 });
-                self.app.assets.add(bufferAsset);
-                self.app.assets.load(bufferAsset);
+                this.app.assets.add(bufferAsset);
+                this.app.assets.load(bufferAsset);
             } else {
                 continuation(null, null);
             }
         };
 
-        var containerAsset = new pc.Asset(gltfUrl.filename, 'container', gltfUrl, null, {
+        const containerAsset = new pc.Asset(gltfUrl.filename, 'container', gltfUrl, null, {
             // @ts-ignore TODO no definition in pc
             bufferView: {
                 processAsync: processBufferView
@@ -610,11 +637,11 @@ class Viewer {
                 processAsync: processBuffer
             }
         });
-        containerAsset.on('load', function () {
-            self.onLoaded(null, containerAsset);
+        containerAsset.on('load', () => {
+            this.onLoaded(null, containerAsset);
         });
-        self.app.assets.add(containerAsset);
-        self.app.assets.load(containerAsset);
+        this.app.assets.add(containerAsset);
+        this.app.assets.load(containerAsset);
     }
 
     // load the list of urls.
@@ -635,19 +662,18 @@ class Viewer {
         });
 
         // step through urls loading gltf/glb models
-        var self = this;
-        var result = false;
-        urls.forEach(function (url) {
-            var filenameExt = pc.path.getExtension(url.filename).toLowerCase();
+        let result = false;
+        urls.forEach((url) =>  {
+            const filenameExt = pc.path.getExtension(url.filename).toLowerCase();
             if (filenameExt === '.gltf' || filenameExt === '.glb') {
-                self.loadGltf(url, urls);
+                this.loadGltf(url, urls);
                 result = true;
             }
         });
 
         if (!result) {
             // if no models were loaded, load the files as skydome images instead
-            self.loadSkybox(urls);
+            this.loadSkybox(urls);
         }
 
         // return true if a model/scene was loaded and false otherwise
@@ -657,7 +683,7 @@ class Viewer {
     // play an animation / play all the animations
     play(animationName: string, appendAnimation: boolean) {
         if (!animationName || !appendAnimation) {
-            for (var key in this.animationMap) {
+            for (const key in this.animationMap) {
                 if (this.animationMap.hasOwnProperty(key)) {
                     if (animationName) {
                         this.animationMap[key].pause();
@@ -674,7 +700,7 @@ class Viewer {
 
     // stop playing animations
     stop() {
-        for (var key in this.animationMap) {
+        for (const key in this.animationMap) {
             if (this.animationMap.hasOwnProperty(key)) {
                 this.animationMap[key].pause();
             }
@@ -682,8 +708,8 @@ class Viewer {
     }
 
     setSpeed(speed: number) {
-        for (var i = 0; i < this.entities.length; ++i) {
-            var entity = this.entities[i];
+        for (let i = 0; i < this.entities.length; ++i) {
+            const entity = this.entities[i];
             // @ts-ignore TODO anim property missing from pc.Entity
             if (entity.anim) {
                 // @ts-ignore TODO anim property missing from pc.Entity
@@ -743,15 +769,15 @@ class Viewer {
 
     update() {
         // if the camera has moved since the last render
-        var cameraWorldTransform = this.camera.getWorldTransform();
+        const cameraWorldTransform = this.camera.getWorldTransform();
         if (!this.prevCameraMat.equals(cameraWorldTransform)) {
             this.prevCameraMat.copy(cameraWorldTransform);
             this.renderNextFrame();
         }
 
         // or an animation is loaded and we're animating
-        var isAnimationPlaying = false;
-        for (var key in this.animationMap) {
+        let isAnimationPlaying = false;
+        for (const key in this.animationMap) {
             if (this.animationMap.hasOwnProperty(key)) {
                 if (this.animationMap[key].playing) {
                     isAnimationPlaying = true;
@@ -767,8 +793,8 @@ class Viewer {
             this.renderNextFrame();
 
             // copy (possibly) animated morph weights to UI widgets
-            for (var i = 0; i < this.morphs.length; ++i) {
-                var morph = this.morphs[i];
+            for (let i = 0; i < this.morphs.length; ++i) {
+                const morph = this.morphs[i];
                 if (morph.onWeightChanged) {
                     morph.onWeightChanged();
                 }
@@ -787,28 +813,26 @@ class Viewer {
 
     // use webkitGetAsEntry to extract files so we can include folders
     private dropHandler(event: DragEvent) {
-        var self = this;
 
-        var removeCommonPrefix = function (urls: Array<URL>) {
-            var split = function (pathname: string) {
-                var parts = pathname.split(pc.path.delimiter);
-                var base = parts[0];
-                var rest = parts.slice(1).join(pc.path.delimiter);
+        const removeCommonPrefix = function (urls: Array<URL>) {
+            const split = function (pathname: string) {
+                const parts = pathname.split(pc.path.delimiter);
+                const base = parts[0];
+                const rest = parts.slice(1).join(pc.path.delimiter);
                 return [base, rest];
             };
             while (true) {
-                var parts = split(urls[0].filename);
+                const parts = split(urls[0].filename);
                 if (parts[1].length === 0) {
                     return;
                 }
-                var i;
-                for (i = 1; i < urls.length; ++i) {
-                    var other = split(urls[i].filename);
+                for (let i = 1; i < urls.length; ++i) {
+                    const other = split(urls[i].filename);
                     if (parts[0] !== other[0]) {
                         return;
                     }
                 }
-                for (i = 0; i < urls.length; ++i) {
+                for (let i = 0; i < urls.length; ++i) {
                     urls[i].filename = split(urls[i].filename)[1];
                 }
             }
@@ -817,15 +841,15 @@ class Viewer {
         interface Entry {
             isFile: boolean,
             isDirectory: boolean,
-            createReader: Function,
-            file: Function,
+            createReader: any,
+            file: any,
             fullPath: string
         }
 
-        var resolveFiles = function (entries: Array<Entry>) {
-            var urls: Array<URL> = [];
-            entries.forEach(function (entry: Entry) {
-                entry.file(function (file: URL) {
+        const resolveFiles = (entries: Array<Entry>) => {
+            const urls: Array<URL> = [];
+            entries.forEach((entry: Entry) => {
+                entry.file((file: URL) => {
                     urls.push({
                         url: URL.createObjectURL(file),
                         filename: entry.fullPath.substring(1)
@@ -838,18 +862,18 @@ class Viewer {
                         }
 
                         // if a scene was loaded (and not just a skybox), clear the current scene
-                        if (self.load(urls) && !event.shiftKey) {
-                            self.resetScene();
+                        if (this.load(urls) && !event.shiftKey) {
+                            this.resetScene();
                         }
                     }
                 });
             });
         };
 
-        var resolveDirectories = function (entries: Array<Entry>) {
-            var awaiting = 0;
-            var files: Array<Entry> = [];
-            var recurse = function (entries: Array<Entry>) {
+        const resolveDirectories = function (entries: Array<Entry>) {
+            let awaiting = 0;
+            const files: Array<Entry> = [];
+            const recurse = function (entries: Array<Entry>) {
                 entries.forEach(function (entry: Entry) {
                     if (entry.isFile) {
                         files.push(entry);
@@ -871,13 +895,13 @@ class Viewer {
         // first things first
         event.preventDefault();
 
-        var items = event.dataTransfer.items;
+        const items = event.dataTransfer.items;
         if (!items) {
             return;
         }
 
-        var entries = [];
-        for (var i = 0; i < items.length; ++i) {
+        const entries = [];
+        for (let i = 0; i < items.length; ++i) {
             entries.push(items[i].webkitGetAsEntry());
         }
         resolveDirectories(entries);
@@ -895,10 +919,9 @@ class Viewer {
             return;
         }
 
-        var self = this;
-        var resource = asset.resource;
+        const resource = asset.resource;
 
-        var entity: pc.Entity;
+        let entity: pc.Entity;
         if (resource.model || this.entities.length === 0) {
             // create entity and add model
             entity = new pc.Entity();
@@ -917,8 +940,6 @@ class Viewer {
 
         // create animations
         if (resource.animations && resource.animations.length > 0) {
-            var i;
-
             // create the anim component if there isn't one already
             // @ts-ignore TODO not defined in pc
             if (!entity.anim) {
@@ -927,10 +948,10 @@ class Viewer {
                 });
             }
 
-            var stateGraph = this.stateGraph;
+            const stateGraph = this.stateGraph;
 
             // create a layer per animation so we can play them all simultaniously if needed
-            for (i = 0; i < resource.animations.length; ++i) {
+            for (let i = 0; i < resource.animations.length; ++i) {
                 // construct a state graph to include the loaded animations
                 stateGraph.layers.push( {
                     name: 'layer_' + this.animTracks.length,
@@ -958,10 +979,10 @@ class Viewer {
             entity.anim.loadStateGraph(new pc.AnimStateGraph(stateGraph));
 
             // set animations on each layer
-            for (i = 0; i < this.animTracks.length; ++i) {
-                var animTrack = this.animTracks[i];
+            for (let i = 0; i < this.animTracks.length; ++i) {
+                const animTrack = this.animTracks[i];
                 // @ts-ignore TODO anim property missing from pc.Entity
-                var layer = entity.anim.findAnimationLayer('layer_' + i);
+                const layer = entity.anim.findAnimationLayer('layer_' + i);
                 layer.assignAnimation('default', animTrack);
                 layer.pause();
                 this.animationMap[animTrack.name] = layer;
@@ -970,14 +991,14 @@ class Viewer {
             this.onAnimationsLoaded(this, Object.keys(this.animationMap));
 
             // create animation graphs
-            var createAnimGraphs = function () {
-                var graph = this.graph;
+            const createAnimGraphs = function () {
+                const graph = this.graph;
 
-                var extract = function (transformPropertyGetter: Function, dimension: string){
+                const extract = function (transformPropertyGetter: () => Record<string, number>, dimension: string){
                     return () => transformPropertyGetter()[dimension];
-                }
+                };
 
-                var recurse = function (node: pc.GraphNode) {
+                const recurse = function (node: pc.GraphNode) {
                     if (!graph.hasNode(node)) {
                         graph.addGraph(node, new pc.Color(1, 1, 0, 1), extract(node.getLocalPosition.bind(node), 'x'));
                         graph.addGraph(node, new pc.Color(0, 1, 1, 1), extract(node.getLocalPosition.bind(node), 'y'));
@@ -993,7 +1014,7 @@ class Viewer {
                         graph.addGraph(node, new pc.Color(0.5, 0.5, 1.0, 1), extract(node.getLocalScale.bind(node), 'z'));
                     }
 
-                    for (var i = 0; i < node.children.length; ++i) {
+                    for (let i = 0; i < node.children.length; ++i) {
                         recurse(node.children[i]);
                     }
                 };
@@ -1006,12 +1027,12 @@ class Viewer {
 
         // initialize morph targets
         if (entity.model && entity.model.model && entity.model.model.morphInstances.length > 0) {
-            var morphInstances = entity.model.model.morphInstances;
+            const morphInstances = entity.model.model.morphInstances;
             // make a list of all the morph instance target names
-            var morphs = this.morphs;
-            morphInstances.forEach(function (morphInstance, morphIndex) {
+            const morphs = this.morphs;
+            morphInstances.forEach((morphInstance, morphIndex) => {
                 // @ts-ignore TODO expose meshInstance on morphInstance in pc
-                var meshInstance = morphInstance.meshInstance;
+                const meshInstance = morphInstance.meshInstance;
 
                 // mesh name line
                 morphs.push({
@@ -1019,15 +1040,15 @@ class Viewer {
                 });
 
                 // morph targets
-                // @ts-ignore TODO accessing private var
-                morphInstance.morph._targets.forEach(function (target, targetIndex) {
+                // @ts-ignore TODO accessing private const
+                morphInstance.morph._targets.forEach((target, targetIndex) => {
                     morphs.push({
                         name: target.name,
-                        setWeight: function (targetIndex: number, weight: number) {
-                            this.setWeight(targetIndex, weight);
-                            self.dirtyNormals = true;
-                            self.renderNextFrame();
-                        }.bind(morphInstance, targetIndex),
+                        setWeight: (weight: number) => {
+                            morphInstance.setWeight(targetIndex, weight);
+                            this.dirtyNormals = true;
+                            this.renderNextFrame();
+                        },
                         getWeight: pc.MorphInstance.prototype.getWeight.bind(morphInstance, targetIndex),
                         onWeightChanged: null    // controls can set this to a function for receiving weight updates
                     });
@@ -1069,13 +1090,12 @@ class Viewer {
         }
 
         if (!this.firstFrame) {                          // don't update on the first frame
-            var i;
-            var meshInstance;
+            let meshInstance;
 
             // wireframe
             if (this.dirtyWireframe) {
                 this.dirtyWireframe = false;
-                for (i = 0; i < this.meshInstances.length; ++i) {
+                for (let i = 0; i < this.meshInstances.length; ++i) {
                     meshInstance = this.meshInstances[i];
                     if (this.showWireframe) {
                         if (!meshInstance.mesh.primitive[pc.RENDERSTYLE_WIREFRAME]) {
@@ -1095,7 +1115,7 @@ class Viewer {
                 this.debugBounds.clear();
 
                 if (this.showBounds) {
-                    var bbox = Viewer.calcBoundingBox(this.meshInstances);
+                    const bbox = Viewer.calcBoundingBox(this.meshInstances);
                     this.debugBounds.box(bbox.getMin(), bbox.getMax());
                 }
                 this.debugBounds.update();
@@ -1107,16 +1127,16 @@ class Viewer {
                 this.debugNormals.clear();
 
                 if (this.normalLength > 0) {
-                    for (i = 0; i < this.meshInstances.length; ++i) {
+                    for (let i = 0; i < this.meshInstances.length; ++i) {
                         meshInstance = this.meshInstances[i];
                         // @ts-ignore TODO not defined in pc
-                        var vertexBuffer = meshInstance.morphInstance ?
+                        const vertexBuffer = meshInstance.morphInstance ?
                             // @ts-ignore TODO not defined in pc
                             meshInstance.morphInstance._vertexBuffer : meshInstance.mesh.vertexBuffer;
 
                         if (vertexBuffer) {
                             // @ts-ignore TODO not defined in pc
-                            var skinMatrices = meshInstance.skinInstance ?
+                            const skinMatrices = meshInstance.skinInstance ?
                                 // @ts-ignore TODO not defined in pc
                                 meshInstance.skinInstance.matrices : null;
 
@@ -1143,8 +1163,8 @@ class Viewer {
                 this.debugSkeleton.clear();
 
                 if (this.showSkeleton) {
-                    for (i = 0; i < this.entities.length; ++i) {
-                        var entity = this.entities[i];
+                    for (let i = 0; i < this.entities.length; ++i) {
+                        const entity = this.entities[i];
                         if (entity.model && entity.model.model) {
                             this.debugSkeleton.generateSkeleton(entity.model.model.graph);
                         }
@@ -1156,7 +1176,7 @@ class Viewer {
         }
     }
 
-    private onFrameend () {
+    private onFrameend() {
         if (this.firstFrame) {
             this.firstFrame = false;
 
@@ -1166,6 +1186,6 @@ class Viewer {
             this.renderNextFrame();
         }
     }
-};
+}
 
 export default Viewer;
