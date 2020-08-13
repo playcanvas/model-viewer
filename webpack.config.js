@@ -59,7 +59,6 @@ const config = {
             ]
         }),
         new webpack.DefinePlugin({
-            __PLAYCANVAS_EXTRAS_PATH__: JSON.stringify(process.env.EXTRAS_PATH ? path.resolve(__dirname, process.env.EXTRAS_PATH) : 'playcanvas/build/playcanvas-extras.js'),
             __PUBLIC_PATH__: JSON.stringify(process.env.PUBLIC_PATH)
         })
     ]
