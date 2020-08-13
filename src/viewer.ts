@@ -134,7 +134,7 @@ class Viewer {
         app.assets.loadFromUrl(
             getAssetPath("scripts/orbit-camera.js"),
             "script",
-            function (err, asset) {
+            function () {
                 // setup orbit script component
                 camera.addComponent("script");
                 camera.script.create("orbitCamera", {
@@ -492,7 +492,6 @@ class Viewer {
     // reset the viewer, unloading resources
     resetScene() {
         const app = this.app;
-        let i;
 
         for (let i = 0; i < this.entities.length; ++i) {
             const entity = this.entities[i];
@@ -572,7 +571,7 @@ class Viewer {
 
                 const decoder = MeshoptDecoder;
 
-                decoder.ready.then(function (res) {
+                decoder.ready.then(function () {
                     const byteOffset = extensionDef.byteOffset || 0;
                     const byteLength = extensionDef.byteLength || 0;
 
