@@ -149,7 +149,7 @@ new pc.Http().get(
             lightingPanel._skyboxSelect.on('change', function (value: string) {
                 if (value) {
                     // @ts-ignore: Global viewer
-                    viewer.load(value);
+                    window.viewer.load(value);
                 } else {
                     // @ts-ignore: Global viewer
                     viewer.clearSkybox();

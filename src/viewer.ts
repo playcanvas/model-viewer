@@ -1,229 +1,290 @@
 import * as pc from 'playcanvas';
+// @ts-ignore: Build time text replacement
 var pcx = require(__PLAYCANVAS_EXTRAS_PATH__);
-import Graph from './graph.js';
-import DebugLines from './debug.js';
-import HdrParser from 'lib/hdr-texture.js';
-import MeshoptDecoder from 'lib/meshopt_decoder.js';
-import { getAssetPath } from './helpers.ts';
+import Graph from './graph';
+import DebugLines from './debug';
+import HdrParser from '../lib/hdr-texture.js';
+import * as MeshoptDecoder from '../lib/meshopt_decoder.js';
+import { getAssetPath } from './helpers';
+import { InputFileSystem } from 'webpack';
 
-var Viewer = function (canvas, onSceneReset, onAnimationsLoaded, onMorphTargetsLoaded) {
+interface Morph {
+    name: string,
+    getWeight?: Function,
+    setWeight?: Function,
+    onWeightChanged?: Function
+}
 
-    var self = this;
+interface URL {
+    url: string,
+    filename: string
+}
 
-    this.onSceneReset = onSceneReset;
-    this.onAnimationsLoaded = onAnimationsLoaded;
-    this.onMorphTargetsLoaded = onMorphTargetsLoaded;
+interface Animation {
+    play: Function,
+    pause: Function,
+    playing: boolean
+}
 
-    // create the application
-    var app = new pc.Application(canvas, {
-        mouse: new pc.Mouse(canvas),
-        touch: new pc.TouchDevice(canvas)
-    });
-    this.app = app;
+class Viewer {
+    onSceneReset: Function;
+    onAnimationsLoaded: Function;
+    onMorphTargetsLoaded: Function;
+    app: pc.Application;
+    prevCameraMat: pc.Mat4;
+    camera: pc.Entity;
+    cameraPosition: pc.Vec3 | null;
+    light: pc.Entity;
+    sceneRoot: pc.Entity;
+    debugRoot: pc.Entity;
+    entities: Array<pc.Entity>;
+    assets: Array<pc.Asset>;
+    graph: Graph;
+    meshInstances: Array<pc.MeshInstance>;
+    stateGraph: {
+        layers: Array<object>,
+        parameters: object
+    };
+    
+    //TODO replace with Array<pc.AnimTrack> when definition is available in pc
+    animTracks: Array<any>;
+    animationMap: Record<string, Animation>;
+    morphs: Array<Morph>;
+    firstFrame: boolean;
+    skyboxLoaded: boolean;
 
-    app.graphicsDevice.maxPixelRatio = window.devicePixelRatio;
+    showGraphs: boolean;
+    showWireframe: boolean;
+    showBounds: boolean;
+    showSkeleton: boolean;
+    normalLength: number;
+    directLightingFactor: number;
+    envLightingFactor: number;
 
-    var canvasSize = this._getCanvasSize();
-    // Set the canvas to fill the window and automatically change resolution to be the same as the canvas size
-    app.setCanvasFillMode(pc.FILLMODE_NONE, canvasSize.width, canvasSize.height);
-    app.setCanvasResolution(pc.RESOLUTION_AUTO);
-    window.addEventListener("resize", function () {
-        this.resizeCanvas();
-    }.bind(this));
+    dirtyWireframe: boolean;
+    dirtyBounds: boolean;
+    dirtySkeleton: boolean;
+    dirtyNormals: boolean;
+    debugBounds: DebugLines;
+    debugSkeleton: DebugLines;
+    debugNormals: DebugLines;
 
-    // create the orbit camera
-    var camera = new pc.Entity("Camera");
-    camera.addComponent("camera", {
-        fov: 75,
-        clearColor: new pc.Color(0.4, 0.45, 0.5)
-    });
+    miniStats: any;
 
-    // load orbit script
-    app.assets.loadFromUrl(
-        getAssetPath("scripts/orbit-camera.js"),
-        "script",
-        function (err, asset) {
-            // setup orbit script component
-            camera.addComponent("script");
-            camera.script.create("orbitCamera", {
-                attributes: {
-                    inertiaFactor: 0.02
-                }
+    constructor(canvas: any, onSceneReset: Function, onAnimationsLoaded: Function, onMorphTargetsLoaded: Function) {
+
+        this.onSceneReset = onSceneReset;
+        this.onAnimationsLoaded = onAnimationsLoaded;
+        this.onMorphTargetsLoaded = onMorphTargetsLoaded;
+
+        // create the application
+        var app = new pc.Application(canvas, {
+            mouse: new pc.Mouse(canvas),
+            touch: new pc.TouchDevice(canvas)
+        });
+        this.app = app;
+
+        app.graphicsDevice.maxPixelRatio = window.devicePixelRatio;
+
+        var canvasSize = this.getCanvasSize();
+        // Set the canvas to fill the window and automatically change resolution to be the same as the canvas size
+        app.setCanvasFillMode(pc.FILLMODE_NONE, canvasSize.width, canvasSize.height);
+        app.setCanvasResolution(pc.RESOLUTION_AUTO);
+        window.addEventListener("resize", function () {
+            this.resizeCanvas();
+        }.bind(this));
+
+        // create the orbit camera
+        var camera = new pc.Entity("Camera");
+        camera.addComponent("camera", {
+            fov: 75,
+            clearColor: new pc.Color(0.4, 0.45, 0.5)
+        });
+
+        // load orbit script
+        app.assets.loadFromUrl(
+            getAssetPath("scripts/orbit-camera.js"),
+            "script",
+            function (err, asset) {
+                // setup orbit script component
+                camera.addComponent("script");
+                camera.script.create("orbitCamera", {
+                    attributes: {
+                        inertiaFactor: 0.02
+                    }
+                });
+                camera.script.create("orbitCameraInputMouse");
+                camera.script.create("orbitCameraInputTouch");
+                app.root.addChild(camera);
             });
-            camera.script.create("orbitCameraInputMouse");
-            camera.script.create("orbitCameraInputTouch");
-            app.root.addChild(camera);
+
+        // create the light
+        var light = new pc.Entity();
+        light.addComponent("light", {
+            type: "directional",
+            color: new pc.Color(1, 1, 1),
+            castShadows: true,
+            intensity: 2,
+            shadowBias: 0.2,
+            shadowDistance: 5,
+            normalOffsetBias: 0.05,
+            shadowResolution: 2048
         });
+        light.setLocalEulerAngles(45, 30, 0);
+        app.root.addChild(light);
 
-    // create the light
-    var light = new pc.Entity();
-    light.addComponent("light", {
-        type: "directional",
-        color: new pc.Color(1, 1, 1),
-        castShadows: true,
-        intensity: 2,
-        shadowBias: 0.2,
-        shadowDistance: 5,
-        normalOffsetBias: 0.05,
-        shadowResolution: 2048
-    });
-    light.setLocalEulerAngles(45, 30, 0);
-    app.root.addChild(light);
+        // disable autorender
+        app.autoRender = false;
+        this.prevCameraMat = new pc.Mat4();
+        app.on('update', this.update.bind(this));
 
-    // disable autorender
-    app.autoRender = false;
-    self.prevCameraMat = new pc.Mat4();
-    app.on('update', self.update.bind(self));
+        // configure drag and drop
+        var preventDefault = function (ev: { preventDefault: Function }) {
+            ev.preventDefault();
+        };
 
-    // configure drag and drop
-    var preventDefault = function (ev) {
-        ev.preventDefault();
+        window.addEventListener('dragenter', preventDefault, false);
+        window.addEventListener('dragover', preventDefault, false);
+        window.addEventListener('drop', this.dropHandler.bind(this), false);
+
+        var graph = new Graph(app, 128);
+        app.on('prerender', this.onPrerender, this);
+        app.on('frameend', this.onFrameend, this);
+
+        // create the scene and debug root nodes
+        var sceneRoot = new pc.Entity("sceneRoot", app);
+        app.root.addChild(sceneRoot);
+
+        var debugRoot = new pc.Entity("debugRoot", app);
+        app.root.addChild(debugRoot);
+
+        // store app things
+        this.camera = camera;
+        this.cameraPosition = null;
+        this.light = light;
+        this.sceneRoot = sceneRoot;
+        this.debugRoot = debugRoot;
+        this.entities = [];
+        this.assets = [];
+        this.graph = graph;
+        this.meshInstances = [];
+        this.stateGraph = {
+            layers: [],
+            parameters: { }
+        };
+        this.animTracks = [];
+        this.animationMap = { };
+        this.morphs = [];
+        this.firstFrame = false;
+        this.skyboxLoaded = false;
+
+        this.showGraphs = false;
+        this.showWireframe = false;
+        this.showBounds = false;
+        this.showSkeleton = false;
+        this.normalLength = 0;
+        this.directLightingFactor = 1;
+        this.envLightingFactor = 1;
+
+        this.dirtyWireframe = false;
+        this.dirtyBounds = false;
+        this.dirtySkeleton = false;
+        this.dirtyNormals = false;
+        this.debugBounds = new DebugLines(app, camera);
+        this.debugSkeleton = new DebugLines(app, camera);
+        this.debugNormals = new DebugLines(app, camera);
+
+        // construct ministats, default off
+        this.miniStats = new pcx.MiniStats(app);
+        this.miniStats.enabled = false;
+
+        // initialize the envmap
+        // @ts-ignore: Missing pc definition
+        app.loader.getHandler(pc.ASSET_TEXTURE).parsers.hdr = new HdrParser(app.assets, false);
+
+        // start the application
+        app.start();
+
+        // extract query params. taken from https://stackoverflow.com/a/21152762
+        var urlParams: any = {};
+        if (location.search) {
+            location.search.substr(1).split("&").forEach(function (item) {
+                var s = item.split("="),
+                    k = s[0],
+                    v = s[1] && decodeURIComponent(s[1]);
+                (urlParams[k] = urlParams[k] || []).push(v);
+            });
+        }
+
+        // handle load url param
+        var loadUrls = (urlParams.load || []).concat(urlParams.assetUrl || []);
+        if (loadUrls.length > 0) {
+            for (var i = 0; i < loadUrls.length; ++i) {
+                this.load(loadUrls[i]);
+            }
+        }
+
+        // load the default skybox if one wasn't specified in url params
+        if (!this.skyboxLoaded) {
+            this.loadHeliSkybox();
+        }
+
+        // set camera position
+        if (urlParams.hasOwnProperty('cameraPosition')) {
+            var pos = urlParams.cameraPosition[0].split(',').map(Number);
+            if (pos.length === 3) {
+                this.cameraPosition = new pc.Vec3(pos);
+            }
+        }
+    }
+    // flatten a hierarchy of nodes
+    private static flatten(node: pc.GraphNode){
+        var result: Array<pc.GraphNode> = [];
+        node.forEach(function (n) {
+            result.push(n);
+        });
+        return result;
     };
 
-    window.addEventListener('dragenter', preventDefault, false);
-    window.addEventListener('dragover', preventDefault, false);
-    window.addEventListener('drop', this._dropHandler.bind(this), false);
-
-    var graph = new Graph(app, 128);
-    app.on('prerender', this._onPrerender, this);
-    app.on('frameend', this._onFrameend, this);
-
-    // create the scene and debug root nodes
-    var sceneRoot = new pc.Entity("sceneRoot", app);
-    app.root.addChild(sceneRoot);
-
-    var debugRoot = new pc.Entity("debugRoot", app);
-    app.root.addChild(debugRoot);
-
-    // store app things
-    this.camera = camera;
-    this.cameraPosition = null;
-    this.light = light;
-    this.sceneRoot = sceneRoot;
-    this.debugRoot = debugRoot;
-    this.entities = [];
-    this.assets = [];
-    this.graph = graph;
-    this.meshInstances = [];
-    this.stateGraph = {
-        layers: [],
-        parameters: { }
+    // get the set of unique values from the array
+    private static distinct(array: Array<any>) {
+        var result = [];
+        for (var i = 0; i < array.length; ++i) {
+            if (result.indexOf(array[i]) === -1) {
+                result.push(array[i]);
+            }
+        }
+        return result;
     };
-    this.animTracks = [];
-    this.animationMap = { };
-    this.morphs = [];
-    this.firstFrame = false;
-    this.skyboxLoaded = false;
 
-    this.showGraphs = false;
-    this.showWireframe = false;
-    this.showBounds = false;
-    this.showSkeleton = false;
-    this.normalLength = 0;
-    this.directLightingFactor = 1;
-    this.envLightingFactor = 1;
-
-    this.dirtyWireframe = false;
-    this.dirtyBounds = false;
-    this.dirtySkeleton = false;
-    this.dirtyNormals = false;
-    this.debugBounds = new DebugLines(app, camera);
-    this.debugSkeleton = new DebugLines(app, camera);
-    this.debugNormals = new DebugLines(app, camera);
-
-    // construct ministats, default off
-    this.miniStats = new pcx.MiniStats(app);
-    this.miniStats.enabled = false;
-
-    // initialize the envmap
-    app.loader.getHandler(pc.ASSET_TEXTURE).parsers.hdr = new HdrParser(app.assets, false);
-
-    // start the application
-    app.start();
-
-    // extract query params. taken from https://stackoverflow.com/a/21152762
-    var urlParams = {};
-    if (location.search) {
-        location.search.substr(1).split("&").forEach(function (item) {
-            var s = item.split("="),
-                k = s[0],
-                v = s[1] && decodeURIComponent(s[1]);
-            (urlParams[k] = urlParams[k] || []).push(v);
-        });
-    }
-
-    // handle load url param
-    var loadUrls = (urlParams.load || []).concat(urlParams.assetUrl || []);
-    if (loadUrls.length > 0) {
-        for (var i = 0; i < loadUrls.length; ++i) {
-            this.load(loadUrls[i]);
+    private static calcBoundingBox(meshInstances: Array<pc.MeshInstance>) {
+        var bbox = new pc.BoundingBox();
+        for (var i = 0; i < meshInstances.length; ++i) {
+            if (i === 0) {
+                bbox.copy(meshInstances[i].aabb);
+            } else {
+                bbox.add(meshInstances[i].aabb);
+            }
         }
+        return bbox;
     }
-
-    // load the default skybox if one wasn't specified in url params
-    if (!this.skyboxLoaded) {
-        this._loadHeliSkybox();
-    }
-
-    // set camera position
-    if (urlParams.hasOwnProperty('cameraPosition')) {
-        var pos = urlParams.cameraPosition[0].split(',').map(Number);
-        if (pos.length === 3) {
-            this.cameraPosition = new pc.Vec3(pos);
-        }
-    }
-};
-
-// flatten a hierarchy of nodes
-Viewer._flatten = function (node) {
-    var result = [];
-    node.forEach(function (n) {
-        result.push(n);
-    });
-    return result;
-};
-
-// get the set of unique values from the array
-Viewer._distinct = function (array) {
-    var result = [];
-    for (var i = 0; i < array.length; ++i) {
-        if (result.indexOf(array[i]) === -1) {
-            result.push(array[i]);
-        }
-    }
-    return result;
-};
-
-Viewer._calcBoundingBox = function (meshInstances) {
-    var bbox = new pc.BoundingBox();
-    for (var i = 0; i < meshInstances.length; ++i) {
-        if (i === 0) {
-            bbox.copy(meshInstances[i].aabb);
-        } else {
-            bbox.add(meshInstances[i].aabb);
-        }
-    }
-    return bbox;
-};
-
-Object.assign(Viewer.prototype, {
     // initialize the faces and prefiltered lighting data from the given
     // skybox texture, which is either a cubemap or equirect texture.
-    _initSkyboxFromTexture: function (skybox) {
+    private initSkyboxFromTexture(skybox: pc.Texture) {
         var self = this;
         var app = self.app;
         var device = app.graphicsDevice;
 
         var cubemaps = [];
 
-        var reprojectToCubemap = function (src, size) {
+        var reprojectToCubemap = function (src: pc.Texture, size: number) {
             // generate faces cubemap
             var faces = new pc.Texture(device, {
                 name: 'skyboxFaces',
                 cubemap: true,
                 width: size,
                 height: size,
-                type: pc.TEXTURETYPE_RGBM,
+                type: pc.TEXTURETYPE_RGBM.toString(),
                 addressU: pc.ADDRESS_CLAMP_TO_EDGE,
                 addressV: pc.ADDRESS_CLAMP_TO_EDGE
             });
@@ -232,8 +293,8 @@ Object.assign(Viewer.prototype, {
         };
 
         if (skybox.cubemap) {
-            if (skybox.type === pc.TEXTURETYPE_DEFAULT ||
-                skybox.type === pc.TEXTURETYPE_RGBM) {
+            // @ts-ignore TODO type property missing from pc.Texture 
+            if (skybox.type === pc.TEXTURETYPE_DEFAULT || skybox.type === pc.TEXTURETYPE_RGBM) {
                 // cubemap format is acceptible, use it directly
                 cubemaps.push(skybox);
             } else {
@@ -254,6 +315,7 @@ Object.assign(Viewer.prototype, {
                 name: 'skyboxPrefilter' + i,
                 width: sizes[i],
                 height: sizes[i],
+                // @ts-ignore TODO type property missing from pc.Texture 
                 type: pc.TEXTURETYPE_RGBM,
                 addressU: pc.ADDRESS_CLAMP_TO_EDGE,
                 addressV: pc.ADDRESS_CLAMP_TO_EDGE
@@ -268,11 +330,11 @@ Object.assign(Viewer.prototype, {
         app.scene.skyboxMip = 0;                        // Set the skybox to the 128x128 cubemap mipmap level
         app.scene.setSkybox(cubemaps);
         app.renderNextFrame = true;                     // ensure we render again when the cubemap arrives
-    },
+    }
 
     // load the image files into the skybox. this function supports loading a single equirectangular
     // skybox image or 6 cubemap faces.
-    _loadSkybox: function (files) {
+    private loadSkybox(files: Array<URL>) {
         var self = this;
         var app = self.app;
 
@@ -288,7 +350,7 @@ Object.assign(Viewer.prototype, {
                     // assume RGBA data (pngs) are RGBM
                     texture.type = pc.TEXTURETYPE_RGBM;
                 }
-                self._initSkyboxFromTexture(texture);
+                self.initSkyboxFromTexture(texture);
             });
             app.assets.add(textureAsset);
             app.assets.load(textureAsset);
@@ -302,7 +364,7 @@ Object.assign(Viewer.prototype, {
                 ['0', '1', '2', '3', '4', '5']
             ];
 
-            var getOrder = function (filename) {
+            var getOrder = function (filename: string) {
                 var fn = filename.toLowerCase();
                 for (var i = 0; i < names.length; ++i) {
                     var nameList = names[i];
@@ -315,7 +377,7 @@ Object.assign(Viewer.prototype, {
                 return 0;
             };
 
-            var sortPred = function (first, second) {
+            var sortPred = function (first: URL, second: URL) {
                 var firstOrder = getOrder(first.filename);
                 var secondOrder = getOrder(second.filename);
                 return firstOrder < secondOrder ? -1 : (secondOrder < firstOrder ? 1 : 0);
@@ -337,18 +399,19 @@ Object.assign(Viewer.prototype, {
                     return faceAsset.id;
                 })
             });
+            // @ts-ignore TODO not defined in pc
             cubemapAsset.loadFaces = true;
             cubemapAsset.on('load', function () {
-                self._initSkyboxFromTexture(cubemapAsset.resource);
+                self.initSkyboxFromTexture(cubemapAsset.resource);
             });
             app.assets.add(cubemapAsset);
             app.assets.load(cubemapAsset);
         }
         this.skyboxLoaded = true;
-    },
+    }
 
     // load the built in helipad cubemap
-    _loadHeliSkybox: function () {
+    private loadHeliSkybox() {
         var self = this;
         var app = self.app;
 
@@ -383,23 +446,23 @@ Object.assign(Viewer.prototype, {
         app.assets.add(cubemap);
         app.assets.load(cubemap);
         this.skyboxLoaded = true;
-    },
+    }
 
-    _getCanvasSize: function () {
+    private getCanvasSize() {
         return {
             width: document.body.clientWidth - document.getElementById("panel").offsetWidth,
             height: document.body.clientHeight
         };
-    },
+    }
 
-    resizeCanvas: function () {
-        var canvasSize = this._getCanvasSize();
+    resizeCanvas () {
+        var canvasSize = this.getCanvasSize();
         this.app.resizeCanvas(canvasSize.width, canvasSize.height);
         this.app.renderNextFrame = true;
-    },
+    }
 
     // reset the viewer, unloading resources
-    resetScene: function () {
+    resetScene() {
         var app = this.app;
         var i;
 
@@ -437,21 +500,22 @@ Object.assign(Viewer.prototype, {
         this.dirtyWireframe = this.dirtyBounds = this.dirtySkeleton = this.dirtyNormals = true;
 
         this.app.renderNextFrame = true;
-    },
+    }
 
-    clearSkybox: function () {
+    clearSkybox() {
         this.app.scene.setSkybox(null);
         this.app.renderNextFrame = true;
         this.skyboxLoaded = false;
-    },
+    }
 
     // move the camera to view the loaded object
-    focusCamera: function () {
+    focusCamera() {
         var camera = this.camera.camera;
+        // @ts-ignore TODO not defined in pc
         var orbitCamera = this.camera.script.orbitCamera;
 
         // calculate scene bounding box
-        var bbox = Viewer._calcBoundingBox(this.meshInstances);
+        var bbox = Viewer.calcBoundingBox(this.meshInstances);
         var radius = bbox.halfExtents.length();
         var distance = (radius * 1.4) / Math.sin(0.5 * camera.fov * camera.aspectRatio * pc.math.DEG_TO_RAD);
 
@@ -467,15 +531,15 @@ Object.assign(Viewer.prototype, {
 
         var light = this.light;
         light.light.shadowDistance = distance * 2;
-    },
+    }
 
     // load gltf model given its url and list of external urls
-    _loadGltf: function (gltfUrl, externalUrls) {
+    private loadGltf(gltfUrl: URL, externalUrls: Array<URL>) {
         var self = this;
 
         // provide buffer view callback so we can handle meshoptimizer'd models
         // https://github.com/zeux/meshoptimizer
-        var processBufferView = function (gltfBuffer, buffers, continuation) {
+        var processBufferView = function (gltfBuffer: any, buffers: Array<any>, continuation: Function) {
             if (gltfBuffer.extensions && gltfBuffer.extensions.EXT_meshopt_compression) {
                 var extensionDef = gltfBuffer.extensions.EXT_meshopt_compression;
 
@@ -502,8 +566,8 @@ Object.assign(Viewer.prototype, {
             }
         };
 
-        var processImage = function (gltfImage, continuation) {
-            var u = externalUrls.find(function (url) {
+        var processImage = function (gltfImage: any, continuation: Function) {
+            var u: URL = externalUrls.find(function (url) {
                 return url.filename === gltfImage.uri;
             });
             if (u) {
@@ -518,7 +582,7 @@ Object.assign(Viewer.prototype, {
             }
         };
 
-        var processBuffer = function (gltfBuffer, continuation) {
+        var processBuffer = function (gltfBuffer: any, continuation: Function) {
             var u = externalUrls.find(function (url) {
                 return url.filename === gltfBuffer.uri;
             });
@@ -535,6 +599,7 @@ Object.assign(Viewer.prototype, {
         };
 
         var containerAsset = new pc.Asset(gltfUrl.filename, 'container', gltfUrl, null, {
+            // @ts-ignore TODO no definition in pc
             bufferView: {
                 processAsync: processBufferView
             },
@@ -546,16 +611,16 @@ Object.assign(Viewer.prototype, {
             }
         });
         containerAsset.on('load', function () {
-            self._onLoaded(null, containerAsset);
+            self.onLoaded(null, containerAsset);
         });
         self.app.assets.add(containerAsset);
         self.app.assets.load(containerAsset);
-    },
+    }
 
     // load the list of urls.
     // urls can reference glTF files, glb files and skybox textures.
     // returns true if a model was loaded.
-    load: function (urls) {
+    load(urls: Array<URL>) {
         // convert single url to list
         if (!Array.isArray(urls)) {
             urls = [urls];
@@ -575,22 +640,22 @@ Object.assign(Viewer.prototype, {
         urls.forEach(function (url) {
             var filenameExt = pc.path.getExtension(url.filename).toLowerCase();
             if (filenameExt === '.gltf' || filenameExt === '.glb') {
-                self._loadGltf(url, urls);
+                self.loadGltf(url, urls);
                 result = true;
             }
         });
 
         if (!result) {
             // if no models were loaded, load the files as skydome images instead
-            self._loadSkybox(urls);
+            self.loadSkybox(urls);
         }
 
         // return true if a model/scene was loaded and false otherwise
         return result;
-    },
+    }
 
     // play an animation / play all the animations
-    play: function (animationName, appendAnimation) {
+    play(animationName: string, appendAnimation: boolean) {
         if (!animationName || !appendAnimation) {
             for (var key in this.animationMap) {
                 if (this.animationMap.hasOwnProperty(key)) {
@@ -605,76 +670,78 @@ Object.assign(Viewer.prototype, {
         if (animationName) {
             this.animationMap[animationName].play('default');
         }
-    },
+    }
 
     // stop playing animations
-    stop: function () {
+    stop() {
         for (var key in this.animationMap) {
             if (this.animationMap.hasOwnProperty(key)) {
                 this.animationMap[key].pause();
             }
         }
-    },
+    }
 
-    setSpeed: function (speed) {
+    setSpeed(speed: number) {
         for (var i = 0; i < this.entities.length; ++i) {
             var entity = this.entities[i];
+            // @ts-ignore TODO anim property missing from pc.Entity
             if (entity.anim) {
+                // @ts-ignore TODO anim property missing from pc.Entity
                 entity.anim.speed = speed;
             }
         }
-    },
+    }
 
-    setShowGraphs: function (show) {
+    setShowGraphs(show: boolean) {
         this.showGraphs = show;
         this.renderNextFrame();
-    },
+    }
 
-    setStats: function (show) {
+    setStats(show: boolean) {
         this.miniStats.enabled = show;
         this.renderNextFrame();
-    },
+    }
 
-    setShowWireframe: function (show) {
+    setShowWireframe(show: boolean) {
         this.showWireframe = show;
         this.dirtyWireframe = true;
         this.renderNextFrame();
-    },
+    }
 
-    setShowBounds: function (show) {
+    setShowBounds(show: boolean) {
         this.showBounds = show;
         this.dirtyBounds = true;
         this.renderNextFrame();
-    },
+    }
 
-    setShowSkeleton: function (show) {
+    setShowSkeleton(show: boolean) {
         this.showSkeleton = show;
         this.dirtySkeleton = true;
         this.renderNextFrame();
-    },
+    }
 
-    setNormalLength: function (length) {
+    setNormalLength(length: number) {
         this.normalLength = length;
         this.dirtyNormals = true;
         this.renderNextFrame();
-    },
+    }
 
-    setFov: function (fov) {
+    setFov(fov: number) {
         this.camera.camera.fov = fov;
         this.renderNextFrame();
-    },
+    }
 
-    setDirectLighting: function (factor) {
+    setDirectLighting(factor: number) {
         this.light.light.intensity = factor;
         this.renderNextFrame();
-    },
+    }
 
-    setEnvLighting: function (factor) {
+    setEnvLighting(factor: number) {
         this.app.scene.skyboxIntensity = factor;
         this.renderNextFrame();
-    },
+    }
 
-    update: function () {
+    update() {
         // if the camera has moved since the last render
         var cameraWorldTransform = this.camera.getWorldTransform();
         if (!this.prevCameraMat.equals(cameraWorldTransform)) {
@@ -712,18 +779,18 @@ Object.assign(Viewer.prototype, {
         if (this.miniStats.enabled) {
             this.renderNextFrame();
         }
-    },
+    }
 
-    renderNextFrame: function () {
+    renderNextFrame() {
         this.app.renderNextFrame = true;
-    },
+    }
 
     // use webkitGetAsEntry to extract files so we can include folders
-    _dropHandler: function (event) {
+    private dropHandler(event: DragEvent) {
         var self = this;
 
-        var removeCommonPrefix = function (urls) {
-            var split = function (pathname) {
+        var removeCommonPrefix = function (urls: Array<URL>) {
+            var split = function (pathname: string) {
                 var parts = pathname.split(pc.path.delimiter);
                 var base = parts[0];
                 var rest = parts.slice(1).join(pc.path.delimiter);
@@ -747,10 +814,18 @@ Object.assign(Viewer.prototype, {
             }
         };
 
-        var resolveFiles = function (entries) {
-            var urls = [];
-            entries.forEach(function (entry) {
-                entry.file(function (file) {
+        interface Entry {
+            isFile: boolean,
+            isDirectory: boolean,
+            createReader: Function,
+            file: Function,
+            fullPath: string
+        }
+
+        var resolveFiles = function (entries: Array<Entry>) {
+            var urls: Array<URL> = [];
+            entries.forEach(function (entry: Entry) {
+                entry.file(function (file: URL) {
                     urls.push({
                         url: URL.createObjectURL(file),
                         filename: entry.fullPath.substring(1)
@@ -771,16 +846,16 @@ Object.assign(Viewer.prototype, {
             });
         };
 
-        var resolveDirectories = function (entries) {
+        var resolveDirectories = function (entries: Array<Entry>) {
             var awaiting = 0;
-            var files = [];
-            var recurse = function (entries) {
-                entries.forEach(function (entry) {
+            var files: Array<Entry> = [];
+            var recurse = function (entries: Array<Entry>) {
+                entries.forEach(function (entry: Entry) {
                     if (entry.isFile) {
                         files.push(entry);
                     } else if (entry.isDirectory) {
                         awaiting++;
-                        entry.createReader().readEntries(function (subEntries) {
+                        entry.createReader().readEntries(function (subEntries: Array<Entry>) {
                             awaiting--;
                             recurse(subEntries);
                         });
@@ -806,16 +881,16 @@ Object.assign(Viewer.prototype, {
             entries.push(items[i].webkitGetAsEntry());
         }
         resolveDirectories(entries);
-    },
+    }
 
     clearCta() {
         document.querySelector('#panel').classList.add('no-cta');
         document.querySelector('#application-canvas').classList.add('no-cta');
         document.querySelector('.initial-cta').classList.add('no-cta');
-    },
+    }
 
     // container asset has been loaded, add it to the scene
-    _onLoaded: function (err, asset) {
+    private onLoaded(err: string, asset: pc.Asset) {
         if (err) {
             return;
         }
@@ -823,7 +898,7 @@ Object.assign(Viewer.prototype, {
         var self = this;
         var resource = asset.resource;
 
-        var entity;
+        var entity: pc.Entity;
         if (resource.model || this.entities.length === 0) {
             // create entity and add model
             entity = new pc.Entity();
@@ -845,6 +920,7 @@ Object.assign(Viewer.prototype, {
             var i;
 
             // create the anim component if there isn't one already
+            // @ts-ignore TODO not defined in pc
             if (!entity.anim) {
                 entity.addComponent('anim', {
                     activate: true
@@ -878,11 +954,13 @@ Object.assign(Viewer.prototype, {
             }
 
             // load the new state graph
+            // @ts-ignore TODO anim property missing from pc.Entity
             entity.anim.loadStateGraph(new pc.AnimStateGraph(stateGraph));
 
             // set animations on each layer
             for (i = 0; i < this.animTracks.length; ++i) {
                 var animTrack = this.animTracks[i];
+                // @ts-ignore TODO anim property missing from pc.Entity
                 var layer = entity.anim.findAnimationLayer('layer_' + i);
                 layer.assignAnimation('default', animTrack);
                 layer.pause();
@@ -893,28 +971,26 @@ Object.assign(Viewer.prototype, {
 
             // create animation graphs
             var createAnimGraphs = function () {
-                var extract = function (value, component) {
-                    return function () {
-                        return value[component];
-                    };
-                };
-
                 var graph = this.graph;
 
-                var recurse = function (node) {
+                var extract = function (transformPropertyGetter: Function, dimension: string){
+                    return () => transformPropertyGetter()[dimension];
+                }
+
+                var recurse = function (node: pc.GraphNode) {
                     if (!graph.hasNode(node)) {
-                        graph.addGraph(node, new pc.Color(1, 1, 0, 1), extract(node.localPosition, 'x'));
-                        graph.addGraph(node, new pc.Color(0, 1, 1, 1), extract(node.localPosition, 'y'));
-                        graph.addGraph(node, new pc.Color(1, 0, 1, 1), extract(node.localPosition, 'z'));
+                        graph.addGraph(node, new pc.Color(1, 1, 0, 1), extract(node.getLocalPosition.bind(node), 'x'));
+                        graph.addGraph(node, new pc.Color(0, 1, 1, 1), extract(node.getLocalPosition.bind(node), 'y'));
+                        graph.addGraph(node, new pc.Color(1, 0, 1, 1), extract(node.getLocalPosition.bind(node), 'z'));
 
-                        graph.addGraph(node, new pc.Color(1, 0, 0, 1), extract(node.localRotation, 'x'));
-                        graph.addGraph(node, new pc.Color(0, 1, 0, 1), extract(node.localRotation, 'y'));
-                        graph.addGraph(node, new pc.Color(0, 0, 1, 1), extract(node.localRotation, 'z'));
-                        graph.addGraph(node, new pc.Color(1, 1, 1, 1), extract(node.localRotation, 'w'));
+                        graph.addGraph(node, new pc.Color(1, 0, 0, 1), extract(node.getLocalRotation.bind(node), 'x'));
+                        graph.addGraph(node, new pc.Color(0, 1, 0, 1), extract(node.getLocalRotation.bind(node), 'y'));
+                        graph.addGraph(node, new pc.Color(0, 0, 1, 1), extract(node.getLocalRotation.bind(node), 'z'));
+                        graph.addGraph(node, new pc.Color(1, 1, 1, 1), extract(node.getLocalRotation.bind(node), 'w'));
 
-                        graph.addGraph(node, new pc.Color(1.0, 0.5, 0.5, 1), extract(node.localScale, 'x'));
-                        graph.addGraph(node, new pc.Color(0.5, 1.0, 0.5, 1), extract(node.localScale, 'y'));
-                        graph.addGraph(node, new pc.Color(0.5, 0.5, 1.0, 1), extract(node.localScale, 'z'));
+                        graph.addGraph(node, new pc.Color(1.0, 0.5, 0.5, 1), extract(node.getLocalScale.bind(node), 'x'));
+                        graph.addGraph(node, new pc.Color(0.5, 1.0, 0.5, 1), extract(node.getLocalScale.bind(node), 'y'));
+                        graph.addGraph(node, new pc.Color(0.5, 0.5, 1.0, 1), extract(node.getLocalScale.bind(node), 'z'));
                     }
 
                     for (var i = 0; i < node.children.length; ++i) {
@@ -934,6 +1010,7 @@ Object.assign(Viewer.prototype, {
             // make a list of all the morph instance target names
             var morphs = this.morphs;
             morphInstances.forEach(function (morphInstance, morphIndex) {
+                // @ts-ignore TODO expose meshInstance on morphInstance in pc
                 var meshInstance = morphInstance.meshInstance;
 
                 // mesh name line
@@ -942,10 +1019,11 @@ Object.assign(Viewer.prototype, {
                 });
 
                 // morph targets
+                // @ts-ignore TODO accessing private var
                 morphInstance.morph._targets.forEach(function (target, targetIndex) {
                     morphs.push({
                         name: target.name,
-                        setWeight: function (targetIndex, weight) {
+                        setWeight: function (targetIndex: number, weight: number) {
                             this.setWeight(targetIndex, weight);
                             self.dirtyNormals = true;
                             self.renderNextFrame();
@@ -965,9 +1043,9 @@ Object.assign(Viewer.prototype, {
         // construct a list of meshInstances so we can quick access them when configuring
         // wireframe rendering etc.
         this.meshInstances = this.meshInstances.concat(
-            Viewer._distinct(
-                Viewer._flatten(entity)
-                    .map( function (node) {
+            Viewer.distinct(
+                Viewer.flatten(entity)
+                    .map( function (node: pc.Entity): Array<any> {
                         return node.model ? node.model.meshInstances || [] : [];
                     })
                     .flat()));
@@ -981,10 +1059,10 @@ Object.assign(Viewer.prototype, {
         this.firstFrame = true;
         this.renderNextFrame();
         this.clearCta();
-    },
+    }
 
     // generate and render debug elements on prerender
-    _onPrerender: function () {
+    private onPrerender() {
         if (this.showGraphs) {
             this.graph.update();
             this.graph.render();
@@ -1001,6 +1079,7 @@ Object.assign(Viewer.prototype, {
                     meshInstance = this.meshInstances[i];
                     if (this.showWireframe) {
                         if (!meshInstance.mesh.primitive[pc.RENDERSTYLE_WIREFRAME]) {
+                            // @ts-ignore TODO not defined in pc
                             meshInstance.mesh.generateWireframe();
                         }
                         meshInstance.renderStyle = pc.RENDERSTYLE_WIREFRAME;
@@ -1016,7 +1095,7 @@ Object.assign(Viewer.prototype, {
                 this.debugBounds.clear();
 
                 if (this.showBounds) {
-                    var bbox = Viewer._calcBoundingBox(this.meshInstances);
+                    var bbox = Viewer.calcBoundingBox(this.meshInstances);
                     this.debugBounds.box(bbox.getMin(), bbox.getMax());
                 }
                 this.debugBounds.update();
@@ -1030,16 +1109,21 @@ Object.assign(Viewer.prototype, {
                 if (this.normalLength > 0) {
                     for (i = 0; i < this.meshInstances.length; ++i) {
                         meshInstance = this.meshInstances[i];
+                        // @ts-ignore TODO not defined in pc
                         var vertexBuffer = meshInstance.morphInstance ?
+                            // @ts-ignore TODO not defined in pc
                             meshInstance.morphInstance._vertexBuffer : meshInstance.mesh.vertexBuffer;
 
                         if (vertexBuffer) {
+                            // @ts-ignore TODO not defined in pc
                             var skinMatrices = meshInstance.skinInstance ?
+                                // @ts-ignore TODO not defined in pc
                                 meshInstance.skinInstance.matrices : null;
 
                             // if there is skinning we need to manually update matrices here otherwise
                             // our normals are always a frame behind
                             if (skinMatrices) {
+                                // @ts-ignore TODO not defined in pc
                                 meshInstance.skinInstance.updateMatrices(meshInstance.node);
                             }
 
@@ -1070,9 +1154,9 @@ Object.assign(Viewer.prototype, {
                 this.debugSkeleton.update();
             }
         }
-    },
+    }
 
-    _onFrameend: function () {
+    private onFrameend () {
         if (this.firstFrame) {
             this.firstFrame = false;
 
@@ -1082,6 +1166,6 @@ Object.assign(Viewer.prototype, {
             this.renderNextFrame();
         }
     }
-});
+};
 
 export default Viewer;

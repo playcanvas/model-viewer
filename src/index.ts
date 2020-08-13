@@ -2,7 +2,7 @@ import * as pc from 'playcanvas';
 
 import { wasmSupported, loadWasmModuleAsync } from '../lib/wasm-loader.js';
 
-import Viewer from './viewer.js';
+import Viewer from './viewer';
 import { onSceneReset, onAnimationsLoaded, onMorphTargetsLoaded, registerElementEvents } from './controls';
 import { getAssetPath } from './helpers';
 import './cta';

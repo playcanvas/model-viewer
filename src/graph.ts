@@ -1,19 +1,36 @@
-var Graph = function (app, numSamples) {
-    var positions = [];
-    for (var i = 0; i < numSamples - 1; ++i) {
-        positions[i * 2 + 0] = new pc.Vec3(0, 0, 0);
-        positions[i * 2 + 1] = new pc.Vec3(0, 0, 0);
+
+interface IGraph {
+    node: pc.GraphNode,
+    color: Array<pc.Color>,
+    callback: Function,
+    samples: Array<any>
+    sample: number,
+    prevSample: number,
+    constantSamples: number
+}
+
+class Graph {
+
+    app: pc.Application;
+    numSamples: number;
+    graphs: Array<IGraph>
+    positions: Array<pc.Vec3>;
+
+    constructor(app: pc.Application, numSamples: number) {
+        var positions = [];
+        for (var i = 0; i < numSamples - 1; ++i) {
+            positions[i * 2 + 0] = new pc.Vec3(0, 0, 0);
+            positions[i * 2 + 1] = new pc.Vec3(0, 0, 0);
+        }
+
+        this.app = app;
+        this.numSamples = numSamples;
+        this.graphs = [];
+        this.positions = positions;
+        // this.app.on('prerender', this.render.bind(this));
     }
 
-    this.app = app;
-    this.numSamples = numSamples;
-    this.graphs = [];
-    this.positions = positions;
-    // this.app.on('prerender', this.render.bind(this));
-};
-
-Object.assign(Graph.prototype, {
-    addGraph: function (node, color, callback) {
+    addGraph(node: pc.GraphNode, color: Array<pc.Color>, callback: Function) {
         this.graphs.push({
             node: node,
             color: color,
@@ -23,19 +40,19 @@ Object.assign(Graph.prototype, {
             prevSample: 0,
             constantSamples: this.numSamples
         });
-    },
+    }
 
-    hasNode: function (node) {
+    hasNode(node: pc.GraphNode) {
         return this.graphs.findIndex(function (g) {
             return g.node === node;
         }) !== -1;
-    },
+    }
 
-    clear: function () {
+    clear() {
         this.graphs = [];
-    },
+    }
 
-    update: function () {
+    update() {
         var graphs = this.graphs;
         var numSamples = this.numSamples;
         for (var i = 0; i < graphs.length; ++i) {
@@ -64,9 +81,9 @@ Object.assign(Graph.prototype, {
                 }
             }
         }
-    },
+    }
 
-    render: function () {
+    render() {
         var app = this.app;
         var camera = this.app.root.findByName('Camera');
         if (!camera) {
@@ -118,6 +135,9 @@ Object.assign(Graph.prototype, {
             }
         }
     }
+}
+
+Object.assign(Graph.prototype, {
 });
 
 export default Graph;

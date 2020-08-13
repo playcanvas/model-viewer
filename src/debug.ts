@@ -1,83 +1,92 @@
-var debugLayerFront = null;
-var debugLayerBack = null;
+var debugLayerFront: pc.Layer = null;
+var debugLayerBack: pc.Layer = null;
 
-var DebugLines = function (app, camera) {
-    if (!debugLayerFront) {
-        // construct the debug layer
-        debugLayerFront = new pc.Layer({
-            enabled: true,
-            name: 'Debug Layer',
-            opaqueSortMode: pc.SORTMODE_NONE,
-            transparentSortMode: pc.SORTMODE_NONE,
-            passThrough: true
-        });
+class DebugLines {
 
-        debugLayerBack = new pc.Layer({
-            enabled: true,
-            name: 'Debug Layer Behind',
-            opaqueSortMode: pc.SORTMODE_NONE,
-            transparentSortMode: pc.SORTMODE_NONE,
-            passThrough: true,
-            overrideClear: true,
-            clearDepthBuffer: true
-        });
+    app: pc.Application;
+    mesh: pc.Mesh;
+    meshInstance: pc.MeshInstance;
+    vertexFormat: pc.VertexFormat;
+    vertexCursor: number;
+    vertexData: Float32Array;
+    colourData: Uint32Array;
 
-        app.scene.layers.pushTransparent(debugLayerFront);
-        app.scene.layers.pushTransparent(debugLayerBack);
-        camera.camera.layers = camera.camera.layers.concat([debugLayerFront.id, debugLayerBack.id]);
-    }
+    constructor(app: pc.Application, camera: pc.Entity) {
+        if (!debugLayerFront) {
+            // construct the debug layer
+            debugLayerFront = new pc.Layer({
+                enabled: true,
+                name: 'Debug Layer',
+                opaqueSortMode: pc.SORTMODE_NONE,
+                transparentSortMode: pc.SORTMODE_NONE,
+                passThrough: true
+            });
 
-    var device = app.graphicsDevice;
+            debugLayerBack = new pc.Layer({
+                enabled: true,
+                name: 'Debug Layer Behind',
+                opaqueSortMode: pc.SORTMODE_NONE,
+                transparentSortMode: pc.SORTMODE_NONE,
+                passThrough: true,
+                overrideClear: true,
+                clearDepthBuffer: true
+            });
 
-    var vertexFormat = new pc.VertexFormat(device, [
-        { semantic: pc.SEMANTIC_POSITION, components: 3, type: pc.TYPE_FLOAT32 },
-        { semantic: pc.SEMANTIC_COLOR, components: 4, type: pc.TYPE_UINT8, normalize: true }
-    ]);
-
-    // construct the mesh
-    var mesh = new pc.Mesh();
-    mesh.vertexBuffer = new pc.VertexBuffer(device, vertexFormat, 1024, pc.BUFFER_DYNAMIC);
-    mesh.primitive[0].type = pc.PRIMITIVE_LINES;
-    mesh.primitive[0].base = 0;
-    mesh.primitive[0].indexed = false;
-    mesh.primitive[0].count = 0;
-
-    // construct the material
-    var material = new pc.BasicMaterial();
-    material.blendType = pc.BLEND_NORMAL;
-    material.update();
-
-    // construct the mesh instance
-    var meshInstance = new pc.MeshInstance(new pc.GraphNode(), mesh, material);
-    meshInstance.cull = false;
-    meshInstance.visible = false;
-
-    debugLayerFront.addMeshInstances([meshInstance], true);
-
-    this.app = app;
-    this.mesh = mesh;
-    this.meshInstance = meshInstance;
-    this.vertexFormat = vertexFormat;
-    this.vertexCursor = 0;
-    this.vertexData = new Float32Array(this.mesh.vertexBuffer.storage);
-    this.colourData = new Uint32Array(this.mesh.vertexBuffer.storage);
-};
-
-DebugLines._matrixMad = function (result, mat, factor) {
-    if (factor > 0) {
-        for (var i = 0; i < 16; ++i) {
-            result.data[i] += mat.data[i] * factor;
+            app.scene.layers.pushTransparent(debugLayerFront);
+            app.scene.layers.pushTransparent(debugLayerBack);
+            camera.camera.layers = camera.camera.layers.concat([debugLayerFront.id, debugLayerBack.id]);
         }
-    }
-};
 
-Object.assign(DebugLines.prototype, {
+        var device = app.graphicsDevice;
 
-    clear: function () {
+        var vertexFormat = new pc.VertexFormat(device, [
+            { semantic: pc.SEMANTIC_POSITION, components: 3, type: pc.TYPE_FLOAT32 },
+            { semantic: pc.SEMANTIC_COLOR, components: 4, type: pc.TYPE_UINT8, normalize: true }
+        ]);
+
+        // construct the mesh
+        var mesh = new pc.Mesh();
+        mesh.vertexBuffer = new pc.VertexBuffer(device, vertexFormat, 1024, pc.BUFFER_DYNAMIC);
+        mesh.primitive[0].type = pc.PRIMITIVE_LINES;
+        mesh.primitive[0].base = 0;
+        mesh.primitive[0].indexed = false;
+        mesh.primitive[0].count = 0;
+
+        // construct the material
+        var material = new pc.BasicMaterial();
+        material.blendType = pc.BLEND_NORMAL;
+        material.update();
+
+        // construct the mesh instance
+        var meshInstance = new pc.MeshInstance(new pc.GraphNode(), mesh, material);
+        meshInstance.cull = false;
+        meshInstance.visible = false;
+
+        debugLayerFront.addMeshInstances([meshInstance], true);
+
+        this.app = app;
+        this.mesh = mesh;
+        this.meshInstance = meshInstance;
+        this.vertexFormat = vertexFormat;
         this.vertexCursor = 0;
-    },
+        this.vertexData = new Float32Array(this.mesh.vertexBuffer.lock());
+        // @ts-ignore: TODO pc.VertexBuffer.storage doesn't exist
+        this.colourData = new Uint32Array(this.mesh.vertexBuffer.lock());
+    }
 
-    box: function (min, max) {
+    private static matrixMad(result: pc.Mat4, mat: pc.Mat4, factor: number) {
+        if (factor > 0) {
+            for (var i = 0; i < 16; ++i) {
+                result.data[i] += mat.data[i] * factor;
+            }
+        }
+    };
+
+    clear() {
+        this.vertexCursor = 0;
+    }
+
+    box(min: pc.Vec3, max: pc.Vec3) {
         this.line(new pc.Vec3(min.x, min.y, min.z), new pc.Vec3(max.x, min.y, min.z));
         this.line(new pc.Vec3(max.x, min.y, min.z), new pc.Vec3(max.x, min.y, max.z));
         this.line(new pc.Vec3(max.x, min.y, max.z), new pc.Vec3(min.x, min.y, max.z));
@@ -92,23 +101,23 @@ Object.assign(DebugLines.prototype, {
         this.line(new pc.Vec3(max.x, min.y, min.z), new pc.Vec3(max.x, max.y, min.z));
         this.line(new pc.Vec3(max.x, min.y, max.z), new pc.Vec3(max.x, max.y, max.z));
         this.line(new pc.Vec3(min.x, min.y, max.z), new pc.Vec3(min.x, max.y, max.z));
-    },
+    }
 
-    line: function (v0, v1) {
+    line(v0: pc.Vec3, v1: pc.Vec3) {
         if (this.vertexCursor >= this.vertexData.length / 8) {
             var oldVBuffer = this.mesh.vertexBuffer;
-            var byteSize = oldVBuffer.numBytes * 2;
+            var byteSize = oldVBuffer.lock().byteLength * 2;
             var arrayBuffer = new ArrayBuffer(byteSize);
 
             this.mesh.vertexBuffer = new pc.VertexBuffer(this.app.graphicsDevice,
-                                                         oldVBuffer.format,
-                                                         oldVBuffer.numVertices * 2,
+                                                         oldVBuffer.getFormat(),
+                                                         oldVBuffer.getNumVertices() * 2,
                                                          pc.BUFFER_DYNAMIC,
                                                          arrayBuffer);
             this.vertexData = new Float32Array(arrayBuffer);
             this.colourData = new Uint32Array(arrayBuffer);
 
-            this.colourData.set(new Uint32Array(oldVBuffer.storage));
+            this.colourData.set(new Uint32Array(oldVBuffer.lock()));
         }
 
         var vertex = this.vertexCursor;
@@ -123,16 +132,16 @@ Object.assign(DebugLines.prototype, {
         vertexData[vertex * 8 + 6] = v1.z;
         colourData[vertex * 8 + 7] = 0xffffffff;
         this.vertexCursor++;
-    },
+    }
 
-    generateNormals: function (vertexBuffer, worldMat, length, skinMatrices) {
+    generateNormals(vertexBuffer: pc.VertexBuffer, worldMat: pc.Mat4, length: number, skinMatrices: Array<pc.Mat4>) {
         var it = new pc.VertexIterator(vertexBuffer);
         var positions = it.element[pc.SEMANTIC_POSITION];
         var normals = it.element[pc.SEMANTIC_NORMAL];
         var blendIndices = it.element[pc.SEMANTIC_BLENDINDICES];
         var blendWeights = it.element[pc.SEMANTIC_BLENDWEIGHT];
 
-        var numVertices = vertexBuffer.numVertices;
+        var numVertices = vertexBuffer.getNumVertices();
         var p0 = new pc.Vec3();
         var p1 = new pc.Vec3();
         var skinMat = new pc.Mat4();
@@ -146,7 +155,7 @@ Object.assign(DebugLines.prototype, {
                 // transform by skinning matricess
                 skinMat.copy(pc.Mat4.ZERO);
                 for (var j = 0; j < 4; ++j) {
-                    DebugLines._matrixMad(skinMat,
+                    DebugLines.matrixMad(skinMat,
                                           skinMatrices[blendIndices.get(j)],
                                           blendWeights.get(j));
                 }
@@ -164,12 +173,12 @@ Object.assign(DebugLines.prototype, {
 
             it.next();
         }
-    },
+    }
 
-    generateSkeleton: function (node) {
+    generateSkeleton(node: pc.GraphNode) {
         var self = this;
 
-        var recurse = function (curr) {
+        var recurse = function (curr: pc.GraphNode) {
             if (curr.enabled) {
                 // render child links
                 for (var i = 0; i < curr.children.length; ++i) {
@@ -181,9 +190,9 @@ Object.assign(DebugLines.prototype, {
         };
 
         recurse(node);
-    },
+    }
 
-    update: function () {
+    update() {
         var empty = this.vertexCursor === 0;
         if (!empty) {
             this.meshInstance.visible = true;
@@ -194,6 +203,10 @@ Object.assign(DebugLines.prototype, {
             this.meshInstance.visible = false;
         }
     }
+}
+
+
+Object.assign(DebugLines.prototype, {
 });
 
 export default DebugLines;
