@@ -1,12 +1,18 @@
-import * as pcui from './lib/pcui.js';
-import { getAssetPath } from './helpers.js';
-var pc = require(__PLAYCANVAS_PATH__);
+import * as pcui from '../lib/pcui.js';
+import { getAssetPath } from './helpers';
+import * as pc from 'playcanvas';
+import Viewer from './viewer.js';
 
 // Build controls
-var controlsDiv = document.getElementById('controls');
+const controlsDiv = document.getElementById('controls');
 
-var buildToggle = function (name, label) {
-    var toggleDom = {
+interface ControlDom {
+    root: any,
+    children: Array<any>
+}
+
+const buildToggle = function (name: string, label?: string) {
+    const toggleDom: ControlDom = {
         root: {},
         children: [
             {}, {}
@@ -24,8 +30,8 @@ var buildToggle = function (name, label) {
     return toggleDom;
 };
 
-var buildSlider = function (name, precision, min, max, value, label) {
-    var sliderDom = {
+const buildSlider = function (name: string, precision: number, min: number, max: number, value: number, label?: number) {
+    const sliderDom: ControlDom = {
         root: {},
         children: [
             {}, {}
@@ -50,8 +56,8 @@ var buildSlider = function (name, precision, min, max, value, label) {
     return sliderDom;
 };
 
-var buildSelect = function (name, type, options, label) {
-    var selectDom = {
+const buildSelect = function (name: string, type: string, options: Record<any, any>, label?: string) {
+    const selectDom: ControlDom = {
         root: {},
         children: [
             {}, {}
@@ -72,7 +78,7 @@ var buildSelect = function (name, type, options, label) {
 
 /* SHOW PANEL */
 
-var showPanelDom = function () {
+const showPanelDom = function () {
     return [
         buildToggle('stats'),
         buildToggle('wireframe'),
@@ -83,7 +89,7 @@ var showPanelDom = function () {
     ];
 };
 
-var showPanel = new pcui.Panel({
+const showPanel = new pcui.Panel({
     headerText: 'SHOW',
     collapsible: true
 });
@@ -94,14 +100,14 @@ controlsDiv.append(showPanel.dom);
 
 /* LIGHTING PANEL */
 
-var lightingPanelDom = function () {
+const lightingPanelDom = function () {
     return [
         buildSlider('direct', 2, 0, 6, 1),
         buildSlider('env', 2, 0, 6, 1)
     ];
 };
 
-var lightingPanel = new pcui.Panel({
+const lightingPanel = new pcui.Panel({
     headerText: 'LIGHTING',
     collapsible: true
 });
@@ -111,29 +117,42 @@ lightingPanel.buildDom(lightingPanelDom());
 controlsDiv.append(lightingPanel.dom);
 
 // populate select inputs with manifest assets
-pc.http.get(
+
+interface Skybox {
+    url: string,
+    label: string
+}
+
+interface SkyboxOption {
+    v: string | null,
+    t: string
+}
+
+new pc.Http().get(
     getAssetPath("asset_manifest.json"),
     {
         cache: true,
         responseType: "text",
         retry: false
     },
-    function (err, result) {      // eslint-disable-line no-unused-vars
+    function (err: string, result: { skyboxes: Array<Skybox> }) {
         if (err) {
             console.warn(err);
         } else {
-            var skyboxOptions = [{
+            const skyboxOptions: Array<SkyboxOption> = [{
                 v: null, t: 'None'
             }];
-            result.skyboxes.forEach(function (skybox) {
+            result.skyboxes.forEach(function (skybox: Skybox ) {
                 skyboxOptions.push({ v: getAssetPath(skybox.url), t: skybox.label });
             });
             lightingPanel.buildDom([buildSelect('skybox', 'string', skyboxOptions)]);
 
-            lightingPanel._skyboxSelect.on('change', function (value) {
+            lightingPanel._skyboxSelect.on('change', function (value: string) {
                 if (value) {
-                    viewer.load(value);
+                    // @ts-ignore: Global viewer
+                    window.viewer.load(value);
                 } else {
+                    // @ts-ignore: Global viewer
                     viewer.clearSkybox();
                 }
             });
@@ -143,7 +162,7 @@ pc.http.get(
 
 /* ANIMATION PANEL */
 
-var animationPanelDom = function () {
+const animationPanelDom = function () {
     return [
         {
             root: {
@@ -169,7 +188,7 @@ var animationPanelDom = function () {
     ];
 };
 
-var animationPanel = new pcui.Panel({
+const animationPanel = new pcui.Panel({
     headerText: 'ANIMATION',
     collapsible: true
 });
@@ -178,10 +197,8 @@ animationPanel.buildDom(animationPanelDom());
 
 controlsDiv.append(animationPanel.dom);
 
-/* eslint-disable no-unused-vars */
-
 // called when animations are loaded
-export var onAnimationsLoaded = function (viewer, animationList) {
+export const onAnimationsLoaded = function (viewer: any, animationList: Array<string>) {
     if (animationPanel._animationList) {
         animationPanel.remove(animationPanel._animationList);
         delete animationPanel._animationList;
@@ -191,11 +208,11 @@ export var onAnimationsLoaded = function (viewer, animationList) {
         class: 'animation-list-container'
     });
 
-    var theviewer = viewer;
-    for (var i = 0; i < animationList.length; ++i) {
-        var button = new pcui.Button({ text: animationList[i] });
+    const theviewer = viewer;
+    for (let i = 0; i < animationList.length; ++i) {
+        const button = new pcui.Button({ text: animationList[i] });
         button.on('click', (function (animation) {
-            return function (evt) {
+            return function (evt: { shiftKey: string }) {
                 theviewer.play(animation, evt.shiftKey);
             };
         })(animationList[i]));
@@ -206,14 +223,21 @@ export var onAnimationsLoaded = function (viewer, animationList) {
 
 /* MORPH TARGET PANEL */
 
-var morphTargetPanel = new pcui.Panel({
+const morphTargetPanel = new pcui.Panel({
     headerText: 'MORPH TARGETS',
     collapsible: true
 });
 
 controlsDiv.append(morphTargetPanel.dom);
 
-export var onMorphTargetsLoaded = function (viewer, morphList) {
+interface Morph {
+    name: string,
+    getWeight?: () => number,
+    setWeight?: (weight: number) => void,
+    onWeightChanged: () => void
+}
+
+export const onMorphTargetsLoaded = function (viewer: Viewer, morphList: Array<Morph>) {
 
     if (morphTargetPanel._morphTargetList) {
         morphTargetPanel.remove(morphTargetPanel._morphTargetList);
@@ -226,20 +250,19 @@ export var onMorphTargetsLoaded = function (viewer, morphList) {
         class: 'morph-target-list-container'
     });
 
-    var theviewer = viewer;
-    var currentMeshPanel;
-    for (var i = 0; i < morphList.length; ++i) {
-        var morph = morphList[i];
+    let currentMeshPanel;
+    for (let i = 0; i < morphList.length; ++i) {
+        const morph: Morph = morphList[i];
         if (morph.hasOwnProperty('getWeight')) {
-            var morphTargetContainer = new pcui.Container();
+            const morphTargetContainer = new pcui.Container();
             morphTargetContainer.buildDom([buildSlider(morph.name, 24, 0, 1, morph.getWeight())]);
-            var slider = morphTargetContainer['_' + morph.name + 'Slider'];
-            slider.on('change', function (morph) {
-                if (this.value !== morph.getWeight()) {
-                    morph.setWeight(this.value);
+            const slider = morphTargetContainer['_' + morph.name + 'Slider'];
+            slider.on('change', (value: number) => {
+                if (value !== morph.getWeight()) {
+                    morph.setWeight(value);
                 }
-            }.bind(slider, morph));
-            morph.onWeightChanged = function (morph) {
+            });
+            morph.onWeightChanged = function (morph: Morph) {
                 this.value = morph.getWeight();
             }.bind(slider, morph);
             morphTargetContainer['_' + morph.name + 'SliderLabel'].class.add('morph-target-label');
@@ -257,7 +280,7 @@ export var onMorphTargetsLoaded = function (viewer, morphList) {
     document.getElementById('panel').style.overflowY = 'scroll';
 };
 
-export var onSceneReset = function () {
+export const onSceneReset = function () {
     if (morphTargetPanel._morphTargetList) {
         morphTargetPanel.remove(morphTargetPanel._morphTargetList);
         delete morphTargetPanel._morphTargetList;
@@ -265,31 +288,31 @@ export var onSceneReset = function () {
     document.getElementById('panel').style.overflowY = 'overlay';
 };
 
-export var registerElementEvents = function (viewer) {
-    showPanel._statsToggle.on('change', function (value) {
+export const registerElementEvents = function (viewer: any) {
+    showPanel._statsToggle.on('change', function (value: string) {
         viewer.setStats(value);
     });
-    showPanel._wireframeToggle.on('change', function (value) {
+    showPanel._wireframeToggle.on('change', function (value: string) {
         viewer.setShowWireframe(value);
     });
-    showPanel._boundsToggle.on('change', function (value) {
+    showPanel._boundsToggle.on('change', function (value: string) {
         viewer.setShowBounds(value);
     });
-    showPanel._skeletonToggle.on('change', function (value) {
+    showPanel._skeletonToggle.on('change', function (value: string) {
         viewer.setShowSkeleton(value);
     });
-    showPanel._normalsSlider.on('change', function (value) {
+    showPanel._normalsSlider.on('change', function (value: string) {
         viewer.setNormalLength(Number.parseFloat(value));
     });
-    showPanel._fovSlider.on('change', function (value) {
+    showPanel._fovSlider.on('change', function (value: string) {
         viewer.setFov(Number.parseFloat(value));
     });
 
     // Lighting events
-    lightingPanel._directSlider.on('change', function (value) {
+    lightingPanel._directSlider.on('change', function (value: string) {
         viewer.setDirectLighting(Number.parseFloat(value));
     });
-    lightingPanel._envSlider.on('change', function (value) {
+    lightingPanel._envSlider.on('change', function (value: string) {
         viewer.setEnvLighting(Number.parseFloat(value));
     });
 
@@ -300,19 +323,17 @@ export var registerElementEvents = function (viewer) {
     animationPanel._stopButton.on('click', function () {
         viewer.stop();
     });
-    animationPanel._speedSlider.on('change', function (value) {
+    animationPanel._speedSlider.on('change', function (value: string) {
         viewer.setSpeed(Number.parseFloat(value));
     });
-    animationPanel._graphsToggle.on('change', function (value) {
+    animationPanel._graphsToggle.on('change', function (value: string) {
         viewer.setShowGraphs(value);
     });
     // Build panel toggle
-    var panelToggleDiv = document.getElementById('panel-toggle');
+    const panelToggleDiv = document.getElementById('panel-toggle');
     panelToggleDiv.addEventListener('click', function () {
-        var panel = document.getElementById('panel');
+        const panel = document.getElementById('panel');
         panel.classList.toggle('collapsed');
         viewer.resizeCanvas();
     });
 };
-
-// /* eslint-enable no-unused-vars */
