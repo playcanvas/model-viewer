@@ -9,13 +9,9 @@ interface IGraph {
 }
 
 class Graph {
-
     app: pc.Application;
-
     numSamples: number;
-
     graphs: Array<IGraph>
-
     positions: Array<pc.Vec3>;
 
     constructor(app: pc.Application, numSamples: number) {

@@ -4,17 +4,11 @@ let debugLayerBack: pc.Layer = null;
 class DebugLines {
 
     app: pc.Application;
-
     mesh: pc.Mesh;
-
     meshInstance: pc.MeshInstance;
-
     vertexFormat: pc.VertexFormat;
-
     vertexCursor: number;
-
     vertexData: Float32Array;
-
     colourData: Uint32Array;
 
     constructor(app: pc.Application, camera: pc.Entity) {

@@ -32,16 +32,12 @@
       "plugin:@typescript-eslint/eslint-recommended",
       "plugin:@typescript-eslint/recommended"
     ],
-    "overrides": [
-      {
-          "files": ["*.ts"],
-          "rules": {
-            "@typescript-eslint/ban-ts-comment": 0,
-            "@typescript-eslint/no-explicit-any": 0,
-            "@typescript-eslint/explicit-module-boundary-types": 0
-          }
-      }
-  ]
+    "rules": {
+      "@typescript-eslint/ban-ts-comment": 0,
+      "@typescript-eslint/no-explicit-any": 0,
+      "@typescript-eslint/explicit-module-boundary-types": 0,
+      "lines-between-class-members": ["error", "always", {"exceptAfterSingleLine": true}]
+    }
   },
   "devDependencies": {
     "@playcanvas/eslint-config": "^1.0.6",

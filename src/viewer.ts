@@ -27,77 +27,40 @@ interface Animation {
 
 class Viewer {
     onSceneReset: (viewer?: Viewer) => void;
-
     onAnimationsLoaded: (viewer: Viewer, animationList: Array<string>) => void;
-
     onMorphTargetsLoaded: (viewer: Viewer, morphs: Array<Morph>) => void;
-
     app: pc.Application;
-
     prevCameraMat: pc.Mat4;
-
     camera: pc.Entity;
-
     cameraPosition: pc.Vec3 | null;
-
     light: pc.Entity;
-
     sceneRoot: pc.Entity;
-
     debugRoot: pc.Entity;
-
     entities: Array<pc.Entity>;
-
     assets: Array<pc.Asset>;
-
     graph: Graph;
-
     meshInstances: Array<pc.MeshInstance>;
-
-    stateGraph: {
-        layers: Array<any>,
-        parameters: any
-    };
-
+    stateGraph: { layers: Array<any>, parameters: any };
     // TODO replace with Array<pc.AnimTrack> when definition is available in pc
     animTracks: Array<any>;
-
     animationMap: Record<string, Animation>;
-
     morphs: Array<Morph>;
-
     firstFrame: boolean;
-
     skyboxLoaded: boolean;
-
     showGraphs: boolean;
-
     showWireframe: boolean;
-
     showBounds: boolean;
-
     showSkeleton: boolean;
-
     normalLength: number;
-
     directLightingFactor: number;
-
     envLightingFactor: number;
-
     dirtyWireframe: boolean;
-
     dirtyBounds: boolean;
-
     dirtySkeleton: boolean;
-
     dirtyNormals: boolean;
-
     debugBounds: DebugLines;
-
     debugSkeleton: DebugLines;
-
     debugNormals: DebugLines;
-
     miniStats: any;
 
     constructor(canvas: any, onSceneReset: (viewer: Viewer) => void, onAnimationsLoaded: (viewer: Viewer, animationList:Array<string>) => void, onMorphTargetsLoaded: (viewer: Viewer, morphs: Array<Morph>) => void) {
