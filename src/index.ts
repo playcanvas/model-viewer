@@ -9,6 +9,14 @@ import './cta';
 
 import './style.css';
 
+let awaiting = 2;
+function dependencyArrived() {
+    if (--awaiting === 0) {
+        // @ts-ignore: Assign global viewer
+        window.viewer = new Viewer(document.getElementById("application-canvas"));
+    }
+}
+
 // @ts-ignore: Assign global pc
 window.pc = pc;
 
@@ -30,13 +38,13 @@ new pc.Http().get(
             console.warn(err);
         } else {
             setSkyboxes(result);
-            loadWasmModuleAsync('DracoDecoderModule',
-                                wasmSupported() ? getAssetPath('lib/draco/draco.wasm.js') : getAssetPath('lib/draco/draco.js'),
-                                wasmSupported() ? getAssetPath('lib/draco/draco.wasm.wasm') : '',
-                                function () {
-                                    // @ts-ignore: Assign global viewer
-                                    window.viewer = new Viewer(document.getElementById("application-canvas"));
-                                });
+            dependencyArrived();
         }
     }
 );
+
+// initialize draco module
+loadWasmModuleAsync('DracoDecoderModule',
+                    wasmSupported() ? getAssetPath('lib/draco/draco.wasm.js') : getAssetPath('lib/draco/draco.js'),
+                    wasmSupported() ? getAssetPath('lib/draco/draco.wasm.wasm') : '',
+                    dependencyArrived);
