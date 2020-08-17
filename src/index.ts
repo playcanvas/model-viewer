@@ -3,7 +3,7 @@ import * as pc from 'playcanvas';
 import { wasmSupported, loadWasmModuleAsync } from '../lib/wasm-loader.js';
 
 import Viewer from './viewer';
-import { onSceneReset, onAnimationsLoaded, onMorphTargetsLoaded, registerElementEvents } from './controls';
+import { Skybox, setSkyboxes } from './controls';
 import { getAssetPath } from './helpers';
 import './cta';
 
@@ -12,29 +12,31 @@ import './style.css';
 // @ts-ignore: Assign global pc
 window.pc = pc;
 
-function startViewer() {
-    const viewer = new Viewer(document.getElementById("application-canvas"), onSceneReset, onAnimationsLoaded, onMorphTargetsLoaded);
-    registerElementEvents(viewer);
-    // @ts-ignore: Assign global viewer
-    window.viewer = viewer;
-}
-
 // @ts-ignore: Not defined in pc
-pc.basisDownload(
-    getAssetPath('lib/basis/basis.wasm.js'),
-    getAssetPath('lib/basis/basis.wasm.wasm'),
-    getAssetPath('lib/basis/basis.js'),
-    function () {
-        if (wasmSupported()) {
-            loadWasmModuleAsync('DracoDecoderModule',
-                                getAssetPath('lib/draco/draco.wasm.js'),
-                                getAssetPath('lib/draco/draco.wasm.wasm'),
-                                startViewer);
+pc.basisSetDownloadConfig('lib/basis/basis.wasm.js',
+                          'lib/basis/basis.wasm.wasm',
+                          'lib/basis/basis.js');
+
+// download asset manifest
+new pc.Http().get(
+    getAssetPath("asset_manifest.json"),
+    {
+        cache: true,
+        responseType: "text",
+        retry: false
+    },
+    function (err: string, result: { skyboxes: Array<Skybox>, defaultSkybox: string }) {
+        if (err) {
+            console.warn(err);
         } else {
+            setSkyboxes(result);
             loadWasmModuleAsync('DracoDecoderModule',
-                                getAssetPath('lib/draco/draco.js'),
-                                '',
-                                startViewer);
+                                wasmSupported() ? getAssetPath('lib/draco/draco.wasm.js') : getAssetPath('lib/draco/draco.js'),
+                                wasmSupported() ? getAssetPath('lib/draco/draco.wasm.wasm') : '',
+                                function () {
+                                    // @ts-ignore: Assign global viewer
+                                    window.viewer = new Viewer(document.getElementById("application-canvas"));
+                                });
         }
     }
 );

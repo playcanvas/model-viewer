@@ -6,13 +6,7 @@ import DebugLines from './debug';
 import HdrParser from '../lib/hdr-texture.js';
 import * as MeshoptDecoder from '../lib/meshopt_decoder.js';
 import { getAssetPath } from './helpers';
-
-interface Morph {
-    name: string,
-    getWeight?: () => number,
-    setWeight?: (target: number, weight: number) => void,
-    onWeightChanged?: () => void
-}
+import { Morph, Controls, initControls } from './controls';
 
 interface URL {
     url: string,
@@ -26,12 +20,11 @@ interface Animation {
 }
 
 class Viewer {
-    onSceneReset: (viewer?: Viewer) => void;
-    onAnimationsLoaded: (viewer: Viewer, animationList: Array<string>) => void;
-    onMorphTargetsLoaded: (viewer: Viewer, morphs: Array<Morph>) => void;
+    controls: Controls;
     app: pc.Application;
     prevCameraMat: pc.Mat4;
     camera: pc.Entity;
+    cameraFocusBBox: pc.BoundingBox | null;
     cameraPosition: pc.Vec3 | null;
     light: pc.Entity;
     sceneRoot: pc.Entity;
@@ -54,6 +47,7 @@ class Viewer {
     normalLength: number;
     directLightingFactor: number;
     envLightingFactor: number;
+    skyboxMip: number;
     dirtyWireframe: boolean;
     dirtyBounds: boolean;
     dirtySkeleton: boolean;
@@ -63,12 +57,7 @@ class Viewer {
     debugNormals: DebugLines;
     miniStats: any;
 
-    constructor(canvas: any, onSceneReset: (viewer: Viewer) => void, onAnimationsLoaded: (viewer: Viewer, animationList:Array<string>) => void, onMorphTargetsLoaded: (viewer: Viewer, morphs: Array<Morph>) => void) {
-
-        this.onSceneReset = onSceneReset;
-        this.onAnimationsLoaded = onAnimationsLoaded;
-        this.onMorphTargetsLoaded = onMorphTargetsLoaded;
-
+    constructor(canvas: any) {
         // create the application
         const app = new pc.Application(canvas, {
             mouse: new pc.Mouse(canvas),
@@ -78,8 +67,8 @@ class Viewer {
 
         app.graphicsDevice.maxPixelRatio = window.devicePixelRatio;
 
-        const canvasSize = this.getCanvasSize();
         // Set the canvas to fill the window and automatically change resolution to be the same as the canvas size
+        const canvasSize = this.getCanvasSize();
         app.setCanvasFillMode(pc.FILLMODE_NONE, canvasSize.width, canvasSize.height);
         app.setCanvasResolution(pc.RESOLUTION_AUTO);
         window.addEventListener("resize", function () {
@@ -139,6 +128,7 @@ class Viewer {
         window.addEventListener('dragover', preventDefault, false);
         window.addEventListener('drop', this.dropHandler.bind(this), false);
 
+        // construct the debug animation graphs
         const graph = new Graph(app, 128);
         app.on('prerender', this.onPrerender, this);
         app.on('frameend', this.onFrameend, this);
@@ -152,6 +142,7 @@ class Viewer {
 
         // store app things
         this.camera = camera;
+        this.cameraFocusBBox = null;
         this.cameraPosition = null;
         this.light = light;
         this.sceneRoot = sceneRoot;
@@ -177,6 +168,7 @@ class Viewer {
         this.normalLength = 0;
         this.directLightingFactor = 1;
         this.envLightingFactor = 1;
+        this.skyboxMip = 1;
 
         this.dirtyWireframe = false;
         this.dirtyBounds = false;
@@ -193,6 +185,9 @@ class Viewer {
         // initialize the envmap
         // @ts-ignore: Missing pc definition
         app.loader.getHandler(pc.ASSET_TEXTURE).parsers.hdr = new HdrParser(app.assets, false);
+
+        // initialize controls
+        this.initControls();
 
         // start the application
         app.start();
@@ -217,9 +212,12 @@ class Viewer {
         }
 
         // load the default skybox if one wasn't specified in url params
-        if (!this.skyboxLoaded) {
-            this.loadHeliSkybox();
-        }
+        // if (!this.skyboxLoaded) {
+        //     this.load([{
+        //         url: './static/skybox/Helipad_equi_small.png',
+        //         filename: './static/skybox/Helipad_equi_small.png'
+        //     }]);
+        // }
 
         // set camera position
         if (urlParams.hasOwnProperty('cameraPosition')) {
@@ -231,7 +229,7 @@ class Viewer {
     }
 
     // flatten a hierarchy of nodes
-    private static flatten(node: pc.GraphNode){
+    private static flatten(node: pc.GraphNode) {
         const result: Array<pc.GraphNode> = [];
         node.forEach(function (n) {
             result.push(n);
@@ -250,7 +248,8 @@ class Viewer {
         return result;
     }
 
-    private static calcBoundingBox(meshInstances: Array<pc.MeshInstance>) {
+    // calculate the bounding box of the given mesh
+    private static calcMeshBoundingBox(meshInstances: Array<pc.MeshInstance>) {
         const bbox = new pc.BoundingBox();
         for (let i = 0; i < meshInstances.length; ++i) {
             if (i === 0) {
@@ -260,6 +259,76 @@ class Viewer {
             }
         }
         return bbox;
+    }
+
+    // calculate the bounding box of the graph-node hierarchy
+    private static calcHierBoundingBox(rootNode: pc.Entity) {
+        const position = rootNode.getPosition();
+        let min_x = position.x;
+        let min_y = position.y;
+        let min_z = position.z;
+        let max_x = position.x;
+        let max_y = position.y;
+        let max_z = position.z;
+
+        const recurse = function (node: pc.GraphNode) {
+            const p = node.getPosition();
+            if (p.x < min_x) min_x = p.x; else if (p.x > max_x) max_x = p.x;
+            if (p.y < min_y) min_y = p.y; else if (p.y > max_y) max_y = p.y;
+            if (p.z < min_z) min_z = p.z; else if (p.z > max_z) max_z = p.z;
+            for (let i = 0; i < node.children.length; ++i) {
+                recurse(node.children[i]);
+            }
+        };
+        recurse(rootNode);
+
+        const result = new pc.BoundingBox();
+        result.setMinMax(new pc.Vec3(min_x, min_y, min_z), new pc.Vec3(max_x, max_y, max_z));
+        return result;
+    }
+
+    // calculate the intersection of the two bounding boxes
+    private static calcBoundingBoxIntersection = function (bbox1: pc.BoundingBox, bbox2: pc.BoundingBox) {
+        // bounds don't intersect
+        if (!bbox1.intersects(bbox2)) {
+            return null;
+        }
+        const min1 = bbox1.getMin();
+        const max1 = bbox1.getMax();
+        const min2 = bbox2.getMin();
+        const max2 = bbox2.getMax();
+        const result = new pc.BoundingBox();
+        result.setMinMax(new pc.Vec3(Math.max(min1.x, min2.x), Math.max(min1.y, min2.y), Math.max(min1.z, min2.z)),
+                         new pc.Vec3(Math.min(max1.x, max2.x), Math.min(max1.y, max2.y), Math.min(max1.z, max2.z)));
+        return result;
+    }
+
+    // construct the controls interface and initialize controls
+    private initControls() {
+        this.controls = new Controls();
+        this.controls.onShowStats = this.setStats.bind(this);
+        this.controls.onShowWireframe = this.setShowWireframe.bind(this);
+        this.controls.onShowBounds = this.setShowBounds.bind(this);
+        this.controls.onShowSkeleton = this.setShowSkeleton.bind(this);
+        this.controls.onNormalLength = this.setNormalLength.bind(this);
+        this.controls.onFov = this.setFov.bind(this);
+
+        this.controls.onDirectLighting = this.setDirectLighting.bind(this);
+        this.controls.onEnvLighting = this.setEnvLighting.bind(this);
+        this.controls.onSkyboxMip = this.setSkyboxMip.bind(this);
+
+        this.controls.onPlay = this.play.bind(this);
+        this.controls.onPlayAnimation = this.play.bind(this);
+        this.controls.onStop = this.stop.bind(this);
+        this.controls.onSpeed = this.setSpeed.bind(this);
+        this.controls.onShowGraphs = this.setShowGraphs.bind(this);
+
+        this.controls.onCanvasResized = this.resizeCanvas.bind(this);
+        this.controls.onLoad = this.load.bind(this);
+        this.controls.onClearSkybox = this.clearSkybox.bind(this);
+
+        // and initialize the controls
+        initControls(this.controls);
     }
 
     // initialize the faces and prefiltered lighting data from the given
@@ -320,9 +389,9 @@ class Viewer {
         // assign the textures to the scene
         app.scene.gammaCorrection = pc.GAMMA_SRGB;
         app.scene.toneMapping = pc.TONEMAP_ACES;
-        app.scene.skyboxMip = 0;                        // Set the skybox to the 128x128 cubemap mipmap level
+        app.scene.skyboxMip = this.skyboxMip;               // Set the skybox to the 128x128 cubemap mipmap level
         app.scene.setSkybox(cubemaps);
-        app.renderNextFrame = true;                     // ensure we render again when the cubemap arrives
+        app.renderNextFrame = true;                         // ensure we render again when the cubemap arrives
     }
 
     // load the image files into the skybox. this function supports loading a single equirectangular
@@ -417,9 +486,9 @@ class Viewer {
         cubemap.on('load', function () {
             app.scene.gammaCorrection = pc.GAMMA_SRGB;
             app.scene.toneMapping = pc.TONEMAP_ACES;
-            app.scene.skyboxMip = 1;                        // Set the skybox to the 128x128 cubemap mipmap level
+            app.scene.skyboxMip = this.skyboxMip;                   // Set the skybox to the 128x128 cubemap mipmap level
             app.scene.setSkybox(cubemap.resources);
-            app.renderNextFrame = true;                     // ensure we render again when the cubemap arrives
+            app.renderNextFrame = true;                             // ensure we render again when the cubemap arrives
 
             // generate Helipad_equi.png from cubemaps
             // reproject the heli to equirect
@@ -473,7 +542,7 @@ class Viewer {
         this.graph.clear();
         this.meshInstances = [];
 
-        this.onSceneReset();
+        this.controls.resetScene();
 
         // reset animation state
         this.stateGraph = {
@@ -482,10 +551,10 @@ class Viewer {
         };
         this.animTracks = [];
         this.animationMap = { };
-        this.onAnimationsLoaded(this, []);
+        this.controls.animationsLoaded([]);
 
         this.morphs = [];
-        this.onMorphTargetsLoaded(this, []);
+        this.controls.morphTargetsLoaded([]);
 
         this.dirtyWireframe = this.dirtyBounds = this.dirtySkeleton = this.dirtyNormals = true;
 
@@ -501,11 +570,28 @@ class Viewer {
     // move the camera to view the loaded object
     focusCamera() {
         const camera = this.camera.camera;
+
+        const bbox = this.meshInstances.length ?
+            Viewer.calcMeshBoundingBox(this.meshInstances) :
+            Viewer.calcHierBoundingBox(this.sceneRoot);
+
+        if (this.cameraFocusBBox) {
+            const intersection = Viewer.calcBoundingBoxIntersection(this.cameraFocusBBox, bbox);
+            if (intersection) {
+                const len1 = bbox.halfExtents.length();
+                const len2 = this.cameraFocusBBox.halfExtents.length();
+                const len3 = intersection.halfExtents.length();
+                if ((Math.abs(len3 - len1) / len1 < 0.1) &&
+                    (Math.abs(len3 - len2) / len2 < 0.1)) {
+                    return;
+                }
+            }
+        }
+
         // @ts-ignore TODO not defined in pc
         const orbitCamera = this.camera.script.orbitCamera;
 
         // calculate scene bounding box
-        const bbox = Viewer.calcBoundingBox(this.meshInstances);
         const radius = bbox.halfExtents.length();
         const distance = (radius * 1.4) / Math.sin(0.5 * camera.fov * camera.aspectRatio * pc.math.DEG_TO_RAD);
 
@@ -521,6 +607,8 @@ class Viewer {
 
         const light = this.light;
         light.light.shadowDistance = distance * 2;
+
+        this.cameraFocusBBox = bbox;
     }
 
     // load gltf model given its url and list of external urls
@@ -726,6 +814,12 @@ class Viewer {
 
     setEnvLighting(factor: number) {
         this.app.scene.skyboxIntensity = factor;
+        this.renderNextFrame();
+    }
+
+    setSkyboxMip(mip: number) {
+        this.skyboxMip = mip;
+        this.app.scene.skyboxMip = mip;
         this.renderNextFrame();
     }
 
@@ -950,7 +1044,7 @@ class Viewer {
                 this.animationMap[animTrack.name] = layer;
             }
 
-            this.onAnimationsLoaded(this, Object.keys(this.animationMap));
+            this.controls.animationsLoaded(Object.keys(this.animationMap));
 
             // create animation graphs
             const createAnimGraphs = function () {
@@ -991,13 +1085,13 @@ class Viewer {
         if (entity.model && entity.model.model && entity.model.model.morphInstances.length > 0) {
             const morphInstances = entity.model.model.morphInstances;
             // make a list of all the morph instance target names
-            const morphs = this.morphs;
+            const morphs: Array<Morph> = this.morphs;
             morphInstances.forEach((morphInstance, morphIndex) => {
                 // @ts-ignore TODO expose meshInstance on morphInstance in pc
                 const meshInstance = morphInstance.meshInstance;
 
                 // mesh name line
-                morphs.push({
+                morphs.push(<Morph> {
                     name: (meshInstance && meshInstance.node && meshInstance.node.name) || "Mesh " + morphIndex
                 });
 
@@ -1017,7 +1111,7 @@ class Viewer {
                 });
             });
 
-            this.onMorphTargetsLoaded(this, morphs);
+            this.controls.morphTargetsLoaded(morphs);
         }
 
         // store the loaded asset
@@ -1028,10 +1122,15 @@ class Viewer {
         this.meshInstances = this.meshInstances.concat(
             Viewer.distinct(
                 Viewer.flatten(entity)
-                    .map( function (node: pc.Entity): Array<any> {
+                    .map( function (node: pc.Entity) {
                         return node.model ? node.model.meshInstances || [] : [];
                     })
                     .flat()));
+
+        // if no meshes are loaded then enable skeleton rendering so user can see something
+        if (this.meshInstances.length === 0) {
+            this.controls.setShowSkeleton(true);
+        }
 
         // dirty everything
         this.dirtyWireframe = this.dirtyBounds = this.dirtySkeleton = this.dirtyNormals = true;
@@ -1077,7 +1176,7 @@ class Viewer {
                 this.debugBounds.clear();
 
                 if (this.showBounds) {
-                    const bbox = Viewer.calcBoundingBox(this.meshInstances);
+                    const bbox = Viewer.calcMeshBoundingBox(this.meshInstances);
                     this.debugBounds.box(bbox.getMin(), bbox.getMax());
                 }
                 this.debugBounds.update();
