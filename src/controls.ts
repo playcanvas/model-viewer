@@ -1,4 +1,3 @@
-import * as pc from 'playcanvas';
 import * as pcui from '../lib/pcui.js';
 import { getAssetPath } from './helpers';
 
