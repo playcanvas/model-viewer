@@ -212,12 +212,9 @@ class Viewer {
         }
 
         // load the default skybox if one wasn't specified in url params
-        // if (!this.skyboxLoaded) {
-        //     this.load([{
-        //         url: './static/skybox/Helipad_equi_small.png',
-        //         filename: './static/skybox/Helipad_equi_small.png'
-        //     }]);
-        // }
+        if (!this.skyboxLoaded) {
+            this.loadHeliSkybox();
+        }
 
         // set camera position
         if (urlParams.hasOwnProperty('cameraPosition')) {
@@ -502,7 +499,7 @@ class Viewer {
             // pc.downloadTexture(equi, 'Helipad_equi.png', 0, true);
 
             // pc.downloadTexture(cubemap.resource, 'Helipad_cube.png');
-        });
+        }.bind(this));
         app.assets.add(cubemap);
         app.assets.load(cubemap);
         this.skyboxLoaded = true;
