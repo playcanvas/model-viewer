@@ -33,10 +33,9 @@ class Viewer {
     assets: Array<pc.Asset>;
     graph: Graph;
     meshInstances: Array<pc.MeshInstance>;
-    stateGraph: { layers: Array<any>, parameters: any };
     // TODO replace with Array<pc.AnimTrack> when definition is available in pc
     animTracks: Array<any>;
-    animationMap: Record<string, Animation>;
+    animationMap: Record<string, string>;
     morphs: Array<Morph>;
     firstFrame: boolean;
     skyboxLoaded: boolean;
@@ -151,10 +150,6 @@ class Viewer {
         this.assets = [];
         this.graph = graph;
         this.meshInstances = [];
-        this.stateGraph = {
-            layers: [],
-            parameters: { }
-        };
         this.animTracks = [];
         this.animationMap = { };
         this.morphs = [];
@@ -542,10 +537,6 @@ class Viewer {
         this.controls.resetScene();
 
         // reset animation state
-        this.stateGraph = {
-            layers: [],
-            parameters: { }
-        };
         this.animTracks = [];
         this.animationMap = { };
         this.controls.animationsLoaded([]);
@@ -675,13 +666,13 @@ class Viewer {
         const containerAsset = new pc.Asset(gltfUrl.filename, 'container', gltfUrl, null, {
             // @ts-ignore TODO no definition in pc
             bufferView: {
-                processAsync: processBufferView
+                processAsync: processBufferView.bind(this)
             },
             image: {
-                processAsync: processImage
+                processAsync: processImage.bind(this)
             },
             buffer: {
-                processAsync: processBuffer
+                processAsync: processBuffer.bind(this)
             }
         });
         containerAsset.on('load', () => {
@@ -729,40 +720,37 @@ class Viewer {
 
     // play an animation / play all the animations
     play(animationName: string, appendAnimation: boolean) {
-        if (!animationName || !appendAnimation) {
-            for (const key in this.animationMap) {
-                if (this.animationMap.hasOwnProperty(key)) {
-                    if (animationName) {
-                        this.animationMap[key].pause();
-                    } else {
-                        this.animationMap[key].play('default');
-                    }
-                }
+        const a = this.animationMap[animationName];
+        this.entities.forEach(function (e) {
+            // @ts-ignore
+            const anim = e.anim;
+            if (anim) {
+                anim.setParameterValue('loop', 'BOOLEAN', !!animationName);
+                anim.findAnimationLayer('all_layer').play(a || 'START');
             }
-        }
-        if (animationName) {
-            this.animationMap[animationName].play('default');
-        }
+        });
     }
 
     // stop playing animations
     stop() {
-        for (const key in this.animationMap) {
-            if (this.animationMap.hasOwnProperty(key)) {
-                this.animationMap[key].pause();
+        this.entities.forEach(function (e) {
+            // @ts-ignore
+            const anim = e.anim;
+            if (anim) {
+                anim.findAnimationLayer('all_layer').pause();
             }
-        }
+        });
     }
 
+    // set the animation speed
     setSpeed(speed: number) {
-        for (let i = 0; i < this.entities.length; ++i) {
-            const entity = this.entities[i];
-            // @ts-ignore TODO anim property missing from pc.Entity
-            if (entity.anim) {
-                // @ts-ignore TODO anim property missing from pc.Entity
-                entity.anim.speed = speed;
+        this.entities.forEach(function (e) {
+            // @ts-ignore
+            const anim = e.anim;
+            if (anim) {
+                anim.speed = speed;
             }
-        }
+        });
     }
 
     setShowGraphs(show: boolean) {
@@ -830,12 +818,12 @@ class Viewer {
 
         // or an animation is loaded and we're animating
         let isAnimationPlaying = false;
-        for (const key in this.animationMap) {
-            if (this.animationMap.hasOwnProperty(key)) {
-                if (this.animationMap[key].playing) {
-                    isAnimationPlaying = true;
-                    break;
-                }
+        for (let i = 0; i < this.entities.length; ++i) {
+            // @ts-ignore
+            const anim = this.entities[i].anim;
+            if (anim && anim.findAnimationLayer('all_layer').playing) {
+                isAnimationPlaying = true;
+                break;
             }
         }
 
@@ -973,26 +961,39 @@ class Viewer {
         }
 
         const resource = asset.resource;
+        const modelLoaded = resource.model && resource.model.resource.meshInstances.length > 0;
+        const animLoaded = resource.animations && resource.animations.length > 0;
+        const prevEntity : pc.Entity = this.entities.length === 0 ? null : this.entities[this.entities.length - 1];
 
         let entity: pc.Entity;
-        if (resource.model || this.entities.length === 0) {
-            // create entity and add model
+
+        if (prevEntity) {
+            // check if this loaded resources can be added to the existing entity,
+            // for example loading an animation onto an existing model (or visa versa)
+            if ((modelLoaded && !prevEntity.model) ||
+                (animLoaded && !modelLoaded)) {
+                entity = prevEntity;
+            }
+        }
+
+        if (!entity) {
+            // create entity
             entity = new pc.Entity();
+            this.entities.push(entity);
+            this.sceneRoot.addChild(entity);
+        }
+
+        // create entity model
+        if (modelLoaded) {
             entity.addComponent("model", {
                 type: "asset",
                 asset: resource.model,
                 castShadows: true
             });
-            this.entities.push(entity);
-            this.sceneRoot.addChild(entity);
-        } else {
-            // use the last model that was added to the scene, presumably this is animation data
-            // that we want to play on an already-existing model
-            entity = this.entities[this.entities.length - 1];
         }
 
         // create animations
-        if (resource.animations && resource.animations.length > 0) {
+        if (animLoaded) {
             // create the anim component if there isn't one already
             // @ts-ignore TODO not defined in pc
             if (!entity.anim) {
@@ -1001,47 +1002,62 @@ class Viewer {
                 });
             }
 
-            const stateGraph = this.stateGraph;
+            // append anim tracks to global list
+            resource.animations.forEach(function (a : any) {
+                this.animTracks.push(a.resource);
+            }.bind(this));
+        }
 
-            // create a layer per animation so we can play them all simultaniously if needed
-            for (let i = 0; i < resource.animations.length; ++i) {
-                // construct a state graph to include the loaded animations
-                stateGraph.layers.push( {
-                    name: 'layer_' + this.animTracks.length,
-                    states: [
-                        { name: 'START' },
-                        { name: 'default', speed: 1 },
-                        { name: 'END' }
-                    ],
-                    transitions: [
-                        {
-                            "from": "START",
-                            "to": "default",
-                            "time": 0,
-                            "priority": 0
-                        }
-                    ]
-                } );
+        // rebuild the anim state graph
+        if (this.animTracks.length > 0) {
+            // create states
+            const states : Array<{ name: string, speed?: number }> = [{ name: 'START' }];
+            this.animTracks.forEach(function (t, i) {
+                states.push({ name: 'track_' + i, speed: 1 });
+            });
 
-                // store anim track
-                this.animTracks.push(resource.animations[i].resource);
-            }
+            // create a transition for each state
+            const transitions = states.map(function (s, i) {
+                return {
+                    from: s.name,
+                    to: states[(i + 1) % states.length || 1].name,
+                    time: s.name ==  'START' ? 0.0 : 0.2,
+                    exitTime: s.name === 'START' ? 0.0 : 1.0,
+                    conditions: [{
+                        parameterName: 'loop',
+                        predicate: "EQUAL_TO",
+                        value: false
+                    }]
+                };
+            });
 
-            // load the new state graph
+            // create the state graph instance
             // @ts-ignore TODO anim property missing from pc.Entity
-            entity.anim.loadStateGraph(new pc.AnimStateGraph(stateGraph));
+            entity.anim.loadStateGraph(new pc.AnimStateGraph({
+                layers: [{ name: 'all_layer', states: states, transitions: transitions }],
+                parameters: {
+                    loop: {
+                        name: 'loop',
+                        // @ts-ignore
+                        type: pc.ANIM_PARAMETER_BOOLEAN,
+                        value: false
+                    }
+                }
+            }));
 
-            // set animations on each layer
-            for (let i = 0; i < this.animTracks.length; ++i) {
-                const animTrack = this.animTracks[i];
-                // @ts-ignore TODO anim property missing from pc.Entity
-                const layer = entity.anim.findAnimationLayer('layer_' + i);
-                layer.assignAnimation('default', animTrack);
-                layer.pause();
-                this.animationMap[animTrack.name] = layer;
-            }
+            // @ts-ignore TODO anim property missing from pc.Entity
+            const allLayer = entity.anim.findAnimationLayer('all_layer');
+            this.animTracks.forEach(function (t: any, i: number) {
+                const name = states[i + 1].name;
+                allLayer.assignAnimation(name, t);
+                this.animationMap[t.name] = name;
+            }.bind(this));
 
+            // let the controls know about the new animations
             this.controls.animationsLoaded(Object.keys(this.animationMap));
+
+            // immediately start playing the animation
+            allLayer.play('START');
 
             // create animation graphs
             const createAnimGraphs = function () {

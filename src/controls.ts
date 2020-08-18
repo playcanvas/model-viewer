@@ -4,7 +4,9 @@ import { getAssetPath } from './helpers';
 // controls interface linking to the rest of the application
 
 export class Controls {
-    // -- events eminating from controls
+
+    // -- controls-invoked events
+
     onShowStats: (show: boolean) => void;
     onShowWireframe: (show: boolean) => void;
     onShowBounds: (show: boolean) => void;
@@ -27,7 +29,8 @@ export class Controls {
     onLoad: (filename: string) => void;
     onClearSkybox: () => void;
 
-    // -- events eminating from viewer
+    // -- viewer-invoked events
+
     animationsLoaded(animationList: Array<string>) {
         // eslint-disable-next-line no-use-before-define
         onAnimationsLoaded(animationList);
