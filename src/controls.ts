@@ -22,6 +22,7 @@ export class Controls {
     onPlayAnimation: (animation: string, appendAnimation: boolean) => void;
     onStop: () => void;
     onSpeed: (speed: number) => void;
+    onTransition: (transition: number) => void;
     onShowGraphs: (show: boolean) => void;
 
     onCanvasResized: () => void;
@@ -273,6 +274,7 @@ const animationPanelDom = function () {
             ]
         },
         buildSlider('speed', 2, 0, 4, 1),
+        buildSlider('transition', 2, 0, 4, 0.1),
         buildToggle('graphs')
     ];
 };
@@ -295,6 +297,9 @@ const initAnimationPanel = function () {
     });
     animationPanel._speedSlider.on('change', function (value: string) {
         controls.onSpeed(Number.parseFloat(value));
+    });
+    animationPanel._transitionSlider.on('change', function (value: string) {
+        controls.onTransition(Number.parseFloat(value));
     });
     animationPanel._graphsToggle.on('change', function (value: string) {
         controls.onShowGraphs(!!value);

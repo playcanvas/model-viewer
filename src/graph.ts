@@ -1,6 +1,6 @@
 interface IGraph {
     node: pc.GraphNode,
-    color: Array<pc.Color>,
+    color: pc.Color,
     callback: () => number,
     samples: Array<any>
     sample: number,
@@ -28,7 +28,7 @@ class Graph {
         // this.app.on('prerender', this.render.bind(this));
     }
 
-    addGraph(node: pc.GraphNode, color: Array<pc.Color>, callback: () => number) {
+    addGraph(node: pc.GraphNode, color: pc.Color, callback: () => number) {
         this.graphs.push({
             node: node,
             color: color,
@@ -129,6 +129,7 @@ class Graph {
                     pos.z = base.z + right.z * (j + 1) + up.z * sample;
                 }
 
+                // @ts-ignore TODO: update renderLines docs
                 app.renderLines(positions, graph.color, options);
             }
         }

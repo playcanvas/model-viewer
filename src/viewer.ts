@@ -39,6 +39,8 @@ class Viewer {
     morphs: Array<Morph>;
     firstFrame: boolean;
     skyboxLoaded: boolean;
+    animSpeed: number;
+    animTransition: number;
     showGraphs: boolean;
     showWireframe: boolean;
     showBounds: boolean;
@@ -156,6 +158,8 @@ class Viewer {
         this.firstFrame = false;
         this.skyboxLoaded = false;
 
+        this.animSpeed = 1;
+        this.animTransition = 0.1;
         this.showGraphs = false;
         this.showWireframe = false;
         this.showBounds = false;
@@ -313,6 +317,7 @@ class Viewer {
         this.controls.onPlayAnimation = this.play.bind(this);
         this.controls.onStop = this.stop.bind(this);
         this.controls.onSpeed = this.setSpeed.bind(this);
+        this.controls.onTransition = this.setTransition.bind(this);
         this.controls.onShowGraphs = this.setShowGraphs.bind(this);
 
         this.controls.onCanvasResized = this.resizeCanvas.bind(this);
@@ -744,6 +749,7 @@ class Viewer {
 
     // set the animation speed
     setSpeed(speed: number) {
+        this.animSpeed = speed;
         this.entities.forEach(function (e) {
             // @ts-ignore
             const anim = e.anim;
@@ -751,6 +757,14 @@ class Viewer {
                 anim.speed = speed;
             }
         });
+    }
+
+    setTransition(transition: number) {
+        this.animTransition = transition;
+
+        // it's not possible to change the transition time afer creation,
+        // so rebuilt the animation graph with the new transition
+        this.rebuildAnimTracks();
     }
 
     setShowGraphs(show: boolean) {
@@ -968,9 +982,9 @@ class Viewer {
         let entity: pc.Entity;
 
         if (prevEntity) {
-            // check if this loaded resources can be added to the existing entity,
+            // check if this loaded resource can be added to the existing entity,
             // for example loading an animation onto an existing model (or visa versa)
-            if ((modelLoaded && !prevEntity.model) ||
+            if ((modelLoaded && prevEntity.model.meshInstances.length === 0) ||
                 (animLoaded && !modelLoaded)) {
                 entity = prevEntity;
             }
@@ -981,24 +995,26 @@ class Viewer {
             entity = new pc.Entity();
             this.entities.push(entity);
             this.sceneRoot.addChild(entity);
-        }
 
-        // create entity model
-        if (modelLoaded) {
+            // create model component
             entity.addComponent("model", {
                 type: "asset",
                 asset: resource.model,
                 castShadows: true
             });
+        } else if (modelLoaded) {
+            // set the model compnent on existing entity
+            entity.model.asset = resource.model;
         }
 
-        // create animations
+        // create animation component
         if (animLoaded) {
             // create the anim component if there isn't one already
             // @ts-ignore TODO not defined in pc
             if (!entity.anim) {
                 entity.addComponent('anim', {
-                    activate: true
+                    activate: true,
+                    speed: this.animSpeed
                 });
             }
 
@@ -1010,88 +1026,8 @@ class Viewer {
 
         // rebuild the anim state graph
         if (this.animTracks.length > 0) {
-            // create states
-            const states : Array<{ name: string, speed?: number }> = [{ name: 'START' }];
-            this.animTracks.forEach(function (t, i) {
-                states.push({ name: 'track_' + i, speed: 1 });
-            });
-
-            // create a transition for each state
-            const transitions = states.map(function (s, i) {
-                return {
-                    from: s.name,
-                    to: states[(i + 1) % states.length || 1].name,
-                    time: s.name ==  'START' ? 0.0 : 0.2,
-                    exitTime: s.name === 'START' ? 0.0 : 1.0,
-                    conditions: [{
-                        parameterName: 'loop',
-                        predicate: "EQUAL_TO",
-                        value: false
-                    }]
-                };
-            });
-
-            // create the state graph instance
-            // @ts-ignore TODO anim property missing from pc.Entity
-            entity.anim.loadStateGraph(new pc.AnimStateGraph({
-                layers: [{ name: 'all_layer', states: states, transitions: transitions }],
-                parameters: {
-                    loop: {
-                        name: 'loop',
-                        // @ts-ignore
-                        type: pc.ANIM_PARAMETER_BOOLEAN,
-                        value: false
-                    }
-                }
-            }));
-
-            // @ts-ignore TODO anim property missing from pc.Entity
-            const allLayer = entity.anim.findAnimationLayer('all_layer');
-            this.animTracks.forEach(function (t: any, i: number) {
-                const name = states[i + 1].name;
-                allLayer.assignAnimation(name, t);
-                this.animationMap[t.name] = name;
-            }.bind(this));
-
-            // let the controls know about the new animations
-            this.controls.animationsLoaded(Object.keys(this.animationMap));
-
-            // immediately start playing the animation
-            allLayer.play('START');
-
-            // create animation graphs
-            const createAnimGraphs = function () {
-                const graph = this.graph;
-
-                const extract = function (transformPropertyGetter: () => Record<string, number>, dimension: string){
-                    return () => transformPropertyGetter()[dimension];
-                };
-
-                const recurse = function (node: pc.GraphNode) {
-                    if (!graph.hasNode(node)) {
-                        graph.addGraph(node, new pc.Color(1, 1, 0, 1), extract(node.getLocalPosition.bind(node), 'x'));
-                        graph.addGraph(node, new pc.Color(0, 1, 1, 1), extract(node.getLocalPosition.bind(node), 'y'));
-                        graph.addGraph(node, new pc.Color(1, 0, 1, 1), extract(node.getLocalPosition.bind(node), 'z'));
-
-                        graph.addGraph(node, new pc.Color(1, 0, 0, 1), extract(node.getLocalRotation.bind(node), 'x'));
-                        graph.addGraph(node, new pc.Color(0, 1, 0, 1), extract(node.getLocalRotation.bind(node), 'y'));
-                        graph.addGraph(node, new pc.Color(0, 0, 1, 1), extract(node.getLocalRotation.bind(node), 'z'));
-                        graph.addGraph(node, new pc.Color(1, 1, 1, 1), extract(node.getLocalRotation.bind(node), 'w'));
-
-                        graph.addGraph(node, new pc.Color(1.0, 0.5, 0.5, 1), extract(node.getLocalScale.bind(node), 'x'));
-                        graph.addGraph(node, new pc.Color(0.5, 1.0, 0.5, 1), extract(node.getLocalScale.bind(node), 'y'));
-                        graph.addGraph(node, new pc.Color(0.5, 0.5, 1.0, 1), extract(node.getLocalScale.bind(node), 'z'));
-                    }
-
-                    for (let i = 0; i < node.children.length; ++i) {
-                        recurse(node.children[i]);
-                    }
-                };
-                recurse(entity);
-            };
-
-            // create animation graphs
-            setTimeout(createAnimGraphs.bind(this), 1000);
+            this.rebuildAnimTracks();
+            setTimeout(this.rebuildAnimGraphs.bind(this), 1000);
         }
 
         // initialize morph targets
@@ -1154,6 +1090,95 @@ class Viewer {
         this.firstFrame = true;
         this.renderNextFrame();
         this.clearCta();
+    }
+
+    // rebuild the animation state graph
+    private rebuildAnimTracks() {
+        const entity = this.entities[this.entities.length - 1];
+
+        // create states
+        const states : Array<{ name: string, speed?: number }> = [{ name: 'START' }];
+        this.animTracks.forEach(function (t, i) {
+            states.push({ name: 'track_' + i, speed: 1 });
+        });
+
+        // create a transition for each state
+        const transition = this.animTransition;
+        const transitions = states.map(function (s, i) {
+            return {
+                from: s.name,
+                to: states[(i + 1) % states.length || 1].name,
+                time: s.name ==  'START' ? 0.0 : transition,
+                exitTime: s.name === 'START' ? 0.0 : 1.0,
+                conditions: [{
+                    parameterName: 'loop',
+                    predicate: "EQUAL_TO",
+                    value: false
+                }]
+            };
+        });
+
+        // create the state graph instance
+        // @ts-ignore TODO anim property missing from pc.Entity
+        entity.anim.loadStateGraph(new pc.AnimStateGraph({
+            layers: [{ name: 'all_layer', states: states, transitions: transitions }],
+            parameters: {
+                loop: {
+                    name: 'loop',
+                    // @ts-ignore
+                    type: pc.ANIM_PARAMETER_BOOLEAN,
+                    value: false
+                }
+            }
+        }));
+
+        // @ts-ignore TODO anim property missing from pc.Entity
+        const allLayer = entity.anim.findAnimationLayer('all_layer');
+        this.animTracks.forEach(function (t: any, i: number) {
+            const name = states[i + 1].name;
+            allLayer.assignAnimation(name, t);
+            this.animationMap[t.name] = name;
+        }.bind(this));
+
+        // let the controls know about the new animations
+        this.controls.animationsLoaded(Object.keys(this.animationMap));
+
+        // immediately start playing the animation
+        allLayer.play('START');
+    }
+
+    // create animation graphs
+    private rebuildAnimGraphs() {
+        const graph = this.graph;
+        const entity = this.entities[this.entities.length - 1];
+
+        const extract = function (transformPropertyGetter: () => Record<string, number>, dimension: string){
+            return () => transformPropertyGetter()[dimension];
+        };
+
+        const recurse = function (node: pc.GraphNode) {
+            if (!graph.hasNode(node)) {
+                graph.addGraph(node, new pc.Color(1, 1, 0, 1), extract(node.getLocalPosition.bind(node), 'x'));
+                graph.addGraph(node, new pc.Color(0, 1, 1, 1), extract(node.getLocalPosition.bind(node), 'y'));
+                graph.addGraph(node, new pc.Color(1, 0, 1, 1), extract(node.getLocalPosition.bind(node), 'z'));
+
+                graph.addGraph(node, new pc.Color(1, 0, 0, 1), extract(node.getLocalRotation.bind(node), 'x'));
+                graph.addGraph(node, new pc.Color(0, 1, 0, 1), extract(node.getLocalRotation.bind(node), 'y'));
+                graph.addGraph(node, new pc.Color(0, 0, 1, 1), extract(node.getLocalRotation.bind(node), 'z'));
+                graph.addGraph(node, new pc.Color(1, 1, 1, 1), extract(node.getLocalRotation.bind(node), 'w'));
+
+                graph.addGraph(node, new pc.Color(1.0, 0.5, 0.5, 1), extract(node.getLocalScale.bind(node), 'x'));
+                graph.addGraph(node, new pc.Color(0.5, 1.0, 0.5, 1), extract(node.getLocalScale.bind(node), 'y'));
+                graph.addGraph(node, new pc.Color(0.5, 0.5, 1.0, 1), extract(node.getLocalScale.bind(node), 'z'));
+            }
+
+            for (let i = 0; i < node.children.length; ++i) {
+                recurse(node.children[i]);
+            }
+        };
+
+        graph.clear();
+        recurse(entity);
     }
 
     // generate and render debug elements on prerender
