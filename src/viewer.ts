@@ -461,7 +461,7 @@ class Viewer {
             cubemapAsset.loadFaces = true;
             cubemapAsset.on('load', function () {
                 this.initSkyboxFromTexture(cubemapAsset.resource);
-            });
+            }.bind(this));
             app.assets.add(cubemapAsset);
             app.assets.load(cubemapAsset);
         }
@@ -1074,6 +1074,7 @@ class Viewer {
                     .map( function (node: pc.Entity) {
                         return node.model ? node.model.meshInstances || [] : [];
                     })
+                    // @ts-ignore
                     .flat()));
 
         // if no meshes are loaded then enable skeleton rendering so user can see something
