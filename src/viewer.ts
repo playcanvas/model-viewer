@@ -6,13 +6,7 @@ import DebugLines from './debug';
 import HdrParser from '../lib/hdr-texture.js';
 import * as MeshoptDecoder from '../lib/meshopt_decoder.js';
 import { getAssetPath } from './helpers';
-
-interface Morph {
-    name: string,
-    getWeight?: () => number,
-    setWeight?: (target: number, weight: number) => void,
-    onWeightChanged?: () => void
-}
+import { Morph, Controls, initControls } from './controls';
 
 interface URL {
     url: string,
@@ -26,12 +20,11 @@ interface Animation {
 }
 
 class Viewer {
-    onSceneReset: (viewer?: Viewer) => void;
-    onAnimationsLoaded: (viewer: Viewer, animationList: Array<string>) => void;
-    onMorphTargetsLoaded: (viewer: Viewer, morphs: Array<Morph>) => void;
+    controls: Controls;
     app: pc.Application;
     prevCameraMat: pc.Mat4;
     camera: pc.Entity;
+    cameraFocusBBox: pc.BoundingBox | null;
     cameraPosition: pc.Vec3 | null;
     light: pc.Entity;
     sceneRoot: pc.Entity;
@@ -40,13 +33,14 @@ class Viewer {
     assets: Array<pc.Asset>;
     graph: Graph;
     meshInstances: Array<pc.MeshInstance>;
-    stateGraph: { layers: Array<any>, parameters: any };
     // TODO replace with Array<pc.AnimTrack> when definition is available in pc
     animTracks: Array<any>;
-    animationMap: Record<string, Animation>;
+    animationMap: Record<string, string>;
     morphs: Array<Morph>;
     firstFrame: boolean;
     skyboxLoaded: boolean;
+    animSpeed: number;
+    animTransition: number;
     showGraphs: boolean;
     showWireframe: boolean;
     showBounds: boolean;
@@ -54,6 +48,7 @@ class Viewer {
     normalLength: number;
     directLightingFactor: number;
     envLightingFactor: number;
+    skyboxMip: number;
     dirtyWireframe: boolean;
     dirtyBounds: boolean;
     dirtySkeleton: boolean;
@@ -63,12 +58,7 @@ class Viewer {
     debugNormals: DebugLines;
     miniStats: any;
 
-    constructor(canvas: any, onSceneReset: (viewer: Viewer) => void, onAnimationsLoaded: (viewer: Viewer, animationList:Array<string>) => void, onMorphTargetsLoaded: (viewer: Viewer, morphs: Array<Morph>) => void) {
-
-        this.onSceneReset = onSceneReset;
-        this.onAnimationsLoaded = onAnimationsLoaded;
-        this.onMorphTargetsLoaded = onMorphTargetsLoaded;
-
+    constructor(canvas: any) {
         // create the application
         const app = new pc.Application(canvas, {
             mouse: new pc.Mouse(canvas),
@@ -78,8 +68,8 @@ class Viewer {
 
         app.graphicsDevice.maxPixelRatio = window.devicePixelRatio;
 
-        const canvasSize = this.getCanvasSize();
         // Set the canvas to fill the window and automatically change resolution to be the same as the canvas size
+        const canvasSize = this.getCanvasSize();
         app.setCanvasFillMode(pc.FILLMODE_NONE, canvasSize.width, canvasSize.height);
         app.setCanvasResolution(pc.RESOLUTION_AUTO);
         window.addEventListener("resize", function () {
@@ -139,6 +129,7 @@ class Viewer {
         window.addEventListener('dragover', preventDefault, false);
         window.addEventListener('drop', this.dropHandler.bind(this), false);
 
+        // construct the debug animation graphs
         const graph = new Graph(app, 128);
         app.on('prerender', this.onPrerender, this);
         app.on('frameend', this.onFrameend, this);
@@ -152,6 +143,7 @@ class Viewer {
 
         // store app things
         this.camera = camera;
+        this.cameraFocusBBox = null;
         this.cameraPosition = null;
         this.light = light;
         this.sceneRoot = sceneRoot;
@@ -160,16 +152,14 @@ class Viewer {
         this.assets = [];
         this.graph = graph;
         this.meshInstances = [];
-        this.stateGraph = {
-            layers: [],
-            parameters: { }
-        };
         this.animTracks = [];
         this.animationMap = { };
         this.morphs = [];
         this.firstFrame = false;
         this.skyboxLoaded = false;
 
+        this.animSpeed = 1;
+        this.animTransition = 0.1;
         this.showGraphs = false;
         this.showWireframe = false;
         this.showBounds = false;
@@ -177,6 +167,7 @@ class Viewer {
         this.normalLength = 0;
         this.directLightingFactor = 1;
         this.envLightingFactor = 1;
+        this.skyboxMip = 1;
 
         this.dirtyWireframe = false;
         this.dirtyBounds = false;
@@ -193,6 +184,9 @@ class Viewer {
         // initialize the envmap
         // @ts-ignore: Missing pc definition
         app.loader.getHandler(pc.ASSET_TEXTURE).parsers.hdr = new HdrParser(app.assets, false);
+
+        // initialize controls
+        this.initControls();
 
         // start the application
         app.start();
@@ -231,7 +225,7 @@ class Viewer {
     }
 
     // flatten a hierarchy of nodes
-    private static flatten(node: pc.GraphNode){
+    private static flatten(node: pc.GraphNode) {
         const result: Array<pc.GraphNode> = [];
         node.forEach(function (n) {
             result.push(n);
@@ -250,7 +244,8 @@ class Viewer {
         return result;
     }
 
-    private static calcBoundingBox(meshInstances: Array<pc.MeshInstance>) {
+    // calculate the bounding box of the given mesh
+    private static calcMeshBoundingBox(meshInstances: Array<pc.MeshInstance>) {
         const bbox = new pc.BoundingBox();
         for (let i = 0; i < meshInstances.length; ++i) {
             if (i === 0) {
@@ -260,6 +255,77 @@ class Viewer {
             }
         }
         return bbox;
+    }
+
+    // calculate the bounding box of the graph-node hierarchy
+    private static calcHierBoundingBox(rootNode: pc.Entity) {
+        const position = rootNode.getPosition();
+        let min_x = position.x;
+        let min_y = position.y;
+        let min_z = position.z;
+        let max_x = position.x;
+        let max_y = position.y;
+        let max_z = position.z;
+
+        const recurse = function (node: pc.GraphNode) {
+            const p = node.getPosition();
+            if (p.x < min_x) min_x = p.x; else if (p.x > max_x) max_x = p.x;
+            if (p.y < min_y) min_y = p.y; else if (p.y > max_y) max_y = p.y;
+            if (p.z < min_z) min_z = p.z; else if (p.z > max_z) max_z = p.z;
+            for (let i = 0; i < node.children.length; ++i) {
+                recurse(node.children[i]);
+            }
+        };
+        recurse(rootNode);
+
+        const result = new pc.BoundingBox();
+        result.setMinMax(new pc.Vec3(min_x, min_y, min_z), new pc.Vec3(max_x, max_y, max_z));
+        return result;
+    }
+
+    // calculate the intersection of the two bounding boxes
+    private static calcBoundingBoxIntersection = function (bbox1: pc.BoundingBox, bbox2: pc.BoundingBox) {
+        // bounds don't intersect
+        if (!bbox1.intersects(bbox2)) {
+            return null;
+        }
+        const min1 = bbox1.getMin();
+        const max1 = bbox1.getMax();
+        const min2 = bbox2.getMin();
+        const max2 = bbox2.getMax();
+        const result = new pc.BoundingBox();
+        result.setMinMax(new pc.Vec3(Math.max(min1.x, min2.x), Math.max(min1.y, min2.y), Math.max(min1.z, min2.z)),
+                         new pc.Vec3(Math.min(max1.x, max2.x), Math.min(max1.y, max2.y), Math.min(max1.z, max2.z)));
+        return result;
+    }
+
+    // construct the controls interface and initialize controls
+    private initControls() {
+        this.controls = new Controls();
+        this.controls.onShowStats = this.setStats.bind(this);
+        this.controls.onShowWireframe = this.setShowWireframe.bind(this);
+        this.controls.onShowBounds = this.setShowBounds.bind(this);
+        this.controls.onShowSkeleton = this.setShowSkeleton.bind(this);
+        this.controls.onNormalLength = this.setNormalLength.bind(this);
+        this.controls.onFov = this.setFov.bind(this);
+
+        this.controls.onDirectLighting = this.setDirectLighting.bind(this);
+        this.controls.onEnvLighting = this.setEnvLighting.bind(this);
+        this.controls.onSkyboxMip = this.setSkyboxMip.bind(this);
+
+        this.controls.onPlay = this.play.bind(this);
+        this.controls.onPlayAnimation = this.play.bind(this);
+        this.controls.onStop = this.stop.bind(this);
+        this.controls.onSpeed = this.setSpeed.bind(this);
+        this.controls.onTransition = this.setTransition.bind(this);
+        this.controls.onShowGraphs = this.setShowGraphs.bind(this);
+
+        this.controls.onCanvasResized = this.resizeCanvas.bind(this);
+        this.controls.onLoad = this.load.bind(this);
+        this.controls.onClearSkybox = this.clearSkybox.bind(this);
+
+        // and initialize the controls
+        initControls(this.controls);
     }
 
     // initialize the faces and prefiltered lighting data from the given
@@ -320,9 +386,9 @@ class Viewer {
         // assign the textures to the scene
         app.scene.gammaCorrection = pc.GAMMA_SRGB;
         app.scene.toneMapping = pc.TONEMAP_ACES;
-        app.scene.skyboxMip = 0;                        // Set the skybox to the 128x128 cubemap mipmap level
+        app.scene.skyboxMip = this.skyboxMip;               // Set the skybox to the 128x128 cubemap mipmap level
         app.scene.setSkybox(cubemaps);
-        app.renderNextFrame = true;                     // ensure we render again when the cubemap arrives
+        app.renderNextFrame = true;                         // ensure we render again when the cubemap arrives
     }
 
     // load the image files into the skybox. this function supports loading a single equirectangular
@@ -395,7 +461,7 @@ class Viewer {
             cubemapAsset.loadFaces = true;
             cubemapAsset.on('load', function () {
                 this.initSkyboxFromTexture(cubemapAsset.resource);
-            });
+            }.bind(this));
             app.assets.add(cubemapAsset);
             app.assets.load(cubemapAsset);
         }
@@ -417,9 +483,9 @@ class Viewer {
         cubemap.on('load', function () {
             app.scene.gammaCorrection = pc.GAMMA_SRGB;
             app.scene.toneMapping = pc.TONEMAP_ACES;
-            app.scene.skyboxMip = 1;                        // Set the skybox to the 128x128 cubemap mipmap level
+            app.scene.skyboxMip = this.skyboxMip;                   // Set the skybox to the 128x128 cubemap mipmap level
             app.scene.setSkybox(cubemap.resources);
-            app.renderNextFrame = true;                     // ensure we render again when the cubemap arrives
+            app.renderNextFrame = true;                             // ensure we render again when the cubemap arrives
 
             // generate Helipad_equi.png from cubemaps
             // reproject the heli to equirect
@@ -433,7 +499,7 @@ class Viewer {
             // pc.downloadTexture(equi, 'Helipad_equi.png', 0, true);
 
             // pc.downloadTexture(cubemap.resource, 'Helipad_cube.png');
-        });
+        }.bind(this));
         app.assets.add(cubemap);
         app.assets.load(cubemap);
         this.skyboxLoaded = true;
@@ -473,19 +539,15 @@ class Viewer {
         this.graph.clear();
         this.meshInstances = [];
 
-        this.onSceneReset();
+        this.controls.resetScene();
 
         // reset animation state
-        this.stateGraph = {
-            layers: [],
-            parameters: { }
-        };
         this.animTracks = [];
         this.animationMap = { };
-        this.onAnimationsLoaded(this, []);
+        this.controls.animationsLoaded([]);
 
         this.morphs = [];
-        this.onMorphTargetsLoaded(this, []);
+        this.controls.morphTargetsLoaded([]);
 
         this.dirtyWireframe = this.dirtyBounds = this.dirtySkeleton = this.dirtyNormals = true;
 
@@ -501,11 +563,28 @@ class Viewer {
     // move the camera to view the loaded object
     focusCamera() {
         const camera = this.camera.camera;
+
+        const bbox = this.meshInstances.length ?
+            Viewer.calcMeshBoundingBox(this.meshInstances) :
+            Viewer.calcHierBoundingBox(this.sceneRoot);
+
+        if (this.cameraFocusBBox) {
+            const intersection = Viewer.calcBoundingBoxIntersection(this.cameraFocusBBox, bbox);
+            if (intersection) {
+                const len1 = bbox.halfExtents.length();
+                const len2 = this.cameraFocusBBox.halfExtents.length();
+                const len3 = intersection.halfExtents.length();
+                if ((Math.abs(len3 - len1) / len1 < 0.1) &&
+                    (Math.abs(len3 - len2) / len2 < 0.1)) {
+                    return;
+                }
+            }
+        }
+
         // @ts-ignore TODO not defined in pc
         const orbitCamera = this.camera.script.orbitCamera;
 
         // calculate scene bounding box
-        const bbox = Viewer.calcBoundingBox(this.meshInstances);
         const radius = bbox.halfExtents.length();
         const distance = (radius * 1.4) / Math.sin(0.5 * camera.fov * camera.aspectRatio * pc.math.DEG_TO_RAD);
 
@@ -521,6 +600,8 @@ class Viewer {
 
         const light = this.light;
         light.light.shadowDistance = distance * 2;
+
+        this.cameraFocusBBox = bbox;
     }
 
     // load gltf model given its url and list of external urls
@@ -590,13 +671,13 @@ class Viewer {
         const containerAsset = new pc.Asset(gltfUrl.filename, 'container', gltfUrl, null, {
             // @ts-ignore TODO no definition in pc
             bufferView: {
-                processAsync: processBufferView
+                processAsync: processBufferView.bind(this)
             },
             image: {
-                processAsync: processImage
+                processAsync: processImage.bind(this)
             },
             buffer: {
-                processAsync: processBuffer
+                processAsync: processBuffer.bind(this)
             }
         });
         containerAsset.on('load', () => {
@@ -644,40 +725,46 @@ class Viewer {
 
     // play an animation / play all the animations
     play(animationName: string, appendAnimation: boolean) {
-        if (!animationName || !appendAnimation) {
-            for (const key in this.animationMap) {
-                if (this.animationMap.hasOwnProperty(key)) {
-                    if (animationName) {
-                        this.animationMap[key].pause();
-                    } else {
-                        this.animationMap[key].play('default');
-                    }
-                }
+        const a = this.animationMap[animationName];
+        this.entities.forEach(function (e) {
+            // @ts-ignore
+            const anim = e.anim;
+            if (anim) {
+                anim.setParameterValue('loop', 'BOOLEAN', !!animationName);
+                anim.findAnimationLayer('all_layer').play(a || 'START');
             }
-        }
-        if (animationName) {
-            this.animationMap[animationName].play('default');
-        }
+        });
     }
 
     // stop playing animations
     stop() {
-        for (const key in this.animationMap) {
-            if (this.animationMap.hasOwnProperty(key)) {
-                this.animationMap[key].pause();
+        this.entities.forEach(function (e) {
+            // @ts-ignore
+            const anim = e.anim;
+            if (anim) {
+                anim.findAnimationLayer('all_layer').pause();
             }
-        }
+        });
     }
 
+    // set the animation speed
     setSpeed(speed: number) {
-        for (let i = 0; i < this.entities.length; ++i) {
-            const entity = this.entities[i];
-            // @ts-ignore TODO anim property missing from pc.Entity
-            if (entity.anim) {
-                // @ts-ignore TODO anim property missing from pc.Entity
-                entity.anim.speed = speed;
+        this.animSpeed = speed;
+        this.entities.forEach(function (e) {
+            // @ts-ignore
+            const anim = e.anim;
+            if (anim) {
+                anim.speed = speed;
             }
-        }
+        });
+    }
+
+    setTransition(transition: number) {
+        this.animTransition = transition;
+
+        // it's not possible to change the transition time afer creation,
+        // so rebuilt the animation graph with the new transition
+        this.rebuildAnimTracks();
     }
 
     setShowGraphs(show: boolean) {
@@ -729,6 +816,12 @@ class Viewer {
         this.renderNextFrame();
     }
 
+    setSkyboxMip(mip: number) {
+        this.skyboxMip = mip;
+        this.app.scene.skyboxMip = mip;
+        this.renderNextFrame();
+    }
+
     update() {
         // if the camera has moved since the last render
         const cameraWorldTransform = this.camera.getWorldTransform();
@@ -739,12 +832,12 @@ class Viewer {
 
         // or an animation is loaded and we're animating
         let isAnimationPlaying = false;
-        for (const key in this.animationMap) {
-            if (this.animationMap.hasOwnProperty(key)) {
-                if (this.animationMap[key].playing) {
-                    isAnimationPlaying = true;
-                    break;
-                }
+        for (let i = 0; i < this.entities.length; ++i) {
+            // @ts-ignore
+            const anim = this.entities[i].anim;
+            if (anim && anim.findAnimationLayer('all_layer').playing) {
+                isAnimationPlaying = true;
+                break;
             }
         }
 
@@ -882,122 +975,72 @@ class Viewer {
         }
 
         const resource = asset.resource;
+        const modelLoaded = resource.model && resource.model.resource.meshInstances.length > 0;
+        const animLoaded = resource.animations && resource.animations.length > 0;
+        const prevEntity : pc.Entity = this.entities.length === 0 ? null : this.entities[this.entities.length - 1];
 
         let entity: pc.Entity;
-        if (resource.model || this.entities.length === 0) {
-            // create entity and add model
+
+        if (prevEntity) {
+            // check if this loaded resource can be added to the existing entity,
+            // for example loading an animation onto an existing model (or visa versa)
+            if ((modelLoaded && prevEntity.model.meshInstances.length === 0) ||
+                (animLoaded && !modelLoaded)) {
+                entity = prevEntity;
+            }
+        }
+
+        if (!entity) {
+            // create entity
             entity = new pc.Entity();
+            this.entities.push(entity);
+            this.sceneRoot.addChild(entity);
+
+            // create model component
             entity.addComponent("model", {
                 type: "asset",
                 asset: resource.model,
                 castShadows: true
             });
-            this.entities.push(entity);
-            this.sceneRoot.addChild(entity);
-        } else {
-            // use the last model that was added to the scene, presumably this is animation data
-            // that we want to play on an already-existing model
-            entity = this.entities[this.entities.length - 1];
+        } else if (modelLoaded) {
+            // set the model compnent on existing entity
+            entity.model.asset = resource.model;
         }
 
-        // create animations
-        if (resource.animations && resource.animations.length > 0) {
+        // create animation component
+        if (animLoaded) {
             // create the anim component if there isn't one already
             // @ts-ignore TODO not defined in pc
             if (!entity.anim) {
                 entity.addComponent('anim', {
-                    activate: true
+                    activate: true,
+                    speed: this.animSpeed
                 });
             }
 
-            const stateGraph = this.stateGraph;
+            // append anim tracks to global list
+            resource.animations.forEach(function (a : any) {
+                this.animTracks.push(a.resource);
+            }.bind(this));
+        }
 
-            // create a layer per animation so we can play them all simultaniously if needed
-            for (let i = 0; i < resource.animations.length; ++i) {
-                // construct a state graph to include the loaded animations
-                stateGraph.layers.push( {
-                    name: 'layer_' + this.animTracks.length,
-                    states: [
-                        { name: 'START' },
-                        { name: 'default', speed: 1 },
-                        { name: 'END' }
-                    ],
-                    transitions: [
-                        {
-                            "from": "START",
-                            "to": "default",
-                            "time": 0,
-                            "priority": 0
-                        }
-                    ]
-                } );
-
-                // store anim track
-                this.animTracks.push(resource.animations[i].resource);
-            }
-
-            // load the new state graph
-            // @ts-ignore TODO anim property missing from pc.Entity
-            entity.anim.loadStateGraph(new pc.AnimStateGraph(stateGraph));
-
-            // set animations on each layer
-            for (let i = 0; i < this.animTracks.length; ++i) {
-                const animTrack = this.animTracks[i];
-                // @ts-ignore TODO anim property missing from pc.Entity
-                const layer = entity.anim.findAnimationLayer('layer_' + i);
-                layer.assignAnimation('default', animTrack);
-                layer.pause();
-                this.animationMap[animTrack.name] = layer;
-            }
-
-            this.onAnimationsLoaded(this, Object.keys(this.animationMap));
-
-            // create animation graphs
-            const createAnimGraphs = function () {
-                const graph = this.graph;
-
-                const extract = function (transformPropertyGetter: () => Record<string, number>, dimension: string){
-                    return () => transformPropertyGetter()[dimension];
-                };
-
-                const recurse = function (node: pc.GraphNode) {
-                    if (!graph.hasNode(node)) {
-                        graph.addGraph(node, new pc.Color(1, 1, 0, 1), extract(node.getLocalPosition.bind(node), 'x'));
-                        graph.addGraph(node, new pc.Color(0, 1, 1, 1), extract(node.getLocalPosition.bind(node), 'y'));
-                        graph.addGraph(node, new pc.Color(1, 0, 1, 1), extract(node.getLocalPosition.bind(node), 'z'));
-
-                        graph.addGraph(node, new pc.Color(1, 0, 0, 1), extract(node.getLocalRotation.bind(node), 'x'));
-                        graph.addGraph(node, new pc.Color(0, 1, 0, 1), extract(node.getLocalRotation.bind(node), 'y'));
-                        graph.addGraph(node, new pc.Color(0, 0, 1, 1), extract(node.getLocalRotation.bind(node), 'z'));
-                        graph.addGraph(node, new pc.Color(1, 1, 1, 1), extract(node.getLocalRotation.bind(node), 'w'));
-
-                        graph.addGraph(node, new pc.Color(1.0, 0.5, 0.5, 1), extract(node.getLocalScale.bind(node), 'x'));
-                        graph.addGraph(node, new pc.Color(0.5, 1.0, 0.5, 1), extract(node.getLocalScale.bind(node), 'y'));
-                        graph.addGraph(node, new pc.Color(0.5, 0.5, 1.0, 1), extract(node.getLocalScale.bind(node), 'z'));
-                    }
-
-                    for (let i = 0; i < node.children.length; ++i) {
-                        recurse(node.children[i]);
-                    }
-                };
-                recurse(entity);
-            };
-
-            // create animation graphs
-            setTimeout(createAnimGraphs.bind(this), 1000);
+        // rebuild the anim state graph
+        if (this.animTracks.length > 0) {
+            this.rebuildAnimTracks();
+            setTimeout(this.rebuildAnimGraphs.bind(this), 1000);
         }
 
         // initialize morph targets
         if (entity.model && entity.model.model && entity.model.model.morphInstances.length > 0) {
             const morphInstances = entity.model.model.morphInstances;
             // make a list of all the morph instance target names
-            const morphs = this.morphs;
+            const morphs: Array<Morph> = this.morphs;
             morphInstances.forEach((morphInstance, morphIndex) => {
                 // @ts-ignore TODO expose meshInstance on morphInstance in pc
                 const meshInstance = morphInstance.meshInstance;
 
                 // mesh name line
-                morphs.push({
+                morphs.push(<Morph> {
                     name: (meshInstance && meshInstance.node && meshInstance.node.name) || "Mesh " + morphIndex
                 });
 
@@ -1017,7 +1060,7 @@ class Viewer {
                 });
             });
 
-            this.onMorphTargetsLoaded(this, morphs);
+            this.controls.morphTargetsLoaded(morphs);
         }
 
         // store the loaded asset
@@ -1028,10 +1071,16 @@ class Viewer {
         this.meshInstances = this.meshInstances.concat(
             Viewer.distinct(
                 Viewer.flatten(entity)
-                    .map( function (node: pc.Entity): Array<any> {
+                    .map( function (node: pc.Entity) {
                         return node.model ? node.model.meshInstances || [] : [];
                     })
+                    // @ts-ignore
                     .flat()));
+
+        // if no meshes are loaded then enable skeleton rendering so user can see something
+        if (this.meshInstances.length === 0) {
+            this.controls.setShowSkeleton(true);
+        }
 
         // dirty everything
         this.dirtyWireframe = this.dirtyBounds = this.dirtySkeleton = this.dirtyNormals = true;
@@ -1042,6 +1091,95 @@ class Viewer {
         this.firstFrame = true;
         this.renderNextFrame();
         this.clearCta();
+    }
+
+    // rebuild the animation state graph
+    private rebuildAnimTracks() {
+        const entity = this.entities[this.entities.length - 1];
+
+        // create states
+        const states : Array<{ name: string, speed?: number }> = [{ name: 'START' }];
+        this.animTracks.forEach(function (t, i) {
+            states.push({ name: 'track_' + i, speed: 1 });
+        });
+
+        // create a transition for each state
+        const transition = this.animTransition;
+        const transitions = states.map(function (s, i) {
+            return {
+                from: s.name,
+                to: states[(i + 1) % states.length || 1].name,
+                time: s.name ==  'START' ? 0.0 : transition,
+                exitTime: s.name === 'START' ? 0.0 : 1.0,
+                conditions: [{
+                    parameterName: 'loop',
+                    predicate: "EQUAL_TO",
+                    value: false
+                }]
+            };
+        });
+
+        // create the state graph instance
+        // @ts-ignore TODO anim property missing from pc.Entity
+        entity.anim.loadStateGraph(new pc.AnimStateGraph({
+            layers: [{ name: 'all_layer', states: states, transitions: transitions }],
+            parameters: {
+                loop: {
+                    name: 'loop',
+                    // @ts-ignore
+                    type: pc.ANIM_PARAMETER_BOOLEAN,
+                    value: false
+                }
+            }
+        }));
+
+        // @ts-ignore TODO anim property missing from pc.Entity
+        const allLayer = entity.anim.findAnimationLayer('all_layer');
+        this.animTracks.forEach(function (t: any, i: number) {
+            const name = states[i + 1].name;
+            allLayer.assignAnimation(name, t);
+            this.animationMap[t.name] = name;
+        }.bind(this));
+
+        // let the controls know about the new animations
+        this.controls.animationsLoaded(Object.keys(this.animationMap));
+
+        // immediately start playing the animation
+        allLayer.play('START');
+    }
+
+    // create animation graphs
+    private rebuildAnimGraphs() {
+        const graph = this.graph;
+        const entity = this.entities[this.entities.length - 1];
+
+        const extract = function (transformPropertyGetter: () => Record<string, number>, dimension: string){
+            return () => transformPropertyGetter()[dimension];
+        };
+
+        const recurse = function (node: pc.GraphNode) {
+            if (!graph.hasNode(node)) {
+                graph.addGraph(node, new pc.Color(1, 1, 0, 1), extract(node.getLocalPosition.bind(node), 'x'));
+                graph.addGraph(node, new pc.Color(0, 1, 1, 1), extract(node.getLocalPosition.bind(node), 'y'));
+                graph.addGraph(node, new pc.Color(1, 0, 1, 1), extract(node.getLocalPosition.bind(node), 'z'));
+
+                graph.addGraph(node, new pc.Color(1, 0, 0, 1), extract(node.getLocalRotation.bind(node), 'x'));
+                graph.addGraph(node, new pc.Color(0, 1, 0, 1), extract(node.getLocalRotation.bind(node), 'y'));
+                graph.addGraph(node, new pc.Color(0, 0, 1, 1), extract(node.getLocalRotation.bind(node), 'z'));
+                graph.addGraph(node, new pc.Color(1, 1, 1, 1), extract(node.getLocalRotation.bind(node), 'w'));
+
+                graph.addGraph(node, new pc.Color(1.0, 0.5, 0.5, 1), extract(node.getLocalScale.bind(node), 'x'));
+                graph.addGraph(node, new pc.Color(0.5, 1.0, 0.5, 1), extract(node.getLocalScale.bind(node), 'y'));
+                graph.addGraph(node, new pc.Color(0.5, 0.5, 1.0, 1), extract(node.getLocalScale.bind(node), 'z'));
+            }
+
+            for (let i = 0; i < node.children.length; ++i) {
+                recurse(node.children[i]);
+            }
+        };
+
+        graph.clear();
+        recurse(entity);
     }
 
     // generate and render debug elements on prerender
@@ -1077,7 +1215,7 @@ class Viewer {
                 this.debugBounds.clear();
 
                 if (this.showBounds) {
-                    const bbox = Viewer.calcBoundingBox(this.meshInstances);
+                    const bbox = Viewer.calcMeshBoundingBox(this.meshInstances);
                     this.debugBounds.box(bbox.getMin(), bbox.getMax());
                 }
                 this.debugBounds.update();

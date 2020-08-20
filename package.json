@@ -36,7 +36,13 @@
       "@typescript-eslint/ban-ts-comment": 0,
       "@typescript-eslint/no-explicit-any": 0,
       "@typescript-eslint/explicit-module-boundary-types": 0,
-      "lines-between-class-members": ["error", "always", {"exceptAfterSingleLine": true}]
+      "lines-between-class-members": [
+        "error",
+        "always",
+        {
+          "exceptAfterSingleLine": true
+        }
+      ]
     }
   },
   "devDependencies": {
@@ -49,7 +55,7 @@
     "css-loader": "^4.0.0",
     "eslint": "^7.6.0",
     "html-webpack-plugin": "^4.3.0",
-    "playcanvas": "^1.32.4",
+    "playcanvas": "^1.34.0",
     "serve": "^11.3.2",
     "style-loader": "^1.2.1",
     "typescript": "^3.9.7",

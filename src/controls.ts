@@ -1,7 +1,59 @@
 import * as pcui from '../lib/pcui.js';
 import { getAssetPath } from './helpers';
-import * as pc from 'playcanvas';
-import Viewer from './viewer.js';
+
+// controls interface linking to the rest of the application
+
+export class Controls {
+
+    // -- controls-invoked events
+
+    onShowStats: (show: boolean) => void;
+    onShowWireframe: (show: boolean) => void;
+    onShowBounds: (show: boolean) => void;
+    onShowSkeleton: (show: boolean) => void;
+    onNormalLength: (length: number) => void;
+    onFov: (fov: number) => void;
+
+    onDirectLighting: (value: number) => void;
+    onEnvLighting: (value: number) => void;
+    onSkyboxMip: (value: number) => void;
+
+    onPlay: () => void;
+    onPlayAnimation: (animation: string, appendAnimation: boolean) => void;
+    onStop: () => void;
+    onSpeed: (speed: number) => void;
+    onTransition: (transition: number) => void;
+    onShowGraphs: (show: boolean) => void;
+
+    onCanvasResized: () => void;
+
+    onLoad: (filename: string) => void;
+    onClearSkybox: () => void;
+
+    // -- viewer-invoked events
+
+    animationsLoaded(animationList: Array<string>) {
+        // eslint-disable-next-line no-use-before-define
+        onAnimationsLoaded(animationList);
+    }
+
+    morphTargetsLoaded(morphList: Array<Morph>) {
+        // eslint-disable-next-line no-use-before-define
+        onMorphTargetsLoaded(morphList);
+    }
+
+    resetScene() {
+        // eslint-disable-next-line no-use-before-define
+        onSceneReset();
+    }
+
+    setShowSkeleton(show: boolean) {
+        // eslint-disable-next-line no-use-before-define
+        showPanel._skeletonToggle.value = show;
+    }
+}
+
+let controls : Controls = null;
 
 // Build controls
 const controlsDiv = document.getElementById('controls');
@@ -94,9 +146,30 @@ const showPanel = new pcui.Panel({
     collapsible: true
 });
 
-showPanel.buildDom(showPanelDom());
+const initShowPanel = function () {
+    showPanel.buildDom(showPanelDom());
+    controlsDiv.append(showPanel.dom);
 
-controlsDiv.append(showPanel.dom);
+    // Show events
+    showPanel._statsToggle.on('change', function (value: string) {
+        controls.onShowStats(!!value);
+    });
+    showPanel._wireframeToggle.on('change', function (value: string) {
+        controls.onShowWireframe(!!value);
+    });
+    showPanel._boundsToggle.on('change', function (value: string) {
+        controls.onShowBounds(!!value);
+    });
+    showPanel._skeletonToggle.on('change', function (value: string) {
+        controls.onShowSkeleton(!!value);
+    });
+    showPanel._normalsSlider.on('change', function (value: string) {
+        controls.onNormalLength(Number.parseFloat(value));
+    });
+    showPanel._fovSlider.on('change', function (value: string) {
+        controls.onFov(Number.parseFloat(value));
+    });
+};
 
 /* LIGHTING PANEL */
 
@@ -112,53 +185,70 @@ const lightingPanel = new pcui.Panel({
     collapsible: true
 });
 
-lightingPanel.buildDom(lightingPanelDom());
-
-controlsDiv.append(lightingPanel.dom);
-
 // populate select inputs with manifest assets
 
-interface Skybox {
+export interface Skybox {
     url: string,
     label: string
 }
+
+let skyboxes : Skybox[];
+let defaultSkybox: string;
+
+export const setSkyboxes = function ( data: { skyboxes: Array<Skybox>, defaultSkybox: string } ) {
+    skyboxes = data.skyboxes;
+    defaultSkybox = data.defaultSkybox;
+};
 
 interface SkyboxOption {
     v: string | null,
     t: string
 }
 
-new pc.Http().get(
-    getAssetPath("asset_manifest.json"),
-    {
-        cache: true,
-        responseType: "text",
-        retry: false
-    },
-    function (err: string, result: { skyboxes: Array<Skybox> }) {
-        if (err) {
-            console.warn(err);
-        } else {
-            const skyboxOptions: Array<SkyboxOption> = [{
-                v: null, t: 'None'
-            }];
-            result.skyboxes.forEach(function (skybox: Skybox ) {
-                skyboxOptions.push({ v: getAssetPath(skybox.url), t: skybox.label });
-            });
-            lightingPanel.buildDom([buildSelect('skybox', 'string', skyboxOptions)]);
+const initLightingPanel = function () {
+    // lighting
+    lightingPanel.buildDom(lightingPanelDom());
+    controlsDiv.append(lightingPanel.dom);
 
-            lightingPanel._skyboxSelect.on('change', function (value: string) {
-                if (value) {
-                    // @ts-ignore: Global viewer
-                    window.viewer.load(value);
-                } else {
-                    // @ts-ignore: Global viewer
-                    viewer.clearSkybox();
-                }
-            });
+    // skybox
+    const skyboxOptions: Array<SkyboxOption> = [{
+        v: null, t: 'None'
+    }];
+    skyboxes.forEach(function (skybox: Skybox ) {
+        skyboxOptions.push({ v: getAssetPath(skybox.url), t: skybox.label });
+    });
+    lightingPanel.buildDom([buildSelect('skybox', 'string', skyboxOptions)]);
+    lightingPanel._skyboxSelect.on('change', function (value: string) {
+        if (value) {
+            controls.onLoad(value);
+        } else {
+            controls.onClearSkybox();
         }
-    }
-);
+    });
+
+    // skybox mip
+    const skyboxMipOptions: Array<SkyboxOption> = [
+        { v: "0", t: "0" },
+        { v: "1", t: "1" },
+        { v: "2", t: "2" },
+        { v: "3", t: "3" },
+        { v: "4", t: "4" },
+        { v: "5", t: "5" },
+        { v: "6", t: "6" }
+    ];
+    lightingPanel.buildDom([buildSelect('skyboxMip', 'string', skyboxMipOptions, 'Mip')]);
+    lightingPanel._skyboxMipSelect.on('change', function (value: string) {
+        controls.onSkyboxMip(Number.parseFloat(value));
+    });
+
+    // Lighting events
+    lightingPanel._directSlider.on('change', function (value: string) {
+        controls.onDirectLighting(Number.parseFloat(value));
+    });
+    lightingPanel._envSlider.on('change', function (value: string) {
+        controls.onEnvLighting(Number.parseFloat(value));
+    });
+};
 
 /* ANIMATION PANEL */
 
@@ -184,6 +274,7 @@ const animationPanelDom = function () {
             ]
         },
         buildSlider('speed', 2, 0, 4, 1),
+        buildSlider('transition', 2, 0, 4, 0.1),
         buildToggle('graphs')
     ];
 };
@@ -193,12 +284,30 @@ const animationPanel = new pcui.Panel({
     collapsible: true
 });
 
-animationPanel.buildDom(animationPanelDom());
+const initAnimationPanel = function () {
+    animationPanel.buildDom(animationPanelDom());
+    controlsDiv.append(animationPanel.dom);
 
-controlsDiv.append(animationPanel.dom);
+    // Animation events
+    animationPanel._playButton.on('click', function () {
+        controls.onPlay();
+    });
+    animationPanel._stopButton.on('click', function () {
+        controls.onStop();
+    });
+    animationPanel._speedSlider.on('change', function (value: string) {
+        controls.onSpeed(Number.parseFloat(value));
+    });
+    animationPanel._transitionSlider.on('change', function (value: string) {
+        controls.onTransition(Number.parseFloat(value));
+    });
+    animationPanel._graphsToggle.on('change', function (value: string) {
+        controls.onShowGraphs(!!value);
+    });
+};
 
 // called when animations are loaded
-export const onAnimationsLoaded = function (viewer: any, animationList: Array<string>) {
+const onAnimationsLoaded = function (animationList: Array<string>) {
     if (animationPanel._animationList) {
         animationPanel.remove(animationPanel._animationList);
         delete animationPanel._animationList;
@@ -208,14 +317,13 @@ export const onAnimationsLoaded = function (viewer: any, animationList: Array<st
         class: 'animation-list-container'
     });
 
-    const theviewer = viewer;
     for (let i = 0; i < animationList.length; ++i) {
         const button = new pcui.Button({ text: animationList[i] });
-        button.on('click', (function (animation) {
+        button.on('click', (function (animation, controls) {
             return function (evt: { shiftKey: string }) {
-                theviewer.play(animation, evt.shiftKey);
+                controls.onPlayAnimation(animation, !!evt.shiftKey);
             };
-        })(animationList[i]));
+        })(animationList[i], controls));
         animationPanel._animationList.append(button);
     }
     animationPanel.append(animationPanel._animationList);
@@ -223,21 +331,23 @@ export const onAnimationsLoaded = function (viewer: any, animationList: Array<st
 
 /* MORPH TARGET PANEL */
 
-const morphTargetPanel = new pcui.Panel({
-    headerText: 'MORPH TARGETS',
-    collapsible: true
-});
-
-controlsDiv.append(morphTargetPanel.dom);
-
-interface Morph {
+export interface Morph {
     name: string,
     getWeight?: () => number,
     setWeight?: (weight: number) => void,
     onWeightChanged: () => void
 }
 
-export const onMorphTargetsLoaded = function (viewer: Viewer, morphList: Array<Morph>) {
+const morphTargetPanel = new pcui.Panel({
+    headerText: 'MORPH TARGETS',
+    collapsible: true
+});
+
+const initMorphPanel = function () {
+    controlsDiv.append(morphTargetPanel.dom);
+};
+
+const onMorphTargetsLoaded = function (morphList: Array<Morph>) {
 
     if (morphTargetPanel._morphTargetList) {
         morphTargetPanel.remove(morphTargetPanel._morphTargetList);
@@ -280,7 +390,7 @@ export const onMorphTargetsLoaded = function (viewer: Viewer, morphList: Array<M
     document.getElementById('panel').style.overflowY = 'scroll';
 };
 
-export const onSceneReset = function () {
+const onSceneReset = function () {
     if (morphTargetPanel._morphTargetList) {
         morphTargetPanel.remove(morphTargetPanel._morphTargetList);
         delete morphTargetPanel._morphTargetList;
@@ -288,52 +398,27 @@ export const onSceneReset = function () {
     document.getElementById('panel').style.overflowY = 'overlay';
 };
 
-export const registerElementEvents = function (viewer: any) {
-    showPanel._statsToggle.on('change', function (value: string) {
-        viewer.setStats(value);
-    });
-    showPanel._wireframeToggle.on('change', function (value: string) {
-        viewer.setShowWireframe(value);
-    });
-    showPanel._boundsToggle.on('change', function (value: string) {
-        viewer.setShowBounds(value);
-    });
-    showPanel._skeletonToggle.on('change', function (value: string) {
-        viewer.setShowSkeleton(value);
-    });
-    showPanel._normalsSlider.on('change', function (value: string) {
-        viewer.setNormalLength(Number.parseFloat(value));
-    });
-    showPanel._fovSlider.on('change', function (value: string) {
-        viewer.setFov(Number.parseFloat(value));
-    });
+// init controls given callback functions
 
-    // Lighting events
-    lightingPanel._directSlider.on('change', function (value: string) {
-        viewer.setDirectLighting(Number.parseFloat(value));
-    });
-    lightingPanel._envSlider.on('change', function (value: string) {
-        viewer.setEnvLighting(Number.parseFloat(value));
-    });
+export const initControls = function (controls_: Controls) {
+    // store controls interface
+    controls = controls_;
 
-    // Animation events
-    animationPanel._playButton.on('click', function () {
-        viewer.play();
-    });
-    animationPanel._stopButton.on('click', function () {
-        viewer.stop();
-    });
-    animationPanel._speedSlider.on('change', function (value: string) {
-        viewer.setSpeed(Number.parseFloat(value));
-    });
-    animationPanel._graphsToggle.on('change', function (value: string) {
-        viewer.setShowGraphs(value);
-    });
+    // init panels
+    initShowPanel();
+    initLightingPanel();
+    initAnimationPanel();
+    initMorphPanel();
+
+    // set the defaults
+    lightingPanel._skyboxSelect.value = getAssetPath(defaultSkybox);
+    lightingPanel._skyboxMipSelect.value = 1;
+
     // Build panel toggle
     const panelToggleDiv = document.getElementById('panel-toggle');
     panelToggleDiv.addEventListener('click', function () {
         const panel = document.getElementById('panel');
         panel.classList.toggle('collapsed');
-        viewer.resizeCanvas();
+        controls.onCanvasResized();
     });
 };
