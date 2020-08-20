@@ -1,6 +1,6 @@
 import * as pc from 'playcanvas';
-
-import { wasmSupported, loadWasmModuleAsync } from '../lib/wasm-loader.js';
+// @ts-ignore: library file import
+import { wasmSupported, loadWasmModuleAsync } from 'lib/wasm-loader.js';
 
 import Viewer from './viewer';
 import { Skybox, setSkyboxes } from './controls';
