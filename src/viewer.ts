@@ -769,7 +769,9 @@ class Viewer {
 
         // it's not possible to change the transition time afer creation,
         // so rebuilt the animation graph with the new transition
-        this.rebuildAnimTracks();
+        if (this.animTracks.length > 0) {
+            this.rebuildAnimTracks();
+        }
     }
 
     setLoops(loops: number) {
@@ -777,7 +779,9 @@ class Viewer {
 
         // it's not possible to change the transition time afer creation,
         // so rebuilt the animation graph with the new transition
-        this.rebuildAnimTracks();
+        if (this.animTracks.length > 0) {
+            this.rebuildAnimTracks();
+        }
     }
 
     setShowGraphs(show: boolean) {
