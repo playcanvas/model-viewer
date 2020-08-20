@@ -1,4 +1,5 @@
-import * as pcui from '../lib/pcui.js';
+// @ts-ignore: library file import
+import * as pcui from 'lib/pcui.js';
 import { getAssetPath } from './helpers';
 import * as pc from 'playcanvas';
 import Viewer from './viewer.js';

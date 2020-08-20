@@ -3,8 +3,10 @@ import * as pc from 'playcanvas';
 import * as pcx from 'playcanvas/build/playcanvas-extras.js';
 import Graph from './graph';
 import DebugLines from './debug';
-import HdrParser from '../lib/hdr-texture.js';
-import * as MeshoptDecoder from '../lib/meshopt_decoder.js';
+// @ts-ignore: library file import
+import HdrParser from 'lib/hdr-texture.js';
+// @ts-ignore: library file import
+import * as MeshoptDecoder from 'lib/meshopt_decoder.js';
 import { getAssetPath } from './helpers';
 
 interface Morph {
