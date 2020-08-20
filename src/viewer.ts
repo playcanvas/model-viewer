@@ -41,6 +41,7 @@ class Viewer {
     skyboxLoaded: boolean;
     animSpeed: number;
     animTransition: number;
+    animLoops: number;
     showGraphs: boolean;
     showWireframe: boolean;
     showBounds: boolean;
@@ -160,6 +161,7 @@ class Viewer {
 
         this.animSpeed = 1;
         this.animTransition = 0.1;
+        this.animLoops = 1;
         this.showGraphs = false;
         this.showWireframe = false;
         this.showBounds = false;
@@ -318,6 +320,7 @@ class Viewer {
         this.controls.onStop = this.stop.bind(this);
         this.controls.onSpeed = this.setSpeed.bind(this);
         this.controls.onTransition = this.setTransition.bind(this);
+        this.controls.onLoops = this.setLoops.bind(this);
         this.controls.onShowGraphs = this.setShowGraphs.bind(this);
 
         this.controls.onCanvasResized = this.resizeCanvas.bind(this);
@@ -767,6 +770,14 @@ class Viewer {
         this.rebuildAnimTracks();
     }
 
+    setLoops(loops: number) {
+        this.animLoops = loops;
+
+        // it's not possible to change the transition time afer creation,
+        // so rebuilt the animation graph with the new transition
+        this.rebuildAnimTracks();
+    }
+
     setShowGraphs(show: boolean) {
         this.showGraphs = show;
         this.renderNextFrame();
@@ -1105,17 +1116,20 @@ class Viewer {
 
         // create a transition for each state
         const transition = this.animTransition;
+        const loops = this.animLoops;
         const transitions = states.map(function (s, i) {
             return {
                 from: s.name,
                 to: states[(i + 1) % states.length || 1].name,
                 time: s.name ==  'START' ? 0.0 : transition,
-                exitTime: s.name === 'START' ? 0.0 : 1.0,
+                exitTime: s.name === 'START' ? 0.0 : loops,
                 conditions: [{
                     parameterName: 'loop',
                     predicate: "EQUAL_TO",
                     value: false
-                }]
+                }],
+                // @ts-ignore
+                interruptionSource: pc.ANIM_INTERRUPTION_NEXT
             };
         });
 

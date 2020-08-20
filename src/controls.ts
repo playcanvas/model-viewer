@@ -23,6 +23,7 @@ export class Controls {
     onStop: () => void;
     onSpeed: (speed: number) => void;
     onTransition: (transition: number) => void;
+    onLoops: (loops: number) => void;
     onShowGraphs: (show: boolean) => void;
 
     onCanvasResized: () => void;
@@ -275,6 +276,12 @@ const animationPanelDom = function () {
         },
         buildSlider('speed', 2, 0, 4, 1),
         buildSlider('transition', 2, 0, 4, 0.1),
+        buildSelect('loops', 'number', [
+            { v: '1', t: '1' },
+            { v: '2', t: '2' },
+            { v: '3', t: '3' },
+            { v: '4', t: '4' }
+        ]),
         buildToggle('graphs')
     ];
 };
@@ -300,6 +307,9 @@ const initAnimationPanel = function () {
     });
     animationPanel._transitionSlider.on('change', function (value: string) {
         controls.onTransition(Number.parseFloat(value));
+    });
+    animationPanel._loopsSelect.on('change', function (value: number) {
+        controls.onLoops(value);
     });
     animationPanel._graphsToggle.on('change', function (value: string) {
         controls.onShowGraphs(!!value);
@@ -413,6 +423,7 @@ export const initControls = function (controls_: Controls) {
     // set the defaults
     lightingPanel._skyboxSelect.value = getAssetPath(defaultSkybox);
     lightingPanel._skyboxMipSelect.value = 1;
+    animationPanel._loopsSelect.value = 1;
 
     // Build panel toggle
     const panelToggleDiv = document.getElementById('panel-toggle');
