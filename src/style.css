@@ -16,11 +16,15 @@ body {
     align-items: stretch;
 }
 
+#app {
+    height: 100%;
+}
+
 #panel {
     width: 300px;
     height: 100%;
     background-color: #374346;
-    overflow-y: overlay;
+    overflow-y: auto;
     user-select: none;
     -webkit-touch-callout: none;
     -webkit-user-select: none;
@@ -30,7 +34,7 @@ body {
 }
 
 #panel.collapsed {
-    width: 32px;
+    width: 32px !important;
     overflow: hidden;
     overflow-y: hidden !important;
 }
@@ -70,6 +74,13 @@ body {
 
 #panel.collapsed > #panel-toggle::before {
     transform: translateY(-50%) translateX(-50%) rotateZ(90deg);
+}
+
+#canvas-wrapper {
+    position: relative;
+    width: 0 !important;
+    flex-grow: 1;
+    display: flex;
 }
 
 #application-canvas {
