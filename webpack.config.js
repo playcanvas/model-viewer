@@ -2,6 +2,7 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const webpack = require('webpack');
+const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
 
 const config = {
     mode: process.env.ENVIRONMENT || 'development',
@@ -94,6 +95,12 @@ if (process.env.EXTRAS_PATH) {
             /^playcanvas\/build\/playcanvas-extras\.js$/,
             path.resolve(__dirname, process.env.EXTRAS_PATH)
         )
+    );
+}
+
+if (process.env.ANALYZE_BUNDLE) {
+    config.plugins.push(
+        new BundleAnalyzerPlugin()
     );
 }
 

@@ -45,6 +45,10 @@ This will invoke Webpack and output the built viewer to the `dist` folder. To in
 
     npm run build:watch
 
+The size of the build can be checked by running:
+
+    npm run build:analyze
+
 ## How to build with local PlayCanvas engine
 
 You can set the npm build scripts to use local versions of the playcanvas engine & playcanvas extras builds by setting the following environment variables when launching the npm build scripts:
