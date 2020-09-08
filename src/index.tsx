@@ -47,14 +47,13 @@ const observer: Observer = new Observer({
         list: '[]',
         playAnimation: null
     },
-    morphTargets: null,
-    canvasResized: false
+    morphTargets: null
 });
 
 // render out the app
 ReactDOM.render(
     <div id="flex-container">
-        <Container id="panel" resizable='right' resizeMin={220} resizeMax={600} onResize={() => observer.set('canvasResized', true)}>
+        <Container id="panel" resizable='right' resizeMin={220} resizeMax={600} onResize={() => observer.emit('canvasResized')}>
             <div id="panel-toggle"></div>
             <div className="header" style={{ display: 'none' }}><a href="#"><img src={getAssetPath('playcanvas-logo.png')}/><div><b>PLAY</b>CANVAS <span>viewer</span></div></a></div>
             <Controls observer={observer} />

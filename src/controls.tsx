@@ -119,7 +119,7 @@ const Controls = (props: { observer: Observer }) => {
         const panel = document.getElementById('panel');
         panelToggleDiv.addEventListener('click', function () {
             panel.classList.toggle('collapsed');
-            props.observer.set('canvasResized', true);
+            props.observer.emit('canvasResized');
         });
         if (document.body.clientWidth <= 600) {
             panel.classList.toggle('collapsed');

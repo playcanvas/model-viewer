@@ -8,11 +8,9 @@ import HdrParser from 'lib/hdr-texture.js';
 // @ts-ignore: library file import
 import * as MeshoptDecoder from 'lib/meshopt_decoder.js';
 import { getAssetPath } from './helpers';
-// import { Morph, Controls, initControls } from './controls';
 import { Morph, URL, Entry, Observer } from './types';
 
 class Viewer {
-    // controls: Controls;
     app: pc.Application;
     prevCameraMat: pc.Mat4;
     camera: pc.Entity;
@@ -328,15 +326,9 @@ class Viewer {
         this.observer.on('animation.loops:set', this.setLoops.bind(this));
         this.observer.on('animation.graphs:set', this.setShowGraphs.bind(this));
 
-        this.observer.on('canvasResized:set', (value: boolean) => {
-            if (value) {
-                this.observer.set('canvasResized', false);
-                this.resizeCanvas();
-            }
+        this.observer.on('canvasResized', () => {
+            this.resizeCanvas();
         });
-        // this.controls.onCanvasResized = this.resizeCanvas.bind(this);
-        // this.controls.onLoad = this.load.bind(this);
-        // this.controls.onClearSkybox = this.clearSkybox.bind(this);
     }
 
     // initialize the faces and prefiltered lighting data from the given
@@ -550,17 +542,13 @@ class Viewer {
         this.graph.clear();
         this.meshInstances = [];
 
-        // this.controls.resetScene();
-
         // reset animation state
         this.animTracks = [];
         this.animationMap = { };
         this.observer.set('animations.list', '[]');
-        // this.controls.animationsLoaded([]);
 
         this.morphs = [];
         this.observer.set('morphTargets', null);
-        // this.controls.morphTargetsLoaded([]);
 
         this.dirtyWireframe = this.dirtyBounds = this.dirtySkeleton = this.dirtyNormals = true;
 
@@ -863,14 +851,6 @@ class Viewer {
             this.dirtySkeleton = true;
             this.dirtyNormals = true;
             this.renderNextFrame();
-
-            // copy (possibly) animated morph weights to UI widgets
-            // for (let i = 0; i < this.morphs.length; ++i) {
-            //     const morph = this.morphs[i];
-            //     if (morph.onWeightChanged) {
-            //         morph.onWeightChanged();
-            //     }
-            // }
             this.observer.emit('animationUpdate');
         }
 
