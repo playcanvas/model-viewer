@@ -199,9 +199,11 @@ class Viewer {
         // handle load url param
         const loadUrls = (urlParams.load || []).concat(urlParams.assetUrl || []);
         if (loadUrls.length > 0) {
-            for (let i = 0; i < loadUrls.length; ++i) {
-                this.load(loadUrls[i]);
-            }
+            this.load(
+                loadUrls.map((url: string) => {
+                    return { url, filename: url };
+                })
+            );
         }
 
         // load the default skybox if one wasn't specified in url params
