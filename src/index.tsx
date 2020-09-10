@@ -104,7 +104,7 @@ new pc.Http().get(
             });
             const skyboxData = observer.get('lighting.skybox');
             skyboxData.options = JSON.stringify(skyboxOptions);
-            skyboxData.default = result.defaultSkybox;
+            skyboxData.default = getAssetPath(result.defaultSkybox);
             observer.set('lighting.skybox', skyboxData);
             dependencyArrived();
         }
