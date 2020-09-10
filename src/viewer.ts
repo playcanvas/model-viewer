@@ -8,21 +8,9 @@ import HdrParser from 'lib/hdr-texture.js';
 // @ts-ignore: library file import
 import * as MeshoptDecoder from 'lib/meshopt_decoder.js';
 import { getAssetPath } from './helpers';
-import { Morph, Controls, initControls } from './controls';
-
-interface URL {
-    url: string,
-    filename: string
-}
-
-interface Animation {
-    play: (animation?: string) => void,
-    pause: () => void,
-    playing: boolean
-}
+import { Morph, URL, Entry, Observer } from './types';
 
 class Viewer {
-    controls: Controls;
     app: pc.Application;
     prevCameraMat: pc.Mat4;
     camera: pc.Entity;
@@ -60,8 +48,9 @@ class Viewer {
     debugSkeleton: DebugLines;
     debugNormals: DebugLines;
     miniStats: any;
+    observer: Observer;
 
-    constructor(canvas: any) {
+    constructor(canvas: any, observer: Observer) {
         // create the application
         const app = new pc.Application(canvas, {
             mouse: new pc.Mouse(canvas),
@@ -161,17 +150,17 @@ class Viewer {
         this.firstFrame = false;
         this.skyboxLoaded = false;
 
-        this.animSpeed = 1;
-        this.animTransition = 0.1;
-        this.animLoops = 1;
-        this.showGraphs = false;
-        this.showWireframe = false;
-        this.showBounds = false;
-        this.showSkeleton = false;
-        this.normalLength = 0;
-        this.directLightingFactor = 1;
-        this.envLightingFactor = 1;
-        this.skyboxMip = 1;
+        this.animSpeed = observer.get('animation.speed');
+        this.animTransition = observer.get('animation.transition');
+        this.animLoops = observer.get('animation.loops');
+        this.showGraphs = observer.get('animation.graphs');
+        this.showWireframe = observer.get('show.wireframe');
+        this.showBounds = observer.get('show.bounds');
+        this.showSkeleton = observer.get('show.skeleton');
+        this.normalLength = observer.get('show.normals');
+        this.directLightingFactor = observer.get('lighting.direct');
+        this.envLightingFactor = observer.get('lighting.env');
+        this.skyboxMip = observer.get('lighting.skybox.mip');
 
         this.dirtyWireframe = false;
         this.dirtyBounds = false;
@@ -183,14 +172,15 @@ class Viewer {
 
         // construct ministats, default off
         this.miniStats = new pcx.MiniStats(app);
-        this.miniStats.enabled = false;
+        this.miniStats.enabled = observer.get('show.stats');
+        this.observer = observer;
 
         // initialize the envmap
         // @ts-ignore: Missing pc definition
         app.loader.getHandler(pc.ASSET_TEXTURE).parsers.hdr = new HdrParser(app.assets, false);
 
-        // initialize controls
-        this.initControls();
+        // initialize control events
+        this.bindControlEvents();
 
         // start the application
         app.start();
@@ -209,9 +199,11 @@ class Viewer {
         // handle load url param
         const loadUrls = (urlParams.load || []).concat(urlParams.assetUrl || []);
         if (loadUrls.length > 0) {
-            for (let i = 0; i < loadUrls.length; ++i) {
-                this.load(loadUrls[i]);
-            }
+            this.load(
+                loadUrls.map((url: string) => {
+                    return { url, filename: url };
+                })
+            );
         }
 
         // load the default skybox if one wasn't specified in url params
@@ -304,33 +296,41 @@ class Viewer {
     }
 
     // construct the controls interface and initialize controls
-    private initControls() {
-        this.controls = new Controls();
-        this.controls.onShowStats = this.setStats.bind(this);
-        this.controls.onShowWireframe = this.setShowWireframe.bind(this);
-        this.controls.onShowBounds = this.setShowBounds.bind(this);
-        this.controls.onShowSkeleton = this.setShowSkeleton.bind(this);
-        this.controls.onNormalLength = this.setNormalLength.bind(this);
-        this.controls.onFov = this.setFov.bind(this);
+    private bindControlEvents() {
+        this.observer.on('show.stats:set', this.setStats.bind(this));
+        this.observer.on('show.wireframe:set', this.setShowWireframe.bind(this));
+        this.observer.on('show.bounds:set', this.setShowBounds.bind(this));
+        this.observer.on('show.skeleton:set', this.setShowSkeleton.bind(this));
+        this.observer.on('show.normals:set', this.setNormalLength.bind(this));
+        this.observer.on('show.fov:set', this.setFov.bind(this));
 
-        this.controls.onDirectLighting = this.setDirectLighting.bind(this);
-        this.controls.onEnvLighting = this.setEnvLighting.bind(this);
-        this.controls.onSkyboxMip = this.setSkyboxMip.bind(this);
+        this.observer.on('lighting.direct:set', this.setDirectLighting.bind(this));
+        this.observer.on('lighting.env:set', this.setEnvLighting.bind(this));
+        this.observer.on('lighting.skybox.mip:set', this.setSkyboxMip.bind(this));
+        this.observer.on('lighting.skybox.value:set', (value: string) => {
+            if (value) {
+                this.load([{ url: value, filename: value }]);
+            } else {
+                this.clearSkybox();
+            }
+        });
 
-        this.controls.onPlay = this.play.bind(this);
-        this.controls.onPlayAnimation = this.play.bind(this);
-        this.controls.onStop = this.stop.bind(this);
-        this.controls.onSpeed = this.setSpeed.bind(this);
-        this.controls.onTransition = this.setTransition.bind(this);
-        this.controls.onLoops = this.setLoops.bind(this);
-        this.controls.onShowGraphs = this.setShowGraphs.bind(this);
+        this.observer.on('animation.playing:set', (playing: boolean) => {
+            if (playing) {
+                this.play();
+            } else {
+                this.stop();
+            }
+        });
+        this.observer.on('animation.playAnimation:set', this.play.bind(this));
+        this.observer.on('animation.speed:set', this.setSpeed.bind(this));
+        this.observer.on('animation.transition:set', this.setTransition.bind(this));
+        this.observer.on('animation.loops:set', this.setLoops.bind(this));
+        this.observer.on('animation.graphs:set', this.setShowGraphs.bind(this));
 
-        this.controls.onCanvasResized = this.resizeCanvas.bind(this);
-        this.controls.onLoad = this.load.bind(this);
-        this.controls.onClearSkybox = this.clearSkybox.bind(this);
-
-        // and initialize the controls
-        initControls(this.controls);
+        this.observer.on('canvasResized', () => {
+            this.resizeCanvas();
+        });
     }
 
     // initialize the faces and prefiltered lighting data from the given
@@ -544,15 +544,13 @@ class Viewer {
         this.graph.clear();
         this.meshInstances = [];
 
-        this.controls.resetScene();
-
         // reset animation state
         this.animTracks = [];
         this.animationMap = { };
-        this.controls.animationsLoaded([]);
+        this.observer.set('animations.list', '[]');
 
         this.morphs = [];
-        this.controls.morphTargetsLoaded([]);
+        this.observer.set('morphTargets', null);
 
         this.dirtyWireframe = this.dirtyBounds = this.dirtySkeleton = this.dirtyNormals = true;
 
@@ -701,14 +699,6 @@ class Viewer {
             urls = [urls];
         }
 
-        // convert url strings to url structs
-        urls = urls.map(function (url) {
-            return typeof url === "string" ? {
-                url: url,
-                filename: url
-            } : url;
-        });
-
         // step through urls loading gltf/glb models
         let result = false;
         urls.forEach((url) =>  {
@@ -729,7 +719,7 @@ class Viewer {
     }
 
     // play an animation / play all the animations
-    play(animationName: string, appendAnimation: boolean) {
+    play(animationName?: string, appendAnimation?: boolean) {
         const a = this.animationMap[animationName];
         this.entities.forEach(function (e) {
             // @ts-ignore
@@ -863,14 +853,7 @@ class Viewer {
             this.dirtySkeleton = true;
             this.dirtyNormals = true;
             this.renderNextFrame();
-
-            // copy (possibly) animated morph weights to UI widgets
-            for (let i = 0; i < this.morphs.length; ++i) {
-                const morph = this.morphs[i];
-                if (morph.onWeightChanged) {
-                    morph.onWeightChanged();
-                }
-            }
+            this.observer.emit('animationUpdate');
         }
 
         // or the ministats is enabled
@@ -909,14 +892,6 @@ class Viewer {
                 }
             }
         };
-
-        interface Entry {
-            isFile: boolean,
-            isDirectory: boolean,
-            createReader: any,
-            file: any,
-            fullPath: string
-        }
 
         const resolveFiles = (entries: Array<Entry>) => {
             const urls: Array<URL> = [];
@@ -1066,18 +1041,43 @@ class Viewer {
                 morphInstance.morph._targets.forEach((target, targetIndex) => {
                     morphs.push({
                         name: target.name,
-                        setWeight: (weight: number) => {
-                            morphInstance.setWeight(targetIndex, weight);
-                            this.dirtyNormals = true;
-                            this.renderNextFrame();
-                        },
-                        getWeight: pc.MorphInstance.prototype.getWeight.bind(morphInstance, targetIndex),
-                        onWeightChanged: null    // controls can set this to a function for receiving weight updates
+                        targetIndex: targetIndex
                     });
                 });
             });
 
-            this.controls.morphTargetsLoaded(morphs);
+            const morphTargets: Record<number, { name: string, morphs: Record<number, Morph> }> = {};
+            let panelCount = 0;
+            let morphCount = 0;
+            morphs.forEach((morph: Morph) => {
+                if (!morph.hasOwnProperty('targetIndex')) {
+                    morphTargets[panelCount] = { name: morph.name, morphs: {} };
+                    panelCount++;
+                    morphCount = 0;
+                } else {
+                    morphTargets[panelCount - 1].morphs[morphCount] = morph;
+                    const morphInstance = morphInstances[panelCount - 1];
+                    this.observer.on(`morphTargets.${panelCount - 1}.morphs.${morphCount}.weight:set`, (weight: number) => {
+                        if (!morphInstance) return;
+                        morphInstance.setWeight(morph.targetIndex, weight);
+                        this.dirtyNormals = true;
+                        this.renderNextFrame();
+                    });
+                    morphCount++;
+                }
+            });
+            this.observer.set('morphTargets', morphTargets);
+            this.observer.on('animationUpdate', () => {
+                const morphTargets = this.observer.get('morphTargets');
+                morphInstances.forEach((morphInstance, i) => {
+                    Object.keys(morphTargets[i].morphs).forEach(morphKey => {
+                        const newWeight = morphInstance.getWeight(Number(morphKey));
+                        if (morphTargets[i].morphs[morphKey].weight !== newWeight) {
+                            this.observer.set(`morphTargets.${i}.morphs.${morphKey}.weight`, newWeight);
+                        }
+                    });
+                });
+            });
         }
 
         // store the loaded asset
@@ -1096,7 +1096,7 @@ class Viewer {
 
         // if no meshes are loaded then enable skeleton rendering so user can see something
         if (this.meshInstances.length === 0) {
-            this.controls.setShowSkeleton(true);
+            this.observer.set('show.skeleton', true);
         }
 
         // dirty everything
@@ -1162,10 +1162,10 @@ class Viewer {
         }.bind(this));
 
         // let the controls know about the new animations
-        this.controls.animationsLoaded(Object.keys(this.animationMap));
+        this.observer.set('animation.list', JSON.stringify(Object.keys(this.animationMap)));
 
         // immediately start playing the animation
-        allLayer.play('START');
+        this.observer.set('animation.playing', true);
     }
 
     // create animation graphs

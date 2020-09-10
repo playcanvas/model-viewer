@@ -5,14 +5,15 @@
         "module": "commonjs",
         "target": "es5",
         "allowJs": true,
+        "jsx": "react",
         "lib": [
             "es2019",
             "dom"
-        ]
+        ],
+        "allowSyntheticDefaultImports" : true,
+        "esModuleInterop" : true
     },
     "include": [
         "src"
     ],
-    "allowSyntheticDefaultImports" : true,
-    "esModuleInterop" : true
 }

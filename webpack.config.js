@@ -2,10 +2,11 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const webpack = require('webpack');
+const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
 
 const config = {
     mode: process.env.ENVIRONMENT || 'development',
-    entry: './src/index.ts',
+    entry: './src/index.tsx',
     output: {
         path: path.resolve(__dirname, 'dist/static'),
         publicPath: process.env.PUBLIC_PATH || undefined,
@@ -19,7 +20,22 @@ const config = {
             },
             {
                 test: /\.tsx?$/,
-                use: 'awesome-typescript-loader'
+                use: [
+                    {
+
+                        loader: "babel-loader",
+                        options: {
+                            presets: [
+                                "@babel/preset-env",
+                                "@babel/preset-react"
+                            ],
+                            plugins: [
+                                "@babel/plugin-proposal-class-properties"
+                            ]
+                        }
+                    },
+                    'awesome-typescript-loader'
+                ]
             }
         ]
     },
@@ -31,7 +47,7 @@ const config = {
         alias: {
             lib: path.resolve(__dirname, 'lib')
         },
-        extensions: ['.ts', '.js', '.css']
+        extensions: ['.tsx', '.ts', '.js', '.css']
     },
     devtool: process.env.ENVIRONMENT === 'production' ? 'source-map' : 'eval-source-map',
     context: __dirname,
@@ -79,6 +95,12 @@ if (process.env.EXTRAS_PATH) {
             /^playcanvas\/build\/playcanvas-extras\.js$/,
             path.resolve(__dirname, process.env.EXTRAS_PATH)
         )
+    );
+}
+
+if (process.env.ANALYZE_BUNDLE) {
+    config.plugins.push(
+        new BundleAnalyzerPlugin()
     );
 }
 
