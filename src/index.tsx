@@ -78,9 +78,9 @@ function dependencyArrived() {
 window.pc = pc;
 
 // @ts-ignore: Not defined in pc
-pc.basisSetDownloadConfig('lib/basis/basis.wasm.js',
-                          'lib/basis/basis.wasm.wasm',
-                          'lib/basis/basis.js');
+pc.basisSetDownloadConfig(getAssetPath('lib/basis/basis.wasm.js'),
+                          getAssetPath('lib/basis/basis.wasm.wasm'),
+                          getAssetPath('lib/basis/basis.js'));
 
 // download asset manifest
 new pc.Http().get(
