@@ -208,7 +208,9 @@ class Viewer {
 
         // load the default skybox if one wasn't specified in url params
         if (!this.skyboxLoaded) {
-            this.loadHeliSkybox();
+            // this.loadHeliSkybox();
+            const skybox = observer.get('lighting.skybox.default');
+            this.load([{ url: skybox, filename: skybox }]);
         }
 
         // set camera position
