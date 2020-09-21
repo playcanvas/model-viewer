@@ -1,0 +1,18 @@
+{
+    "background_color": "black",
+    "categories": ["productivity", "utilities"],
+    "description": "Fast and lightweight glTF viewer.",
+    "dir": "auto",
+    "display": "standalone",
+    "icons": [{
+        "src": "playcanvas-logo.png",
+        "sizes": "64x64",
+        "type": "image/png"
+    }],
+    "lang": "en-US",
+    "name": "PlayCanvas glTF Viewer",
+    "orientation": "any",
+    "prefer_related_applications": false,
+    "short_name": "glTF Viewer",
+    "start_url": "."
+}
