@@ -8,9 +8,9 @@ import Viewer from './viewer';
 // import { Skybox, setSkyboxes } from './controls';
 import Controls from './controls';
 // @ts-ignore: library file import
-import { Observer } from 'lib/pcui/binding.js';
+import { Observer } from '@playcanvas/pcui/pcui-binding';
 // @ts-ignore: library file import
-import { Container, InfoBox } from 'lib/pcui/component.js';
+import { Container, InfoBox } from '@playcanvas/pcui/pcui-react';
 import { getAssetPath } from './helpers';
 import { Skybox, Option } from './types';
 
