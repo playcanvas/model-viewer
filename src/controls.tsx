@@ -1,7 +1,7 @@
 // @ts-ignore: library file import
-import { Container, BooleanInput, Label, SliderInput, SelectInput, Panel, Button } from 'lib/pcui/component.js';
+import { Container, BooleanInput, Label, SliderInput, SelectInput, Panel, Button } from '@playcanvas/pcui/pcui-react';
 // @ts-ignore: library file import
-import { BindingTwoWay, useObserverState } from 'lib/pcui/binding.js';
+import { BindingTwoWay, useObserverState } from '@playcanvas/pcui/pcui-binding';
 import React, { useEffect, useState, useContext } from 'react';
 import { ProgressPlugin } from 'webpack';
 import { Morph, Option, Observer } from './types';
