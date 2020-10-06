@@ -11,7 +11,11 @@
     <% } else { %>
     <link rel="icon" type="image/png" href="./static/playcanvas-logo.png" />
     <% } %>
-    <link rel="manifest" href="manifest.json">
+    <% if (htmlWebpackPlugin.options.hasPublicPath) { %>
+    <link rel="manifest" href="/viewer/static/manifest.json">
+    <% } else { %>
+    <link rel="manifest" href="./static/manifest.json">
+    <% } %>
 </head>
 
 <body>
