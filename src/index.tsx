@@ -15,6 +15,7 @@ import { getAssetPath } from './helpers';
 import { Skybox, Option } from './types';
 
 import './style.css';
+import './fonts.css';
 
 // initialize the apps state
 const observer: Observer = new Observer({
