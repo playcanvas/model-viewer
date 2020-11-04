@@ -6,8 +6,6 @@ import DebugLines from './debug';
 // @ts-ignore: library file import
 import HdrParser from 'lib/hdr-texture.js';
 // @ts-ignore: library file import
-import downloadTexture from 'lib/download-texture.js';
-// @ts-ignore: library file import
 import * as MeshoptDecoder from 'lib/meshopt_decoder.js';
 import { getAssetPath } from './helpers';
 import { Morph, URL, Entry, Observer } from './types';
