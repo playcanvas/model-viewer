@@ -6,6 +6,8 @@ import DebugLines from './debug';
 // @ts-ignore: library file import
 import HdrParser from 'lib/hdr-texture.js';
 // @ts-ignore: library file import
+import downloadTexture from 'lib/download-texture.js';
+// @ts-ignore: library file import
 import * as MeshoptDecoder from 'lib/meshopt_decoder.js';
 import { getAssetPath } from './helpers';
 import { Morph, URL, Entry, Observer } from './types';
@@ -352,9 +354,12 @@ class Viewer {
                 height: size,
                 type: pc.TEXTURETYPE_RGBM.toString(),
                 addressU: pc.ADDRESS_CLAMP_TO_EDGE,
-                addressV: pc.ADDRESS_CLAMP_TO_EDGE
+                addressV: pc.ADDRESS_CLAMP_TO_EDGE,
+                fixCubemapSeams: false,
+                mipmaps: false
             });
             pc.reprojectTexture(device, src, faces);
+
             return faces;
         };
 
@@ -384,9 +389,12 @@ class Viewer {
                 // @ts-ignore TODO type property missing from pc.Texture
                 type: pc.TEXTURETYPE_RGBM,
                 addressU: pc.ADDRESS_CLAMP_TO_EDGE,
-                addressV: pc.ADDRESS_CLAMP_TO_EDGE
+                addressV: pc.ADDRESS_CLAMP_TO_EDGE,
+                fixCubemapSeams: true,
+                mipmaps: false
             });
-            pc.reprojectTexture(device, cubemaps[1] || skybox, prefilter, specPower[i]);
+            // @ts-ignore
+            pc.reprojectTexture(device, cubemaps[1] || skybox, prefilter, specPower[i], 4096);
             cubemaps.push(prefilter);
         }
 
@@ -500,12 +508,11 @@ class Viewer {
             //     name: 'heli_equirect',
             //     width: 2048,
             //     height: 1024,
-            //     type: pc.TEXTURETYPE_RGBM
+            //     type: pc.TEXTURETYPE_RGBM.toString()
             // });
-            // pc.reprojectTexture(app.graphicsDevice, cubemap.resource, equi);
-            // pc.downloadTexture(equi, 'Helipad_equi.png', 0, true);
-
-            // pc.downloadTexture(cubemap.resource, 'Helipad_cube.png');
+            // pc.reprojectTexture(app.graphicsDevice, cubemap.resources[1], equi);
+            // downloadTexture(equi, 'Helipad_equi.png', 0, true);
+            // downloadTexture(cubemap.resources[1], 'Helipad_cube.png');
         }.bind(this));
         app.assets.add(cubemap);
         app.assets.load(cubemap);
