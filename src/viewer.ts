@@ -499,18 +499,6 @@ class Viewer {
             app.scene.skyboxMip = this.skyboxMip;                   // Set the skybox to the 128x128 cubemap mipmap level
             app.scene.setSkybox(cubemap.resources);
             app.renderNextFrame = true;                             // ensure we render again when the cubemap arrives
-
-            // generate Helipad_equi.png from cubemaps
-            // reproject the heli to equirect
-            // const equi = new pc.Texture(app.graphicsDevice, {
-            //     name: 'heli_equirect',
-            //     width: 2048,
-            //     height: 1024,
-            //     type: pc.TEXTURETYPE_RGBM.toString()
-            // });
-            // pc.reprojectTexture(app.graphicsDevice, cubemap.resources[1], equi);
-            // downloadTexture(equi, 'Helipad_equi.png', 0, true);
-            // downloadTexture(cubemap.resources[1], 'Helipad_cube.png');
         }.bind(this));
         app.assets.add(cubemap);
         app.assets.load(cubemap);
