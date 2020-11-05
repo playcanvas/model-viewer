@@ -352,9 +352,12 @@ class Viewer {
                 height: size,
                 type: pc.TEXTURETYPE_RGBM.toString(),
                 addressU: pc.ADDRESS_CLAMP_TO_EDGE,
-                addressV: pc.ADDRESS_CLAMP_TO_EDGE
+                addressV: pc.ADDRESS_CLAMP_TO_EDGE,
+                fixCubemapSeams: false,
+                mipmaps: false
             });
             pc.reprojectTexture(device, src, faces);
+
             return faces;
         };
 
@@ -384,9 +387,12 @@ class Viewer {
                 // @ts-ignore TODO type property missing from pc.Texture
                 type: pc.TEXTURETYPE_RGBM,
                 addressU: pc.ADDRESS_CLAMP_TO_EDGE,
-                addressV: pc.ADDRESS_CLAMP_TO_EDGE
+                addressV: pc.ADDRESS_CLAMP_TO_EDGE,
+                fixCubemapSeams: true,
+                mipmaps: false
             });
-            pc.reprojectTexture(device, cubemaps[1] || skybox, prefilter, specPower[i]);
+            // @ts-ignore
+            pc.reprojectTexture(device, cubemaps[1] || skybox, prefilter, specPower[i], 4096);
             cubemaps.push(prefilter);
         }
 
@@ -493,19 +499,6 @@ class Viewer {
             app.scene.skyboxMip = this.skyboxMip;                   // Set the skybox to the 128x128 cubemap mipmap level
             app.scene.setSkybox(cubemap.resources);
             app.renderNextFrame = true;                             // ensure we render again when the cubemap arrives
-
-            // generate Helipad_equi.png from cubemaps
-            // reproject the heli to equirect
-            // const equi = new pc.Texture(app.graphicsDevice, {
-            //     name: 'heli_equirect',
-            //     width: 2048,
-            //     height: 1024,
-            //     type: pc.TEXTURETYPE_RGBM
-            // });
-            // pc.reprojectTexture(app.graphicsDevice, cubemap.resource, equi);
-            // pc.downloadTexture(equi, 'Helipad_equi.png', 0, true);
-
-            // pc.downloadTexture(cubemap.resource, 'Helipad_cube.png');
         }.bind(this));
         app.assets.add(cubemap);
         app.assets.load(cubemap);
