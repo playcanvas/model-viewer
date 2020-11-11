@@ -71,7 +71,8 @@
     "typescript": "^3.9.7",
     "webpack": "^4.44.0",
     "webpack-bundle-analyzer": "^3.8.0",
-    "webpack-cli": "^3.3.12"
+    "webpack-cli": "^3.3.12",
+    "cross-env": "^7.0.2"
   },
   "scripts": {
     "lint": "./node_modules/.bin/eslint --ignore-pattern 'src/lib' --ext .ts src",
@@ -80,7 +81,7 @@
     "build:watch": "webpack --config webpack.config.js --watch",
     "build:server": "ENVIRONMENT=production PUBLIC_PATH=/viewer/static/ webpack --config webpack.config.js",
     "build:analyze": "ENVIRONMENT=production ANALYZE_BUNDLE=true webpack --config webpack.config.js",
-    "local": "ENGINE_PATH=../engine/build/playcanvas.js EXTRAS_PATH=../engine/build/playcanvas-extras.js concurrently --kill-others \"npm run build:watch\" \"npm run serve\"",
-    "local:dbg": "ENGINE_PATH=../engine/build/playcanvas.dbg.js EXTRAS_PATH=../engine/build/playcanvas-extras.js concurrently --kill-others \"npm run build:watch\" \"npm run serve\""
+    "local": "cross-env ENGINE_PATH=../engine/build/playcanvas.js EXTRAS_PATH=../engine/build/playcanvas-extras.js concurrently --kill-others \"npm run build:watch\" \"npm run serve\"",
+    "local:dbg": "cross-env ENGINE_PATH=../engine/build/playcanvas.dbg.js EXTRAS_PATH=../engine/build/playcanvas-extras.js concurrently --kill-others \"npm run build:watch\" \"npm run serve\""
   }
 }
