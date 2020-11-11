@@ -37,7 +37,8 @@ const observer: Observer = new Observer({
                 { v: null, t: 'None' }
             ]),
             default: null
-        }
+        },
+        rotation: 0
     },
     animation: {
         playing: false,

@@ -54,7 +54,8 @@ class Viewer {
         // create the application
         const app = new pc.Application(canvas, {
             mouse: new pc.Mouse(canvas),
-            touch: new pc.TouchDevice(canvas)
+            touch: new pc.TouchDevice(canvas),
+            graphicsDeviceOptions: { alpha: false }
         });
         this.app = app;
 
@@ -316,6 +317,7 @@ class Viewer {
                 this.clearSkybox();
             }
         });
+        this.observer.on('lighting.rotation:set', this.setLightingRotation.bind(this));
 
         this.observer.on('animation.playing:set', (playing: boolean) => {
             if (playing) {
@@ -810,6 +812,18 @@ class Viewer {
 
     setDirectLighting(factor: number) {
         this.light.light.intensity = factor;
+        this.renderNextFrame();
+    }
+
+    setLightingRotation(factor: number) {
+        // update skybox
+        const rot = new pc.Quat();
+        rot.setFromEulerAngles(0, factor, 0);
+        this.app.scene.skyboxRotation = rot;
+
+        // update directional light
+        this.light.setLocalEulerAngles(45, 30 + factor, 0);
+
         this.renderNextFrame();
     }
 
