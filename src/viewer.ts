@@ -816,9 +816,14 @@ class Viewer {
     }
 
     setLightingRotation(factor: number) {
+        // update skybox
         var rot = new pc.Quat();
         rot.setFromEulerAngles(0, factor, 0);
         this.app.scene.skyboxRotation = rot;
+
+        // update directional light
+        this.light.setLocalEulerAngles(45, 30 + factor, 0);
+
         this.renderNextFrame();
     }
 
