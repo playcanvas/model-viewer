@@ -316,6 +316,7 @@ class Viewer {
                 this.clearSkybox();
             }
         });
+        this.observer.on('lighting.rotation:set', this.setLightingRotation.bind(this));
 
         this.observer.on('animation.playing:set', (playing: boolean) => {
             if (playing) {
@@ -810,6 +811,13 @@ class Viewer {
 
     setDirectLighting(factor: number) {
         this.light.light.intensity = factor;
+        this.renderNextFrame();
+    }
+
+    setLightingRotation(factor: number) {
+        var rot = new pc.Quat();
+        rot.setFromEulerAngles(0, factor, 0);
+        this.app.scene.skyboxRotation = rot;
         this.renderNextFrame();
     }
 

@@ -80,6 +80,6 @@
     "build:watch": "webpack --config webpack.config.js --watch",
     "build:server": "ENVIRONMENT=production PUBLIC_PATH=/viewer/static/ webpack --config webpack.config.js",
     "build:analyze": "ENVIRONMENT=production ANALYZE_BUNDLE=true webpack --config webpack.config.js",
-    "local": "concurrently --kill-others \"npm run build:watch\" \"npm run serve\""
+    "local": "ENGINE_PATH=../engine/build/playcanvas.js EXTRAS_PATH=../engine/build/playcanvas-extras.js concurrently --kill-others \"npm run build:watch\" \"npm run serve\""
   }
 }
