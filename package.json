@@ -51,7 +51,7 @@
     "@babel/preset-env": "^7.11.0",
     "@babel/preset-react": "^7.10.4",
     "@playcanvas/eslint-config": "^1.0.6",
-    "@playcanvas/pcui": "^1.0.7",
+    "@playcanvas/pcui": "^1.0.8",
     "@types/react": "^16.9.48",
     "@types/react-dom": "^16.9.8",
     "@typescript-eslint/eslint-plugin": "^3.9.0",
@@ -80,6 +80,7 @@
     "build:watch": "webpack --config webpack.config.js --watch",
     "build:server": "ENVIRONMENT=production PUBLIC_PATH=/viewer/static/ webpack --config webpack.config.js",
     "build:analyze": "ENVIRONMENT=production ANALYZE_BUNDLE=true webpack --config webpack.config.js",
-    "local": "ENGINE_PATH=../engine/build/playcanvas.js EXTRAS_PATH=../engine/build/playcanvas-extras.js concurrently --kill-others \"npm run build:watch\" \"npm run serve\""
+    "local": "ENGINE_PATH=../engine/build/playcanvas.js EXTRAS_PATH=../engine/build/playcanvas-extras.js concurrently --kill-others \"npm run build:watch\" \"npm run serve\"",
+    "local:dbg": "ENGINE_PATH=../engine/build/playcanvas.dbg.js EXTRAS_PATH=../engine/build/playcanvas-extras.js concurrently --kill-others \"npm run build:watch\" \"npm run serve\""
   }
 }
