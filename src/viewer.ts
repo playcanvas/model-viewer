@@ -54,7 +54,8 @@ class Viewer {
         // create the application
         const app = new pc.Application(canvas, {
             mouse: new pc.Mouse(canvas),
-            touch: new pc.TouchDevice(canvas)
+            touch: new pc.TouchDevice(canvas),
+            graphicsDeviceOptions: { alpha: false }
         });
         this.app = app;
 
