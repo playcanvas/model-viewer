@@ -199,6 +199,10 @@ input {
     flex-grow: 1;
 }
 
+.panel-option > .pcui-slider {
+    flex-grow: 1;
+}
+
 .animation-buttons {
     display: flex;
 }
