@@ -69,7 +69,7 @@ ReactDOM.render(
     document.getElementById('app')
 );
 
-let awaiting = 3;
+let awaiting = 2;
 function dependencyArrived() {
     if (--awaiting === 0) {
         // @ts-ignore: Assign global viewer
@@ -118,9 +118,4 @@ new pc.Http().get(
 loadWasmModuleAsync('DracoDecoderModule',
                     wasmSupported() ? getAssetPath('lib/draco/draco.wasm.js') : getAssetPath('lib/draco/draco.js'),
                     wasmSupported() ? getAssetPath('lib/draco/draco.wasm.wasm') : '',
-                    dependencyArrived);
-
-loadWasmModuleAsync('BASISU',
-                    getAssetPath('lib/basisu/basisu.js'),
-                    getAssetPath('lib/basisu/basisu.wasm'),
                     dependencyArrived);
