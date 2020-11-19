@@ -30,6 +30,7 @@ const observer: Observer = new Observer({
     lighting: {
         direct: 1,
         env: 1,
+        tonemapping: 'ACES',
         skybox: {
             mip: 1,
             value: null,
@@ -68,7 +69,7 @@ ReactDOM.render(
     document.getElementById('app')
 );
 
-let awaiting = 2;
+let awaiting = 3;
 function dependencyArrived() {
     if (--awaiting === 0) {
         // @ts-ignore: Assign global viewer
@@ -117,4 +118,9 @@ new pc.Http().get(
 loadWasmModuleAsync('DracoDecoderModule',
                     wasmSupported() ? getAssetPath('lib/draco/draco.wasm.js') : getAssetPath('lib/draco/draco.js'),
                     wasmSupported() ? getAssetPath('lib/draco/draco.wasm.wasm') : '',
+                    dependencyArrived);
+
+loadWasmModuleAsync('BASISU',
+                    getAssetPath('lib/basisu/basisu.js'),
+                    getAssetPath('lib/basisu/basisu.wasm'),
                     dependencyArrived);

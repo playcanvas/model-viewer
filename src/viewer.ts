@@ -162,6 +162,7 @@ class Viewer {
         this.directLightingFactor = observer.get('lighting.direct');
         this.envLightingFactor = observer.get('lighting.env');
         this.skyboxMip = observer.get('lighting.skybox.mip');
+        this.setTonemapping(observer.get('lighting.tonemapping'));
 
         this.dirtyWireframe = false;
         this.dirtyBounds = false;
@@ -309,6 +310,7 @@ class Viewer {
 
         this.observer.on('lighting.direct:set', this.setDirectLighting.bind(this));
         this.observer.on('lighting.env:set', this.setEnvLighting.bind(this));
+        this.observer.on('lighting.tonemapping:set', this.setTonemapping.bind(this));
         this.observer.on('lighting.skybox.mip:set', this.setSkyboxMip.bind(this));
         this.observer.on('lighting.skybox.value:set', (value: string) => {
             if (value) {
@@ -400,10 +402,34 @@ class Viewer {
 
         // assign the textures to the scene
         app.scene.gammaCorrection = pc.GAMMA_SRGB;
-        app.scene.toneMapping = pc.TONEMAP_ACES;
         app.scene.skyboxMip = this.skyboxMip;               // Set the skybox to the 128x128 cubemap mipmap level
         app.scene.setSkybox(cubemaps);
         app.renderNextFrame = true;                         // ensure we render again when the cubemap arrives
+    }
+
+    private compressPngToBasis(url: string) {
+        // @ts-ignore
+        pc.http.get(
+            url,
+            { responseType: 'arraybuffer' },
+            function (err: string | null, result: ArrayBuffer) {
+                if (err) {
+                    console.error(err, result);
+                } else {
+                    // @ts-ignore
+                    const basisu = window.BASISU;
+
+                    // write the input file
+                    basisu.FS.writeFile('input.png', new Int8Array(result));
+
+                    // perform basis compression
+                    basisu.callMain(['input.png', '-no_multithreading', '-mipmap', '-y_flip']);
+
+                    // read back the resulting file data
+                    var result = basisu.FS.readFile('input.basis', { encoding: 'binary' }).buffer;
+                }
+            }
+        );
     }
 
     // load the image files into the skybox. this function supports loading a single equirectangular
@@ -424,6 +450,8 @@ class Viewer {
                     texture.type = pc.TEXTURETYPE_RGBM;
                 }
                 this.initSkyboxFromTexture(texture);
+
+                this.compressPngToBasis(textureAsset.file.url);
             });
             app.assets.add(textureAsset);
             app.assets.load(textureAsset);
@@ -497,7 +525,6 @@ class Viewer {
         });
         cubemap.on('load', function () {
             app.scene.gammaCorrection = pc.GAMMA_SRGB;
-            app.scene.toneMapping = pc.TONEMAP_ACES;
             app.scene.skyboxMip = this.skyboxMip;                   // Set the skybox to the 128x128 cubemap mipmap level
             app.scene.setSkybox(cubemap.resources);
             app.renderNextFrame = true;                             // ensure we render again when the cubemap arrives
@@ -829,6 +856,18 @@ class Viewer {
 
     setEnvLighting(factor: number) {
         this.app.scene.skyboxIntensity = factor;
+        this.renderNextFrame();
+    }
+
+    setTonemapping(tonemapping: string) {
+        const mapping = {
+            Linear: pc.TONEMAP_LINEAR,
+            Filmic: pc.TONEMAP_FILMIC,
+            Hejl: pc.TONEMAP_HEJL,
+            ACES: pc.TONEMAP_ACES
+        };
+        // @ts-ignore
+        this.app.scene.toneMapping = mapping.hasOwnProperty(tonemapping) ? mapping[tonemapping] : pc.TONEMAP_ACES;
         this.renderNextFrame();
     }
 
