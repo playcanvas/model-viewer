@@ -30,6 +30,7 @@ const observer: Observer = new Observer({
     lighting: {
         direct: 1,
         env: 1,
+        tonemapping: 'ACES',
         skybox: {
             mip: 1,
             value: null,

@@ -63,6 +63,7 @@ const LightingPanel = () => {
         <Panel headerText='LIGHTING' collapsible>
             <Slider name='lightingDirect' precision={2} min={0} max={6} path='lighting.direct' label='Direct' />
             <Slider name='lightingEnv' precision={2} min={0} max={6} path='lighting.env' label='Env' />
+            <Select name='lightingTonemapping' type='string' options={['Linear', 'Filmic', 'Hejl', 'ACES'].map(v => ({ v, t: v }))} path='lighting.tonemapping' label='Tonemap' />
             <Select name='lightingSkybox' type='string' options={skyboxOptions} path='lighting.skybox.value' label='Skybox' />
             <Select name='lightingSkyboxMip' type='number' options={[0, 1, 2, 3, 4, 5, 6].map(v => ({ v, t: Number(v).toString() }))} path='lighting.skybox.mip' label='Mip' />
             <Slider name='lightingRotation' precision={0} min={-180} max={180} path='lighting.rotation' label='Rotation' />
