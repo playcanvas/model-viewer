@@ -407,31 +407,6 @@ class Viewer {
         app.renderNextFrame = true;                         // ensure we render again when the cubemap arrives
     }
 
-    private compressPngToBasis(url: string) {
-        // @ts-ignore
-        pc.http.get(
-            url,
-            { responseType: 'arraybuffer' },
-            function (err: string | null, result: ArrayBuffer) {
-                if (err) {
-                    console.error(err, result);
-                } else {
-                    // @ts-ignore
-                    const basisu = window.BASISU;
-
-                    // write the input file
-                    basisu.FS.writeFile('input.png', new Int8Array(result));
-
-                    // perform basis compression
-                    basisu.callMain(['input.png', '-no_multithreading', '-mipmap', '-y_flip']);
-
-                    // read back the resulting file data
-                    var result = basisu.FS.readFile('input.basis', { encoding: 'binary' }).buffer;
-                }
-            }
-        );
-    }
-
     // load the image files into the skybox. this function supports loading a single equirectangular
     // skybox image or 6 cubemap faces.
     private loadSkybox(files: Array<URL>) {
@@ -450,8 +425,6 @@ class Viewer {
                     texture.type = pc.TEXTURETYPE_RGBM;
                 }
                 this.initSkyboxFromTexture(texture);
-
-                this.compressPngToBasis(textureAsset.file.url);
             });
             app.assets.add(textureAsset);
             app.assets.load(textureAsset);
