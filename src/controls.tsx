@@ -29,7 +29,7 @@ const Slider = (props: { name: string, path:string, precision: number, min: numb
     const observer: Observer = useContext(ObserverContext);
     return <Container class='panel-option'>
         <Label text={props.label ? props.label : props.name.substring(0, 1).toUpperCase() + props.name.substring(1, props.name.length)} />
-        <SliderInput min={props.min} max={props.max} sliderMin={props.min} sliderMax={props.max} pre={props.precision} step={0.01}  link={{ observer, path: props.path }} binding={new BindingTwoWay()} enabled={props.enabled} />
+        <SliderInput min={props.min} max={props.max} sliderMin={props.min} sliderMax={props.max} precision={props.precision} step={0.01}  link={{ observer, path: props.path }} binding={new BindingTwoWay()} enabled={props.enabled} />
     </Container>;
 };
 Slider.defaultProps = { enabled: true };
