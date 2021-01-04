@@ -76,6 +76,9 @@ const config = {
         }),
         new webpack.DefinePlugin({
             __PUBLIC_PATH__: JSON.stringify(process.env.PUBLIC_PATH)
+        }),
+        new webpack.ProvidePlugin({
+            'React': 'react'
         })
     ]
 };
