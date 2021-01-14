@@ -1,4 +1,5 @@
-import * as pc from 'playcanvas';
+// @ts-ignore: library file import... TODO change this import to 'playcanvas'
+import * as pc from 'playcanvas/build/playcanvas.js';
 // @ts-ignore: No extras declarations
 import * as pcx from 'playcanvas/build/playcanvas-extras.js';
 import Graph from './graph';
@@ -227,7 +228,7 @@ class Viewer {
     // flatten a hierarchy of nodes
     private static flatten(node: pc.GraphNode) {
         const result: Array<pc.GraphNode> = [];
-        node.forEach(function (n) {
+        node.forEach(function (n: pc.GraphNode) {
             result.push(n);
         });
         return result;
@@ -1048,7 +1049,7 @@ class Viewer {
             const morphInstances = entity.model.model.morphInstances;
             // make a list of all the morph instance target names
             const morphs: Array<Morph> = this.morphs;
-            morphInstances.forEach((morphInstance, morphIndex) => {
+            morphInstances.forEach((morphInstance: any, morphIndex: number) => {
                 // @ts-ignore TODO expose meshInstance on morphInstance in pc
                 const meshInstance = morphInstance.meshInstance;
 
@@ -1090,7 +1091,7 @@ class Viewer {
             this.observer.set('morphTargets', morphTargets);
             this.observer.on('animationUpdate', () => {
                 const morphTargets = this.observer.get('morphTargets');
-                morphInstances.forEach((morphInstance, i) => {
+                morphInstances.forEach((morphInstance: any, i: number) => {
                     Object.keys(morphTargets[i].morphs).forEach(morphKey => {
                         const newWeight = morphInstance.getWeight(Number(morphKey));
                         if (morphTargets[i].morphs[morphKey].weight !== newWeight) {
