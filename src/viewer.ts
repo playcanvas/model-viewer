@@ -228,7 +228,7 @@ class Viewer {
     // flatten a hierarchy of nodes
     private static flatten(node: pc.GraphNode) {
         const result: Array<pc.GraphNode> = [];
-        node.forEach(function (n: any) {
+        node.forEach(function (n: pc.GraphNode) {
             result.push(n);
         });
         return result;
