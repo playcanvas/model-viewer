@@ -63,7 +63,7 @@
     "css-loader": "^4.0.0",
     "eslint": "^7.6.0",
     "html-webpack-plugin": "^4.3.0",
-    "playcanvas": "^1.35.0",
+    "playcanvas": "^1.38.0",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
     "serve": "^11.3.2",
