@@ -188,6 +188,7 @@ input {
 
 .panel-option {
     display: flex;
+    align-items: center;
 }
 
 .panel-option > .pcui-label {
