@@ -223,6 +223,21 @@ input {
     min-width: 24% !important;
 }
 
+@keyframes animation-spin { 
+    from { 
+        transform: rotate(0deg); 
+    } to { 
+        transform: rotate(360deg); 
+    }
+}
+
+.pcui-spinner {
+    position: absolute;
+    margin: 0;
+    left: calc(50% - 15px);
+    top: calc(50% - 15px);
+}
+
 ::-webkit-scrollbar {
     width: 8px;
     height: 8px;

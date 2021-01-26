@@ -684,6 +684,10 @@ class Viewer {
         containerAsset.on('load', () => {
             this.onLoaded(null, containerAsset);
         });
+
+        this.observer.set('spinner', true);
+        this.clearCta();
+
         this.app.assets.add(containerAsset);
         this.app.assets.load(containerAsset);
     }
@@ -984,6 +988,8 @@ class Viewer {
 
     // container asset has been loaded, add it to the scene
     private onLoaded(err: string, asset: pc.Asset) {
+        this.observer.set('spinner', false);
+
         if (err) {
             return;
         }
@@ -1129,7 +1135,6 @@ class Viewer {
         // then focus the camera.
         this.firstFrame = true;
         this.renderNextFrame();
-        this.clearCta();
     }
 
     // rebuild the animation state graph

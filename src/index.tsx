@@ -11,7 +11,7 @@ import Controls from './controls';
 // @ts-ignore: library file import
 import { Observer } from '@playcanvas/pcui/pcui-binding';
 // @ts-ignore: library file import
-import { Container, InfoBox } from '@playcanvas/pcui/pcui-react';
+import { Container, InfoBox, Spinner } from '@playcanvas/pcui/pcui-react';
 import { getAssetPath } from './helpers';
 import { Skybox, Option } from './types';
 
@@ -51,7 +51,8 @@ const observer: Observer = new Observer({
         list: '[]',
         playAnimation: null
     },
-    morphTargets: null
+    morphTargets: null,
+    spinner: false
 });
 
 // render out the app
@@ -65,6 +66,7 @@ ReactDOM.render(
         <div id='canvas-wrapper'>
             <InfoBox title='' text='Drag glTF or glb files here to view' class='initial-cta' icon='E400' />
             <canvas id="application-canvas" />
+            <Spinner id="spinner" size={30} hidden={true} />
         </div>
     </div>,
     document.getElementById('app')
@@ -114,6 +116,16 @@ new pc.Http().get(
         }
     }
 );
+
+// hide / show spinner when loading files
+observer.on('spinner:set', (value: Boolean) => {
+    const spinner = document.getElementById('spinner');
+    if (value) {
+        spinner.classList.remove('pcui-hidden');
+    } else {
+        spinner.classList.add('pcui-hidden');
+    }
+});
 
 // initialize draco module
 loadWasmModuleAsync('DracoDecoderModule',
