@@ -8,6 +8,7 @@ import { wasmSupported, loadWasmModuleAsync } from 'lib/wasm-loader.js';
 import Viewer from './viewer';
 // import { Skybox, setSkyboxes } from './controls';
 import Controls from './controls';
+import ErrorBox from './errors';
 // @ts-ignore: library file import
 import { Observer } from '@playcanvas/pcui/pcui-binding';
 // @ts-ignore: library file import
@@ -52,7 +53,8 @@ const observer: Observer = new Observer({
         playAnimation: null
     },
     morphTargets: null,
-    spinner: false
+    spinner: false,
+    error: null
 });
 
 // render out the app
@@ -65,6 +67,7 @@ ReactDOM.render(
         </Container>
         <div id='canvas-wrapper'>
             <InfoBox title='' text='Drag glTF or glb files here to view' class='initial-cta' icon='E400' />
+            <ErrorBox observer={observer} path='error' />
             <canvas id="application-canvas" />
             <Spinner id="spinner" size={30} hidden={true} />
         </div>
