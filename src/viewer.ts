@@ -684,8 +684,12 @@ class Viewer {
         containerAsset.on('load', () => {
             this.onLoaded(null, containerAsset);
         });
+        containerAsset.on('error', (err : string) => {
+            this.onLoaded(err, containerAsset);
+        });
 
         this.observer.set('spinner', true);
+        this.observer.set('error', null);
         this.clearCta();
 
         this.app.assets.add(containerAsset);
@@ -991,6 +995,7 @@ class Viewer {
         this.observer.set('spinner', false);
 
         if (err) {
+            this.observer.set('error', err);
             return;
         }
 

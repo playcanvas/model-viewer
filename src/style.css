@@ -149,7 +149,7 @@ input {
     color: #b1b8ba;;
 }
 
-.initial-cta {
+.pcui-infobox {
     border-radius: 8px;
     font-size: 16px;
     position: absolute;
@@ -165,6 +165,14 @@ input {
 
 .initial-cta.no-cta {
     display: none !important;
+}
+
+.pcui-infobox.pcui-error :first-child {
+    color: red;
+}
+
+.pcui-infobox.pcui-error:before {
+    color: red;
 }
 
 .controls {
