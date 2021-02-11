@@ -58,7 +58,7 @@ class DebugLines {
         material.update();
 
         // construct the mesh instance
-        const meshInstance = new pc.MeshInstance(new pc.GraphNode(), mesh, material);
+        const meshInstance = new pc.MeshInstance(mesh, material, new pc.GraphNode());
         meshInstance.cull = false;
         meshInstance.visible = false;
 
