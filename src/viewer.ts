@@ -376,6 +376,8 @@ class Viewer {
                 cubemaps.push(reprojectToCubemap(skybox, skybox.width));
             }
         } else {
+            // @ts-ignore TODO type property missing from pc.Texture
+            skybox.projection = pc.TEXTUREPROJECTION_EQUIRECT;
             // reproject equirect to cubemap for skybox
             cubemaps.push(reprojectToCubemap(skybox, skybox.width / 4));
         }
