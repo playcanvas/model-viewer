@@ -1,3 +1,5 @@
+import * as pc from 'playcanvas';
+
 interface IGraph {
     node: pc.GraphNode,
     color: pc.Color,

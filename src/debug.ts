@@ -1,3 +1,5 @@
+import * as pc from 'playcanvas';
+
 let debugLayerFront: pc.Layer = null;
 let debugLayerBack: pc.Layer = null;
 
