@@ -329,11 +329,12 @@ class Viewer {
                 this.stop();
             }
         });
-        this.observer.on('animation.playAnimation:set', this.play.bind(this));
+        this.observer.on('animation.selectedTrack:set', this.play.bind(this));
         this.observer.on('animation.speed:set', this.setSpeed.bind(this));
         this.observer.on('animation.transition:set', this.setTransition.bind(this));
         this.observer.on('animation.loops:set', this.setLoops.bind(this));
         this.observer.on('animation.graphs:set', this.setShowGraphs.bind(this));
+        this.observer.on('animation.progress:set', this.setAnimationProgress.bind(this));
 
         this.observer.on('canvasResized', () => {
             this.resizeCanvas();
@@ -725,14 +726,19 @@ class Viewer {
     }
 
     // play an animation / play all the animations
-    play(animationName?: string, appendAnimation?: boolean) {
-        const a = this.animationMap[animationName];
+    play() {
+        let a: string;
+        const animationName: string = this.observer.get('animation.selectedTrack');
+        if (animationName !== 'ALL_TRACKS') {
+            a = this.animationMap[animationName];
+        }
         this.entities.forEach(function (e) {
             // @ts-ignore
             const anim = e.anim;
             if (anim) {
-                anim.setParameterValue('loop', 'BOOLEAN', !!animationName);
+                anim.setBoolean('loop', !!a);
                 anim.findAnimationLayer('all_layer').play(a || 'START');
+                anim.playing = true;
             }
         });
     }
@@ -783,6 +789,18 @@ class Viewer {
     setShowGraphs(show: boolean) {
         this.showGraphs = show;
         this.renderNextFrame();
+    }
+
+    setAnimationProgress(progress: number) {
+        this.observer.set('animation.playing', false);
+        this.entities.forEach(e => {
+            const anim = e.anim;
+            anim.playing = true;
+            anim.baseLayer.activeStateCurrentTime = anim.baseLayer.activeStateDuration * progress;
+            anim.system.onAnimationUpdate(0);
+            anim.playing = false;
+            anim.baseLayer.play();
+        });
     }
 
     setStats(show: boolean) {

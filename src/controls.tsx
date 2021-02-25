@@ -75,19 +75,28 @@ const AnimationPanel = () => {
     const observer: Observer = useContext(ObserverContext);
     const playing: boolean = useObserverState(observer, 'animation.playing');
     const animationsList: Array<string> = useObserverState(observer, 'animation.list', true);
-    const enabled =  animationsList.length > 0;
+    const enabled: boolean =  animationsList.length > 0;
+    let selectTrackOptions: Array<{ v: string, t: string }> = animationsList.map((animation: string) => ({ v: animation, t: animation }));
+    if (selectTrackOptions.length > 1) {
+        selectTrackOptions = [{ v: 'ALL_TRACKS', t: 'All tracks' }, ...selectTrackOptions];
+        if (!animationsList.includes(observer.get('animation.selectedTrack'))) {
+            observer.set('animation.selectedTrack', selectTrackOptions[0].v);
+        }
+    } else if (selectTrackOptions.length === 1) {
+        observer.set('animation.selectedTrack', selectTrackOptions[0].v);
+    }
+    const allTracks: boolean = useObserverState(observer, 'animation.selectedTrack') === 'ALL_TRACKS';
     return (
         <Panel headerText='ANIMATION' collapsible>
+            <Select name='animationTrack' type='string' options={selectTrackOptions} path='animation.selectedTrack' label='Track' enabled={enabled} />
             <Container class='panel-option'>
                 <Button icon={ playing ? 'E376' : 'E286' } text='' onClick={() => observer.set('animation.playing', !observer.get('animation.playing'))} enabled={enabled} />
             </Container>
             <Slider name='animationSpeed' precision={2} min={0} max={4} path='animation.speed' label='Speed' enabled={enabled} />
-            <Slider name='animationTransition' precision={2} min={0} max={4} path='animation.transition' label='Transition' enabled={enabled} />
-            <Select name='animationLoops' type='number' options={[1, 2, 3, 4].map(v => ({ v, t: Number(v).toString() }))} path='animation.loops' label='Loops' enabled={enabled} />
+            { !allTracks && <Slider name='animationFrameTimeline' precision={2} min={0} max={1} path='animation.progress' label='Timeline' enabled={enabled} /> }
+            { allTracks && <Slider name='animationTransition' precision={2} min={0} max={4} path='animation.transition' label='Transition' enabled={enabled} /> }
+            { allTracks && <Select name='animationLoops' type='number' options={[1, 2, 3, 4].map(v => ({ v, t: Number(v).toString() }))} path='animation.loops' label='Loops' enabled={enabled} /> }
             <Toggle name='animationGraph' path='animation.graphs' label='Graphs' enabled={enabled} />
-            <Container>
-                {animationsList.map((animation: string) => <Container key={animation} class='panel-option'><Button text={animation} onClick={() => observer.set('animation.playAnimation', animation)}></Button></Container>)}
-            </Container>
         </Panel>
     );
 };
