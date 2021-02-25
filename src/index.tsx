@@ -49,7 +49,8 @@ const observer: Observer = new Observer({
         loops: 1,
         graphs: false,
         list: '[]',
-        playAnimation: null
+        progress: 0,
+        selectedTrack: 'ALL_TRACKS'
     },
     morphTargets: null,
     spinner: false,
