@@ -794,6 +794,7 @@ class Viewer {
     setAnimationProgress(progress: number) {
         this.observer.set('animation.playing', false);
         this.entities.forEach(e => {
+            // @ts-ignore
             const anim = e.anim;
             anim.playing = true;
             anim.baseLayer.activeStateCurrentTime = anim.baseLayer.activeStateDuration * progress;
