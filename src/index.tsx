@@ -1,5 +1,4 @@
-// @ts-ignore: library file import... TODO change this import to 'playcanvas'
-import * as pc from 'playcanvas/build/playcanvas.js';
+import * as pc from 'playcanvas';
 import React from 'react';
 import ReactDOM from 'react-dom';
 // @ts-ignore: library file import

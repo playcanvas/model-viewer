@@ -1,5 +1,4 @@
-// @ts-ignore: library file import... TODO change this import to 'playcanvas'
-import * as pc from 'playcanvas/build/playcanvas.js';
+import * as pc from 'playcanvas';
 // @ts-ignore: No extras declarations
 import * as pcx from 'playcanvas/build/playcanvas-extras.js';
 import Graph from './graph';
