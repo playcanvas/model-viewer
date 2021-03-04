@@ -10,10 +10,11 @@
             "es2019",
             "dom"
         ],
-        "allowSyntheticDefaultImports" : true,
-        "esModuleInterop" : true
+        "allowSyntheticDefaultImports": true,
+        "esModuleInterop": true
     },
     "include": [
-        "src"
-    ],
+        "src",
+        "types"
+    ]
 }
