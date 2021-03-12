@@ -99,7 +99,7 @@ class Viewer {
             type: "directional",
             color: new pc.Color(1, 1, 1),
             castShadows: true,
-            intensity: 2,
+            intensity: 1,
             shadowBias: 0.2,
             shadowDistance: 5,
             normalOffsetBias: 0.05,
