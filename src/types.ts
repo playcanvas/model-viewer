@@ -33,3 +33,9 @@ export interface Observer {
     on: (eventName: string, callback: (value: any) => void) => void,
     emit: (eventName: string) => void
 }
+
+export interface HierarchyNode {
+    name: string,
+    path: string,
+    children: Array<HierarchyNode>
+}

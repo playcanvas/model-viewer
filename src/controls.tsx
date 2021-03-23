@@ -3,7 +3,7 @@ import { Container, BooleanInput, Label, SliderInput, SelectInput, Panel, Button
 // @ts-ignore: library file import
 import { BindingTwoWay, useObserverState } from '@playcanvas/pcui/pcui-binding';
 import React, { useEffect, useState, useContext } from 'react';
-import { Morph, Option, Observer } from './types';
+import { Morph, Option, Observer, HierarchyNode } from './types';
 
 const ObserverContext = React.createContext(null);
 const ObserverProvider = ObserverContext.Provider;
@@ -88,15 +88,16 @@ const LightingPanel = () => {
 
 const ModelPanel = () => {
     const observer: Observer = useContext(ObserverContext);
-    const modelHierarchy: Array<any> = useObserverState(observer, 'model.nodes', true);
+    const modelHierarchy: Array<HierarchyNode> = useObserverState(observer, 'model.nodes', true);
     const enabled: boolean =  modelHierarchy.length > 0;
-    const mapNodes = (nodes: Array<any>) => {
-        return nodes.map((node:any) => <TreeViewItem text={`${node.name}`} key={node.path} onSelected={() => observer.set('model.selectedNode.path', node.path)}>
+    const mapNodes = (nodes: Array<HierarchyNode>) => {
+        return nodes.map((node:HierarchyNode) => <TreeViewItem text={`${node.name}`} key={node.path} onSelected={() => observer.set('model.selectedNode.path', node.path)}>
             { mapNodes(node.children) }
         </TreeViewItem>);
     };
     return (
         <Panel headerText='MODEL' collapsible >
+            <Detail name='meshCount' label='Meshs:' path='model.meshCount'/>
             <Detail name='vertexCount' label='Verts:' path='model.vertexCount'/>
             <Detail name='primitiveCount' label='Primitives:' path='model.primitiveCount'/>
             <Panel headerText='SELECTED NODE' collapsible class={'modelSelectedNodePanel'} enabled={enabled}>

@@ -61,6 +61,7 @@ const observer: Observer = new Observer({
             rotation: '[0, 0, 0]',
             scale: '[0, 0, 0]'
         },
+        meshCount: null,
         vertexCount: null,
         primitiveCount: null
     },

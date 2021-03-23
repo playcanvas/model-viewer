@@ -8,7 +8,7 @@ import HdrParser from 'lib/hdr-texture.js';
 // @ts-ignore: library file import
 import * as MeshoptDecoder from 'lib/meshopt_decoder.js';
 import { getAssetPath } from './helpers';
-import { Morph, URL, Entry, Observer } from './types';
+import { Morph, URL, Entry, Observer, HierarchyNode } from './types';
 
 class Viewer {
     app: pc.Application;
@@ -1068,26 +1068,28 @@ class Viewer {
             entity.model.asset = resource.model;
         }
 
-        const mapChildren = (node: any) => {
-            return node.children ? node.children.map((child: any) => ({
+        const mapChildren = function (node: pc.GraphNode): Array<HierarchyNode> {
+            return node.children.map((child: pc.GraphNode) => ({
                 name: child.name,
                 path: child.path,
                 children: mapChildren(child)
-            })) : [];
+            }));
         };
 
-        const graph = [{
+        const graph: Array<HierarchyNode> = [{
             name: entity.model.model.graph.name,
             path: entity.model.model.graph.path,
             children: mapChildren(entity.model.model.graph)
         }];
         this.observer.set('model.nodes', JSON.stringify(graph));
+        const meshCount = entity.model.model.meshInstances.length;
         let vertexCount = 0;
         let primitiveCount = 0;
         entity.model.model.meshInstances.forEach(meshInstance => {
             vertexCount += meshInstance.mesh.vertexBuffer.getNumVertices();
             primitiveCount += meshInstance.mesh.primitive[0].count;
         });
+        this.observer.set('model.meshCount', meshCount);
         this.observer.set('model.vertexCount', vertexCount);
         this.observer.set('model.primitiveCount', primitiveCount);
 
