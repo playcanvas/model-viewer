@@ -1,9 +1,8 @@
 // @ts-ignore: library file import
-import { Container, BooleanInput, Label, SliderInput, SelectInput, Panel, Button } from '@playcanvas/pcui/pcui-react';
+import { Container, BooleanInput, Label, SliderInput, SelectInput, Panel, Button, TreeViewItem, TreeView, VectorInput } from '@playcanvas/pcui/pcui-react';
 // @ts-ignore: library file import
 import { BindingTwoWay, useObserverState } from '@playcanvas/pcui/pcui-binding';
 import React, { useEffect, useState, useContext } from 'react';
-import { ProgressPlugin } from 'webpack';
 import { Morph, Option, Observer } from './types';
 
 const ObserverContext = React.createContext(null);
@@ -14,6 +13,22 @@ const useObserverState = (observer: Observer, path: string, json?: boolean) => {
     const [value, setValue] = useState(parseFunc(observer.get(path)));
     observer.on(`${path}:set`, (value) => setValue(parseFunc(value)));
     return value;
+};
+
+const Detail = (props: { name: string, path:string, label?: string, enabled?: boolean}) => {
+    const observer: Observer = useContext(ObserverContext);
+    return <Container class='panel-option'>
+        <Label text={props.label ? props.label : props.name.substring(0, 1).toUpperCase() + props.name.substring(1, props.name.length)} />
+        <Label link={{ observer, path: props.path }} binding={new BindingTwoWay()} enabled={props.enabled}/>
+    </Container>;
+};
+
+const Vector = (props: { name: string, path:string, label?: string, dimensions: number, enabled?: boolean}) => {
+    const observer: Observer = useContext(ObserverContext);
+    return <Container class='panel-option'>
+        <Label text={props.label ? props.label : props.name.substring(0, 1).toUpperCase() + props.name.substring(1, props.name.length)} />
+        <VectorInput link={{ observer, path: props.path }} binding={new BindingTwoWay()} dimensions={props.dimensions} enabled={props.enabled}/>
+    </Container>;
 };
 
 const Toggle = (props: { name: string, path:string, label?: string, enabled?: boolean}) => {
@@ -67,6 +82,36 @@ const LightingPanel = () => {
             <Select name='lightingSkybox' type='string' options={skyboxOptions} path='lighting.skybox.value' label='Skybox' />
             <Select name='lightingSkyboxMip' type='number' options={[0, 1, 2, 3, 4, 5, 6].map(v => ({ v, t: Number(v).toString() }))} path='lighting.skybox.mip' label='Mip' />
             <Slider name='lightingRotation' precision={0} min={-180} max={180} path='lighting.rotation' label='Rotation' />
+        </Panel>
+    );
+};
+
+const ModelPanel = () => {
+    const observer: Observer = useContext(ObserverContext);
+    const modelHierarchy: Array<any> = useObserverState(observer, 'model.nodes', true);
+    const enabled: boolean =  modelHierarchy.length > 0;
+    const mapNodes = (nodes: Array<any>) => {
+        return nodes.map((node:any) => <TreeViewItem text={`${node.name}`} key={node.path} onSelected={() => observer.set('model.selectedNode.path', node.path)}>
+            { mapNodes(node.children) }
+        </TreeViewItem>);
+    };
+    return (
+        <Panel headerText='MODEL' collapsible >
+            <Detail name='vertexCount' label='Verts:' path='model.vertexCount'/>
+            <Detail name='primitiveCount' label='Primitives:' path='model.primitiveCount'/>
+            <Panel headerText='SELECTED NODE' collapsible class={'modelSelectedNodePanel'} enabled={enabled}>
+                <Detail name='selectedNodeName' label='Name:' path='model.selectedNode.name'/>
+                <Vector name='selectedNodePosition' label='Position:' dimensions={3} path='model.selectedNode.position' enabled={false}/>
+                <Vector name='selectedNodeRotation' label='Rotation:' dimensions={4} path='model.selectedNode.rotation' enabled={false}/>
+                <Vector name='selectedNodeScale' label='Scale:' dimensions={3} path='model.selectedNode.scale' enabled={false}/>
+            </Panel>
+            <Panel headerText='HIERARCHY' collapsible class={'modelHierarchyPanel'} enabled={enabled}>
+                { modelHierarchy.length > 0 &&
+                    <TreeView allowReordering={false} allowDrag={false}>
+                        { mapNodes(modelHierarchy) }
+                    </TreeView>
+                }
+            </Panel>
         </Panel>
     );
 };
@@ -141,6 +186,7 @@ const Controls = (props: { observer: Observer }) => {
             <ObserverProvider value={props.observer}>
                 <ShowPanel />
                 <LightingPanel />
+                <ModelPanel />
                 <AnimationPanel />
                 <MorphPanel />
             </ObserverProvider>
