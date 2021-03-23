@@ -97,7 +97,7 @@ const ModelPanel = () => {
     };
     return (
         <Panel headerText='MODEL' collapsible >
-            <Detail name='meshCount' label='Meshs:' path='model.meshCount'/>
+            <Detail name='meshCount' label='Meshes:' path='model.meshCount'/>
             <Detail name='vertexCount' label='Verts:' path='model.vertexCount'/>
             <Detail name='primitiveCount' label='Primitives:' path='model.primitiveCount'/>
             <Panel headerText='SELECTED NODE' collapsible class={'modelSelectedNodePanel'} enabled={enabled}>
