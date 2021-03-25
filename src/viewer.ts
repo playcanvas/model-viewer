@@ -8,7 +8,7 @@ import HdrParser from 'lib/hdr-texture.js';
 // @ts-ignore: library file import
 import * as MeshoptDecoder from 'lib/meshopt_decoder.js';
 import { getAssetPath } from './helpers';
-import { Morph, URL, Entry, Observer } from './types';
+import { Morph, URL, Entry, Observer, HierarchyNode } from './types';
 
 class Viewer {
     app: pc.Application;
@@ -334,6 +334,8 @@ class Viewer {
         this.observer.on('animation.loops:set', this.setLoops.bind(this));
         this.observer.on('animation.graphs:set', this.setShowGraphs.bind(this));
         this.observer.on('animation.progress:set', this.setAnimationProgress.bind(this));
+
+        this.observer.on('model.selectedNode.path:set', this.setSelectedNode.bind(this));
 
         this.observer.on('canvasResized', () => {
             this.resizeCanvas();
@@ -805,6 +807,20 @@ class Viewer {
         });
     }
 
+    setSelectedNode(path: string) {
+        const graphNode = this.app.root.findByPath(path);
+        this.observer.set('model.selectedNode', {
+            name: graphNode.name,
+            path: path,
+        // @ts-ignore
+            position: graphNode.localPosition.toString(),
+        // @ts-ignore
+            rotation: graphNode.localRotation.toString(),
+        // @ts-ignore
+            scale: graphNode.localScale.toString()
+        });
+    }
+
     setStats(show: boolean) {
         this.miniStats.enabled = show;
         this.renderNextFrame();
@@ -1052,6 +1068,31 @@ class Viewer {
             entity.model.asset = resource.model;
         }
 
+        const mapChildren = function (node: pc.GraphNode): Array<HierarchyNode> {
+            return node.children.map((child: pc.GraphNode) => ({
+                name: child.name,
+                path: child.path,
+                children: mapChildren(child)
+            }));
+        };
+
+        const graph: Array<HierarchyNode> = [{
+            name: entity.model.model.graph.name,
+            path: entity.model.model.graph.path,
+            children: mapChildren(entity.model.model.graph)
+        }];
+        this.observer.set('model.nodes', JSON.stringify(graph));
+        const meshCount = entity.model.model.meshInstances.length;
+        let vertexCount = 0;
+        let primitiveCount = 0;
+        entity.model.model.meshInstances.forEach(meshInstance => {
+            vertexCount += meshInstance.mesh.vertexBuffer.getNumVertices();
+            primitiveCount += meshInstance.mesh.primitive[0].count;
+        });
+        this.observer.set('model.meshCount', meshCount);
+        this.observer.set('model.vertexCount', vertexCount);
+        this.observer.set('model.primitiveCount', primitiveCount);
+
         // create animation component
         if (animLoaded) {
             // create the anim component if there isn't one already
@@ -1123,7 +1164,7 @@ class Viewer {
             this.observer.on('animationUpdate', () => {
                 const morphTargets = this.observer.get('morphTargets');
                 morphInstances.forEach((morphInstance: any, i: number) => {
-                    Object.keys(morphTargets[i].morphs).forEach(morphKey => {
+                    if (morphTargets) Object.keys(morphTargets[i].morphs).forEach(morphKey => {
                         const newWeight = morphInstance.getWeight(Number(morphKey));
                         if (morphTargets[i].morphs[morphKey].weight !== newWeight) {
                             this.observer.set(`morphTargets.${i}.morphs.${morphKey}.weight`, newWeight);

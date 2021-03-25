@@ -51,7 +51,7 @@
     "@babel/preset-env": "^7.13.10",
     "@babel/preset-react": "^7.12.13",
     "@playcanvas/eslint-config": "^1.0.7",
-    "@playcanvas/pcui": "^1.1.13",
+    "@playcanvas/pcui": "^1.1.15",
     "@types/react": "^17.0.3",
     "@types/react-dom": "^17.0.2",
     "@typescript-eslint/eslint-plugin": "^4.18.0",

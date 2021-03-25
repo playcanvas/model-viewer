@@ -260,3 +260,20 @@ input {
     background: $editor-tooltip-bg;
 } */
 
+.modelHierarchyPanel > .pcui-panel-content {
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+.modelHierarchyPanel, .modelSelectedNodePanel {
+    margin: 6px;
+    border: 1px solid rgb(41, 53, 56);
+}
+
+.modelSelectedNodePanel > .pcui-panel-content {
+    padding-right: 6px;
+}
+
+.modelHierarchyPanel .pcui-treeview-item-text {
+    font-size: 14px;
+}

@@ -52,6 +52,19 @@ const observer: Observer = new Observer({
         progress: 0,
         selectedTrack: 'ALL_TRACKS'
     },
+    model: {
+        nodes: '[]',
+        selectedNode: {
+            path: '',
+            name: null,
+            position: '[0, 0, 0]',
+            rotation: '[0, 0, 0]',
+            scale: '[0, 0, 0]'
+        },
+        meshCount: null,
+        vertexCount: null,
+        primitiveCount: null
+    },
     morphTargets: null,
     spinner: false,
     error: null
@@ -121,7 +134,7 @@ new pc.Http().get(
 );
 
 // hide / show spinner when loading files
-observer.on('spinner:set', (value: Boolean) => {
+observer.on('spinner:set', (value: boolean) => {
     const spinner = document.getElementById('spinner');
     if (value) {
         spinner.classList.remove('pcui-hidden');
