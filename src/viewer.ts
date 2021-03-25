@@ -801,6 +801,7 @@ class Viewer {
             const anim = e.anim;
             anim.playing = true;
             anim.baseLayer.activeStateCurrentTime = anim.baseLayer.activeStateDuration * progress;
+            // @ts-ignore
             anim.system.onAnimationUpdate(0);
             anim.playing = false;
             anim.baseLayer.play();

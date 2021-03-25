@@ -173,6 +173,7 @@ class DebugLines {
                 worldMat.transformVector(p1, p1);
             }
 
+            // @ts-ignore
             p1.normalize().scale(length).add(p0);
 
             this.line(p0, p1);

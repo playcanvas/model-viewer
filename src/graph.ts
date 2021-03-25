@@ -112,8 +112,10 @@ class Graph {
                 const base = (graph.node.parent || graph.node).getPosition();
                 const dist = base.distance(camera.getPosition());
                 right.copy(camera.right);
+                // @ts-ignore
                 right.scale(dist * 0.005);
                 up.copy(camera.up);
+                // @ts-ignore
                 up.scale(dist * 0.05);
 
                 for (j = 0; j < numSamples - 1; ++j) {
