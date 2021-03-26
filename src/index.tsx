@@ -1,5 +1,5 @@
 import * as pc from 'playcanvas';
-import React from 'react';
+import React, { useRef } from "react";
 import ReactDOM from 'react-dom';
 // @ts-ignore: library file import
 import { wasmSupported, loadWasmModuleAsync } from 'lib/wasm-loader.js';
@@ -11,7 +11,7 @@ import ErrorBox from './errors';
 // @ts-ignore: library file import
 import { Observer } from '@playcanvas/pcui/pcui-binding';
 // @ts-ignore: library file import
-import { Container, InfoBox, Spinner } from '@playcanvas/pcui/pcui-react';
+import { Container, InfoBox, Spinner, Button } from '@playcanvas/pcui/pcui-react';
 import { getAssetPath } from './helpers';
 import { Skybox, Option } from './types';
 
@@ -70,7 +70,36 @@ const observer: Observer = new Observer({
     error: null
 });
 
+const LoadButton = () => {
+    const inputFile = useRef(null);
+
+    const onLoadButtonClick = () => {
+        // `current` points to the mounted file input element
+        inputFile.current.click();
+    };
+
+    const onFileSelected = (event: React.ChangeEvent<any>) => {
+        // `event` points to the selected file
+        const viewer = (window as any).viewer;
+        if (viewer && event.target.files.length){
+            const urls = new Array<URL>();
+            const url = new URL(URL.createObjectURL(event.target.files[0]));
+            urls.push(url);
+            viewer.loadGltf(url, urls);
+        }
+    };
+
+    return (
+        <>
+            <input type='file' id='file' onChange={onFileSelected} ref={inputFile} style={{ display: 'none' }} />
+            <Button icon={'E400'} onClick={onLoadButtonClick} class='load-button' text='Drag glTF or glb files here to view' />
+        </>
+    );
+};
+
 // render out the app
+// <InfoBox title='' text='Drag glTF or glb files here to view' class='initial-cta' icon='E400' />
+// <Button icon={'E400'} class='load-button' text='Drag glTF or glb files here to view' enabled={true} />
 ReactDOM.render(
     <div id="flex-container">
         <Container id="panel" resizable='right' resizeMin={220} resizeMax={600} onResize={() => observer.emit('canvasResized')}>
@@ -79,7 +108,7 @@ ReactDOM.render(
             <Controls observer={observer} />
         </Container>
         <div id='canvas-wrapper'>
-            <InfoBox title='' text='Drag glTF or glb files here to view' class='initial-cta' icon='E400' />
+            <LoadButton />
             <ErrorBox observer={observer} path='error' />
             <canvas id="application-canvas" />
             <Spinner id="spinner" size={30} hidden={true} />

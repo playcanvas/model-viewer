@@ -3,7 +3,7 @@ html {
     font-family: Arial, Helvetica, sans-serif;
 }
 
-body { 
+body {
     margin: 0px;
     height: 100%;
     max-height: 100%;
@@ -163,6 +163,20 @@ input {
     -ms-user-select: none;
 }
 
+.load-button {
+    width: auto;
+    border-radius: 8px;
+    font-size: 16px;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translateY(-50%) translateX(-50%);
+}
+
+.load-button.hide {
+    display: none !important;
+}
+
 .initial-cta.no-cta {
     display: none !important;
 }
@@ -231,11 +245,11 @@ input {
     min-width: 24% !important;
 }
 
-@keyframes animation-spin { 
-    from { 
-        transform: rotate(0deg); 
-    } to { 
-        transform: rotate(360deg); 
+@keyframes animation-spin {
+    from {
+        transform: rotate(0deg);
+    } to {
+        transform: rotate(360deg);
     }
 }
 
