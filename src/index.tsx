@@ -94,7 +94,7 @@ const LoadButton = () => {
     return (
         <>
             <input type='file' id='file' onChange={onFileSelected} ref={inputFile} style={{ display: 'none' }} />
-            <Button icon={'E400'} onClick={onLoadButtonClick} class='load-button' text='Drag glTF or glb files here to view' />
+            <Button icon={'E400'} onClick={onLoadButtonClick} class='load-button' text='Drag glTF or glb files here to view or choose a file' />
         </>
     );
 };
