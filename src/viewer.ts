@@ -4,8 +4,6 @@ import * as pcx from 'playcanvas/build/playcanvas-extras.js';
 import Graph from './graph';
 import DebugLines from './debug';
 // @ts-ignore: library file import
-import HdrParser from 'lib/hdr-texture.js';
-// @ts-ignore: library file import
 import * as MeshoptDecoder from 'lib/meshopt_decoder.js';
 import { getAssetPath } from './helpers';
 import { Morph, URL, Entry, Observer, HierarchyNode } from './types';
@@ -60,6 +58,8 @@ class Viewer {
         this.app = app;
 
         app.graphicsDevice.maxPixelRatio = window.devicePixelRatio;
+        // @ts-ignore
+        pc.Texture.defaultAnisotropy = app.graphicsDevice.maxAnisotropy;
 
         // Set the canvas to fill the window and automatically change resolution to be the same as the canvas size
         const canvasSize = this.getCanvasSize();
@@ -176,10 +176,6 @@ class Viewer {
         this.miniStats = new pcx.MiniStats(app);
         this.miniStats.enabled = observer.get('show.stats');
         this.observer = observer;
-
-        // initialize the envmap
-        // @ts-ignore: Missing pc definition
-        app.loader.getHandler(pc.ASSET_TEXTURE).parsers.hdr = new HdrParser(app.assets, false);
 
         // initialize control events
         this.bindControlEvents();
