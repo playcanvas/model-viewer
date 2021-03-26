@@ -13,7 +13,7 @@ import { Observer } from '@playcanvas/pcui/pcui-binding';
 // @ts-ignore: library file import
 import { Container, InfoBox, Spinner, Button } from '@playcanvas/pcui/pcui-react';
 import { getAssetPath } from './helpers';
-import { Skybox, Option } from './types';
+import { Skybox, Option, URL } from './types';
 
 import './style.css';
 import './fonts.css';
@@ -82,10 +82,12 @@ const LoadButton = () => {
         // `event` points to the selected file
         const viewer = (window as any).viewer;
         if (viewer && event.target.files.length){
-            const urls = new Array<URL>();
-            const url = new URL(URL.createObjectURL(event.target.files[0]));
-            urls.push(url);
-            viewer.loadGltf(url, urls);
+            const urls: Array<URL> = [];
+            urls.push({
+                url: URL.createObjectURL(event.target.files[0]),
+                filename: event.target.files[0].name
+            });
+            viewer.load(urls);
         }
     };
 
@@ -98,8 +100,6 @@ const LoadButton = () => {
 };
 
 // render out the app
-// <InfoBox title='' text='Drag glTF or glb files here to view' class='initial-cta' icon='E400' />
-// <Button icon={'E400'} class='load-button' text='Drag glTF or glb files here to view' enabled={true} />
 ReactDOM.render(
     <div id="flex-container">
         <Container id="panel" resizable='right' resizeMin={220} resizeMax={600} onResize={() => observer.emit('canvasResized')}>
