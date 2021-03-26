@@ -58,8 +58,6 @@ class Viewer {
         this.app = app;
 
         app.graphicsDevice.maxPixelRatio = window.devicePixelRatio;
-        // @ts-ignore
-        pc.Texture.defaultAnisotropy = app.graphicsDevice.maxAnisotropy;
 
         // Set the canvas to fill the window and automatically change resolution to be the same as the canvas size
         const canvasSize = this.getCanvasSize();
