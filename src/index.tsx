@@ -1,5 +1,5 @@
 import * as pc from 'playcanvas';
-import React, { useRef } from "react";
+import React, { useRef } from 'react';
 import ReactDOM from 'react-dom';
 // @ts-ignore: library file import
 import { wasmSupported, loadWasmModuleAsync } from 'lib/wasm-loader.js';
@@ -11,7 +11,7 @@ import ErrorBox from './errors';
 // @ts-ignore: library file import
 import { Observer } from '@playcanvas/pcui/pcui-binding';
 // @ts-ignore: library file import
-import { Container, InfoBox, Spinner, Button } from '@playcanvas/pcui/pcui-react';
+import { Container, Spinner, Label, Button } from '@playcanvas/pcui/pcui-react';
 import { getAssetPath } from './helpers';
 import { Skybox, Option, URL } from './types';
 
@@ -81,7 +81,7 @@ const LoadButton = () => {
     const onFileSelected = (event: React.ChangeEvent<any>) => {
         // `event` points to the selected file
         const viewer = (window as any).viewer;
-        if (viewer && event.target.files.length){
+        if (viewer && event.target.files.length) {
             const urls: Array<URL> = [];
             urls.push({
                 url: URL.createObjectURL(event.target.files[0]),
@@ -94,7 +94,7 @@ const LoadButton = () => {
     return (
         <>
             <input type='file' id='file' onChange={onFileSelected} ref={inputFile} style={{ display: 'none' }} />
-            <Button icon={'E400'} onClick={onLoadButtonClick} class='load-button' text='Drag glTF or glb files or choose a file' />
+            <Button icon={'E400'} onClick={onLoadButtonClick} text='Choose a file' width="calc(100% - 15px)" font-size="14px" />
         </>
     );
 };
@@ -104,11 +104,17 @@ ReactDOM.render(
     <div id="flex-container">
         <Container id="panel" resizable='right' resizeMin={220} resizeMax={600} onResize={() => observer.emit('canvasResized')}>
             <div id="panel-toggle"></div>
-            <div className="header" style={{ display: 'none' }}><a href="#"><img src={getAssetPath('playcanvas-logo.png')}/><div><b>PLAY</b>CANVAS <span>viewer</span></div></a></div>
+            <div className="header" style={{ display: 'none' }}><a href="."><img src={getAssetPath('playcanvas-logo.png')}/><div><b>PLAY</b>CANVAS <span>viewer</span></div></a></div>
             <Controls observer={observer} />
         </Container>
         <div id='canvas-wrapper'>
-            <LoadButton />
+
+            <Container class="load-button-panel" enabled flex>
+                <Label text="Drag glTF or GLB files here to view" icon='E400' />
+                <Label text="or" class="centered-label" />
+                <LoadButton />
+            </Container>
+
             <ErrorBox observer={observer} path='error' />
             <canvas id="application-canvas" />
             <Spinner id="spinner" size={30} hidden={true} />

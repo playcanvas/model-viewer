@@ -1024,7 +1024,7 @@ class Viewer {
     clearCta() {
         document.querySelector('#panel').classList.add('no-cta');
         document.querySelector('#application-canvas').classList.add('no-cta');
-        document.querySelector('.load-button').classList.add('hide');
+        document.querySelector('.load-button-panel').classList.add('hide');
     }
 
     // container asset has been loaded, add it to the scene

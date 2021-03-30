@@ -163,17 +163,29 @@ input {
     -ms-user-select: none;
 }
 
-.load-button {
-    width: auto;
+.load-button-panel {
+    width: 320;
+    width: 320;
+    background-color: #475457;
+    padding: 16px 16px 16px 16px;
     border-radius: 8px;
     font-size: 16px;
     position: absolute;
     left: 50%;
     top: 50%;
     transform: translateY(-50%) translateX(-50%);
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
 }
 
-.load-button.hide {
+.centered-label {
+    text-align: center;
+}
+
+.load-button-panel.hide {
     display: none !important;
 }
 
