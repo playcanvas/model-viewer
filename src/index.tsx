@@ -7,12 +7,13 @@ import { wasmSupported, loadWasmModuleAsync } from 'lib/wasm-loader.js';
 import Viewer from './viewer';
 // import { Skybox, setSkyboxes } from './controls';
 import Controls from './controls';
+import LoadControls from './load-ui';
 import ErrorBox from './errors';
 // @ts-ignore: library file import
 import { Observer } from '@playcanvas/pcui/pcui-binding';
 // @ts-ignore: library file import
-import { Container, InfoBox, Spinner } from '@playcanvas/pcui/pcui-react';
-import { getAssetPath } from './helpers';
+import { Container, Spinner } from '@playcanvas/pcui/pcui-react';
+import { getAssetPath, getRootPath } from './helpers';
 import { Skybox, Option } from './types';
 
 import './style.css';
@@ -75,11 +76,11 @@ ReactDOM.render(
     <div id="flex-container">
         <Container id="panel" resizable='right' resizeMin={220} resizeMax={600} onResize={() => observer.emit('canvasResized')}>
             <div id="panel-toggle"></div>
-            <div className="header" style={{ display: 'none' }}><a href="#"><img src={getAssetPath('playcanvas-logo.png')}/><div><b>PLAY</b>CANVAS <span>viewer</span></div></a></div>
+            <div className="header" style={{ display: 'none' }}><a href={getRootPath()}><img src={getAssetPath('playcanvas-logo.png')}/><div><b>PLAY</b>CANVAS <span>viewer</span></div></a></div>
             <Controls observer={observer} />
         </Container>
         <div id='canvas-wrapper'>
-            <InfoBox title='' text='Drag glTF or glb files here to view' class='initial-cta' icon='E400' />
+            <LoadControls observer={observer} />
             <ErrorBox observer={observer} path='error' />
             <canvas id="application-canvas" />
             <Spinner id="spinner" size={30} hidden={true} />
