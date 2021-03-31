@@ -30,7 +30,7 @@ const LoadButton = () => {
     return (
         <>
             <input type='file' id='file' onChange={onFileSelected} ref={inputFile} style={{ display: 'none' }} />
-            <Button icon={'E400'} onClick={onLoadButtonClick} text='Choose a file' width="calc(100% - 15px)" font-size="14px" />
+            <Button onClick={onLoadButtonClick} text='Choose a file' width="calc(100% - 15px)" font-size="14px" />
         </>
     );
 };
@@ -38,7 +38,7 @@ const LoadButton = () => {
 const LoadPanel = () => {
     return (
         <Container class="load-button-panel" enabled flex>
-            <Label text="Drag glTF or GLB files here to view" icon='E400' />
+            <Label text="Drag glTF or GLB files here to view" />
             <Label text="or" class="centered-label" />
             <LoadButton />
         </Container>
