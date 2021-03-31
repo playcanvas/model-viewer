@@ -1,5 +1,5 @@
 import * as pc from 'playcanvas';
-import React, { useRef } from 'react';
+import React from 'react';
 import ReactDOM from 'react-dom';
 // @ts-ignore: library file import
 import { wasmSupported, loadWasmModuleAsync } from 'lib/wasm-loader.js';
@@ -7,13 +7,14 @@ import { wasmSupported, loadWasmModuleAsync } from 'lib/wasm-loader.js';
 import Viewer from './viewer';
 // import { Skybox, setSkyboxes } from './controls';
 import Controls from './controls';
+import LoadControls from './load-ui';
 import ErrorBox from './errors';
 // @ts-ignore: library file import
 import { Observer } from '@playcanvas/pcui/pcui-binding';
 // @ts-ignore: library file import
-import { Container, Spinner, Label, Button } from '@playcanvas/pcui/pcui-react';
+import { Container, Spinner } from '@playcanvas/pcui/pcui-react';
 import { getAssetPath } from './helpers';
-import { Skybox, Option, URL } from './types';
+import { Skybox, Option } from './types';
 
 import './style.css';
 import './fonts.css';
@@ -70,35 +71,6 @@ const observer: Observer = new Observer({
     error: null
 });
 
-const LoadButton = () => {
-    const inputFile = useRef(null);
-
-    const onLoadButtonClick = () => {
-        // `current` points to the mounted file input element
-        inputFile.current.click();
-    };
-
-    const onFileSelected = (event: React.ChangeEvent<any>) => {
-        // `event` points to the selected file
-        const viewer = (window as any).viewer;
-        if (viewer && event.target.files.length) {
-            const urls: Array<URL> = [];
-            urls.push({
-                url: URL.createObjectURL(event.target.files[0]),
-                filename: event.target.files[0].name
-            });
-            viewer.load(urls);
-        }
-    };
-
-    return (
-        <>
-            <input type='file' id='file' onChange={onFileSelected} ref={inputFile} style={{ display: 'none' }} />
-            <Button icon={'E400'} onClick={onLoadButtonClick} text='Choose a file' width="calc(100% - 15px)" font-size="14px" />
-        </>
-    );
-};
-
 // render out the app
 ReactDOM.render(
     <div id="flex-container">
@@ -109,11 +81,7 @@ ReactDOM.render(
         </Container>
         <div id='canvas-wrapper'>
 
-            <Container class="load-button-panel" enabled flex>
-                <Label text="Drag glTF or GLB files here to view" icon='E400' />
-                <Label text="or" class="centered-label" />
-                <LoadButton />
-            </Container>
+            <LoadControls observer={observer} />
 
             <ErrorBox observer={observer} path='error' />
             <canvas id="application-canvas" />
