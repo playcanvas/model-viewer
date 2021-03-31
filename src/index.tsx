@@ -13,7 +13,7 @@ import ErrorBox from './errors';
 import { Observer } from '@playcanvas/pcui/pcui-binding';
 // @ts-ignore: library file import
 import { Container, Spinner } from '@playcanvas/pcui/pcui-react';
-import { getAssetPath } from './helpers';
+import { getAssetPath, getRootPath } from './helpers';
 import { Skybox, Option } from './types';
 
 import './style.css';
@@ -76,7 +76,7 @@ ReactDOM.render(
     <div id="flex-container">
         <Container id="panel" resizable='right' resizeMin={220} resizeMax={600} onResize={() => observer.emit('canvasResized')}>
             <div id="panel-toggle"></div>
-            <div className="header" style={{ display: 'none' }}><a href="./viewer"><img src={getAssetPath('playcanvas-logo.png')}/><div><b>PLAY</b>CANVAS <span>viewer</span></div></a></div>
+            <div className="header" style={{ display: 'none' }}><a href={getRootPath()}><img src={getAssetPath('playcanvas-logo.png')}/><div><b>PLAY</b>CANVAS <span>viewer</span></div></a></div>
             <Controls observer={observer} />
         </Container>
         <div id='canvas-wrapper'>
