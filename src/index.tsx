@@ -80,9 +80,7 @@ ReactDOM.render(
             <Controls observer={observer} />
         </Container>
         <div id='canvas-wrapper'>
-
             <LoadControls observer={observer} />
-
             <ErrorBox observer={observer} path='error' />
             <canvas id="application-canvas" />
             <Spinner id="spinner" size={30} hidden={true} />
