@@ -6,11 +6,10 @@
     <meta name="keywords" content="glTF, GLB, WebGL, PlayCanvas, Viewer">
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-
     <% if (htmlWebpackPlugin.options.hasPublicPath) { %>
-
     <link rel="icon" type="image/png" href="/viewer/static/playcanvas-logo.png" />
     <link rel="manifest" href="/viewer/static/manifest.json">
+    <% if (htmlWebpackPlugin.options.analyticsID) { %>
     <!-- Global site tag (gtag.js) - Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=<%= htmlWebpackPlugin.options.analyticsID %>"></script>
     <script>
@@ -20,6 +19,7 @@
 
         gtag('config', '<%= htmlWebpackPlugin.options.analyticsID %>');
     </script>
+    <% } %>
     <% } else { %>
     <link rel="icon" type="image/png" href="./static/playcanvas-logo.png" />
     <link rel="manifest" href="./static/manifest.json">
