@@ -67,7 +67,8 @@ const config = {
         new HtmlWebpackPlugin({
             template: 'src/index.ejs',
             filename: '../index.html',
-            hasPublicPath: !!process.env.PUBLIC_PATH
+            hasPublicPath: !!process.env.PUBLIC_PATH,
+            analyticsID: process.env.ANALYTICS_ID
         }),
         new CopyWebpackPlugin({
             patterns: [
