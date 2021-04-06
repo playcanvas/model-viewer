@@ -153,10 +153,10 @@ const MorphPanel = () => {
     if (!morphTargets) return null;
     return (
         <Panel headerText='MORPH TARGETS' collapsible>
-            {Object.keys(morphTargets).map(key => {
+            {Object.keys(morphTargets).map((key, i) => {
                 const panel = morphTargets[key];
                 return (
-                    <Panel key={panel.name} headerText={panel.name} collapsible class='morph-target-panel'>
+                    <Panel key={`${key}.${panel.name}`} headerText={panel.name} collapsible class='morph-target-panel'>
                         {Object.keys(panel.morphs).map((morphKey) => {
                             const morph: Morph = panel.morphs[morphKey];
                             return <Slider  key={`${key}.${morphKey}`} name={Number(morph.targetIndex).toString()} precision={2} min={0} max={1} path={`morphTargets.${key}.morphs.${morph.targetIndex}.weight`} />;
