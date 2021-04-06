@@ -153,7 +153,7 @@ const MorphPanel = () => {
     if (!morphTargets) return null;
     return (
         <Panel headerText='MORPH TARGETS' collapsible>
-            {Object.keys(morphTargets).map((key, i) => {
+            {Object.keys(morphTargets).map((key) => {
                 const panel = morphTargets[key];
                 return (
                     <Panel key={`${key}.${panel.name}`} headerText={panel.name} collapsible class='morph-target-panel'>
