@@ -21,8 +21,11 @@
         if ('<%= htmlWebpackPlugin.options.oneTrustDeveloperId %>') {
             gtag('set', '<%= htmlWebpackPlugin.options.oneTrustDeveloperId %>', true); // OneTrust developer id
         }
-        gtag('consent', 'default', { 'analytics_storage': 'denied' }); // no analytics cookies by default
-        gtag('consent', 'default', { 'ad_storage': 'denied' });  // no ads cookies by default
+
+        gtag('consent', 'default', {
+            'analytics_storage': 'denied',
+            'ad_storage': 'denied'
+        });
 
         gtag('js', new Date());
         gtag('config', '<%= htmlWebpackPlugin.options.analyticsID %>');
