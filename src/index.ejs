@@ -9,15 +9,44 @@
     <% if (htmlWebpackPlugin.options.hasPublicPath) { %>
     <link rel="icon" type="image/png" href="/viewer/static/playcanvas-logo.png" />
     <link rel="manifest" href="/viewer/static/manifest.json">
+    <meta name="pc-url-home" content="" />
+    <meta name="pc-onetrust-key" content="<%= htmlWebpackPlugin.options.oneTrustDomainKey %>" />
     <% if (htmlWebpackPlugin.options.analyticsID) { %>
     <!-- Global site tag (gtag.js) - Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=<%= htmlWebpackPlugin.options.analyticsID %>"></script>
     <script>
         window.dataLayer = window.dataLayer || [];
         function gtag() { dataLayer.push(arguments); }
-        gtag('js', new Date());
 
+        if ('<%= htmlWebpackPlugin.options.oneTrustDeveloperId %>') {
+            gtag('set', '<%= htmlWebpackPlugin.options.oneTrustDeveloperId %>', true); // OneTrust developer id
+        }
+
+        gtag('consent', 'default', {
+            'analytics_storage': 'denied',
+            'ad_storage': 'denied'
+        });
+
+        gtag('js', new Date());
         gtag('config', '<%= htmlWebpackPlugin.options.analyticsID %>');
+
+        if (!window._optanonCallbacks) {
+            window._optanonCallbacks = [];
+        }
+
+        _optanonCallbacks.push(function () {
+            // if consent given for Performance cookies then
+            // update gtag consent
+            if (OnetrustActiveGroups.indexOf('C0002') != -1) {
+                gtag('consent', 'update', { 'analytics_storage': 'granted' });
+            }
+
+            // if consent given for Targeting cookies then
+            // update gtag consent
+            if (OnetrustActiveGroups.indexOf('C0004') != -1) {
+                gtag('consent', 'update', { 'ad_storage': 'granted' });
+            }
+        });
     </script>
     <% } %>
     <% } else { %>
@@ -28,5 +57,8 @@
 
 <body>
     <div id='app'></div>
+    <% if (htmlWebpackPlugin.options.hasPublicPath) { %>
+    <script src="/static/platform/js/onetrust/consent.js"></script>
+    <% } %>
 </body>
 </html>
