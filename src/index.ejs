@@ -9,8 +9,6 @@
     <% if (htmlWebpackPlugin.options.hasPublicPath) { %>
     <link rel="icon" type="image/png" href="/viewer/static/playcanvas-logo.png" />
     <link rel="manifest" href="/viewer/static/manifest.json">
-    <meta name="pc-url-home" content="" />
-    <meta name="pc-onetrust-key" content="<%= htmlWebpackPlugin.options.oneTrustDomainKey %>" />
     <% if (htmlWebpackPlugin.options.analyticsID) { %>
     <!-- Global site tag (gtag.js) - Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=<%= htmlWebpackPlugin.options.analyticsID %>"></script>
@@ -58,7 +56,18 @@
 <body>
     <div id='app'></div>
     <% if (htmlWebpackPlugin.options.hasPublicPath) { %>
-    <script src="/static/platform/js/onetrust/consent.js"></script>
+    <script src="https://cdn.cookielaw.org/scripttemplates/otSDKStub.js"  type="text/javascript" charset="UTF-8" data-domain-script="<%= htmlWebpackPlugin.options.oneTrustDomainKey %>" ></script>
+    <script type="text/javascript">
+        if (!window._optanonCallbacks) {
+            window._optanonCallbacks = [];
+        }
+
+        function OptanonWrapper() {
+            for (var i = 0; i < _optanonCallbacks.length; i++) {
+                _optanonCallbacks[i]();
+            }
+        }
+    </script>
     <% } %>
 </body>
 </html>
