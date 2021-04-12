@@ -240,7 +240,7 @@ OrbitCamera.prototype.initialize = function () {
 
 OrbitCamera.prototype.update = function (dt) {
     // Add inertia, if any
-    var t = this.inertiaFactor === 0 ? 1 : Math.min(dt / this.inertiaFactor, 1);
+    var t = 1.0 - Math.max(0.0, Math.min(1.0, Math.pow(this.inertiaFactor, dt)));
     this._distance = pc.math.lerp(this._distance, this._targetDistance, t);
     this._yaw = pc.math.lerp(this._yaw, this._targetYaw, t);
     this._pitch = pc.math.lerp(this._pitch, this._targetPitch, t);
