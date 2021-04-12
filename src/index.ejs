@@ -22,7 +22,8 @@
 
         gtag('consent', 'default', {
             'analytics_storage': 'denied',
-            'ad_storage': 'denied'
+            'ad_storage': 'denied',
+            'wait_for_update': 1000
         });
 
         gtag('js', new Date());
@@ -33,17 +34,14 @@
         }
 
         _optanonCallbacks.push(function () {
-            // if consent given for Performance cookies then
+            // if consent given for cookies then
             // update gtag consent
-            if (OnetrustActiveGroups.indexOf('C0002') != -1) {
-                gtag('consent', 'update', { 'analytics_storage': 'granted' });
-            }
-
-            // if consent given for Targeting cookies then
-            // update gtag consent
-            if (OnetrustActiveGroups.indexOf('C0004') != -1) {
-                gtag('consent', 'update', { 'ad_storage': 'granted' });
-            }
+            var analytics = (OnetrustActiveGroups.indexOf('C0002') != -1);
+            var ads = (OnetrustActiveGroups.indexOf('C0004') != -1);
+            gtag('consent', 'update', {
+                'analytics_storage': analytics ? 'granted' : 'denied',
+                'ad_storage': ads ? 'granted' : 'denied'
+            });
         });
     </script>
     <% } %>
