@@ -4,7 +4,6 @@ let debugLayerFront: pc.Layer = null;
 let debugLayerBack: pc.Layer = null;
 
 class DebugLines {
-
     app: pc.Application;
     mesh: pc.Mesh;
     meshInstance: pc.MeshInstance;
