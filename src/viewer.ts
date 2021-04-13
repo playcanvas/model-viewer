@@ -83,7 +83,7 @@ class Viewer {
                 camera.addComponent("script");
                 camera.script.create("orbitCamera", {
                     attributes: {
-                        inertiaFactor: 0.0001
+                        inertiaFactor: 0.1
                     }
                 });
                 camera.script.create("orbitCameraInputMouse");
