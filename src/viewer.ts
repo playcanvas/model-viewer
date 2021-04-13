@@ -790,7 +790,7 @@ class Viewer {
 
     setAnimationProgress(progress: number) {
         this.observer.set('animation.playing', false);
-        this.entities.forEach(e => {
+        this.entities.forEach((e) => {
             // @ts-ignore
             const anim = e.anim;
             anim.playing = true;
@@ -1080,7 +1080,7 @@ class Viewer {
         const meshCount = entity.model.model.meshInstances.length;
         let vertexCount = 0;
         let primitiveCount = 0;
-        entity.model.model.meshInstances.forEach(meshInstance => {
+        entity.model.model.meshInstances.forEach((meshInstance) => {
             vertexCount += meshInstance.mesh.vertexBuffer.getNumVertices();
             primitiveCount += meshInstance.mesh.primitive[0].count;
         });
@@ -1159,7 +1159,7 @@ class Viewer {
             this.observer.on('animationUpdate', () => {
                 const morphTargets = this.observer.get('morphTargets');
                 morphInstances.forEach((morphInstance: any, i: number) => {
-                    if (morphTargets) Object.keys(morphTargets[i].morphs).forEach(morphKey => {
+                    if (morphTargets) Object.keys(morphTargets[i].morphs).forEach((morphKey) => {
                         const newWeight = morphInstance.getWeight(Number(morphKey));
                         if (morphTargets[i].morphs[morphKey].weight !== newWeight) {
                             this.observer.set(`morphTargets.${i}.morphs.${morphKey}.weight`, newWeight);
@@ -1177,7 +1177,7 @@ class Viewer {
         this.meshInstances = this.meshInstances.concat(
             Viewer.distinct(
                 Viewer.flatten(entity)
-                    .map( function (node: pc.Entity) {
+                    .map(function (node: pc.Entity) {
                         return node.model ? node.model.meshInstances || [] : [];
                     })
                     // @ts-ignore
@@ -1261,7 +1261,7 @@ class Viewer {
         const graph = this.graph;
         const entity = this.entities[this.entities.length - 1];
 
-        const extract = function (transformPropertyGetter: () => Record<string, number>, dimension: string){
+        const extract = function (transformPropertyGetter: () => Record<string, number>, dimension: string) {
             return () => transformPropertyGetter()[dimension];
         };
 
