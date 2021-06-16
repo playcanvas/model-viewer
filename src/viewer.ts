@@ -1064,8 +1064,8 @@ class Viewer {
             entity = asset.resource.instantiateRenderEntity();
 
             // update mesh stats
-            resource.renders.forEach((renderAsset) => {
-                renderAsset.resource.meshes.forEach((mesh) => {
+            resource.renders.forEach((renderAsset : pc.Asset) => {
+                renderAsset.resource.meshes.forEach((mesh : pc.Mesh) => {
                     meshCount++;
                     vertexCount += mesh.vertexBuffer.getNumVertices();
                     primitiveCount += mesh.primitive[0].count;
@@ -1122,7 +1122,7 @@ class Viewer {
         }
 
         // get all morph targets
-        const morphInstances = [];
+        const morphInstances: Array<pc.MorphInstance> = [];
         const meshInstances = this.collectMeshInstances(entity);
         for (let i = 0; i < meshInstances.length; i++) {
             // @ts-ignore TODO morphInstance is not public
