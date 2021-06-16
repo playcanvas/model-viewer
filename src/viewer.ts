@@ -71,7 +71,8 @@ class Viewer {
         const camera = new pc.Entity("Camera");
         camera.addComponent("camera", {
             fov: 75,
-            clearColor: new pc.Color(0.4, 0.45, 0.5)
+            clearColor: new pc.Color(0.4, 0.45, 0.5),
+            frustumCulling: true
         });
 
         // load orbit script
@@ -218,24 +219,31 @@ class Viewer {
         }
     }
 
-    // flatten a hierarchy of nodes
-    private static flatten(node: pc.GraphNode) {
-        const result: Array<pc.GraphNode> = [];
-        node.forEach(function (n: pc.GraphNode) {
-            result.push(n);
-        });
-        return result;
-    }
-
-    // get the set of unique values from the array
-    private static distinct(array: Array<any>) {
-        const result = [];
-        for (let i = 0; i < array.length; ++i) {
-            if (result.indexOf(array[i]) === -1) {
-                result.push(array[i]);
+    // collects all mesh instances from entity hierarchy
+    private collectMeshInstances(entity: pc.Entity) {
+        const meshInstances: Array<pc.MeshInstance> = [];
+        if (entity) {
+            const components = entity.findComponents("render");
+            for (let i = 0; i < components.length; i++) {
+                const render = components[i] as pc.RenderComponent;
+                if (render.meshInstances) {
+                    for (let m = 0; m < render.meshInstances.length; m++) {
+                        const meshInstance = render.meshInstances[m];
+                        meshInstances.push(meshInstance);
+                    }
+                }
             }
         }
-        return result;
+        return meshInstances;
+    }
+
+    private updateMeshInstanceList() {
+
+        this.meshInstances = [];
+        for (let e = 0; e < this.entities.length; e++) {
+            const meshInstances = this.collectMeshInstances(this.entities[e]);
+            this.meshInstances = this.meshInstances.concat(meshInstances);
+        }
     }
 
     // calculate the bounding box of the given mesh
@@ -1031,7 +1039,7 @@ class Viewer {
         }
 
         const resource = asset.resource;
-        const modelLoaded = resource.model && resource.model.resource.meshInstances.length > 0;
+        const meshesLoaded = resource.renders && resource.renders.length > 0;
         const animLoaded = resource.animations && resource.animations.length > 0;
         const prevEntity : pc.Entity = this.entities.length === 0 ? null : this.entities[this.entities.length - 1];
 
@@ -1040,27 +1048,32 @@ class Viewer {
         if (prevEntity) {
             // check if this loaded resource can be added to the existing entity,
             // for example loading an animation onto an existing model (or visa versa)
-            if ((modelLoaded && prevEntity.model.meshInstances.length === 0) ||
-                (animLoaded && !modelLoaded)) {
+            const preEntityRenders = !!prevEntity.findComponent("render");
+            if ((meshesLoaded && !preEntityRenders) ||
+                (animLoaded && !meshesLoaded)) {
                 entity = prevEntity;
             }
         }
 
+        let meshCount = 0;
+        let vertexCount = 0;
+        let primitiveCount = 0;
+
         if (!entity) {
             // create entity
-            entity = new pc.Entity();
+            entity = asset.resource.instantiateRenderEntity();
+
+            // update mesh stats
+            resource.renders.forEach((renderAsset : pc.Asset) => {
+                renderAsset.resource.meshes.forEach((mesh : pc.Mesh) => {
+                    meshCount++;
+                    vertexCount += mesh.vertexBuffer.getNumVertices();
+                    primitiveCount += mesh.primitive[0].count;
+                });
+            });
+
             this.entities.push(entity);
             this.sceneRoot.addChild(entity);
-
-            // create model component
-            entity.addComponent("model", {
-                type: "asset",
-                asset: resource.model,
-                castShadows: true
-            });
-        } else if (modelLoaded) {
-            // set the model compnent on existing entity
-            entity.model.asset = resource.model;
         }
 
         const mapChildren = function (node: pc.GraphNode): Array<HierarchyNode> {
@@ -1072,18 +1085,15 @@ class Viewer {
         };
 
         const graph: Array<HierarchyNode> = [{
-            name: entity.model.model.graph.name,
-            path: entity.model.model.graph.path,
-            children: mapChildren(entity.model.model.graph)
+            name: entity.name,
+            path: entity.path,
+            children: mapChildren(entity)
         }];
+
+        // hierarchy
         this.observer.set('model.nodes', JSON.stringify(graph));
-        const meshCount = entity.model.model.meshInstances.length;
-        let vertexCount = 0;
-        let primitiveCount = 0;
-        entity.model.model.meshInstances.forEach((meshInstance) => {
-            vertexCount += meshInstance.mesh.vertexBuffer.getNumVertices();
-            primitiveCount += meshInstance.mesh.primitive[0].count;
-        });
+
+        // mesh stats
         this.observer.set('model.meshCount', meshCount);
         this.observer.set('model.vertexCount', vertexCount);
         this.observer.set('model.primitiveCount', primitiveCount);
@@ -1111,9 +1121,19 @@ class Viewer {
             setTimeout(this.rebuildAnimGraphs.bind(this), 1000);
         }
 
+        // get all morph targets
+        const morphInstances: Array<pc.MorphInstance> = [];
+        const meshInstances = this.collectMeshInstances(entity);
+        for (let i = 0; i < meshInstances.length; i++) {
+            // @ts-ignore TODO morphInstance is not public
+            if (meshInstances[i].morphInstance) {
+                // @ts-ignore TODO morphInstance is not public
+                morphInstances.push(meshInstances[i].morphInstance);
+            }
+        }
+
         // initialize morph targets
-        if (entity.model && entity.model.model && entity.model.model.morphInstances.length > 0) {
-            const morphInstances = entity.model.model.morphInstances;
+        if (morphInstances.length > 0) {
             // make a list of all the morph instance target names
             const morphs: Array<Morph> = this.morphs;
             morphInstances.forEach((morphInstance: any, morphIndex: number) => {
@@ -1172,16 +1192,8 @@ class Viewer {
         // store the loaded asset
         this.assets.push(asset);
 
-        // construct a list of meshInstances so we can quick access them when configuring
-        // wireframe rendering etc.
-        this.meshInstances = this.meshInstances.concat(
-            Viewer.distinct(
-                Viewer.flatten(entity)
-                    .map(function (node: pc.Entity) {
-                        return node.model ? node.model.meshInstances || [] : [];
-                    })
-                    // @ts-ignore
-                    .flat()));
+        // construct a list of meshInstances so we can quickly access them when configuring wireframe rendering etc.
+        this.updateMeshInstanceList();
 
         // if no meshes are loaded then enable skeleton rendering so user can see something
         if (this.meshInstances.length === 0) {
@@ -1304,16 +1316,7 @@ class Viewer {
             if (this.dirtyWireframe) {
                 this.dirtyWireframe = false;
                 for (let i = 0; i < this.meshInstances.length; ++i) {
-                    meshInstance = this.meshInstances[i];
-                    if (this.showWireframe) {
-                        if (!meshInstance.mesh.primitive[pc.RENDERSTYLE_WIREFRAME]) {
-                            // @ts-ignore TODO not defined in pc
-                            meshInstance.mesh.generateWireframe();
-                        }
-                        meshInstance.renderStyle = pc.RENDERSTYLE_WIREFRAME;
-                    } else {
-                        meshInstance.renderStyle = pc.RENDERSTYLE_SOLID;
-                    }
+                    this.meshInstances[i].renderStyle = this.showWireframe ? pc.RENDERSTYLE_WIREFRAME : pc.RENDERSTYLE_SOLID;
                 }
             }
 
@@ -1373,8 +1376,8 @@ class Viewer {
                 if (this.showSkeleton) {
                     for (let i = 0; i < this.entities.length; ++i) {
                         const entity = this.entities[i];
-                        if (entity.model && entity.model.model) {
-                            this.debugSkeleton.generateSkeleton(entity.model.model.graph);
+                        if (entity.findComponent("render")) {
+                            this.debugSkeleton.generateSkeleton(entity);
                         }
                     }
                 }
