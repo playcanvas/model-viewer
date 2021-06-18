@@ -365,7 +365,7 @@ class Viewer {
                 fixCubemapSeams: false,
                 mipmaps: false
             });
-            pc.reprojectTexture(device, src, faces);
+            pc.reprojectTexture(src, faces);
 
             return faces;
         };
