@@ -637,7 +637,7 @@ class Viewer {
 
         const processImage = function (gltfImage: any, continuation: (err: string, result: any) => void) {
             const u: URL = externalUrls.find(function (url) {
-                return url.filename === pc.path.normalize(gltfImage.uri);
+                return url.filename === pc.path.normalize(gltfImage.uri || "");
             });
             if (u) {
                 const textureAsset = new pc.Asset(u.filename, 'texture', { url: u.url, filename: u.filename });
@@ -653,7 +653,7 @@ class Viewer {
 
         const processBuffer = function (gltfBuffer: any, continuation: (err: string, result: any) => void) {
             const u = externalUrls.find(function (url) {
-                return url.filename === pc.path.normalize(gltfBuffer.uri);
+                return url.filename === pc.path.normalize(gltfBuffer.uri || "");
             });
             if (u) {
                 const bufferAsset = new pc.Asset(u.filename, 'binary', { url: u.url, filename: u.filename });
