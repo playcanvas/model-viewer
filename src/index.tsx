@@ -31,6 +31,7 @@ const observer: Observer = new Observer({
     },
     lighting: {
         direct: 1,
+        shadow: true,
         env: 1,
         tonemapping: 'ACES',
         skybox: {
@@ -48,7 +49,6 @@ const observer: Observer = new Observer({
         speed: 1.0,
         transition: 0.1,
         loops: 1,
-        graphs: false,
         list: '[]',
         progress: 0,
         selectedTrack: 'ALL_TRACKS'
@@ -122,7 +122,7 @@ new pc.Http().get(
             const skyboxOptions: Array<Option> = [{
                 v: null, t: 'None'
             }];
-            skyboxes.forEach(function (skybox: Skybox ) {
+            skyboxes.forEach((skybox: Skybox) => {
                 skyboxOptions.push({ v: getAssetPath(skybox.url), t: skybox.label });
             });
             const skyboxData = observer.get('lighting.skybox');
@@ -130,6 +130,37 @@ new pc.Http().get(
             skyboxData.default = getAssetPath(result.defaultSkybox);
             observer.set('lighting.skybox', skyboxData);
             dependencyArrived();
+
+            observer.on('*:set', () => {
+                const options = observer.json();
+                window.localStorage.setItem('options', JSON.stringify({
+                    show: options.show,
+                    lighting: options.lighting
+                }));
+            });
+
+            const loadRec = (path: string, value:any) => {
+                const filter = ['lighting.skybox.options'];
+                if (filter.indexOf(path) !== -1) {
+                    return;
+                }
+                if (typeof(value) === 'object') {
+                    Object.keys(value).forEach((k) => {
+                        loadRec(path ? `${path}.${k}` : k, value[k]);
+                    });
+                } else {
+                    if (observer.has(path)) {
+                        observer.set(path, value);
+                    }
+                }
+            };
+
+            const options = window.localStorage.getItem('options');
+            if (options) {
+                try {
+                    loadRec('', JSON.parse(options));
+                } catch { }
+            }
         }
     }
 );
