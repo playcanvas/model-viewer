@@ -71,6 +71,39 @@ const observer: Observer = new Observer({
     error: null
 });
 
+const saveOptions = (name: string) => {
+    const options = observer.json();
+    window.localStorage.setItem(`options_${name}`, JSON.stringify({
+        show: options.show,
+        lighting: options.lighting
+    }));
+};
+
+const loadOptions = (name: string) => {
+    const loadRec = (path: string, value:any) => {
+        const filter = ['lighting.skybox.options'];
+        if (filter.indexOf(path) !== -1) {
+            return;
+        }
+        if (typeof(value) === 'object') {
+            Object.keys(value).forEach((k) => {
+                loadRec(path ? `${path}.${k}` : k, value[k]);
+            });
+        } else {
+            if (observer.has(path)) {
+                observer.set(path, value);
+            }
+        }
+    };
+
+    const options = window.localStorage.getItem(`options_${name}`);
+    if (options) {
+        try {
+            loadRec('', JSON.parse(options));
+        } catch { }
+    }
+};
+
 // render out the app
 ReactDOM.render(
     <div id="flex-container">
@@ -90,12 +123,18 @@ ReactDOM.render(
 );
 
 let awaiting = 2;
-function dependencyArrived() {
+const dependencyArrived = () => {
     if (--awaiting === 0) {
+        loadOptions('default');
+
+        observer.on('*:set', () => {
+            saveOptions('default');
+        });
+
         // @ts-ignore: Assign global viewer
         window.viewer = new Viewer(document.getElementById("application-canvas"), observer);
     }
-}
+};
 
 // @ts-ignore: Assign global pc
 window.pc = pc;
@@ -130,37 +169,6 @@ new pc.Http().get(
             skyboxData.default = getAssetPath(result.defaultSkybox);
             observer.set('lighting.skybox', skyboxData);
             dependencyArrived();
-
-            observer.on('*:set', () => {
-                const options = observer.json();
-                window.localStorage.setItem('options', JSON.stringify({
-                    show: options.show,
-                    lighting: options.lighting
-                }));
-            });
-
-            const loadRec = (path: string, value:any) => {
-                const filter = ['lighting.skybox.options'];
-                if (filter.indexOf(path) !== -1) {
-                    return;
-                }
-                if (typeof(value) === 'object') {
-                    Object.keys(value).forEach((k) => {
-                        loadRec(path ? `${path}.${k}` : k, value[k]);
-                    });
-                } else {
-                    if (observer.has(path)) {
-                        observer.set(path, value);
-                    }
-                }
-            };
-
-            const options = window.localStorage.getItem('options');
-            if (options) {
-                try {
-                    loadRec('', JSON.parse(options));
-                } catch { }
-            }
         }
     }
 );

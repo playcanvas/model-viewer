@@ -28,7 +28,7 @@ export interface Skybox {
 }
 
 export interface Observer {
-    set: (path: string, value: any) => void,
+    set: (path: string, value: any, silent?: boolean, remote?: boolean, force?: boolean) => void,
     get: (path: string) => any,
     on: (eventName: string, callback: (value: any) => void) => void,
     emit: (eventName: string) => void

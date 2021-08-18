@@ -292,41 +292,49 @@ class Viewer {
 
     // construct the controls interface and initialize controls
     private bindControlEvents() {
-        this.observer.on('show.stats:set', this.setStats.bind(this));
-        this.observer.on('show.wireframe:set', this.setShowWireframe.bind(this));
-        this.observer.on('show.bounds:set', this.setShowBounds.bind(this));
-        this.observer.on('show.skeleton:set', this.setShowSkeleton.bind(this));
-        this.observer.on('show.normals:set', this.setNormalLength.bind(this));
-        this.observer.on('show.fov:set', this.setFov.bind(this));
+        const controlEvents:any = {
+            'show.stats': this.setStats.bind(this),
+            'show.wireframe': this.setShowWireframe.bind(this),
+            'show.bounds': this.setShowBounds.bind(this),
+            'show.skeleton': this.setShowSkeleton.bind(this),
+            'show.normals': this.setNormalLength.bind(this),
+            'show.fov': this.setFov.bind(this),
 
-        this.observer.on('lighting.shadow:set', this.setDirectShadow.bind(this));
-        this.observer.on('lighting.direct:set', this.setDirectLighting.bind(this));
-        this.observer.on('lighting.env:set', this.setEnvLighting.bind(this));
-        this.observer.on('lighting.tonemapping:set', this.setTonemapping.bind(this));
-        this.observer.on('lighting.skybox.mip:set', this.setSkyboxMip.bind(this));
-        this.observer.on('lighting.skybox.value:set', (value: string) => {
-            if (value) {
-                this.load([{ url: value, filename: value }]);
-            } else {
-                this.clearSkybox();
-            }
+            'lighting.shadow': this.setDirectShadow.bind(this),
+            'lighting.direct': this.setDirectLighting.bind(this),
+            'lighting.env': this.setEnvLighting.bind(this),
+            'lighting.tonemapping': this.setTonemapping.bind(this),
+            'lighting.skybox.mip': this.setSkyboxMip.bind(this),
+            'lighting.skybox.value': (value: string) => {
+                if (value) {
+                    this.load([{ url: value, filename: value }]);
+                } else {
+                    this.clearSkybox();
+                }
+            },
+            'lighting.rotation': this.setLightingRotation.bind(this),
+
+            'animation.playing': (playing: boolean) => {
+                if (playing) {
+                    this.play();
+                } else {
+                    this.stop();
+                }
+            },
+            'animation.selectedTrack': this.play.bind(this),
+            'animation.speed': this.setSpeed.bind(this),
+            'animation.transition': this.setTransition.bind(this),
+            'animation.loops': this.setLoops.bind(this),
+            'animation.progress': this.setAnimationProgress.bind(this),
+
+            'model.selectedNode.path': this.setSelectedNode.bind(this)
+        };
+
+        // register control events
+        Object.keys(controlEvents).forEach((e) => {
+            this.observer.on(`${e}:set`, controlEvents[e]);
+            this.observer.set(e, this.observer.get(e), false, false, true);
         });
-        this.observer.on('lighting.rotation:set', this.setLightingRotation.bind(this));
-
-        this.observer.on('animation.playing:set', (playing: boolean) => {
-            if (playing) {
-                this.play();
-            } else {
-                this.stop();
-            }
-        });
-        this.observer.on('animation.selectedTrack:set', this.play.bind(this));
-        this.observer.on('animation.speed:set', this.setSpeed.bind(this));
-        this.observer.on('animation.transition:set', this.setTransition.bind(this));
-        this.observer.on('animation.loops:set', this.setLoops.bind(this));
-        this.observer.on('animation.progress:set', this.setAnimationProgress.bind(this));
-
-        this.observer.on('model.selectedNode.path:set', this.setSelectedNode.bind(this));
 
         this.observer.on('canvasResized', () => {
             this.resizeCanvas();
@@ -795,16 +803,18 @@ class Viewer {
 
     setSelectedNode(path: string) {
         const graphNode = this.app.root.findByPath(path);
-        this.observer.set('model.selectedNode', {
-            name: graphNode.name,
-            path: path,
-        // @ts-ignore
-            position: graphNode.localPosition.toString(),
-        // @ts-ignore
-            rotation: graphNode.localRotation.toString(),
-        // @ts-ignore
-            scale: graphNode.localScale.toString()
-        });
+        if (graphNode) {
+            this.observer.set('model.selectedNode', {
+                name: graphNode.name,
+                path: path,
+            // @ts-ignore
+                position: graphNode.localPosition.toString(),
+            // @ts-ignore
+                rotation: graphNode.localRotation.toString(),
+            // @ts-ignore
+                scale: graphNode.localScale.toString()
+            });
+        }
     }
 
     setStats(show: boolean) {
@@ -1050,6 +1060,15 @@ class Viewer {
         if (!entity) {
             // create entity
             entity = asset.resource.instantiateRenderEntity();
+
+            // disable cameras and lights
+            entity.findComponents("camera").forEach((component) => {
+                component.enabled = false;
+            });
+
+            entity.findComponents("light").forEach((component) => {
+                component.enabled = false;
+            });
 
             // update mesh stats
             resource.renders.forEach((renderAsset : pc.Asset) => {
