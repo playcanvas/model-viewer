@@ -31,6 +31,7 @@ const observer: Observer = new Observer({
     },
     lighting: {
         direct: 1,
+        shadow: true,
         env: 1,
         tonemapping: 'ACES',
         skybox: {
@@ -48,7 +49,6 @@ const observer: Observer = new Observer({
         speed: 1.0,
         transition: 0.1,
         loops: 1,
-        graphs: false,
         list: '[]',
         progress: 0,
         selectedTrack: 'ALL_TRACKS'
@@ -71,6 +71,39 @@ const observer: Observer = new Observer({
     error: null
 });
 
+const saveOptions = (name: string) => {
+    const options = observer.json();
+    window.localStorage.setItem(`options_${name}`, JSON.stringify({
+        show: options.show,
+        lighting: options.lighting
+    }));
+};
+
+const loadOptions = (name: string) => {
+    const loadRec = (path: string, value:any) => {
+        const filter = ['lighting.skybox.options'];
+        if (filter.indexOf(path) !== -1) {
+            return;
+        }
+        if (typeof(value) === 'object') {
+            Object.keys(value).forEach((k) => {
+                loadRec(path ? `${path}.${k}` : k, value[k]);
+            });
+        } else {
+            if (observer.has(path)) {
+                observer.set(path, value);
+            }
+        }
+    };
+
+    const options = window.localStorage.getItem(`options_${name}`);
+    if (options) {
+        try {
+            loadRec('', JSON.parse(options));
+        } catch { }
+    }
+};
+
 // render out the app
 ReactDOM.render(
     <div id="flex-container">
@@ -90,12 +123,18 @@ ReactDOM.render(
 );
 
 let awaiting = 2;
-function dependencyArrived() {
+const dependencyArrived = () => {
     if (--awaiting === 0) {
+        loadOptions('default');
+
+        observer.on('*:set', () => {
+            saveOptions('default');
+        });
+
         // @ts-ignore: Assign global viewer
         window.viewer = new Viewer(document.getElementById("application-canvas"), observer);
     }
-}
+};
 
 // @ts-ignore: Assign global pc
 window.pc = pc;
@@ -122,7 +161,7 @@ new pc.Http().get(
             const skyboxOptions: Array<Option> = [{
                 v: null, t: 'None'
             }];
-            skyboxes.forEach(function (skybox: Skybox ) {
+            skyboxes.forEach((skybox: Skybox) => {
                 skyboxOptions.push({ v: getAssetPath(skybox.url), t: skybox.label });
             });
             const skyboxData = observer.get('lighting.skybox');

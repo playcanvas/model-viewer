@@ -77,11 +77,12 @@ const LightingPanel = () => {
     return (
         <Panel headerText='LIGHTING' collapsible>
             <Slider name='lightingDirect' precision={2} min={0} max={6} path='lighting.direct' label='Direct' />
+            <Toggle name='lightingShadow' path='lighting.shadow' label='Shadow' />
             <Slider name='lightingEnv' precision={2} min={0} max={6} path='lighting.env' label='Env' />
-            <Select name='lightingTonemapping' type='string' options={['Linear', 'Filmic', 'Hejl', 'ACES'].map(v => ({ v, t: v }))} path='lighting.tonemapping' label='Tonemap' />
             <Select name='lightingSkybox' type='string' options={skyboxOptions} path='lighting.skybox.value' label='Skybox' />
-            <Select name='lightingSkyboxMip' type='number' options={[0, 1, 2, 3, 4, 5, 6].map(v => ({ v, t: Number(v).toString() }))} path='lighting.skybox.mip' label='Mip' />
+            <Select name='lightingSkyboxMip' type='number' options={[0, 1, 2, 3, 4, 5, 6].map((v) => ({ v, t: Number(v).toString() }))} path='lighting.skybox.mip' label='Mip' />
             <Slider name='lightingRotation' precision={0} min={-180} max={180} path='lighting.rotation' label='Rotation' />
+            <Select name='lightingTonemapping' type='string' options={['Linear', 'Filmic', 'Hejl', 'ACES'].map((v) => ({ v, t: v }))} path='lighting.tonemapping' label='Tonemap' />
         </Panel>
     );
 };
@@ -141,8 +142,7 @@ const AnimationPanel = () => {
             <Slider name='animationSpeed' precision={2} min={0} max={4} path='animation.speed' label='Speed' enabled={enabled} />
             { !allTracks && <Slider name='animationFrameTimeline' precision={2} min={0} max={1} path='animation.progress' label='Timeline' enabled={enabled} /> }
             { allTracks && <Slider name='animationTransition' precision={2} min={0} max={4} path='animation.transition' label='Transition' enabled={enabled} /> }
-            { allTracks && <Select name='animationLoops' type='number' options={[1, 2, 3, 4].map(v => ({ v, t: Number(v).toString() }))} path='animation.loops' label='Loops' enabled={enabled} /> }
-            <Toggle name='animationGraph' path='animation.graphs' label='Graphs' enabled={enabled} />
+            { allTracks && <Select name='animationLoops' type='number' options={[1, 2, 3, 4].map((v) => ({ v, t: Number(v).toString() }))} path='animation.loops' label='Loops' enabled={enabled} /> }
         </Panel>
     );
 };
