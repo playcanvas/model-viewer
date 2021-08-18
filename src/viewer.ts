@@ -1061,15 +1061,6 @@ class Viewer {
             // create entity
             entity = asset.resource.instantiateRenderEntity();
 
-            // disable cameras and lights
-            entity.findComponents("camera").forEach((component) => {
-                component.enabled = false;
-            });
-
-            entity.findComponents("light").forEach((component) => {
-                component.enabled = false;
-            });
-
             // update mesh stats
             resource.renders.forEach((renderAsset : pc.Asset) => {
                 renderAsset.resource.meshes.forEach((mesh : pc.Mesh) => {
