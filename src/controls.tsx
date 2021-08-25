@@ -1,7 +1,6 @@
 // @ts-ignore: library file import
-import { Container, BooleanInput, Label, SliderInput, SelectInput, Panel, Button, TreeViewItem, TreeView, VectorInput } from '@playcanvas/pcui/pcui-react';
+import { Container, BooleanInput, Label, SliderInput, SelectInput, Panel, Button, TreeViewItem, TreeView, VectorInput, BindingTwoWay } from '@playcanvas/pcui/pcui-react';
 // @ts-ignore: library file import
-import { BindingTwoWay, useObserverState } from '@playcanvas/pcui/pcui-binding';
 import React, { useEffect, useState, useContext } from 'react';
 import { Morph, Option, Observer, HierarchyNode } from './types';
 

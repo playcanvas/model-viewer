@@ -10,7 +10,7 @@ import Controls from './controls';
 import LoadControls from './load-ui';
 import ErrorBox from './errors';
 // @ts-ignore: library file import
-import { Observer } from '@playcanvas/pcui/pcui-binding';
+import { Observer } from '@playcanvas/observer/observer.mjs';
 // @ts-ignore: library file import
 import { Container, Spinner } from '@playcanvas/pcui/pcui-react';
 import { getAssetPath, getRootPath } from './helpers';
