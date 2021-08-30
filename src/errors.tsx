@@ -1,5 +1,5 @@
 // @ts-ignore: library file import
-import { InfoBox } from '@playcanvas/pcui/pcui-react';
+import InfoBox from '@playcanvas/pcui/InfoBox/component';
 // @ts-ignore: library file import
 import React, { useState } from 'react';
 import { Observer } from './types';

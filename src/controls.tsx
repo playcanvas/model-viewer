@@ -1,5 +1,25 @@
 // @ts-ignore: library file import
-import { Container, BooleanInput, Label, SliderInput, SelectInput, Panel, Button, TreeViewItem, TreeView, VectorInput, BindingTwoWay } from '@playcanvas/pcui/pcui-react';
+import Panel from '@playcanvas/pcui/Panel/component';
+// @ts-ignore: library file import
+import Container from '@playcanvas/pcui/Container/component';
+// @ts-ignore: library file import
+import BooleanInput from '@playcanvas/pcui/BooleanInput/component';
+// @ts-ignore: library file import
+import Label from '@playcanvas/pcui/Label/component';
+// @ts-ignore: library file import
+import SliderInput from '@playcanvas/pcui/SliderInput/component';
+// @ts-ignore: library file import
+import Button from '@playcanvas/pcui/Button/component';
+// @ts-ignore: library file import
+import TreeViewItem from '@playcanvas/pcui/TreeViewItem/component';
+// @ts-ignore: library file import
+import TreeView from '@playcanvas/pcui/TreeView/component';
+// @ts-ignore: library file import
+import VectorInput from '@playcanvas/pcui/VectorInput/component';
+// @ts-ignore: library file import
+import SelectInput from '@playcanvas/pcui/SelectInput/component';
+// @ts-ignore: library file import
+import BindingTwoWay from '@playcanvas/pcui/BindingTwoWay';
 // @ts-ignore: library file import
 import React, { useEffect, useState, useContext } from 'react';
 import { Morph, Option, Observer, HierarchyNode } from './types';
