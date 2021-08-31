@@ -51,7 +51,8 @@
     "@babel/preset-env": "^7.15.0",
     "@babel/preset-react": "^7.14.5",
     "@playcanvas/eslint-config": "^1.0.8",
-    "@playcanvas/pcui": "^1.1.22",
+    "@playcanvas/observer": "1.1.0",
+    "@playcanvas/pcui": "2.1.1",
     "@types/react": "^17.0.18",
     "@types/react-dom": "^17.0.9",
     "@typescript-eslint/eslint-plugin": "^4.29.2",
@@ -72,7 +73,8 @@
     "typescript": "^4.3.5",
     "webpack": "^5.50.0",
     "webpack-bundle-analyzer": "^4.4.2",
-    "webpack-cli": "^4.8.0"
+    "webpack-cli": "^4.8.0",
+    "prop-types": "^15.7.2"
   },
   "scripts": {
     "lint": "eslint --ignore-pattern 'src/lib' --ext .ts src",
