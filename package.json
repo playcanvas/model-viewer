@@ -51,7 +51,7 @@
     "@babel/preset-env": "^7.15.0",
     "@babel/preset-react": "^7.14.5",
     "@playcanvas/eslint-config": "^1.0.8",
-    "@playcanvas/observer": "1.0.4",
+    "@playcanvas/observer": "1.1.0",
     "@playcanvas/pcui": "file:../pcui/dist",
     "@types/react": "^17.0.18",
     "@types/react-dom": "^17.0.9",
