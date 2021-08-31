@@ -57,6 +57,7 @@
     "@types/react-dom": "^17.0.9",
     "@typescript-eslint/eslint-plugin": "^4.29.2",
     "@typescript-eslint/parser": "^4.29.2",
+    "prop-types": "15.7.2",
     "awesome-typescript-loader": "^5.2.1",
     "babel-loader": "^8.1.0",
     "concurrently": "^6.2.1",
@@ -70,11 +71,10 @@
     "react-dom": "^17.0.1",
     "serve": "^12.0.0",
     "style-loader": "^2.0.0",
-    "typescript": "^4.3.5",
+    "typescript": "4.3.5",
     "webpack": "^5.50.0",
     "webpack-bundle-analyzer": "^4.4.2",
-    "webpack-cli": "^4.8.0",
-    "prop-types": "^15.7.2"
+    "webpack-cli": "^4.8.0"
   },
   "scripts": {
     "lint": "eslint --ignore-pattern 'src/lib' --ext .ts src",
