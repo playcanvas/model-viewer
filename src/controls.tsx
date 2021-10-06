@@ -201,13 +201,13 @@ const Controls = (props: { observer: Observer }) => {
     useEffect(() => {
         // set up the control panel toggle button
         const panelToggleDiv = document.getElementById('panel-toggle');
-        const panel = document.getElementById('panel');
+        const wrapper = document.getElementById('wrapper');
         panelToggleDiv.addEventListener('click', function () {
-            panel.classList.toggle('collapsed');
+            wrapper.classList.toggle('collapsed');
             props.observer.emit('canvasResized');
         });
         if (document.body.clientWidth <= 600) {
-            panel.classList.toggle('collapsed');
+            wrapper.classList.toggle('collapsed');
         }
     });
     return (
