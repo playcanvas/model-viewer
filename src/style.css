@@ -20,10 +20,15 @@ body {
     height: 100%;
 }
 
-#panel {
+#wrapper {
     width: 300px;
     height: 100%;
     background-color: #374346;
+}
+
+#panel {
+    width: 100%;
+    height: 100%;
     overflow-y: auto;
     user-select: none;
     -webkit-touch-callout: none;
@@ -33,14 +38,10 @@ body {
     position: relative;
 }
 
-#panel.collapsed {
+#wrapper.collapsed {
     width: 32px !important;
     overflow: hidden;
     overflow-y: hidden !important;
-}
-
-#panel.collapsed > #controls, #panel.collapsed > .header {
-    opacity: 0.0;
 }
 
 #panel-toggle {
@@ -72,7 +73,7 @@ body {
     color: white;
 }
 
-#panel.collapsed > #panel-toggle::before {
+#wrapper.collapsed #panel-toggle::before {
     transform: translateY(-50%) translateX(-50%) rotateZ(90deg);
 }
 
@@ -302,4 +303,8 @@ input {
 
 .modelHierarchyPanel .pcui-treeview-item-text {
     font-size: 14px;
+}
+
+#wrapper.collapsed #controls, #wrapper.collapsed .header {
+    display: none !important;
 }

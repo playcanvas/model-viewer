@@ -109,10 +109,12 @@ const loadOptions = (name: string) => {
 // render out the app
 ReactDOM.render(
     <div id="flex-container">
-        <Container id="panel" resizable='right' resizeMin={220} resizeMax={800} onResize={() => observer.emit('canvasResized')}>
-            <div id="panel-toggle"></div>
-            <div className="header" style={{ display: 'none' }}><a href={getRootPath()}><img src={getAssetPath('playcanvas-logo.png')}/><div><b>PLAY</b>CANVAS <span>viewer</span></div></a></div>
-            <Controls observer={observer} />
+        <Container id="wrapper" resizable='right' resizeMin={220} resizeMax={800} onResize={() => observer.emit('canvasResized')}>
+            <Container id="panel">
+                <div id="panel-toggle"></div>
+                <div className="header" style={{ display: 'none' }}><a href={getRootPath()}><img src={getAssetPath('playcanvas-logo.png')}/><div><b>PLAY</b>CANVAS <span>viewer</span></div></a></div>
+                <Controls observer={observer} />
+            </Container>
         </Container>
         <div id='canvas-wrapper'>
             <LoadControls observer={observer} />
