@@ -1161,7 +1161,11 @@ class Viewer {
                     panelCount++;
                     morphCount = 0;
                 } else {
-                    morphTargets[panelCount - 1].morphs[morphCount] = morph;
+                    morphTargets[panelCount - 1].morphs[morphCount] = {
+                        // prepend morph index to morph target diplay name
+                        name: (morph.name === `${morph.targetIndex}`) ? `${morph.name}.` : `${morph.targetIndex}. ${morph.name}`,
+                        targetIndex: morph.targetIndex
+                    };
                     const morphInstance = morphInstances[panelCount - 1];
                     this.observer.on(`morphTargets.${panelCount - 1}.morphs.${morphCount}.weight:set`, (weight: number) => {
                         if (!morphInstance) return;

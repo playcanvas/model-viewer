@@ -62,11 +62,20 @@ Toggle.defaultProps = { enabled: true };
 const Slider = (props: { name: string, path:string, precision: number, min: number, max: number, label?: string, enabled?: boolean }) => {
     const observer: Observer = useContext(ObserverContext);
     return <Container class='panel-option'>
-        <Label text={props.label ? props.label : props.name.substring(0, 1).toUpperCase() + props.name.substring(1, props.name.length)} />
+        <Label text={props.label ? props.label : props.name.substring(0, 1).toUpperCase() + props.name.substring(1, props.name.length)} flex />
         <SliderInput min={props.min} max={props.max} sliderMin={props.min} sliderMax={props.max} precision={props.precision} step={0.01}  link={{ observer, path: props.path }} binding={new BindingTwoWay()} enabled={props.enabled} />
     </Container>;
 };
 Slider.defaultProps = { enabled: true };
+
+const MorphSlider = (props: { name: string, path:string, precision: number, min: number, max: number, label?: string, enabled?: boolean }) => {
+    const observer: Observer = useContext(ObserverContext);
+    return <Container class='panel-option'>
+        <Label flexGrow={1} text={props.label ? props.label : props.name.substring(0, 1).toUpperCase() + props.name.substring(1, props.name.length)} flex />
+        <SliderInput flexGrow={0} flexShrink={0} min={props.min} max={props.max} sliderMin={props.min} sliderMax={props.max} precision={props.precision} step={0.01}  link={{ observer, path: props.path }} binding={new BindingTwoWay()} enabled={props.enabled} />
+    </Container>;
+};
+MorphSlider.defaultProps = { enabled: true };
 
 const Select = (props: { name: string, path:string, type: string, options: Array<Option>, label?: string, enabled?: boolean }) => {
     const observer: Observer = useContext(ObserverContext);
@@ -178,7 +187,7 @@ const MorphPanel = () => {
                     <Panel key={`${key}.${panel.name}`} headerText={panel.name} collapsible class='morph-target-panel'>
                         {Object.keys(panel.morphs).map((morphKey) => {
                             const morph: Morph = panel.morphs[morphKey];
-                            return <Slider  key={`${key}.${morphKey}`} name={Number(morph.targetIndex).toString()} precision={2} min={0} max={1} path={`morphTargets.${key}.morphs.${morph.targetIndex}.weight`} />;
+                            return <MorphSlider key={`${key}.${morphKey}`} name={`${morph.name}`} precision={2} min={0} max={1} path={`morphTargets.${key}.morphs.${morph.targetIndex}.weight`} />;
                         })}
                     </Panel>
                 );
