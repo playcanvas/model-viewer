@@ -46,14 +46,14 @@
     }
   },
   "devDependencies": {
-    "@babel/core": "^7.15.5",
+    "@babel/core": "^7.15.8",
     "@babel/plugin-proposal-class-properties": "^7.14.5",
-    "@babel/preset-env": "^7.15.6",
+    "@babel/preset-env": "^7.15.8",
     "@babel/preset-react": "^7.14.5",
     "@playcanvas/eslint-config": "^1.0.8",
     "@playcanvas/observer": "1.1.0",
-    "@playcanvas/pcui": "2.1.1",
-    "@types/react": "^17.0.27",
+    "@playcanvas/pcui": "^2.2.1",
+    "@types/react": "^17.0.28",
     "@types/react-dom": "^17.0.9",
     "@typescript-eslint/eslint-plugin": "^4.33.0",
     "@typescript-eslint/parser": "^4.33.0",
@@ -65,16 +65,16 @@
     "css-loader": "^5.2.7",
     "eslint": "^7.32.0",
     "html-webpack-plugin": "^5.3.2",
-    "playcanvas": "^1.46.5",
+    "playcanvas": "^1.47.0",
     "prop-types": "15.7.2",
     "react": "^17.0.1",
     "react-dom": "^17.0.1",
     "serve": "^12.0.1",
     "style-loader": "^2.0.0",
     "typescript": "4.3.5",
-    "webpack": "^5.57.1",
-    "webpack-bundle-analyzer": "^4.4.2",
-    "webpack-cli": "^4.8.0"
+    "webpack": "^5.58.1",
+    "webpack-bundle-analyzer": "^4.5.0",
+    "webpack-cli": "^4.9.0"
   },
   "scripts": {
     "lint": "eslint --ignore-pattern 'src/lib' --ext .ts src",
@@ -83,7 +83,7 @@
     "build:watch": "webpack --config webpack.config.js --watch",
     "build:server": "ENVIRONMENT=production PUBLIC_PATH=/viewer/static/ webpack --config webpack.config.js",
     "build:analyze": "ENVIRONMENT=production ANALYZE_BUNDLE=true webpack --config webpack.config.js",
-    "local": "cross-env ENGINE_PATH=../engine/build/playcanvas.js EXTRAS_PATH=../engine/build/playcanvas-extras.js concurrently --kill-others \"npm run build:watch\" \"npm run serve\"",
-    "local:dbg": "cross-env ENGINE_PATH=../engine/build/playcanvas.dbg.js EXTRAS_PATH=../engine/build/playcanvas-extras.js concurrently --kill-others \"npm run build:watch\" \"npm run serve\""
+    "develop": "concurrently --kill-others \"npm run build:watch\" \"npm run serve\"",
+    "develop:local": "cross-env ENGINE_PATH=../engine/build/playcanvas.js EXTRAS_PATH=../engine/build/playcanvas-extras.js npm run develop"
   }
 }
