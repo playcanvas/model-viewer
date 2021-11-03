@@ -5,7 +5,7 @@ import DebugLines from './debug';
 // @ts-ignore: library file import
 import * as MeshoptDecoder from 'lib/meshopt_decoder.js';
 import { getAssetPath } from './helpers';
-import { Morph, URL, Entry, Observer, HierarchyNode } from './types';
+import { Morph, URL, Observer, HierarchyNode } from './types';
 
 class Viewer {
     app: pc.Application;
@@ -960,10 +960,10 @@ class Viewer {
             }
         };
 
-        const resolveFiles = (entries: Array<Entry>) => {
+        const resolveFiles = (entries: Array<FileSystemFileEntry>) => {
             const urls: Array<URL> = [];
-            entries.forEach((entry: Entry) => {
-                entry.file((file: URL) => {
+            entries.forEach((entry: FileSystemFileEntry) => {
+                entry.file((file: File) => {
                     urls.push({
                         url: URL.createObjectURL(file),
                         filename: entry.fullPath.substring(1)
@@ -984,16 +984,16 @@ class Viewer {
             });
         };
 
-        const resolveDirectories = function (entries: Array<Entry>) {
+        const resolveDirectories = function (entries: Array<FileSystemEntry>) {
             let awaiting = 0;
-            const files: Array<Entry> = [];
-            const recurse = function (entries: Array<Entry>) {
-                entries.forEach(function (entry: Entry) {
+            const files: Array<FileSystemFileEntry> = [];
+            const recurse = function (entries: Array<FileSystemEntry>) {
+                entries.forEach(function (entry: FileSystemEntry) {
                     if (entry.isFile) {
-                        files.push(entry);
+                        files.push(entry as FileSystemFileEntry);
                     } else if (entry.isDirectory) {
                         awaiting++;
-                        entry.createReader().readEntries(function (subEntries: Array<Entry>) {
+                        (entry as FileSystemDirectoryEntry).createReader().readEntries(function (subEntries: Array<FileSystemEntry>) {
                             awaiting--;
                             recurse(subEntries);
                         });

@@ -9,14 +9,6 @@ export interface URL {
     filename?: string
 }
 
-export interface Entry {
-    isFile: boolean,
-    isDirectory: boolean,
-    createReader: any,
-    file: any,
-    fullPath: string
-}
-
 export interface Option {
     v: string | number | null,
     t: string
