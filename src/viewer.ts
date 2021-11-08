@@ -174,7 +174,7 @@ class Viewer {
         // extract query params. taken from https://stackoverflow.com/a/21152762
         const urlParams: any = {};
         if (location.search) {
-            location.search.substr(1).split("&").forEach(function (item) {
+            location.search.substr(1).split("&").forEach((item) => {
                 const s = item.split("="),
                     k = s[0],
                     v = s[1] && decodeURIComponent(s[1]);
@@ -194,7 +194,6 @@ class Viewer {
 
         // load the default skybox if one wasn't specified in url params
         if (!this.skyboxLoaded) {
-            // this.loadHeliSkybox();
             const skybox = observer.get('lighting.skybox.value') || observer.get('lighting.skybox.default');
             this.load([{ url: skybox, filename: skybox }]);
         }
@@ -370,7 +369,7 @@ class Viewer {
         if (skybox.cubemap) {
             // @ts-ignore TODO type property missing from pc.Texture
             if (skybox.type === pc.TEXTURETYPE_DEFAULT || skybox.type === pc.TEXTURETYPE_RGBM) {
-                // cubemap format is acceptible, use it directly
+                // cubemap format is acceptable, use it directly
                 cubemaps.push(skybox);
             } else {
                 // cubemap must be rgbm or default to be used on the skybox
@@ -392,15 +391,18 @@ class Viewer {
                 name: 'skyboxPrefilter' + i,
                 width: sizes[i],
                 height: sizes[i],
-                // @ts-ignore TODO type property missing from pc.Texture
                 type: pc.TEXTURETYPE_RGBM,
                 addressU: pc.ADDRESS_CLAMP_TO_EDGE,
                 addressV: pc.ADDRESS_CLAMP_TO_EDGE,
                 fixCubemapSeams: true,
                 mipmaps: false
             });
-            // @ts-ignore
-            pc.reprojectTexture(device, cubemaps[1] || skybox, prefilter, specPower[i], 4096);
+
+            pc.reprojectTexture(cubemaps[1] || skybox, prefilter, {
+                numSamples: 4096,
+                specularPower: specPower[i] === undefined ? 1 : specPower[i]
+            });
+
             cubemaps.push(prefilter);
         }
 
@@ -442,7 +444,7 @@ class Viewer {
                 ['0', '1', '2', '3', '4', '5']
             ];
 
-            const getOrder = function (filename: string) {
+            const getOrder = (filename: string) => {
                 const fn = filename.toLowerCase();
                 for (let i = 0; i < names.length; ++i) {
                     const nameList = names[i];
@@ -455,7 +457,7 @@ class Viewer {
                 return 0;
             };
 
-            const sortPred = function (first: URL, second: URL) {
+            const sortPred = (first: URL, second: URL) => {
                 const firstOrder = getOrder(first.filename);
                 const secondOrder = getOrder(second.filename);
                 return firstOrder < secondOrder ? -1 : (secondOrder < firstOrder ? 1 : 0);
@@ -464,7 +466,7 @@ class Viewer {
             files.sort(sortPred);
 
             // construct an asset for each cubemap face
-            const faceAssets = files.map(function (file, index) {
+            const faceAssets = files.map((file, index) => {
                 const faceAsset = new pc.Asset('skybox_face' + index, 'texture', file);
                 app.assets.add(faceAsset);
                 app.assets.load(faceAsset);
@@ -473,15 +475,13 @@ class Viewer {
 
             // construct the cubemap asset
             const cubemapAsset = new pc.Asset('skybox_cubemap', 'cubemap', null, {
-                textures: faceAssets.map(function (faceAsset) {
-                    return faceAsset.id;
-                })
+                textures: faceAssets.map(faceAsset => faceAsset.id)
             });
             // @ts-ignore TODO not defined in pc
             cubemapAsset.loadFaces = true;
-            cubemapAsset.on('load', function () {
+            cubemapAsset.on('load', () => {
                 this.initSkyboxFromTexture(cubemapAsset.resource);
-            }.bind(this));
+            });
             app.assets.add(cubemapAsset);
             app.assets.load(cubemapAsset);
         }
@@ -640,12 +640,12 @@ class Viewer {
         };
 
         const processImage = function (gltfImage: any, continuation: (err: string, result: any) => void) {
-            const u: URL = externalUrls.find(function (url) {
+            const u: URL = externalUrls.find((url) => {
                 return url.filename === pc.path.normalize(gltfImage.uri || "");
             });
             if (u) {
                 const textureAsset = new pc.Asset(u.filename, 'texture', { url: u.url, filename: u.filename });
-                textureAsset.on('load', function () {
+                textureAsset.on('load', () => {
                     continuation(null, textureAsset);
                 });
                 this.app.assets.add(textureAsset);
@@ -656,12 +656,12 @@ class Viewer {
         };
 
         const processBuffer = function (gltfBuffer: any, continuation: (err: string, result: any) => void) {
-            const u = externalUrls.find(function (url) {
+            const u = externalUrls.find((url) => {
                 return url.filename === pc.path.normalize(gltfBuffer.uri || "");
             });
             if (u) {
                 const bufferAsset = new pc.Asset(u.filename, 'binary', { url: u.url, filename: u.filename });
-                bufferAsset.on('load', function () {
+                bufferAsset.on('load', () => {
                     continuation(null, new Uint8Array(bufferAsset.resource));
                 });
                 this.app.assets.add(bufferAsset);
@@ -733,8 +733,7 @@ class Viewer {
         if (animationName !== 'ALL_TRACKS') {
             a = this.animationMap[animationName];
         }
-        this.entities.forEach(function (e) {
-            // @ts-ignore
+        this.entities.forEach((e) => {
             const anim = e.anim;
             if (anim) {
                 anim.setBoolean('loop', !!a);
@@ -746,8 +745,7 @@ class Viewer {
 
     // stop playing animations
     stop() {
-        this.entities.forEach(function (e) {
-            // @ts-ignore
+        this.entities.forEach((e) => {
             const anim = e.anim;
             if (anim) {
                 anim.findAnimationLayer('all_layer').pause();
@@ -758,8 +756,7 @@ class Viewer {
     // set the animation speed
     setSpeed(speed: number) {
         this.animSpeed = speed;
-        this.entities.forEach(function (e) {
-            // @ts-ignore
+        this.entities.forEach((e) => {
             const anim = e.anim;
             if (anim) {
                 anim.speed = speed;
@@ -770,7 +767,7 @@ class Viewer {
     setTransition(transition: number) {
         this.animTransition = transition;
 
-        // it's not possible to change the transition time afer creation,
+        // it's not possible to change the transition time after creation,
         // so rebuilt the animation graph with the new transition
         if (this.animTracks.length > 0) {
             this.rebuildAnimTracks();
@@ -780,7 +777,7 @@ class Viewer {
     setLoops(loops: number) {
         this.animLoops = loops;
 
-        // it's not possible to change the transition time afer creation,
+        // it's not possible to change the transition time after creation,
         // so rebuilt the animation graph with the new transition
         if (this.animTracks.length > 0) {
             this.rebuildAnimTracks();
@@ -790,7 +787,6 @@ class Viewer {
     setAnimationProgress(progress: number) {
         this.observer.set('animation.playing', false);
         this.entities.forEach((e) => {
-            // @ts-ignore
             const anim = e.anim;
             anim.playing = true;
             anim.baseLayer.activeStateCurrentTime = anim.baseLayer.activeStateDuration * progress;
@@ -807,12 +803,9 @@ class Viewer {
             this.observer.set('model.selectedNode', {
                 name: graphNode.name,
                 path: path,
-            // @ts-ignore
-                position: graphNode.localPosition.toString(),
-            // @ts-ignore
-                rotation: graphNode.localRotation.toString(),
-            // @ts-ignore
-                scale: graphNode.localScale.toString()
+                position: graphNode.getLocalPosition().toString(),
+                rotation: graphNode.getLocalRotation().toString(),
+                scale: graphNode.getLocalScale().toString()
             });
         }
     }
@@ -879,14 +872,17 @@ class Viewer {
     }
 
     setTonemapping(tonemapping: string) {
-        const mapping = {
+        type mapping = {
+            [key: string]: number
+        };
+        const mappingLookup: mapping = {
             Linear: pc.TONEMAP_LINEAR,
             Filmic: pc.TONEMAP_FILMIC,
             Hejl: pc.TONEMAP_HEJL,
             ACES: pc.TONEMAP_ACES
         };
-        // @ts-ignore
-        this.app.scene.toneMapping = mapping.hasOwnProperty(tonemapping) ? mapping[tonemapping] : pc.TONEMAP_ACES;
+
+        this.app.scene.toneMapping = mappingLookup.hasOwnProperty(tonemapping) ? mappingLookup[tonemapping] : pc.TONEMAP_ACES;
         this.renderNextFrame();
     }
 
@@ -907,7 +903,6 @@ class Viewer {
         // or an animation is loaded and we're animating
         let isAnimationPlaying = false;
         for (let i = 0; i < this.entities.length; ++i) {
-            // @ts-ignore
             const anim = this.entities[i].anim;
             if (anim && anim.findAnimationLayer('all_layer').playing) {
                 isAnimationPlaying = true;
@@ -936,8 +931,8 @@ class Viewer {
     // use webkitGetAsEntry to extract files so we can include folders
     private dropHandler(event: DragEvent) {
 
-        const removeCommonPrefix = function (urls: Array<URL>) {
-            const split = function (pathname: string) {
+        const removeCommonPrefix = (urls: Array<URL>) => {
+            const split = (pathname: string) => {
                 const parts = pathname.split(pc.path.delimiter);
                 const base = parts[0];
                 const rest = parts.slice(1).join(pc.path.delimiter);
@@ -984,16 +979,17 @@ class Viewer {
             });
         };
 
-        const resolveDirectories = function (entries: Array<FileSystemEntry>) {
+        const resolveDirectories = (entries: Array<FileSystemEntry>) => {
             let awaiting = 0;
             const files: Array<FileSystemFileEntry> = [];
-            const recurse = function (entries: Array<FileSystemEntry>) {
-                entries.forEach(function (entry: FileSystemEntry) {
+            const recurse = (entries: Array<FileSystemEntry>) => {
+                entries.forEach((entry: FileSystemEntry) => {
                     if (entry.isFile) {
                         files.push(entry as FileSystemFileEntry);
                     } else if (entry.isDirectory) {
                         awaiting++;
-                        (entry as FileSystemDirectoryEntry).createReader().readEntries(function (subEntries: Array<FileSystemEntry>) {
+                        const reader = (entry as FileSystemDirectoryEntry).createReader();
+                        reader.readEntries((subEntries: Array<FileSystemEntry>) => {
                             awaiting--;
                             recurse(subEntries);
                         });
@@ -1099,7 +1095,6 @@ class Viewer {
         // create animation component
         if (animLoaded) {
             // create the anim component if there isn't one already
-            // @ts-ignore TODO not defined in pc
             if (!entity.anim) {
                 entity.addComponent('anim', {
                     activate: true,
@@ -1108,9 +1103,9 @@ class Viewer {
             }
 
             // append anim tracks to global list
-            resource.animations.forEach(function (a : any) {
+            resource.animations.forEach((a : any) => {
                 this.animTracks.push(a.resource);
-            }.bind(this));
+            });
         }
 
         // rebuild the anim state graph
@@ -1122,9 +1117,7 @@ class Viewer {
         const morphInstances: Array<pc.MorphInstance> = [];
         const meshInstances = this.collectMeshInstances(entity);
         for (let i = 0; i < meshInstances.length; i++) {
-            // @ts-ignore TODO morphInstance is not public
             if (meshInstances[i].morphInstance) {
-                // @ts-ignore TODO morphInstance is not public
                 morphInstances.push(meshInstances[i].morphInstance);
             }
         }
@@ -1134,7 +1127,6 @@ class Viewer {
             // make a list of all the morph instance target names
             const morphs: Array<Morph> = this.morphs;
             morphInstances.forEach((morphInstance: any, morphIndex: number) => {
-                // @ts-ignore TODO expose meshInstance on morphInstance in pc
                 const meshInstance = morphInstance.meshInstance;
 
                 // mesh name line
@@ -1235,7 +1227,6 @@ class Viewer {
                     predicate: "EQUAL_TO",
                     value: false
                 }],
-                // @ts-ignore
                 interruptionSource: pc.ANIM_INTERRUPTION_NEXT
             };
         });
@@ -1247,14 +1238,12 @@ class Viewer {
             parameters: {
                 loop: {
                     name: 'loop',
-                    // @ts-ignore
                     type: pc.ANIM_PARAMETER_BOOLEAN,
                     value: false
                 }
             }
         }));
 
-        // @ts-ignore TODO anim property missing from pc.Entity
         const allLayer = entity.anim.findAnimationLayer('all_layer');
         this.animTracks.forEach(function (t: any, i: number) {
             const name = states[i + 1].name;
@@ -1271,7 +1260,8 @@ class Viewer {
 
     // generate and render debug elements on prerender
     private onPrerender() {
-        if (!this.firstFrame) {                          // don't update on the first frame
+        // don't update on the first frame
+        if (!this.firstFrame) {
             let meshInstance;
 
             // wireframe
@@ -1302,7 +1292,7 @@ class Viewer {
                 if (this.normalLength > 0) {
                     for (let i = 0; i < this.meshInstances.length; ++i) {
                         meshInstance = this.meshInstances[i];
-                        // @ts-ignore TODO not defined in pc
+
                         const vertexBuffer = meshInstance.morphInstance ?
                             // @ts-ignore TODO not defined in pc
                             meshInstance.morphInstance._vertexBuffer : meshInstance.mesh.vertexBuffer;

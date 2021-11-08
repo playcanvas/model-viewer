@@ -71,7 +71,6 @@ class DebugLines {
         this.vertexFormat = vertexFormat;
         this.vertexCursor = 0;
         this.vertexData = new Float32Array(this.mesh.vertexBuffer.lock());
-        // @ts-ignore: TODO pc.VertexBuffer.storage doesn't exist
         this.colourData = new Uint32Array(this.mesh.vertexBuffer.lock());
     }
 
@@ -155,7 +154,7 @@ class DebugLines {
             p1.set(normals.get(0), normals.get(1), normals.get(2));
 
             if (blendIndices && blendWeights && skinMatrices) {
-                // transform by skinning matricess
+                // transform by skinning matrices
                 skinMat.copy(pc.Mat4.ZERO);
                 for (let j = 0; j < 4; ++j) {
                     DebugLines.matrixMad(
@@ -172,8 +171,7 @@ class DebugLines {
                 worldMat.transformVector(p1, p1);
             }
 
-            // @ts-ignore
-            p1.normalize().scale(length).add(p0);
+            p1.normalize().mulScalar(length).add(p0);
 
             this.line(p0, p1);
 

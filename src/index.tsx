@@ -143,10 +143,12 @@ const dependencyArrived = () => {
 // @ts-ignore: Assign global pc
 window.pc = pc;
 
-// @ts-ignore: Not defined in pc
-pc.basisSetDownloadConfig(getAssetPath('lib/basis/basis.wasm.js'),
-                          getAssetPath('lib/basis/basis.wasm.wasm'),
-                          getAssetPath('lib/basis/basis.js'));
+pc.basisInitialize({
+    glueUrl: getAssetPath('lib/basis/basis.wasm.js'),
+    wasmUrl: getAssetPath('lib/basis/basis.wasm.wasm'),
+    fallbackUrl: getAssetPath('lib/basis/basis.js'),
+    lazyInit: true
+});
 
 // download asset manifest
 new pc.Http().get(
