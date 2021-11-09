@@ -257,7 +257,7 @@ class Viewer {
         let max_y = position.y;
         let max_z = position.z;
 
-        const recurse = function (node: pc.GraphNode) {
+        const recurse = (node: pc.GraphNode) => {
             const p = node.getPosition();
             if (p.x < min_x) min_x = p.x; else if (p.x > max_x) max_x = p.x;
             if (p.y < min_y) min_y = p.y; else if (p.y > max_y) max_y = p.y;
