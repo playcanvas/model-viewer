@@ -384,7 +384,7 @@ class Viewer {
 
         // generate prefiltered lighting data
         const sizes = [128, 64, 32, 16, 8, 4];
-        const specPower = [undefined, 512, 128, 32, 8, 2];
+        const specPower = [1, 512, 128, 32, 8, 2];
         for (let i = 0; i < sizes.length; ++i) {
             const prefilter = new pc.Texture(device, {
                 cubemap: true,
@@ -400,7 +400,7 @@ class Viewer {
 
             pc.reprojectTexture(cubemaps[1] || skybox, prefilter, {
                 numSamples: 4096,
-                specularPower: specPower[i] === undefined ? 1 : specPower[i]
+                specularPower: specPower[i]
             });
 
             cubemaps.push(prefilter);
