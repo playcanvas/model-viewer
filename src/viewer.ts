@@ -287,7 +287,7 @@ class Viewer {
         result.setMinMax(new pc.Vec3(Math.max(min1.x, min2.x), Math.max(min1.y, min2.y), Math.max(min1.z, min2.z)),
                          new pc.Vec3(Math.min(max1.x, max2.x), Math.min(max1.y, max2.y), Math.min(max1.z, max2.z)));
         return result;
-    };
+    }
 
     // construct the controls interface and initialize controls
     private bindControlEvents() {
