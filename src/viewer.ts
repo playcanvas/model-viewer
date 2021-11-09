@@ -274,7 +274,7 @@ class Viewer {
     }
 
     // calculate the intersection of the two bounding boxes
-    private static calcBoundingBoxIntersection = function (bbox1: pc.BoundingBox, bbox2: pc.BoundingBox) {
+    private static calcBoundingBoxIntersection(bbox1: pc.BoundingBox, bbox2: pc.BoundingBox) {
         // bounds don't intersect
         if (!bbox1.intersects(bbox2)) {
             return null;
