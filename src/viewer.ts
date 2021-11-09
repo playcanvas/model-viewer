@@ -872,14 +872,14 @@ class Viewer {
     }
 
     setTonemapping(tonemapping: string) {
-        const mappingLookup: Record<string, number> = {
+        const mapping: Record<string, number> = {
             Linear: pc.TONEMAP_LINEAR,
             Filmic: pc.TONEMAP_FILMIC,
             Hejl: pc.TONEMAP_HEJL,
             ACES: pc.TONEMAP_ACES
         };
 
-        this.app.scene.toneMapping = mappingLookup.hasOwnProperty(tonemapping) ? mappingLookup[tonemapping] : pc.TONEMAP_ACES;
+        this.app.scene.toneMapping = mapping.hasOwnProperty(tonemapping) ? mapping[tonemapping] : pc.TONEMAP_ACES;
         this.renderNextFrame();
     }
 
