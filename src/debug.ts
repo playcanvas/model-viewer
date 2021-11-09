@@ -10,7 +10,7 @@ class DebugLines {
     vertexFormat: pc.VertexFormat;
     vertexCursor: number;
     vertexData: Float32Array;
-    colourData: Uint32Array;
+    colorData: Uint32Array;
 
     constructor(app: pc.Application, camera: pc.Entity) {
         if (!debugLayerFront) {
@@ -71,8 +71,7 @@ class DebugLines {
         this.vertexFormat = vertexFormat;
         this.vertexCursor = 0;
         this.vertexData = new Float32Array(this.mesh.vertexBuffer.lock());
-        // @ts-ignore: TODO pc.VertexBuffer.storage doesn't exist
-        this.colourData = new Uint32Array(this.mesh.vertexBuffer.lock());
+        this.colorData = new Uint32Array(this.mesh.vertexBuffer.lock());
     }
 
     private static matrixMad(result: pc.Mat4, mat: pc.Mat4, factor: number) {
@@ -118,22 +117,22 @@ class DebugLines {
                 arrayBuffer
             );
             this.vertexData = new Float32Array(arrayBuffer);
-            this.colourData = new Uint32Array(arrayBuffer);
+            this.colorData = new Uint32Array(arrayBuffer);
 
-            this.colourData.set(new Uint32Array(oldVBuffer.lock()));
+            this.colorData.set(new Uint32Array(oldVBuffer.lock()));
         }
 
         const vertex = this.vertexCursor;
         const vertexData = this.vertexData;
-        const colourData = this.colourData;
+        const colorData = this.colorData;
         vertexData[vertex * 8 + 0] = v0.x;
         vertexData[vertex * 8 + 1] = v0.y;
         vertexData[vertex * 8 + 2] = v0.z;
-        colourData[vertex * 8 + 3] = 0xffffffff;
+        colorData[vertex * 8 + 3] = 0xffffffff;
         vertexData[vertex * 8 + 4] = v1.x;
         vertexData[vertex * 8 + 5] = v1.y;
         vertexData[vertex * 8 + 6] = v1.z;
-        colourData[vertex * 8 + 7] = 0xffffffff;
+        colorData[vertex * 8 + 7] = 0xffffffff;
         this.vertexCursor++;
     }
 
@@ -155,7 +154,7 @@ class DebugLines {
             p1.set(normals.get(0), normals.get(1), normals.get(2));
 
             if (blendIndices && blendWeights && skinMatrices) {
-                // transform by skinning matricess
+                // transform by skinning matrices
                 skinMat.copy(pc.Mat4.ZERO);
                 for (let j = 0; j < 4; ++j) {
                     DebugLines.matrixMad(
@@ -172,8 +171,7 @@ class DebugLines {
                 worldMat.transformVector(p1, p1);
             }
 
-            // @ts-ignore
-            p1.normalize().scale(length).add(p0);
+            p1.normalize().mulScalar(length).add(p0);
 
             this.line(p0, p1);
 
