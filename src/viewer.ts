@@ -872,10 +872,7 @@ class Viewer {
     }
 
     setTonemapping(tonemapping: string) {
-        type mapping = {
-            [key: string]: number
-        };
-        const mappingLookup: mapping = {
+        const mappingLookup: Record<string, number> = {
             Linear: pc.TONEMAP_LINEAR,
             Filmic: pc.TONEMAP_FILMIC,
             Hejl: pc.TONEMAP_HEJL,
