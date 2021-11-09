@@ -1221,7 +1221,7 @@ class Viewer {
                 exitTime: s.name === 'START' ? 0.0 : loops,
                 conditions: [{
                     parameterName: 'loop',
-                    predicate: "EQUAL_TO",
+                    predicate: pc.ANIM_EQUAL_TO,
                     value: false
                 }],
                 interruptionSource: pc.ANIM_INTERRUPTION_NEXT
