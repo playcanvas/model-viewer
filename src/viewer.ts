@@ -355,7 +355,7 @@ class Viewer {
                 cubemap: true,
                 width: size,
                 height: size,
-                type: pc.TEXTURETYPE_RGBM.toString(),
+                type: pc.TEXTURETYPE_RGBM,
                 addressU: pc.ADDRESS_CLAMP_TO_EDGE,
                 addressV: pc.ADDRESS_CLAMP_TO_EDGE,
                 fixCubemapSeams: false,
@@ -610,7 +610,7 @@ class Viewer {
     // load gltf model given its url and list of external urls
     private loadGltf(gltfUrl: URL, externalUrls: Array<URL>) {
 
-        // provide buffer view callback so we can handle meshoptimizer'd models
+        // provide buffer view callback so we can handle models compressed with MeshOptimizer
         // https://github.com/zeux/meshoptimizer
         const processBufferView = function (gltfBuffer: any, buffers: Array<any>, continuation: (err: string, result: any) => void) {
             if (gltfBuffer.extensions && gltfBuffer.extensions.EXT_meshopt_compression) {
@@ -618,7 +618,7 @@ class Viewer {
 
                 const decoder = MeshoptDecoder;
 
-                decoder.ready.then(function () {
+                decoder.ready.then(() => {
                     const byteOffset = extensionDef.byteOffset || 0;
                     const byteLength = extensionDef.byteLength || 0;
 
@@ -644,7 +644,10 @@ class Viewer {
                 return url.filename === pc.path.normalize(gltfImage.uri || "");
             });
             if (u) {
-                const textureAsset = new pc.Asset(u.filename, 'texture', { url: u.url, filename: u.filename });
+                const textureAsset = new pc.Asset(u.filename, 'texture', {
+                    url: u.url,
+                    filename: u.filename
+                });
                 textureAsset.on('load', () => {
                     continuation(null, textureAsset);
                 });
@@ -660,7 +663,10 @@ class Viewer {
                 return url.filename === pc.path.normalize(gltfBuffer.uri || "");
             });
             if (u) {
-                const bufferAsset = new pc.Asset(u.filename, 'binary', { url: u.url, filename: u.filename });
+                const bufferAsset = new pc.Asset(u.filename, 'binary', {
+                    url: u.url,
+                    filename: u.filename
+                });
                 bufferAsset.on('load', () => {
                     continuation(null, new Uint8Array(bufferAsset.resource));
                 });
