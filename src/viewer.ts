@@ -737,7 +737,7 @@ class Viewer {
             const anim = e.anim;
             if (anim) {
                 anim.setBoolean('loop', !!a);
-                anim.findAnimationLayer('all_layer').play(a || 'START');
+                anim.findAnimationLayer('all_layer').play(a || pc.ANIM_STATE_START);
                 anim.playing = true;
             }
         });
@@ -1205,7 +1205,7 @@ class Viewer {
         const entity = this.entities[this.entities.length - 1];
 
         // create states
-        const states : Array<{ name: string, speed?: number }> = [{ name: 'START' }];
+        const states : Array<{ name: string, speed?: number }> = [{ name: pc.ANIM_STATE_START }];
         this.animTracks.forEach((t, i) => {
             states.push({ name: 'track_' + i, speed: 1 });
         });
@@ -1217,8 +1217,8 @@ class Viewer {
             return {
                 from: s.name,
                 to: states[(i + 1) % states.length || 1].name,
-                time: s.name ===  'START' ? 0.0 : transition,
-                exitTime: s.name === 'START' ? 0.0 : loops,
+                time: s.name ===  pc.ANIM_STATE_START ? 0 : transition,
+                exitTime: s.name === pc.ANIM_STATE_START ? 0 : loops,
                 conditions: [{
                     parameterName: 'loop',
                     predicate: pc.ANIM_EQUAL_TO,
