@@ -58,9 +58,9 @@ class Viewer {
         const canvasSize = this.getCanvasSize();
         app.setCanvasFillMode(pc.FILLMODE_NONE, canvasSize.width, canvasSize.height);
         app.setCanvasResolution(pc.RESOLUTION_AUTO);
-        window.addEventListener("resize", function () {
+        window.addEventListener("resize", () => {
             this.resizeCanvas();
-        }.bind(this));
+        });
 
         // create the orbit camera
         const camera = new pc.Entity("Camera");
@@ -105,7 +105,7 @@ class Viewer {
         // disable autorender
         app.autoRender = false;
         this.prevCameraMat = new pc.Mat4();
-        app.on('update', this.update.bind(this));
+        app.on('update', this.update, this);
 
         // configure drag and drop
         const preventDefault = function (ev: { preventDefault: () => void }) {
@@ -500,12 +500,12 @@ class Viewer {
             anisotropy: 1,
             type: pc.TEXTURETYPE_RGBM
         });
-        cubemap.on('load', function () {
+        cubemap.on('load', () => {
             app.scene.gammaCorrection = pc.GAMMA_SRGB;
             app.scene.skyboxMip = this.skyboxMip;                   // Set the skybox to the 128x128 cubemap mipmap level
             app.scene.setSkybox(cubemap.resources);
             app.renderNextFrame = true;                             // ensure we render again when the cubemap arrives
-        }.bind(this));
+        });
         app.assets.add(cubemap);
         app.assets.load(cubemap);
         this.skyboxLoaded = true;
@@ -1206,18 +1206,18 @@ class Viewer {
 
         // create states
         const states : Array<{ name: string, speed?: number }> = [{ name: 'START' }];
-        this.animTracks.forEach(function (t, i) {
+        this.animTracks.forEach((t, i) => {
             states.push({ name: 'track_' + i, speed: 1 });
         });
 
         // create a transition for each state
         const transition = this.animTransition;
         const loops = this.animLoops;
-        const transitions = states.map(function (s, i) {
+        const transitions = states.map((s, i) => {
             return {
                 from: s.name,
                 to: states[(i + 1) % states.length || 1].name,
-                time: s.name ==  'START' ? 0.0 : transition,
+                time: s.name ===  'START' ? 0.0 : transition,
                 exitTime: s.name === 'START' ? 0.0 : loops,
                 conditions: [{
                     parameterName: 'loop',
@@ -1229,7 +1229,7 @@ class Viewer {
         });
 
         // create the state graph instance
-        // @ts-ignore TODO anim property missing from pc.Entity
+        // @ts-ignore TODO AnimStateGraph constructor argument missing from typings
         entity.anim.loadStateGraph(new pc.AnimStateGraph({
             layers: [{ name: 'all_layer', states: states, transitions: transitions }],
             parameters: {
@@ -1242,11 +1242,11 @@ class Viewer {
         }));
 
         const allLayer = entity.anim.findAnimationLayer('all_layer');
-        this.animTracks.forEach(function (t: any, i: number) {
+        this.animTracks.forEach((t: any, i: number) => {
             const name = states[i + 1].name;
             allLayer.assignAnimation(name, t);
             this.animationMap[t.name] = name;
-        }.bind(this));
+        });
 
         // let the controls know about the new animations
         this.observer.set('animation.list', JSON.stringify(Object.keys(this.animationMap)));
