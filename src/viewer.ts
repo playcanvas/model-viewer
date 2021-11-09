@@ -348,7 +348,7 @@ class Viewer {
 
         const cubemaps = [];
 
-        const reprojectToCubemap = function (src: pc.Texture, size: number) {
+        const reprojectToCubemap = (src: pc.Texture, size: number) => {
             // generate faces cubemap
             const faces = new pc.Texture(device, {
                 name: 'skyboxFaces',
