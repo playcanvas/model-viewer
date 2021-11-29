@@ -87,19 +87,14 @@ const config = {
 };
 
 if (process.env.ENGINE_PATH) {
+    const resolvedEnginePath = path.resolve(__dirname, process.env.ENGINE_PATH);
     config.plugins.push(
         new webpack.NormalModuleReplacementPlugin(
-            /^playcanvas$/,
-            path.resolve(__dirname, process.env.ENGINE_PATH)
-        )
-    );
-}
-
-if (process.env.EXTRAS_PATH) {
-    config.plugins.push(
-        new webpack.NormalModuleReplacementPlugin(
-            /^playcanvas\/build\/playcanvas-extras\.js$/,
-            path.resolve(__dirname, process.env.EXTRAS_PATH)
+            /^playcanvas/,
+            function (resource) {
+                resource.request = resolvedEnginePath + resource.request.substring(10);
+                console.log(resource.request);
+            }
         )
     );
 }

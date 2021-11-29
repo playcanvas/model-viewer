@@ -48,11 +48,15 @@ class Viewer {
         const app = new pc.Application(canvas, {
             mouse: new pc.Mouse(canvas),
             touch: new pc.TouchDevice(canvas),
-            graphicsDeviceOptions: { alpha: false }
+            graphicsDeviceOptions: {
+                alpha: false,
+                preferWebGl2: false
+            }
         });
         this.app = app;
 
         app.graphicsDevice.maxPixelRatio = window.devicePixelRatio;
+        app.scene.gammaCorrection = pc.GAMMA_SRGB;
 
         // Set the canvas to fill the window and automatically change resolution to be the same as the canvas size
         const canvasSize = this.getCanvasSize();
@@ -342,73 +346,81 @@ class Viewer {
 
     // initialize the faces and prefiltered lighting data from the given
     // skybox texture, which is either a cubemap or equirect texture.
-    private initSkyboxFromTexture(skybox: pc.Texture) {
+    private initSkyboxFromTextureNew(skybox: pc.Texture) {
         const app = this.app;
-        const device = app.graphicsDevice;
+        // @ts-ignore
+        app.scene.skybox = pc.EnvLighting.generateSkyboxCubemap(skybox);
 
-        const cubemaps = [];
+        // @ts-ignore
+        const lighting = pc.EnvLighting.generateLightingSource(skybox);
+        const envLighting = {
+            // @ts-ignore
+            reflection: pc.EnvLighting.generateReflection(lighting),
+            // @ts-ignore
+            ambient: pc.EnvLighting.generateAmbient(lighting)
+        };
+        lighting.destroy();
 
-        const reprojectToCubemap = (src: pc.Texture, size: number) => {
-            // generate faces cubemap
-            const faces = new pc.Texture(device, {
-                name: 'skyboxFaces',
+        // @ts-ignore
+        app.scene.envLighting = envLighting;
+        app.renderNextFrame = true;                         // ensure we render again when the cubemap arrives
+    }
+
+    // initialize the faces and prefiltered lighting data from the given
+    // skybox texture, which is either a cubemap or equirect texture.
+    private initSkyboxFromTexture(skybox: pc.Texture) {
+        // return this.initSkyboxFromTextureNew(skybox);
+        return this.loadHeliSkybox();
+
+        const createCubemap = (size: number) => {
+            return new pc.Texture(device, {
+                name: `skyboxFaces-${size}`,
                 cubemap: true,
                 width: size,
                 height: size,
                 type: pc.TEXTURETYPE_RGBM,
                 addressU: pc.ADDRESS_CLAMP_TO_EDGE,
                 addressV: pc.ADDRESS_CLAMP_TO_EDGE,
-                fixCubemapSeams: false,
+                fixCubemapSeams: true,
                 mipmaps: false
             });
-            pc.reprojectTexture(src, faces);
-
-            return faces;
         };
 
-        if (skybox.cubemap) {
-            // @ts-ignore TODO type property missing from pc.Texture
-            if (skybox.type === pc.TEXTURETYPE_DEFAULT || skybox.type === pc.TEXTURETYPE_RGBM) {
-                // cubemap format is acceptable, use it directly
-                cubemaps.push(skybox);
-            } else {
-                // cubemap must be rgbm or default to be used on the skybox
-                cubemaps.push(reprojectToCubemap(skybox, skybox.width));
-            }
-        } else {
-            // @ts-ignore TODO type property missing from pc.Texture
-            skybox.projection = pc.TEXTUREPROJECTION_EQUIRECT;
-            // reproject equirect to cubemap for skybox
-            cubemaps.push(reprojectToCubemap(skybox, skybox.width / 4));
-        }
+        const app = this.app;
+        const device = app.graphicsDevice;
+        const cubemaps = [];
+
+        // @ts-ignore skybox
+        cubemaps.push(pc.EnvLighting.generateSkyboxCubemap(skybox));
+
+        // @ts-ignore
+        const lightingSource = pc.EnvLighting.generateLightingSource(skybox);
+
+        // create top level
+        const top = createCubemap(128);
+        pc.reprojectTexture(lightingSource, top, {
+            numSamples: 1
+        });
+        cubemaps.push(top);
 
         // generate prefiltered lighting data
         const sizes = [128, 64, 32, 16, 8, 4];
         const specPower = [1, 512, 128, 32, 8, 2];
-        for (let i = 0; i < sizes.length; ++i) {
-            const prefilter = new pc.Texture(device, {
-                cubemap: true,
-                name: 'skyboxPrefilter' + i,
-                width: sizes[i],
-                height: sizes[i],
-                type: pc.TEXTURETYPE_RGBM,
-                addressU: pc.ADDRESS_CLAMP_TO_EDGE,
-                addressV: pc.ADDRESS_CLAMP_TO_EDGE,
-                fixCubemapSeams: true,
-                mipmaps: false
+        for (let i = 1; i < sizes.length; ++i) {
+            const level = createCubemap(sizes[i]);
+            pc.reprojectTexture(lightingSource, level, {
+                numSamples: 1024,
+                specularPower: specPower[i],
+                // @ts-ignore
+                distribution: 'ggx'
             });
 
-            pc.reprojectTexture(cubemaps[1] || skybox, prefilter, {
-                numSamples: 4096,
-                specularPower: specPower[i]
-            });
-
-            cubemaps.push(prefilter);
+            cubemaps.push(level);
         }
 
+        lightingSource.destroy();
+
         // assign the textures to the scene
-        app.scene.gammaCorrection = pc.GAMMA_SRGB;
-        app.scene.skyboxMip = this.skyboxMip;               // Set the skybox to the 128x128 cubemap mipmap level
         app.scene.setSkybox(cubemaps);
         app.renderNextFrame = true;                         // ensure we render again when the cubemap arrives
     }
@@ -501,8 +513,6 @@ class Viewer {
             type: pc.TEXTURETYPE_RGBM
         });
         cubemap.on('load', () => {
-            app.scene.gammaCorrection = pc.GAMMA_SRGB;
-            app.scene.skyboxMip = this.skyboxMip;                   // Set the skybox to the 128x128 cubemap mipmap level
             app.scene.setSkybox(cubemap.resources);
             app.renderNextFrame = true;                             // ensure we render again when the cubemap arrives
         });
