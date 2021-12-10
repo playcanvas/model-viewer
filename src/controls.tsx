@@ -215,8 +215,8 @@ const Controls = (props: { observer: Observer }) => {
             <ObserverProvider value={props.observer}>
                 <ShowPanel />
                 <LightingPanel />
-                <ModelPanel />
                 <AnimationPanel />
+                <ModelPanel />
                 <MorphPanel />
             </ObserverProvider>
         </div>
