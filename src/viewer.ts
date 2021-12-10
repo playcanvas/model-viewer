@@ -6,6 +6,11 @@ import DebugLines from './debug';
 import * as MeshoptDecoder from 'lib/meshopt_decoder.js';
 import { getAssetPath } from './helpers';
 import { Morph, URL, Observer, HierarchyNode } from './types';
+// @ts-ignore: library file import
+import * as VoxParser from 'playcanvas/scripts/parsers/vox-parser.js';
+
+// model filename extensions
+const modelExtensions = ['.gltf', '.glb', '.vox'];
 
 class Viewer {
     app: pc.Application;
@@ -48,11 +53,18 @@ class Viewer {
         const app = new pc.Application(canvas, {
             mouse: new pc.Mouse(canvas),
             touch: new pc.TouchDevice(canvas),
-            graphicsDeviceOptions: { alpha: false }
+            graphicsDeviceOptions: {
+                alpha: false,
+                preferWebGl2: true
+            }
         });
         this.app = app;
 
+        // register vox support
+        VoxParser.registerVoxParser(app);
+
         app.graphicsDevice.maxPixelRatio = window.devicePixelRatio;
+        app.scene.gammaCorrection = pc.GAMMA_SRGB;
 
         // Set the canvas to fill the window and automatically change resolution to be the same as the canvas size
         const canvasSize = this.getCanvasSize();
@@ -407,7 +419,6 @@ class Viewer {
         }
 
         // assign the textures to the scene
-        app.scene.gammaCorrection = pc.GAMMA_SRGB;
         app.scene.skyboxMip = this.skyboxMip;               // Set the skybox to the 128x128 cubemap mipmap level
         app.scene.setSkybox(cubemaps);
         app.renderNextFrame = true;                         // ensure we render again when the cubemap arrives
@@ -501,7 +512,6 @@ class Viewer {
             type: pc.TEXTURETYPE_RGBM
         });
         cubemap.on('load', () => {
-            app.scene.gammaCorrection = pc.GAMMA_SRGB;
             app.scene.skyboxMip = this.skyboxMip;                   // Set the skybox to the 128x128 cubemap mipmap level
             app.scene.setSkybox(cubemap.resources);
             app.renderNextFrame = true;                             // ensure we render again when the cubemap arrives
@@ -717,7 +727,7 @@ class Viewer {
         let result = false;
         urls.forEach((url) => {
             const filenameExt = pc.path.getExtension(url.filename).toLowerCase();
-            if (filenameExt === '.gltf' || filenameExt === '.glb') {
+            if (modelExtensions.indexOf(filenameExt) !== -1) {
                 this.loadGltf(url, urls);
                 result = true;
             }
@@ -1103,6 +1113,7 @@ class Viewer {
                     activate: true,
                     speed: this.animSpeed
                 });
+                entity.anim.rootBone = this.sceneRoot;
             }
 
             // append anim tracks to global list
@@ -1175,12 +1186,14 @@ class Viewer {
             this.observer.on('animationUpdate', () => {
                 const morphTargets = this.observer.get('morphTargets');
                 morphInstances.forEach((morphInstance: any, i: number) => {
-                    if (morphTargets) Object.keys(morphTargets[i].morphs).forEach((morphKey) => {
-                        const newWeight = morphInstance.getWeight(Number(morphKey));
-                        if (morphTargets[i].morphs[morphKey].weight !== newWeight) {
-                            this.observer.set(`morphTargets.${i}.morphs.${morphKey}.weight`, newWeight);
-                        }
-                    });
+                    if (morphTargets && morphTargets[i]) {
+                        Object.keys(morphTargets[i].morphs).forEach((morphKey) => {
+                            const newWeight = morphInstance.getWeight(Number(morphKey));
+                            if (morphTargets[i].morphs[morphKey].weight !== newWeight) {
+                                this.observer.set(`morphTargets.${i}.morphs.${morphKey}.weight`, newWeight);
+                            }
+                        });
+                    }
                 });
             });
         }
