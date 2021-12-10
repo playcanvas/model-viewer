@@ -419,7 +419,6 @@ class Viewer {
         }
 
         // assign the textures to the scene
-        app.scene.gammaCorrection = pc.GAMMA_SRGB;
         app.scene.skyboxMip = this.skyboxMip;               // Set the skybox to the 128x128 cubemap mipmap level
         app.scene.setSkybox(cubemaps);
         app.renderNextFrame = true;                         // ensure we render again when the cubemap arrives
@@ -513,7 +512,6 @@ class Viewer {
             type: pc.TEXTURETYPE_RGBM
         });
         cubemap.on('load', () => {
-            app.scene.gammaCorrection = pc.GAMMA_SRGB;
             app.scene.skyboxMip = this.skyboxMip;                   // Set the skybox to the 128x128 cubemap mipmap level
             app.scene.setSkybox(cubemap.resources);
             app.renderNextFrame = true;                             // ensure we render again when the cubemap arrives
