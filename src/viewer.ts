@@ -6,6 +6,11 @@ import DebugLines from './debug';
 import * as MeshoptDecoder from 'lib/meshopt_decoder.js';
 import { getAssetPath } from './helpers';
 import { Morph, URL, Observer, HierarchyNode } from './types';
+// @ts-ignore: library file import
+import { registerVoxParser } from 'playcanvas/scripts/parsers/vox-parser.mjs';
+
+// model filename extensions
+const modelExtensions = ['.gltf', '.glb', '.vox'];
 
 class Viewer {
     app: pc.Application;
@@ -50,10 +55,13 @@ class Viewer {
             touch: new pc.TouchDevice(canvas),
             graphicsDeviceOptions: {
                 alpha: false,
-                preferWebGl2: false
+                preferWebGl2: true
             }
         });
         this.app = app;
+
+        // register vox support
+        registerVoxParser(app);
 
         app.graphicsDevice.maxPixelRatio = window.devicePixelRatio;
         app.scene.gammaCorrection = pc.GAMMA_SRGB;
@@ -346,30 +354,46 @@ class Viewer {
 
     // initialize the faces and prefiltered lighting data from the given
     // skybox texture, which is either a cubemap or equirect texture.
-    private initSkyboxFromTextureNew(skybox: pc.Texture) {
-        const app = this.app;
+    private initSkyboxFromTextureNew(env: pc.Texture) {
         // @ts-ignore
-        app.scene.skybox = pc.EnvLighting.generateSkyboxCubemap(skybox);
+        const t0 = pc.now();
 
         // @ts-ignore
-        const lighting = pc.EnvLighting.generateLightingSource(skybox);
-        const envLighting = {
-            // @ts-ignore
-            reflection: pc.EnvLighting.generateReflection(lighting),
-            // @ts-ignore
-            ambient: pc.EnvLighting.generateAmbient(lighting)
-        };
+        const skybox = pc.EnvLighting.generateSkyboxCubemap(env);
+
+        // @ts-ignore
+        const t1 = pc.now();
+
+        // @ts-ignore
+        const lighting = pc.EnvLighting.generateLightingSource(env);
+
+        // @ts-ignore
+        const t2 = pc.now();
+
+        // @ts-ignore
+        const envAtlas = pc.EnvLighting.generateAtlas(lighting);
+
+        // @ts-ignore
+        const t3 = pc.now();
+
         lighting.destroy();
 
         // @ts-ignore
-        app.scene.envLighting = envLighting;
-        app.renderNextFrame = true;                         // ensure we render again when the cubemap arrives
+        this.app.scene.envAtlas = envAtlas;
+        this.app.scene.skybox = skybox;
+        this.app.renderNextFrame = true;                         // ensure we render again when the cubemap arrives
+
+        // @ts-ignore
+        console.log(`prefilter timings skybox=${(t1 - t0).toFixed(2)}ms lighting=${(t2 - t1).toFixed(2)}ms envAtlas=${(t3 - t2).toFixed(2)}ms`);
     }
 
     // initialize the faces and prefiltered lighting data from the given
     // skybox texture, which is either a cubemap or equirect texture.
     private initSkyboxFromTexture(skybox: pc.Texture) {
-        // return this.initSkyboxFromTextureNew(skybox);
+        // @ts-ignore
+        if (pc.EnvLighting) {
+            return this.initSkyboxFromTextureNew(skybox);
+        }
         return this.loadHeliSkybox();
 
         const createCubemap = (size: number) => {
@@ -727,7 +751,7 @@ class Viewer {
         let result = false;
         urls.forEach((url) => {
             const filenameExt = pc.path.getExtension(url.filename).toLowerCase();
-            if (filenameExt === '.gltf' || filenameExt === '.glb') {
+            if (modelExtensions.indexOf(filenameExt) !== -1) {
                 this.loadGltf(url, urls);
                 result = true;
             }
@@ -1113,6 +1137,7 @@ class Viewer {
                     activate: true,
                     speed: this.animSpeed
                 });
+                entity.anim.rootBone = this.sceneRoot;
             }
 
             // append anim tracks to global list
