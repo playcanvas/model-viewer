@@ -394,7 +394,6 @@ class Viewer {
         if (pc.EnvLighting) {
             return this.initSkyboxFromTextureNew(skybox);
         }
-        return this.loadHeliSkybox();
 
         const createCubemap = (size: number) => {
             return new pc.Texture(device, {
