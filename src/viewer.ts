@@ -124,12 +124,11 @@ class Viewer {
         app.on('update', this.update, this);
 
         // configure drag and drop
-        const preventDefault = function (ev: { preventDefault: () => void }) {
+        window.addEventListener('dragover', (ev) => {
             ev.preventDefault();
-        };
-
-        window.addEventListener('dragenter', preventDefault, false);
-        window.addEventListener('dragover', preventDefault, false);
+            ev.stopPropagation();
+            ev.dataTransfer.effectAllowed = "all";
+        }, false);
         window.addEventListener('drop', this.dropHandler.bind(this), false);
 
         app.on('prerender', this.onPrerender, this);
