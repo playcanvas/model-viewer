@@ -28,6 +28,7 @@ const observer: Observer = new Observer({
         wireframe: false,
         bounds: false,
         skeleton: false,
+        grid: false,
         normals: 0,
         fov: 75
     },
@@ -55,7 +56,7 @@ const observer: Observer = new Observer({
         progress: 0,
         selectedTrack: 'ALL_TRACKS'
     },
-    model: {
+    scene: {
         nodes: '[]',
         selectedNode: {
             path: '',
@@ -66,7 +67,8 @@ const observer: Observer = new Observer({
         },
         meshCount: null,
         vertexCount: null,
-        primitiveCount: null
+        primitiveCount: null,
+        bounds: null
     },
     morphTargets: null,
     spinner: false,
@@ -137,6 +139,9 @@ const dependencyArrived = () => {
 
         // @ts-ignore: Assign global viewer
         window.viewer = new Viewer(document.getElementById("application-canvas"), observer);
+
+        // @ts-ignore
+        window.viewer.handleUrlParams();
     }
 };
 

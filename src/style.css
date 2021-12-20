@@ -239,6 +239,11 @@ input {
     flex-grow: 1;
 }
 
+.panel-option > .pcui-vector-input {
+    margin-right: 6px;
+    flex-grow: 1;
+}
+
 .animation-buttons {
     display: flex;
 }
