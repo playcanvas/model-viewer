@@ -605,7 +605,7 @@ class Viewer {
     focusCamera() {
         const camera = this.camera.camera;
 
-        const bbox = this.meshInstances.length ?
+        const bbox = this.sceneBounds = this.meshInstances.length ?
             Viewer.calcMeshBoundingBox(this.meshInstances) :
             Viewer.calcHierBoundingBox(this.sceneRoot);
 
@@ -1323,11 +1323,11 @@ class Viewer {
             }
 
             // debug bounds
-            if (this.dirtyBounds) {
+            if (this.sceneBounds && this.dirtyBounds) {
                 this.dirtyBounds = false;
 
                 // calculate bounds
-                this.sceneBounds = Viewer.calcMeshBoundingBox(this.meshInstances);
+                // this.sceneBounds = Viewer.calcMeshBoundingBox(this.meshInstances);
 
                 this.debugBounds.clear();
                 if (this.showBounds) {
@@ -1387,7 +1387,7 @@ class Viewer {
                 if (this.showSkeleton) {
                     for (let i = 0; i < this.entities.length; ++i) {
                         const entity = this.entities[i];
-                        if (entity.findComponent("render")) {
+                        if (this.meshInstances.length === 0 || entity.findComponent("render")) {
                             this.debugSkeleton.generateSkeleton(entity);
                         }
                     }
@@ -1397,7 +1397,7 @@ class Viewer {
             }
 
             // debug grid
-            if (this.dirtyGrid) {
+            if (this.sceneBounds && this.dirtyGrid) {
                 this.dirtyGrid = false;
 
                 this.debugGrid.clear();
