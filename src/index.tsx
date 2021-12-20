@@ -41,7 +41,7 @@ const observer: Observer = new Observer({
             mip: 1,
             value: null,
             options: JSON.stringify([
-                { v: null, t: 'None' }
+                { v: 'None', t: 'None' }
             ]),
             default: null
         },
@@ -170,7 +170,7 @@ new pc.Http().get(
         } else {
             const skyboxes = result.skyboxes;
             const skyboxOptions: Array<Option> = [{
-                v: null, t: 'None'
+                v: 'None', t: 'None'
             }];
             skyboxes.forEach((skybox: Skybox) => {
                 skyboxOptions.push({ v: getAssetPath(skybox.url), t: skybox.label });

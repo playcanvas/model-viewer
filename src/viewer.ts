@@ -322,7 +322,7 @@ class Viewer {
             'lighting.tonemapping': this.setTonemapping.bind(this),
             'lighting.skybox.mip': this.setSkyboxMip.bind(this),
             'lighting.skybox.value': (value: string) => {
-                if (value) {
+                if (value !== 'None') {
                     this.load([{ url: value, filename: value }]);
                 } else {
                     this.clearSkybox();
