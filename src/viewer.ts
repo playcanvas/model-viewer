@@ -1209,12 +1209,14 @@ class Viewer {
             this.observer.on('animationUpdate', () => {
                 const morphTargets = this.observer.get('morphTargets');
                 morphInstances.forEach((morphInstance: any, i: number) => {
-                    if (morphTargets) Object.keys(morphTargets[i].morphs).forEach((morphKey) => {
-                        const newWeight = morphInstance.getWeight(Number(morphKey));
-                        if (morphTargets[i].morphs[morphKey].weight !== newWeight) {
-                            this.observer.set(`morphTargets.${i}.morphs.${morphKey}.weight`, newWeight);
-                        }
-                    });
+                    if (morphTargets && morphTargets[i]) {
+                        Object.keys(morphTargets[i].morphs).forEach((morphKey) => {
+                            const newWeight = morphInstance.getWeight(Number(morphKey));
+                            if (morphTargets[i].morphs[morphKey].weight !== newWeight) {
+                                this.observer.set(`morphTargets.${i}.morphs.${morphKey}.weight`, newWeight);
+                            }
+                        });
+                    }
                 });
             });
         }
