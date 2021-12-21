@@ -28,6 +28,7 @@ const observer: Observer = new Observer({
         wireframe: false,
         bounds: false,
         skeleton: false,
+        axes: false,
         grid: false,
         normals: 0,
         fov: 75

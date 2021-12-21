@@ -93,6 +93,7 @@ const ShowPanel = () => {
             <Toggle name='wireframe'  path='show.wireframe' />
             <Toggle name='bounds'  path='show.bounds' />
             <Toggle name='skeleton' path='show.skeleton' />
+            <Toggle name='axes' path='show.axes' />
             <Toggle name='grid' path='show.grid' />
             <Slider name='normals' precision={2} min={0} max={1} path='show.normals' />
             <Slider name='fov' precision={0} min={35} max={150} path='show.fov' />
