@@ -36,14 +36,18 @@ class Viewer {
     showWireframe: boolean;
     showBounds: boolean;
     showSkeleton: boolean;
+    showGrid: boolean;
     normalLength: number;
     skyboxMip: number;
     dirtyWireframe: boolean;
     dirtyBounds: boolean;
     dirtySkeleton: boolean;
+    dirtyGrid: boolean;
     dirtyNormals: boolean;
+    sceneBounds: pc.BoundingBox;
     debugBounds: DebugLines;
     debugSkeleton: DebugLines;
+    debugGrid: DebugLines;
     debugNormals: DebugLines;
     miniStats: any;
     observer: Observer;
@@ -120,12 +124,11 @@ class Viewer {
         app.on('update', this.update, this);
 
         // configure drag and drop
-        const preventDefault = function (ev: { preventDefault: () => void }) {
+        window.addEventListener('dragover', (ev) => {
             ev.preventDefault();
-        };
-
-        window.addEventListener('dragenter', preventDefault, false);
-        window.addEventListener('dragover', preventDefault, false);
+            ev.stopPropagation();
+            ev.dataTransfer.effectAllowed = "all";
+        }, false);
         window.addEventListener('drop', this.dropHandler.bind(this), false);
 
         app.on('prerender', this.onPrerender, this);
@@ -161,16 +164,20 @@ class Viewer {
         this.showBounds = observer.get('show.bounds');
         this.showSkeleton = observer.get('show.skeleton');
         this.normalLength = observer.get('show.normals');
-        this.skyboxMip = observer.get('lighting.skybox.mip');
         this.setTonemapping(observer.get('lighting.tonemapping'));
 
         this.dirtyWireframe = false;
         this.dirtyBounds = false;
         this.dirtySkeleton = false;
+        this.dirtyGrid = false;
         this.dirtyNormals = false;
+
+        this.sceneBounds = null;
+
         this.debugBounds = new DebugLines(app, camera);
         this.debugSkeleton = new DebugLines(app, camera);
-        this.debugNormals = new DebugLines(app, camera);
+        this.debugGrid = new DebugLines(app, camera, false);
+        this.debugNormals = new DebugLines(app, camera, false);
 
         // construct ministats, default off
         this.miniStats = new pcx.MiniStats(app);
@@ -182,8 +189,10 @@ class Viewer {
 
         // start the application
         app.start();
+    }
 
-        // extract query params. taken from https://stackoverflow.com/a/21152762
+    // extract query params. taken from https://stackoverflow.com/a/21152762
+    private handleUrlParams() {
         const urlParams: any = {};
         if (location.search) {
             location.search.substr(1).split("&").forEach((item) => {
@@ -202,12 +211,6 @@ class Viewer {
                     return { url, filename: url };
                 })
             );
-        }
-
-        // load the default skybox if one wasn't specified in url params
-        if (!this.skyboxLoaded) {
-            const skybox = observer.get('lighting.skybox.value') || observer.get('lighting.skybox.default');
-            this.load([{ url: skybox, filename: skybox }]);
         }
 
         // set camera position
@@ -308,6 +311,7 @@ class Viewer {
             'show.wireframe': this.setShowWireframe.bind(this),
             'show.bounds': this.setShowBounds.bind(this),
             'show.skeleton': this.setShowSkeleton.bind(this),
+            'show.grid': this.setShowGrid.bind(this),
             'show.normals': this.setNormalLength.bind(this),
             'show.fov': this.setFov.bind(this),
 
@@ -317,7 +321,7 @@ class Viewer {
             'lighting.tonemapping': this.setTonemapping.bind(this),
             'lighting.skybox.mip': this.setSkyboxMip.bind(this),
             'lighting.skybox.value': (value: string) => {
-                if (value) {
+                if (value !== 'None') {
                     this.load([{ url: value, filename: value }]);
                 } else {
                     this.clearSkybox();
@@ -338,7 +342,7 @@ class Viewer {
             'animation.loops': this.setLoops.bind(this),
             'animation.progress': this.setAnimationProgress.bind(this),
 
-            'model.selectedNode.path': this.setSelectedNode.bind(this)
+            'scene.selectedNode.path': this.setSelectedNode.bind(this)
         };
 
         // register control events
@@ -352,74 +356,105 @@ class Viewer {
         });
     }
 
+    private clearSkybox() {
+        this.app.scene.envAtlas = null;
+        this.app.scene.setSkybox(null);
+        this.app.renderNextFrame = true;
+        this.skyboxLoaded = false;
+    }
+
+    // initialize the faces and prefiltered lighting data from the given
+    // skybox texture, which is either a cubemap or equirect texture.
+    private initSkyboxFromTextureNew(env: pc.Texture) {
+        // @ts-ignore
+        const t0 = pc.now();
+
+        // @ts-ignore
+        const skybox = pc.EnvLighting.generateSkyboxCubemap(env);
+
+        // @ts-ignore
+        const t1 = pc.now();
+
+        // @ts-ignore
+        const lighting = pc.EnvLighting.generateLightingSource(env);
+
+        // @ts-ignore
+        const t2 = pc.now();
+
+        // @ts-ignore
+        const envAtlas = pc.EnvLighting.generateAtlas(lighting);
+
+        // @ts-ignore
+        const t3 = pc.now();
+
+        lighting.destroy();
+
+        // @ts-ignore
+        this.app.scene.envAtlas = envAtlas;
+        this.app.scene.skybox = skybox;
+        this.app.renderNextFrame = true;                         // ensure we render again when the cubemap arrives
+
+        // @ts-ignore
+        console.log(`prefilter timings skybox=${(t1 - t0).toFixed(2)}ms lighting=${(t2 - t1).toFixed(2)}ms envAtlas=${(t3 - t2).toFixed(2)}ms`);
+    }
+
     // initialize the faces and prefiltered lighting data from the given
     // skybox texture, which is either a cubemap or equirect texture.
     private initSkyboxFromTexture(skybox: pc.Texture) {
-        const app = this.app;
-        const device = app.graphicsDevice;
+        // @ts-ignore
+        if (pc.EnvLighting) {
+            return this.initSkyboxFromTextureNew(skybox);
+        }
 
-        const cubemaps = [];
-
-        const reprojectToCubemap = (src: pc.Texture, size: number) => {
-            // generate faces cubemap
-            const faces = new pc.Texture(device, {
-                name: 'skyboxFaces',
+        const createCubemap = (size: number) => {
+            return new pc.Texture(device, {
+                name: `skyboxFaces-${size}`,
                 cubemap: true,
                 width: size,
                 height: size,
                 type: pc.TEXTURETYPE_RGBM,
                 addressU: pc.ADDRESS_CLAMP_TO_EDGE,
                 addressV: pc.ADDRESS_CLAMP_TO_EDGE,
-                fixCubemapSeams: false,
+                fixCubemapSeams: true,
                 mipmaps: false
             });
-            pc.reprojectTexture(src, faces);
-
-            return faces;
         };
 
-        if (skybox.cubemap) {
-            // @ts-ignore TODO type property missing from pc.Texture
-            if (skybox.type === pc.TEXTURETYPE_DEFAULT || skybox.type === pc.TEXTURETYPE_RGBM) {
-                // cubemap format is acceptable, use it directly
-                cubemaps.push(skybox);
-            } else {
-                // cubemap must be rgbm or default to be used on the skybox
-                cubemaps.push(reprojectToCubemap(skybox, skybox.width));
-            }
-        } else {
-            // @ts-ignore TODO type property missing from pc.Texture
-            skybox.projection = pc.TEXTUREPROJECTION_EQUIRECT;
-            // reproject equirect to cubemap for skybox
-            cubemaps.push(reprojectToCubemap(skybox, skybox.width / 4));
-        }
+        const app = this.app;
+        const device = app.graphicsDevice;
+        const cubemaps = [];
+
+        // @ts-ignore skybox
+        cubemaps.push(pc.EnvLighting.generateSkyboxCubemap(skybox));
+
+        // @ts-ignore
+        const lightingSource = pc.EnvLighting.generateLightingSource(skybox);
+
+        // create top level
+        const top = createCubemap(128);
+        pc.reprojectTexture(lightingSource, top, {
+            numSamples: 1
+        });
+        cubemaps.push(top);
 
         // generate prefiltered lighting data
         const sizes = [128, 64, 32, 16, 8, 4];
         const specPower = [1, 512, 128, 32, 8, 2];
-        for (let i = 0; i < sizes.length; ++i) {
-            const prefilter = new pc.Texture(device, {
-                cubemap: true,
-                name: 'skyboxPrefilter' + i,
-                width: sizes[i],
-                height: sizes[i],
-                type: pc.TEXTURETYPE_RGBM,
-                addressU: pc.ADDRESS_CLAMP_TO_EDGE,
-                addressV: pc.ADDRESS_CLAMP_TO_EDGE,
-                fixCubemapSeams: true,
-                mipmaps: false
+        for (let i = 1; i < sizes.length; ++i) {
+            const level = createCubemap(sizes[i]);
+            pc.reprojectTexture(lightingSource, level, {
+                numSamples: 1024,
+                specularPower: specPower[i],
+                // @ts-ignore
+                distribution: 'ggx'
             });
 
-            pc.reprojectTexture(cubemaps[1] || skybox, prefilter, {
-                numSamples: 4096,
-                specularPower: specPower[i]
-            });
-
-            cubemaps.push(prefilter);
+            cubemaps.push(level);
         }
 
+        lightingSource.destroy();
+
         // assign the textures to the scene
-        app.scene.skyboxMip = this.skyboxMip;               // Set the skybox to the 128x128 cubemap mipmap level
         app.scene.setSkybox(cubemaps);
         app.renderNextFrame = true;                         // ensure we render again when the cubemap arrives
     }
@@ -512,7 +547,6 @@ class Viewer {
             type: pc.TEXTURETYPE_RGBM
         });
         cubemap.on('load', () => {
-            app.scene.skyboxMip = this.skyboxMip;                   // Set the skybox to the 128x128 cubemap mipmap level
             app.scene.setSkybox(cubemap.resources);
             app.renderNextFrame = true;                             // ensure we render again when the cubemap arrives
         });
@@ -562,22 +596,16 @@ class Viewer {
         this.morphs = [];
         this.observer.set('morphTargets', null);
 
-        this.dirtyWireframe = this.dirtyBounds = this.dirtySkeleton = this.dirtyNormals = true;
+        this.dirtyWireframe = this.dirtyBounds = this.dirtySkeleton = this.dirtyGrid = this.dirtyNormals = true;
 
         this.app.renderNextFrame = true;
-    }
-
-    clearSkybox() {
-        this.app.scene.setSkybox(null);
-        this.app.renderNextFrame = true;
-        this.skyboxLoaded = false;
     }
 
     // move the camera to view the loaded object
     focusCamera() {
         const camera = this.camera.camera;
 
-        const bbox = this.meshInstances.length ?
+        const bbox = this.sceneBounds = this.meshInstances.length ?
             Viewer.calcMeshBoundingBox(this.meshInstances) :
             Viewer.calcHierBoundingBox(this.sceneRoot);
 
@@ -816,7 +844,7 @@ class Viewer {
     setSelectedNode(path: string) {
         const graphNode = this.app.root.findByPath(path);
         if (graphNode) {
-            this.observer.set('model.selectedNode', {
+            this.observer.set('scene.selectedNode', {
                 name: graphNode.name,
                 path: path,
                 position: graphNode.getLocalPosition().toString(),
@@ -846,6 +874,12 @@ class Viewer {
     setShowSkeleton(show: boolean) {
         this.showSkeleton = show;
         this.dirtySkeleton = true;
+        this.renderNextFrame();
+    }
+
+    setShowGrid(show: boolean) {
+        this.showGrid = show;
+        this.dirtyGrid = true;
         this.renderNextFrame();
     }
 
@@ -900,8 +934,8 @@ class Viewer {
     }
 
     setSkyboxMip(mip: number) {
-        this.skyboxMip = mip;
-        this.app.scene.skyboxMip = mip;
+        this.app.scene.layers.getLayerById(pc.LAYERID_SKYBOX).enabled = (mip !== 0);
+        this.app.scene.skyboxMip = mip - 1;
         this.renderNextFrame();
     }
 
@@ -1098,12 +1132,12 @@ class Viewer {
         }];
 
         // hierarchy
-        this.observer.set('model.nodes', JSON.stringify(graph));
+        this.observer.set('scene.nodes', JSON.stringify(graph));
 
         // mesh stats
-        this.observer.set('model.meshCount', meshCount);
-        this.observer.set('model.vertexCount', vertexCount);
-        this.observer.set('model.primitiveCount', primitiveCount);
+        this.observer.set('scene.meshCount', meshCount);
+        this.observer.set('scene.vertexCount', vertexCount);
+        this.observer.set('scene.primitiveCount', primitiveCount);
 
         // create animation component
         if (animLoaded) {
@@ -1210,7 +1244,7 @@ class Viewer {
         }
 
         // dirty everything
-        this.dirtyWireframe = this.dirtyBounds = this.dirtySkeleton = this.dirtyNormals = true;
+        this.dirtyWireframe = this.dirtyBounds = this.dirtySkeleton = this.dirtyGrid = this.dirtyNormals = true;
 
         // we can't refocus the camera here because the scene hierarchy only gets updated
         // during render. we must instead set a flag, wait for a render to take place and
@@ -1289,15 +1323,24 @@ class Viewer {
             }
 
             // debug bounds
-            if (this.dirtyBounds) {
+            if (this.sceneBounds && this.dirtyBounds) {
                 this.dirtyBounds = false;
-                this.debugBounds.clear();
 
+                // calculate bounds
+                // this.sceneBounds = Viewer.calcMeshBoundingBox(this.meshInstances);
+
+                this.debugBounds.clear();
                 if (this.showBounds) {
-                    const bbox = Viewer.calcMeshBoundingBox(this.meshInstances);
-                    this.debugBounds.box(bbox.getMin(), bbox.getMax());
+                    this.debugBounds.box(this.sceneBounds.getMin(), this.sceneBounds.getMax());
                 }
                 this.debugBounds.update();
+
+                const v = new pc.Vec3(
+                    this.sceneBounds.halfExtents.x * 2,
+                    this.sceneBounds.halfExtents.y * 2,
+                    this.sceneBounds.halfExtents.z * 2
+                );
+                this.observer.set('scene.bounds', v.toString());
             }
 
             // debug normals
@@ -1344,13 +1387,42 @@ class Viewer {
                 if (this.showSkeleton) {
                     for (let i = 0; i < this.entities.length; ++i) {
                         const entity = this.entities[i];
-                        if (entity.findComponent("render")) {
+                        if (this.meshInstances.length === 0 || entity.findComponent("render")) {
                             this.debugSkeleton.generateSkeleton(entity);
                         }
                     }
                 }
 
                 this.debugSkeleton.update();
+            }
+
+            // debug grid
+            if (this.sceneBounds && this.dirtyGrid) {
+                this.dirtyGrid = false;
+
+                this.debugGrid.clear();
+                if (this.showGrid) {
+                    // calculate primary spacing
+                    const spacing = Math.pow(10, Math.floor(Math.log10(this.sceneBounds.halfExtents.length())));
+
+                    const v0 = new pc.Vec3(0, 0, 0);
+                    const v1 = new pc.Vec3(0, 0, 0);
+
+                    const numGrids = 10;
+                    const a = numGrids * spacing;
+                    for (let x = -numGrids; x < numGrids + 1; ++x) {
+                        const b = x * spacing;
+
+                        v0.set(-a, 0, b);
+                        v1.set(a, 0, b);
+                        this.debugGrid.line(v0, v1, b === 0 ? (0x80000000 >>> 0) : (0x80ffffff >>> 0));
+
+                        v0.set(b, 0, -a);
+                        v1.set(b, 0, a);
+                        this.debugGrid.line(v0, v1, b === 0 ? (0x80000000 >>> 0) : (0x80ffffff >>> 0));
+                    }
+                }
+                this.debugGrid.update();
             }
         }
     }

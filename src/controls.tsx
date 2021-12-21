@@ -93,6 +93,7 @@ const ShowPanel = () => {
             <Toggle name='wireframe'  path='show.wireframe' />
             <Toggle name='bounds'  path='show.bounds' />
             <Toggle name='skeleton' path='show.skeleton' />
+            <Toggle name='grid' path='show.grid' />
             <Slider name='normals' precision={2} min={0} max={1} path='show.normals' />
             <Slider name='fov' precision={0} min={35} max={150} path='show.fov' />
         </Panel>
@@ -108,32 +109,33 @@ const LightingPanel = () => {
             <Toggle name='lightingShadow' path='lighting.shadow' label='Shadow' />
             <Slider name='lightingEnv' precision={2} min={0} max={6} path='lighting.env' label='Env' />
             <Select name='lightingSkybox' type='string' options={skyboxOptions} path='lighting.skybox.value' label='Skybox' />
-            <Select name='lightingSkyboxMip' type='number' options={[0, 1, 2, 3, 4, 5, 6].map((v) => ({ v, t: Number(v).toString() }))} path='lighting.skybox.mip' label='Mip' />
+            <Select name='lightingSkyboxMip' type='number' options={[0, 1, 2, 3, 4, 5, 6].map((v) => ({ v: v, t: v === 0 ? 'Disable' : Number(v - 1).toString() }))} path='lighting.skybox.mip' label='Mip' />
             <Slider name='lightingRotation' precision={0} min={-180} max={180} path='lighting.rotation' label='Rotation' />
             <Select name='lightingTonemapping' type='string' options={['Linear', 'Filmic', 'Hejl', 'ACES'].map((v) => ({ v, t: v }))} path='lighting.tonemapping' label='Tonemap' />
         </Panel>
     );
 };
 
-const ModelPanel = () => {
+const ScenePanel = () => {
     const observer: Observer = useContext(ObserverContext);
-    const modelHierarchy: Array<HierarchyNode> = useObserverState(observer, 'model.nodes', true);
+    const modelHierarchy: Array<HierarchyNode> = useObserverState(observer, 'scene.nodes', true);
     const enabled: boolean =  modelHierarchy.length > 0;
     const mapNodes = (nodes: Array<HierarchyNode>) => {
-        return nodes.map((node:HierarchyNode) => <TreeViewItem text={`${node.name}`} key={node.path} onSelected={() => observer.set('model.selectedNode.path', node.path)}>
+        return nodes.map((node:HierarchyNode) => <TreeViewItem text={`${node.name}`} key={node.path} onSelected={() => observer.set('scene.selectedNode.path', node.path)}>
             { mapNodes(node.children) }
         </TreeViewItem>);
     };
     return (
-        <Panel headerText='MODEL' collapsible >
-            <Detail name='meshCount' label='Meshes:' path='model.meshCount'/>
-            <Detail name='vertexCount' label='Verts:' path='model.vertexCount'/>
-            <Detail name='primitiveCount' label='Primitives:' path='model.primitiveCount'/>
+        <Panel headerText='SCENE' collapsible >
+            <Detail name='meshCount' label='Meshes' path='scene.meshCount'/>
+            <Detail name='vertexCount' label='Verts' path='scene.vertexCount'/>
+            <Detail name='primitiveCount' label='Primitives' path='scene.primitiveCount'/>
+            <Vector name='bounds' label='Bounds' dimensions={3} path='scene.bounds' enabled={false}/>
             <Panel headerText='SELECTED NODE' collapsible class={'modelSelectedNodePanel'} enabled={enabled}>
-                <Detail name='selectedNodeName' label='Name:' path='model.selectedNode.name'/>
-                <Vector name='selectedNodePosition' label='Position:' dimensions={3} path='model.selectedNode.position' enabled={false}/>
-                <Vector name='selectedNodeRotation' label='Rotation:' dimensions={4} path='model.selectedNode.rotation' enabled={false}/>
-                <Vector name='selectedNodeScale' label='Scale:' dimensions={3} path='model.selectedNode.scale' enabled={false}/>
+                <Detail name='selectedNodeName' label='Name' path='scene.selectedNode.name'/>
+                <Vector name='selectedNodePosition' label='Position' dimensions={3} path='scene.selectedNode.position' enabled={false}/>
+                <Vector name='selectedNodeRotation' label='Rotation' dimensions={4} path='scene.selectedNode.rotation' enabled={false}/>
+                <Vector name='selectedNodeScale' label='Scale' dimensions={3} path='scene.selectedNode.scale' enabled={false}/>
             </Panel>
             <Panel headerText='HIERARCHY' collapsible class={'modelHierarchyPanel'} enabled={enabled}>
                 { modelHierarchy.length > 0 &&
@@ -216,7 +218,7 @@ const Controls = (props: { observer: Observer }) => {
                 <ShowPanel />
                 <LightingPanel />
                 <AnimationPanel />
-                <ModelPanel />
+                <ScenePanel />
                 <MorphPanel />
             </ObserverProvider>
         </div>

@@ -28,6 +28,7 @@ const observer: Observer = new Observer({
         wireframe: false,
         bounds: false,
         skeleton: false,
+        grid: false,
         normals: 0,
         fov: 75
     },
@@ -40,7 +41,7 @@ const observer: Observer = new Observer({
             mip: 1,
             value: null,
             options: JSON.stringify([
-                { v: null, t: 'None' }
+                { v: 'None', t: 'None' }
             ]),
             default: null
         },
@@ -55,7 +56,7 @@ const observer: Observer = new Observer({
         progress: 0,
         selectedTrack: 'ALL_TRACKS'
     },
-    model: {
+    scene: {
         nodes: '[]',
         selectedNode: {
             path: '',
@@ -66,7 +67,8 @@ const observer: Observer = new Observer({
         },
         meshCount: null,
         vertexCount: null,
-        primitiveCount: null
+        primitiveCount: null,
+        bounds: null
     },
     morphTargets: null,
     spinner: false,
@@ -137,6 +139,9 @@ const dependencyArrived = () => {
 
         // @ts-ignore: Assign global viewer
         window.viewer = new Viewer(document.getElementById("application-canvas"), observer);
+
+        // @ts-ignore
+        window.viewer.handleUrlParams();
     }
 };
 
@@ -165,7 +170,7 @@ new pc.Http().get(
         } else {
             const skyboxes = result.skyboxes;
             const skyboxOptions: Array<Option> = [{
-                v: null, t: 'None'
+                v: 'None', t: 'None'
             }];
             skyboxes.forEach((skybox: Skybox) => {
                 skyboxOptions.push({ v: getAssetPath(skybox.url), t: skybox.label });
