@@ -1,6 +1,6 @@
 {
     "skyboxes": [
-        { "label": "Abandoned tank farm", "url": "./skybox/abandoned_tank_farm_01_2k.hdr" },
+        { "label": "Abandoned Tank Farm", "url": "./skybox/abandoned_tank_farm_01_2k.hdr" },
         { "label": "Adam's Place Bridge", "url": "./skybox/adams_place_bridge_2k.hdr" },
         { "label": "Artist Workshop", "url": "./skybox/artist_workshop_2k.hdr" },
         { "label": "Ballroom", "url": "./skybox/ballroom_2k.hdr" },
@@ -10,11 +10,11 @@
         { "label": "Kloppenheim", "url": "./skybox/kloppenheim_02_2k.hdr" },
         { "label": "Lebombo", "url": "./skybox/lebombo_2k.hdr" },
         { "label": "Outdoor Umbrellas", "url": "./skybox/outdoor_umbrellas_2k.hdr" },
-        { "label": "Spruit sunrise", "url": "./skybox/spruit_sunrise_2k.hdr" },
-        { "label": "Studio small", "url": "./skybox/studio_small_03_2k.hdr" },
+        { "label": "Spruit Sunrise", "url": "./skybox/spruit_sunrise_2k.hdr" },
+        { "label": "Studio Small", "url": "./skybox/studio_small_03_2k.hdr" },
         { "label": "Venice Sunset", "url": "./skybox/venice_sunset_1k.hdr" },
-        { "label": "Vignaioli night", "url": "./skybox/vignaioli_night_2k.hdr" },
-        { "label": "Wooden motel", "url": "./skybox/wooden_motel_2k.hdr" }
+        { "label": "Vignaioli Night", "url": "./skybox/vignaioli_night_2k.hdr" },
+        { "label": "Wooden Motel", "url": "./skybox/wooden_motel_2k.hdr" }
     ],
 
     "defaultSkybox": "./skybox/Helipad_equi_small.png"
