@@ -12,6 +12,8 @@ import * as VoxParser from 'playcanvas/scripts/parsers/vox-parser.js';
 // model filename extensions
 const modelExtensions = ['.gltf', '.glb', '.vox'];
 
+const defaultSceneBounds = new pc.BoundingBox(new pc.Vec3(0, 1, 0), new pc.Vec3(1, 1, 1));
+
 class Viewer {
     app: pc.Application;
     prevCameraMat: pc.Mat4;
@@ -91,7 +93,7 @@ class Viewer {
         app.assets.loadFromUrl(
             getAssetPath("scripts/orbit-camera.js"),
             "script",
-            function () {
+            () => {
                 // setup orbit script component
                 camera.addComponent("script");
                 camera.script.create("orbitCamera", {
@@ -102,6 +104,9 @@ class Viewer {
                 camera.script.create("orbitCameraInputMouse");
                 camera.script.create("orbitCameraInputTouch");
                 app.root.addChild(camera);
+
+                // @ts-ignore
+                camera.script.orbitCamera.pivotPoint = new pc.Vec3(0, 1, 0);
             });
 
         // create the light
@@ -613,9 +618,7 @@ class Viewer {
     focusCamera() {
         const camera = this.camera.camera;
 
-        const bbox = this.meshInstances.length ?
-            Viewer.calcMeshBoundingBox(this.meshInstances) :
-            Viewer.calcHierBoundingBox(this.sceneRoot);
+        const bbox = this.calcSceneBounds();
 
         if (this.cameraFocusBBox) {
             const intersection = Viewer.calcBoundingBoxIntersection(this.cameraFocusBBox, bbox);
@@ -1333,6 +1336,13 @@ class Viewer {
         this.observer.set('animation.playing', true);
     }
 
+    private calcSceneBounds() {
+        return this.meshInstances.length ?
+            Viewer.calcMeshBoundingBox(this.meshInstances) :
+            (this.sceneRoot.children.length ?
+                Viewer.calcHierBoundingBox(this.sceneRoot) : defaultSceneBounds);
+    }
+
     // generate and render debug elements on prerender
     private onPrerender() {
         // don't update on the first frame
@@ -1352,9 +1362,7 @@ class Viewer {
                 this.dirtyBounds = false;
 
                 // calculate bounds
-                this.sceneBounds = this.meshInstances.length ?
-                    Viewer.calcMeshBoundingBox(this.meshInstances) :
-                    Viewer.calcHierBoundingBox(this.sceneRoot);
+                this.sceneBounds = this.calcSceneBounds();
 
                 this.debugBounds.clear();
                 if (this.showBounds) {
