@@ -278,14 +278,18 @@ class DebugLines {
     // render a colored axis at the given matrix orientation and size
     axis(m: pc.Mat4, size: number=1) {
         m.getTranslation(v0);
+        m.getScale(v2);
 
-        m.getX(v1).mulScalar(size).add(v0);
+        // ignore matrix scale
+        v2.set(size / v2.x, size / v2.y, size / v2.z);
+
+        m.getX(v1).mul(v2).add(v0);
         this.line(v0, v1, 0xffff0000);
 
-        m.getY(v1).mulScalar(size).add(v0);
+        m.getY(v1).mul(v2).add(v0);
         this.line(v0, v1, 0xff00ff00);
 
-        m.getZ(v1).mulScalar(size).add(v0);
+        m.getZ(v1).mul(v2).add(v0);
         this.line(v0, v1, 0xff0000ff);
     }
 
