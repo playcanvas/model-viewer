@@ -290,21 +290,25 @@ class DebugLines {
     }
 
     // generate skeleton
-    generateSkeleton(node: pc.GraphNode) {
+    generateSkeleton(node: pc.GraphNode, showBones: boolean, showAxes: boolean) {
         const recurse = (curr: pc.GraphNode) => {
             if (curr.enabled) {
                 // render child links
                 for (let i = 0; i < curr.children.length; ++i) {
                     const child = curr.children[i];
-                    this.bone(curr.getPosition(), child.getPosition());
+                    if (showBones) {
+                        this.bone(curr.getPosition(), child.getPosition());
+                    }
                     recurse(child);
                 }
 
                 // render axis
-                const parent = node.parent;
-                if (parent) {
-                    v0.sub2(curr.getPosition(), parent.getPosition());
-                    this.axis(curr.getWorldTransform(), v0.length() * 0.05);
+                if (showAxes) {
+                    const parent = node.parent;
+                    if (parent) {
+                        v0.sub2(curr.getPosition(), parent.getPosition());
+                        this.axis(curr.getWorldTransform(), v0.length() * 0.05);
+                    }
                 }
             }
         };

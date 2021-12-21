@@ -36,6 +36,7 @@ class Viewer {
     showWireframe: boolean;
     showBounds: boolean;
     showSkeleton: boolean;
+    showAxes: boolean;
     showGrid: boolean;
     normalLength: number;
     skyboxMip: number;
@@ -124,6 +125,11 @@ class Viewer {
         app.on('update', this.update, this);
 
         // configure drag and drop
+        window.addEventListener('dragstart', (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            ev.dataTransfer.effectAllowed = "all";
+        }, false);
         window.addEventListener('dragover', (ev) => {
             ev.preventDefault();
             ev.stopPropagation();
@@ -163,6 +169,7 @@ class Viewer {
         this.showWireframe = observer.get('show.wireframe');
         this.showBounds = observer.get('show.bounds');
         this.showSkeleton = observer.get('show.skeleton');
+        this.showAxes = observer.get('show.axes');
         this.normalLength = observer.get('show.normals');
         this.setTonemapping(observer.get('lighting.tonemapping'));
 
@@ -311,6 +318,7 @@ class Viewer {
             'show.wireframe': this.setShowWireframe.bind(this),
             'show.bounds': this.setShowBounds.bind(this),
             'show.skeleton': this.setShowSkeleton.bind(this),
+            'show.axes': this.setShowAxes.bind(this),
             'show.grid': this.setShowGrid.bind(this),
             'show.normals': this.setNormalLength.bind(this),
             'show.fov': this.setFov.bind(this),
@@ -605,7 +613,7 @@ class Viewer {
     focusCamera() {
         const camera = this.camera.camera;
 
-        const bbox = this.sceneBounds = this.meshInstances.length ?
+        const bbox = this.meshInstances.length ?
             Viewer.calcMeshBoundingBox(this.meshInstances) :
             Viewer.calcHierBoundingBox(this.sceneRoot);
 
@@ -873,6 +881,12 @@ class Viewer {
 
     setShowSkeleton(show: boolean) {
         this.showSkeleton = show;
+        this.dirtySkeleton = true;
+        this.renderNextFrame();
+    }
+
+    setShowAxes(show: boolean) {
+        this.showAxes = show;
         this.dirtySkeleton = true;
         this.renderNextFrame();
     }
@@ -1255,7 +1269,18 @@ class Viewer {
 
     // rebuild the animation state graph
     private rebuildAnimTracks() {
-        const entity = this.entities[this.entities.length - 1];
+        let i;
+        for (i = this.entities.length - 1; i >= 0; --i) {
+            if (this.entities[i].anim) {
+                break;
+            }
+        }
+
+        if (i < 0) {
+            return;
+        }
+
+        const entity = this.entities[i];
 
         // create states
         const states : Array<{ name: string, speed?: number }> = [{ name: pc.ANIM_STATE_START }];
@@ -1323,11 +1348,13 @@ class Viewer {
             }
 
             // debug bounds
-            if (this.sceneBounds && this.dirtyBounds) {
+            if (this.dirtyBounds) {
                 this.dirtyBounds = false;
 
                 // calculate bounds
-                // this.sceneBounds = Viewer.calcMeshBoundingBox(this.meshInstances);
+                this.sceneBounds = this.meshInstances.length ?
+                    Viewer.calcMeshBoundingBox(this.meshInstances) :
+                    Viewer.calcHierBoundingBox(this.sceneRoot);
 
                 this.debugBounds.clear();
                 if (this.showBounds) {
@@ -1384,11 +1411,11 @@ class Viewer {
                 this.dirtySkeleton = false;
                 this.debugSkeleton.clear();
 
-                if (this.showSkeleton) {
+                if (this.showSkeleton || this.showAxes) {
                     for (let i = 0; i < this.entities.length; ++i) {
                         const entity = this.entities[i];
                         if (this.meshInstances.length === 0 || entity.findComponent("render")) {
-                            this.debugSkeleton.generateSkeleton(entity);
+                            this.debugSkeleton.generateSkeleton(entity, this.showSkeleton, this.showAxes);
                         }
                     }
                 }
