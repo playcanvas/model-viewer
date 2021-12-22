@@ -29,24 +29,22 @@ const observer: Observer = new Observer({
         bounds: false,
         skeleton: false,
         axes: false,
-        grid: false,
+        grid: true,
         normals: 0,
-        fov: 75
+        fov: 50
     },
     lighting: {
         direct: 1,
         shadow: true,
-        env: 1,
-        tonemapping: 'ACES',
-        skybox: {
-            mip: 1,
-            value: null,
-            options: JSON.stringify([
-                { v: 'None', t: 'None' }
-            ]),
-            default: null
+        env: {
+            value: getAssetPath('./skybox/adams_place_bridge_2k.hdr'),
+            options: null,
+            default: null,
+            skyboxMip: '3',
+            intensity: 1
         },
-        rotation: 0
+        rotation: 0,
+        tonemapping: 'Linear'
     },
     animation: {
         playing: false,
@@ -86,7 +84,7 @@ const saveOptions = (name: string) => {
 
 const loadOptions = (name: string) => {
     const loadRec = (path: string, value:any) => {
-        const filter = ['lighting.skybox.options'];
+        const filter = ['lighting.env.options'];
         if (filter.indexOf(path) !== -1) {
             return;
         }
@@ -176,10 +174,10 @@ new pc.Http().get(
             skyboxes.forEach((skybox: Skybox) => {
                 skyboxOptions.push({ v: getAssetPath(skybox.url), t: skybox.label });
             });
-            const skyboxData = observer.get('lighting.skybox');
+            const skyboxData = observer.get('lighting.env');
             skyboxData.options = JSON.stringify(skyboxOptions);
             skyboxData.default = getAssetPath(result.defaultSkybox);
-            observer.set('lighting.skybox', skyboxData);
+            observer.set('lighting.env', skyboxData);
             dependencyArrived();
         }
     }

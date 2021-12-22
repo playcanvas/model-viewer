@@ -330,17 +330,17 @@ class Viewer {
 
             'lighting.shadow': this.setDirectShadow.bind(this),
             'lighting.direct': this.setDirectLighting.bind(this),
-            'lighting.env': this.setEnvLighting.bind(this),
-            'lighting.tonemapping': this.setTonemapping.bind(this),
-            'lighting.skybox.mip': this.setSkyboxMip.bind(this),
-            'lighting.skybox.value': (value: string) => {
-                if (value !== 'None') {
+            'lighting.env.value': (value: string) => {
+                if (value && value !== 'None') {
                     this.load([{ url: value, filename: value }]);
                 } else {
                     this.clearSkybox();
                 }
             },
+            'lighting.env.skyboxMip': this.setSkyboxMip.bind(this),
+            'lighting.env.intensity': this.setEnvIntensity.bind(this),
             'lighting.rotation': this.setLightingRotation.bind(this),
+            'lighting.tonemapping': this.setTonemapping.bind(this),
 
             'animation.playing': (playing: boolean) => {
                 if (playing) {
@@ -647,7 +647,7 @@ class Viewer {
             orbitCamera.pivotPoint = bbox.center;
             orbitCamera.distance = distance;
         }
-        camera.nearClip = distance / 10;
+        camera.nearClip = distance / 100;
         camera.farClip = distance * 10;
 
         const light = this.light;
@@ -933,7 +933,7 @@ class Viewer {
         this.renderNextFrame();
     }
 
-    setEnvLighting(factor: number) {
+    setEnvIntensity(factor: number) {
         this.app.scene.skyboxIntensity = factor;
         this.renderNextFrame();
     }
