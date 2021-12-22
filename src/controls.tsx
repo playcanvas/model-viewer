@@ -103,14 +103,14 @@ const ShowPanel = () => {
 
 const LightingPanel = () => {
     const observer: Observer = useContext(ObserverContext);
-    const skyboxOptions: Array<Option> = useObserverState(observer, 'lighting.skybox.options', true);
+    const skyboxOptions: Array<Option> = useObserverState(observer, 'lighting.env.options', true);
     return (
         <Panel headerText='LIGHTING' collapsible>
             <Slider name='lightingDirect' precision={2} min={0} max={6} path='lighting.direct' label='Direct' />
             <Toggle name='lightingShadow' path='lighting.shadow' label='Shadow' />
-            <Slider name='lightingEnv' precision={2} min={0} max={6} path='lighting.env' label='Env' />
-            <Select name='lightingSkybox' type='string' options={skyboxOptions} path='lighting.skybox.value' label='Skybox' />
-            <Select name='lightingSkyboxMip' type='number' options={[0, 1, 2, 3, 4, 5, 6].map((v) => ({ v: v, t: v === 0 ? 'Disable' : Number(v - 1).toString() }))} path='lighting.skybox.mip' label='Mip' />
+            <Select name='lightingEnv' type='string' options={skyboxOptions} path='lighting.env.value' label='Environment' />
+            <Select name='lightingSkyboxMip' type='number' options={[0, 1, 2, 3, 4, 5, 6].map((v) => ({ v: v, t: v === 0 ? 'Disable' : Number(v - 1).toString() }))} path='lighting.env.skyboxMip' label='Skybox Level' />
+            <Slider name='lightingEnv' precision={2} min={0} max={6} path='lighting.env.intensity' label='Intensity' />
             <Slider name='lightingRotation' precision={0} min={-180} max={180} path='lighting.rotation' label='Rotation' />
             <Select name='lightingTonemapping' type='string' options={['Linear', 'Filmic', 'Hejl', 'ACES'].map((v) => ({ v, t: v }))} path='lighting.tonemapping' label='Tonemap' />
         </Panel>
