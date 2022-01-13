@@ -9,18 +9,18 @@ const v2 = new pc.Vec3();
 const up = new pc.Vec3(0, 1, 0);
 const mat = new pc.Mat4();
 const unitBone = [
-    [[0   ,    0,   0], [-0.5, 0   , 0.3]],
-    [[0   ,    0,   0], [0.5 , 0   , 0.3]],
-    [[0   ,    0,   0], [0   , -0.5, 0.3]],
-    [[0   ,    0,   0], [0   , 0.5 , 0.3]],
-    [[0   ,    0,   1], [-0.5, 0   , 0.3]],
-    [[0   ,    0,   1], [0.5 , 0   , 0.3]],
-    [[0   ,    0,   1], [0   , -0.5, 0.3]],
-    [[0   ,    0,   1], [0   , 0.5 , 0.3]],
-    [[0   , -0.5, 0.3], [0.5 , 0   , 0.3]],
-    [[0.5 ,    0, 0.3], [0   , 0.5 , 0.3]],
-    [[0   ,  0.5, 0.3], [-0.5, 0   , 0.3]],
-    [[-0.5,    0, 0.3], [0   , -0.5, 0.3]]
+    [[0,    0,   0], [-0.5, 0, 0.3]],
+    [[0,    0,   0], [0.5,  0, 0.3]],
+    [[0,    0,   0], [0, -0.5, 0.3]],
+    [[0,    0,   0], [0,  0.5, 0.3]],
+    [[0,    0,   1], [-0.5, 0, 0.3]],
+    [[0,    0,   1], [0.5,  0, 0.3]],
+    [[0,    0,   1], [0, -0.5, 0.3]],
+    [[0,    0,   1], [0,  0.5, 0.3]],
+    [[0, -0.5, 0.3], [0.5,  0, 0.3]],
+    [[0.5,  0, 0.3], [0,  0.5, 0.3]],
+    [[0,  0.5, 0.3], [-0.5, 0, 0.3]],
+    [[-0.5, 0, 0.3], [0, -0.5, 0.3]]
 ];
 
 const vshader = `
@@ -66,7 +66,7 @@ class DebugLines {
     vertexData: Float32Array;
     colorData: Uint32Array;
 
-    constructor(app: pc.Application, camera: pc.Entity, backLayer: boolean = true) {
+    constructor(app: pc.Application, camera: pc.Entity, backLayer = true) {
         if (!debugLayerFront) {
             // construct the debug layer
             debugLayerBack = new pc.Layer({
@@ -181,7 +181,7 @@ class DebugLines {
         this.line(new pc.Vec3(min.x, min.y, max.z), new pc.Vec3(min.x, max.y, max.z));
     }
 
-    line(v0: pc.Vec3, v1: pc.Vec3, clr: number=0xffffffff): void {
+    line(v0: pc.Vec3, v1: pc.Vec3, clr = 0xffffffff): void {
         if (this.vertexCursor >= this.vertexData.length / 8) {
             const oldVBuffer = this.mesh.vertexBuffer;
             const byteSize = oldVBuffer.lock().byteLength * 2;
@@ -276,7 +276,7 @@ class DebugLines {
     }
 
     // render a colored axis at the given matrix orientation and size
-    axis(m: pc.Mat4, size: number=1) {
+    axis(m: pc.Mat4, size = 1) {
         m.getTranslation(v0);
         m.getScale(v2);
 
@@ -322,12 +322,16 @@ class DebugLines {
     update() {
         const empty = this.vertexCursor === 0;
         if (!empty) {
-            this.meshInstances.forEach(m => m.visible = true);
+            this.meshInstances.forEach((m) => {
+                m.visible = true;
+            });
             this.mesh.vertexBuffer.unlock();
             this.mesh.primitive[0].count = this.vertexCursor * 2;
             this.vertexCursor = 0;
         } else {
-            this.meshInstances.forEach(m => m.visible = false);
+            this.meshInstances.forEach((m) => {
+                m.visible = false;
+            });
         }
     }
 }
