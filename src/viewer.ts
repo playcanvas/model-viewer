@@ -419,6 +419,9 @@ class Viewer {
             return this.initSkyboxFromTextureNew(skybox);
         }
 
+        const app = this.app;
+        const device = app.graphicsDevice;
+
         const createCubemap = (size: number) => {
             return new pc.Texture(device, {
                 name: `skyboxFaces-${size}`,
@@ -433,8 +436,6 @@ class Viewer {
             });
         };
 
-        const app = this.app;
-        const device = app.graphicsDevice;
         const cubemaps = [];
 
         // @ts-ignore skybox
