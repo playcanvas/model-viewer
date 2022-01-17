@@ -60,9 +60,21 @@ const observer: Observer = new Observer({
         selectedNode: {
             path: '',
             name: null,
-            position: '[0, 0, 0]',
-            rotation: '[0, 0, 0]',
-            scale: '[0, 0, 0]'
+            position: {
+                0: 0,
+                1: 0,
+                2: 0
+            },
+            rotation: {
+                0: 0,
+                1: 0,
+                2: 0
+            },
+            scale: {
+                0: 0,
+                1: 0,
+                2: 0
+            }
         },
         meshCount: null,
         vertexCount: null,
