@@ -4,8 +4,8 @@ import Container from '@playcanvas/pcui/Container/component';
 import Label from '@playcanvas/pcui/Label/component';
 // @ts-ignore: library file import
 import Button from '@playcanvas/pcui/Button/component';
-import React, { useRef, useContext } from 'react';
-import { Observer, URL } from './types';
+import React, { useRef } from 'react';
+import { Observer, File } from './types';
 
 const ObserverContext = React.createContext(null);
 const ObserverProvider = ObserverContext.Provider;
@@ -22,7 +22,7 @@ const LoadButton = () => {
         // `event` points to the selected file
         const viewer = (window as any).viewer;
         if (viewer && event.target.files.length) {
-            const urls: Array<URL> = [];
+            const urls: Array<File> = [];
             urls.push({
                 url: URL.createObjectURL(event.target.files[0]),
                 filename: event.target.files[0].name

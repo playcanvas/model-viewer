@@ -4,7 +4,7 @@ export interface Morph {
     weight?: number
 }
 
-export interface URL {
+export interface File {
     url: string,
     filename?: string
 }
