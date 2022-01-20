@@ -1,3 +1,4 @@
+import { Observer } from '@playcanvas/observer';
 // @ts-ignore: library file import
 import Container from '@playcanvas/pcui/Container/component';
 // @ts-ignore: library file import
@@ -5,7 +6,7 @@ import Label from '@playcanvas/pcui/Label/component';
 // @ts-ignore: library file import
 import Button from '@playcanvas/pcui/Button/component';
 import React, { useRef } from 'react';
-import { Observer, File } from './types';
+import { File } from './types';
 
 const ObserverContext = React.createContext(null);
 const ObserverProvider = ObserverContext.Provider;

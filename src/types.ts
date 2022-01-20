@@ -19,13 +19,6 @@ export interface Skybox {
     label: string
 }
 
-export interface Observer {
-    set: (path: string, value: any, silent?: boolean, remote?: boolean, force?: boolean) => void,
-    get: (path: string) => any,
-    on: (eventName: string, callback: (value: any) => void) => void,
-    emit: (eventName: string) => void
-}
-
 export interface HierarchyNode {
     name: string,
     path: string,
