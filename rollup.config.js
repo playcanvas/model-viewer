@@ -38,7 +38,7 @@ export default {
         }),
         replace({
             'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
-            '__PUBLIC_PATH__': process.env.PUBLIC_PATH
+            '__PUBLIC_PATH__': JSON.stringify(process.env.PUBLIC_PATH)
         }),
         copy({
             targets: [
