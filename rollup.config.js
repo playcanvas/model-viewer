@@ -1,7 +1,7 @@
 import resolve from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
 import replace from '@rollup/plugin-replace';
-import typescript from 'rollup-plugin-typescript';
+import typescript from 'rollup-plugin-typescript2';
 import copy from 'rollup-plugin-copy';
 import { terser } from 'rollup-plugin-terser';
 import replacement from "rollup-plugin-module-replacement";
@@ -38,7 +38,7 @@ export default {
         }),
         replace({
             'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
-            '__PUBLIC_PATH__': process.env.PUBLIC_PATH
+            '__PUBLIC_PATH__': JSON.stringify(process.env.PUBLIC_PATH)
         }),
         copy({
             targets: [
