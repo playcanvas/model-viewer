@@ -2,7 +2,7 @@ import * as pc from 'playcanvas';
 import React from 'react';
 import ReactDOM from 'react-dom';
 // @ts-ignore: library file import
-import { wasmSupported, loadWasmModuleAsync } from 'lib/wasm-loader.js';
+import { wasmSupported, loadWasmModuleAsync } from '../lib/wasm-loader.js';
 
 import Viewer from './viewer';
 // import { Skybox, setSkyboxes } from './controls';
@@ -17,9 +17,6 @@ import Container from '@playcanvas/pcui/Container/component';
 import Spinner from '@playcanvas/pcui/Spinner/component';
 import { getAssetPath, getRootPath } from './helpers';
 import { Skybox, Option } from './types';
-
-import './style.css';
-import './fonts.css';
 
 // initialize the apps state
 const observer: Observer = new Observer({

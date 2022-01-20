@@ -3,9 +3,9 @@ import * as pc from 'playcanvas';
 import * as pcx from 'playcanvas/build/playcanvas-extras.js';
 import DebugLines from './debug';
 // @ts-ignore: library file import
-import * as MeshoptDecoder from 'lib/meshopt_decoder.js';
+import * as MeshoptDecoder from '../lib/meshopt_decoder.js';
 import { getAssetPath } from './helpers';
-import { Morph, URL, Observer, HierarchyNode } from './types';
+import { Morph, File, Observer, HierarchyNode } from './types';
 // @ts-ignore: library file import
 import * as VoxParser from 'playcanvas/scripts/parsers/vox-parser.js';
 
@@ -475,7 +475,7 @@ class Viewer {
 
     // load the image files into the skybox. this function supports loading a single equirectangular
     // skybox image or 6 cubemap faces.
-    private loadSkybox(files: Array<URL>) {
+    private loadSkybox(files: Array<File>) {
         const app = this.app;
 
         if (files.length !== 6) {
@@ -517,7 +517,7 @@ class Viewer {
                 return 0;
             };
 
-            const sortPred = (first: URL, second: URL) => {
+            const sortPred = (first: File, second: File) => {
                 const firstOrder = getOrder(first.filename);
                 const secondOrder = getOrder(second.filename);
                 return firstOrder < secondOrder ? -1 : (secondOrder < firstOrder ? 1 : 0);
@@ -658,7 +658,7 @@ class Viewer {
     }
 
     // load gltf model given its url and list of external urls
-    private loadGltf(gltfUrl: URL, externalUrls: Array<URL>) {
+    private loadGltf(gltfUrl: File, externalUrls: Array<File>) {
 
         // provide buffer view callback so we can handle models compressed with MeshOptimizer
         // https://github.com/zeux/meshoptimizer
@@ -690,7 +690,7 @@ class Viewer {
         };
 
         const processImage = function (gltfImage: any, continuation: (err: string, result: any) => void) {
-            const u: URL = externalUrls.find((url) => {
+            const u: File = externalUrls.find((url) => {
                 return url.filename === pc.path.normalize(gltfImage.uri || "");
             });
             if (u) {
@@ -757,25 +757,25 @@ class Viewer {
     // load the list of urls.
     // urls can reference glTF files, glb files and skybox textures.
     // returns true if a model was loaded.
-    load(urls: Array<URL>) {
+    load(files: Array<File>) {
         // convert single url to list
-        if (!Array.isArray(urls)) {
-            urls = [urls];
+        if (!Array.isArray(files)) {
+            files = [files];
         }
 
         // step through urls loading gltf/glb models
         let result = false;
-        urls.forEach((url) => {
-            const filenameExt = pc.path.getExtension(url.filename).toLowerCase();
+        files.forEach((file) => {
+            const filenameExt = pc.path.getExtension(file.filename).toLowerCase();
             if (modelExtensions.indexOf(filenameExt) !== -1) {
-                this.loadGltf(url, urls);
+                this.loadGltf(file, files);
                 result = true;
             }
         });
 
         if (!result) {
             // if no models were loaded, load the files as skydome images instead
-            this.loadSkybox(urls);
+            this.loadSkybox(files);
         }
 
         // return true if a model/scene was loaded and false otherwise
@@ -996,7 +996,7 @@ class Viewer {
     // use webkitGetAsEntry to extract files so we can include folders
     private dropHandler(event: DragEvent) {
 
-        const removeCommonPrefix = (urls: Array<URL>) => {
+        const removeCommonPrefix = (urls: Array<File>) => {
             const split = (pathname: string) => {
                 const parts = pathname.split(pc.path.delimiter);
                 const base = parts[0];
@@ -1021,22 +1021,22 @@ class Viewer {
         };
 
         const resolveFiles = (entries: Array<FileSystemFileEntry>) => {
-            const urls: Array<URL> = [];
+            const files: Array<File> = [];
             entries.forEach((entry: FileSystemFileEntry) => {
-                entry.file((file: File) => {
-                    urls.push({
-                        url: URL.createObjectURL(file),
+                entry.file((entryFile: any) => {
+                    files.push({
+                        url: URL.createObjectURL(entryFile),
                         filename: entry.fullPath.substring(1)
                     });
-                    if (urls.length === entries.length) {
+                    if (files.length === entries.length) {
                         // remove common prefix from files in order to support dragging in the
                         // root of a folder containing related assets
-                        if (urls.length > 1) {
-                            removeCommonPrefix(urls);
+                        if (files.length > 1) {
+                            removeCommonPrefix(files);
                         }
 
                         // if a scene was loaded (and not just a skybox), clear the current scene
-                        if (this.load(urls) && !event.shiftKey) {
+                        if (this.load(files) && !event.shiftKey) {
                             this.resetScene();
                         }
                     }
