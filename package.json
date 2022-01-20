@@ -1,6 +1,6 @@
 {
   "name": "playcanvas-viewer",
-  "version": "1.0.1",
+  "version": "1.0.11",
   "author": "PlayCanvas<support@playcanvas.com>",
   "homepage": "https://playcanvas.com",
   "description": "PlayCanvas glTF Viewer",
