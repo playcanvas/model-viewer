@@ -1,3 +1,4 @@
+import { Observer } from '@playcanvas/observer';
 // @ts-ignore: library file import
 import Panel from '@playcanvas/pcui/Panel/component';
 // @ts-ignore: library file import
@@ -22,7 +23,7 @@ import SelectInput from '@playcanvas/pcui/SelectInput/component';
 import BindingTwoWay from '@playcanvas/pcui/BindingTwoWay';
 // @ts-ignore: library file import
 import React, { useEffect, useState, useContext } from 'react';
-import { Morph, Option, Observer, HierarchyNode } from './types';
+import { Morph, Option, HierarchyNode } from './types';
 
 const ObserverContext = React.createContext(null);
 const ObserverProvider = ObserverContext.Provider;
