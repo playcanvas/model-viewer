@@ -13,9 +13,11 @@ const template = Handlebars.compile(html);
 if (!fs.existsSync('./dist')) fs.mkdirSync('./dist');
 fs.writeFileSync(`./dist/index.html`, template({
     hasPublicPath: !!process.env.PUBLIC_PATH,
+    hasAnalyticsID: !!process.env.ANALYTICS_ID,
+    hasOneTrustDeveloperID: !!process.env.ONETRUST_DEVELOPER_ID,
     analyticsID: process.env.ANALYTICS_ID,
     oneTrustDomainKey: process.env.ONETRUST_DOMAIN_KEY,
-    oneTrustDeveloperId: process.env.ONETRUST_DEVELOPER_ID
+    oneTrustDeveloperID: process.env.ONETRUST_DEVELOPER_ID
 }));
 
 export default {
