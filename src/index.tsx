@@ -165,7 +165,7 @@ pc.basisInitialize({
 });
 
 // download asset manifest
-new pc.Http().get(
+pc.http.get(
     getAssetPath("asset_manifest.json"),
     {
         cache: true,

@@ -56,7 +56,7 @@ class Viewer {
     miniStats: any;
     observer: Observer;
 
-    constructor(canvas: any, observer: Observer) {
+    constructor(canvas: HTMLCanvasElement, observer: Observer) {
         // create the application
         const app = new pc.Application(canvas, {
             mouse: new pc.Mouse(canvas),
