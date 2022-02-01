@@ -4,9 +4,10 @@ import replace from '@rollup/plugin-replace';
 import typescript from 'rollup-plugin-typescript2';
 import copy from 'rollup-plugin-copy';
 import { terser } from 'rollup-plugin-terser';
-import replacement from "rollup-plugin-module-replacement";
+import alias from '@rollup/plugin-alias';
 import Handlebars from 'handlebars';
 import fs from 'fs';
+import path from 'path';
 
 const html = fs.readFileSync(`./src/index.mustache`, "utf8");
 const template = Handlebars.compile(html);
@@ -20,6 +21,28 @@ fs.writeFileSync(`./dist/index.html`, template({
     oneTrustDeveloperID: process.env.ONETRUST_DEVELOPER_ID
 }));
 
+const aliasEntries = () => {
+    const entries = [];
+
+    if (process.env.PCUI_PATH) {
+        entries.push({
+            find: /^@playcanvas\/pcui/,
+            replacement: path.resolve(process.env.PCUI_PATH)
+        });
+    }
+
+    if (process.env.ENGINE_PATH) {
+        entries.push({
+            find: /^playcanvas/,
+            replacement: path.resolve(process.env.ENGINE_PATH)
+        });
+    }
+
+    return {
+        entries: entries
+    };
+};
+
 export default {
     input: 'src/index.tsx',
     output: {
@@ -27,17 +50,7 @@ export default {
         format: 'es'
     },
     plugins: [
-        replacement({
-            entries: [
-                {
-                    find: /^playcanvas$/,
-                    replacement: (importee) => {
-                        if (!process.env.ENGINE_PATH) return;
-                        importee.replace('playcanvas', process.env.ENGINE_PATH);
-                    }
-                }
-            ]
-        }),
+        alias(aliasEntries()),
         replace({
             'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
             '__PUBLIC_PATH__': JSON.stringify(process.env.PUBLIC_PATH)
