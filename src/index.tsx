@@ -172,6 +172,7 @@ pc.basisInitialize({
 new pc.Http().get(
     getAssetPath("asset_manifest.json"),
     {
+        // @ts-ignore
         cache: true,
         responseType: "text",
         retry: false
