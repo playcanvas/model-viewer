@@ -21,7 +21,6 @@ import VectorInput from '@playcanvas/pcui/VectorInput/component';
 import SelectInput from '@playcanvas/pcui/SelectInput/component';
 // @ts-ignore: library file import
 import BindingTwoWay from '@playcanvas/pcui/BindingTwoWay';
-// @ts-ignore: library file import
 import React, { useEffect, useState, useContext } from 'react';
 import { Morph, Option, HierarchyNode } from './types';
 
