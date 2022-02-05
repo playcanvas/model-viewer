@@ -18,6 +18,14 @@ import Spinner from '@playcanvas/pcui/Spinner/component';
 import { getAssetPath, getRootPath } from './helpers';
 import { Skybox, Option } from './types';
 
+// Permit some additional properties to be set on the window
+declare global {
+    interface Window {
+        pc: any;
+        viewer: Viewer;
+    }
+}
+
 // initialize the apps state
 const observer: Observer = new Observer({
     show: {
@@ -146,15 +154,12 @@ const dependencyArrived = () => {
             saveOptions('default');
         });
 
-        // @ts-ignore: Assign global viewer
-        window.viewer = new Viewer(document.getElementById("application-canvas"), observer);
-
-        // @ts-ignore
+        const canvas = document.getElementById("application-canvas") as HTMLCanvasElement;
+        window.viewer = new Viewer(canvas, observer);
         window.viewer.handleUrlParams();
     }
 };
 
-// @ts-ignore: Assign global pc
 window.pc = pc;
 
 pc.basisInitialize({
@@ -164,7 +169,6 @@ pc.basisInitialize({
     lazyInit: true
 });
 
-// download asset manifest
 new pc.Http().get(
     getAssetPath("asset_manifest.json"),
     {

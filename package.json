@@ -61,7 +61,7 @@
     "cross-env": "^7.0.2",
     "eslint": "^8.8.0",
     "handlebars": "^4.7.7",
-    "playcanvas": "^1.51.6",
+    "playcanvas": "^1.52.1",
     "prop-types": "^15.8.1",
     "react": "^17.0.1",
     "react-dom": "^17.0.1",
