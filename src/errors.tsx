@@ -1,7 +1,6 @@
 import { Observer } from '@playcanvas/observer';
 // @ts-ignore: library file import
 import InfoBox from '@playcanvas/pcui/InfoBox/component';
-// @ts-ignore: library file import
 import React, { useState } from 'react';
 
 const useObserverState = (observer: Observer, path: string) => {
