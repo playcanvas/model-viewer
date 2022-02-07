@@ -1,22 +1,20 @@
 import * as pc from 'playcanvas';
-import React from 'react';
-import ReactDOM from 'react-dom';
-// @ts-ignore: library file import
-import { wasmSupported, loadWasmModuleAsync } from '../lib/wasm-loader.js';
-
-import Viewer from './viewer';
-// import { Skybox, setSkyboxes } from './controls';
-import Controls from './controls';
-import LoadControls from './load-ui';
-import ErrorBox from './errors';
-// @ts-ignore: library file import
 import { Observer } from '@playcanvas/observer';
 // @ts-ignore: library file import
 import Container from '@playcanvas/pcui/Container/component';
 // @ts-ignore: library file import
 import Spinner from '@playcanvas/pcui/Spinner/component';
+
+import React from 'react';
+import ReactDOM from 'react-dom';
+
+import { wasmSupported, loadWasmModuleAsync } from './wasm-loader';
 import { getAssetPath, getRootPath } from './helpers';
-import { Skybox, Option } from './types';
+import { Option } from './types';
+import Controls from './controls';
+import LoadControls from './load-ui';
+import ErrorBox from './errors';
+import Viewer from './viewer';
 
 // Permit some additional properties to be set on the window
 declare global {
@@ -24,6 +22,11 @@ declare global {
         pc: any;
         viewer: Viewer;
     }
+}
+
+interface Skybox {
+    url: string,
+    label: string
 }
 
 // initialize the apps state
@@ -169,16 +172,13 @@ pc.basisInitialize({
     lazyInit: true
 });
 
-new pc.Http().get(
-    getAssetPath("asset_manifest.json"),
-    {
-        // @ts-ignore
-        cache: true,
-        responseType: "text",
-        retry: false
-    },
-    function (err: string, result: { skyboxes: Array<Skybox>, defaultSkybox: string }) {
-    // (err: string) => {
+const url = getAssetPath("asset_manifest.json");
+new pc.Http().get(url, {
+    // @ts-ignore
+    cache: true,
+    responseType: "text",
+    retry: false
+}, function (err: string, result: { skyboxes: Array<Skybox>, defaultSkybox: string }) {
         if (err) {
             console.warn(err);
         } else {

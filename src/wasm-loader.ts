@@ -1,7 +1,5 @@
-/* eslint-disable no-unused-vars */
-
 // check for wasm module support
-export function wasmSupported() {
+const wasmSupported = () => {
     try {
         if (typeof WebAssembly === "object" && typeof WebAssembly.instantiate === "function") {
             const module = new WebAssembly.Module(Uint8Array.of(0x0, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00));
@@ -10,34 +8,36 @@ export function wasmSupported() {
         }
     } catch (e) { }
     return false;
-}
+};
 
 // load a script
-export function loadScriptAsync(url, doneCallback) {
-    var tag = document.createElement('script');
-    tag.onload = function () {
+const loadScriptAsync = (url: string, doneCallback: () => void) => {
+    const tag = document.createElement('script');
+    tag.onload = () => {
         doneCallback();
     };
-    tag.onerror = function () {
+    tag.onerror = () => {
         throw new Error('failed to load ' + url);
     };
     tag.async = true;
     tag.src = url;
     document.head.appendChild(tag);
-}
+};
 
 // load and initialize a wasm module
-export function loadWasmModuleAsync(moduleName, jsUrl, binaryUrl, doneCallback) {
-    loadScriptAsync(jsUrl, function () {
-        var lib = window[moduleName];
-        window[moduleName + 'Lib'] = lib;
+const loadWasmModuleAsync = (moduleName: string, jsUrl: string, binaryUrl: string, doneCallback: () => void) => {
+    loadScriptAsync(jsUrl, () => {
+        const lib = (window as any)[moduleName];
+        (window as any)[moduleName + 'Lib'] = lib;
         lib({
-            locateFile: function () {
+            locateFile: () => {
                 return binaryUrl;
             }
-        }).then(function (instance) {
-            window[moduleName] = instance;
+        }).then((instance: any) => {
+            (window as any)[moduleName] = instance;
             doneCallback();
         });
     });
-}
+};
+
+export { wasmSupported, loadScriptAsync, loadWasmModuleAsync };

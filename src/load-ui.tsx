@@ -5,7 +5,9 @@ import Container from '@playcanvas/pcui/Container/component';
 import Label from '@playcanvas/pcui/Label/component';
 // @ts-ignore: library file import
 import Button from '@playcanvas/pcui/Button/component';
+
 import React, { useRef } from 'react';
+
 import { File } from './types';
 
 const ObserverContext = React.createContext(null);
