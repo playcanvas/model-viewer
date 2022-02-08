@@ -109,7 +109,7 @@ const loadOptions = (name: string) => {
         if (filter.indexOf(path) !== -1) {
             return;
         }
-        if (typeof(value) === 'object') {
+        if (typeof value === 'object') {
             Object.keys(value).forEach((k) => {
                 loadRec(path ? `${path}.${k}` : k, value[k]);
             });
