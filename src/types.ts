@@ -14,11 +14,6 @@ export interface Option {
     t: string
 }
 
-export interface Skybox {
-    url: string,
-    label: string
-}
-
 export interface HierarchyNode {
     name: string,
     path: string,

@@ -1,14 +1,15 @@
-import { Observer } from '@playcanvas/observer';
 import * as pc from 'playcanvas';
+import { Observer } from '@playcanvas/observer';
 // @ts-ignore: No extras declarations
 import * as pcx from 'playcanvas/build/playcanvas-extras.js';
-import DebugLines from './debug';
-// @ts-ignore: library file import
-import * as MeshoptDecoder from '../lib/meshopt_decoder.js';
-import { getAssetPath } from './helpers';
-import { Morph, File, HierarchyNode } from './types';
 // @ts-ignore: library file import
 import * as VoxParser from 'playcanvas/scripts/parsers/vox-parser.js';
+
+import * as MeshoptDecoder from '../lib/meshopt_decoder.js';
+
+import { getAssetPath } from './helpers';
+import { Morph, File, HierarchyNode } from './types';
+import DebugLines from './debug';
 
 // model filename extensions
 const modelExtensions = ['.gltf', '.glb', '.vox'];
