@@ -1,12 +1,9 @@
 import * as pc from 'playcanvas';
 import { Observer } from '@playcanvas/observer';
-// @ts-ignore: library file import
-import Container from '@playcanvas/pcui/Container/component';
-// @ts-ignore: library file import
-import Spinner from '@playcanvas/pcui/Spinner/component';
-
 import React from 'react';
 import ReactDOM from 'react-dom';
+
+import { Container, Spinner } from '@playcanvas/pcui/react';
 
 import { wasmSupported, loadWasmModuleAsync } from './wasm-loader';
 import { getAssetPath, getRootPath } from './helpers';
