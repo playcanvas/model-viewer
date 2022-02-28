@@ -78,7 +78,7 @@
     "serve": "serve dist",
     "build": "cross-env NODE_ENV=production rollup -c",
     "build:watch": "rollup -c -w",
-    "build:server": "cross-env ENVIRONMENT=production PUBLIC_PATH=/viewer/static/ rollup -c",
+    "build:server": "cross-env ENVIRONMENT=production PUBLIC_PATH=/model-viewer/static/ rollup -c",
     "develop": "concurrently --kill-others \"npm run build:watch\" \"npm run serve\"",
     "develop:local": "cross-env ENGINE_PATH=../engine/build/playcanvas.js npm run develop"
   }
