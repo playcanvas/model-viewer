@@ -1,12 +1,12 @@
 # PlayCanvas glTF Viewer
 
-The PlayCanvas glTF scene viewer is blazingly fast and 100% compliant with the glTF 2.0 spec. 
+The PlayCanvas glTF scene viewer is blazingly fast and 100% compliant with the glTF 2.0 spec.
 
-[![PlayCanvas Viewer](images/viewer.png)](https://playcanvas.com/viewer)
+[![PlayCanvas Viewer](images/viewer.png)](https://playcanvas.com/model-viewer)
 
 You can find a live version at:
 
-https://playcanvas.com/viewer
+https://playcanvas.com/model-viewer
 
 ## Viewing Scenes
 
@@ -31,8 +31,8 @@ Some URL query parameters are available to override certain aspects of the viewe
 
 | Parameter         | Description                          | Example |
 |-------------------|--------------------------------------|---------|
-| `load`/`assetUrl` | Specify URL to a glTF scene to load  | [?load=URL](https://playcanvas.com/viewer/?load=https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/DamagedHelmet/glTF-Binary/DamagedHelmet.glb) |
-| `cameraPosition`  | Override the initial camera position | [?cameraPosition=0,0,20](https://playcanvas.com/viewer/?load=https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/DamagedHelmet/glTF-Binary/DamagedHelmet.glb&cameraPosition=0,0,20) |
+| `load`/`assetUrl` | Specify URL to a glTF scene to load  | [?load=URL](https://playcanvas.com/model-viewer/?load=https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/DamagedHelmet/glTF-Binary/DamagedHelmet.glb) |
+| `cameraPosition`  | Override the initial camera position | [?cameraPosition=0,0,20](https://playcanvas.com/model-viewer/?load=https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/DamagedHelmet/glTF-Binary/DamagedHelmet.glb&cameraPosition=0,0,20) |
 
 ## How to build
 
