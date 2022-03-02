@@ -10,6 +10,7 @@ import * as MeshoptDecoder from '../lib/meshopt_decoder.js';
 import { getAssetPath } from './helpers';
 import { Morph, File, HierarchyNode } from './types';
 import DebugLines from './debug';
+import { Multiframe } from './multiframe';
 
 // model filename extensions
 const modelExtensions = ['.gltf', '.glb', '.vox'];
@@ -56,13 +57,16 @@ class Viewer {
     miniStats: any;
     observer: Observer;
 
+    multiframe: Multiframe | null;
+    multiframeDirty: boolean = true;
+
     constructor(canvas: HTMLCanvasElement, observer: Observer) {
         // create the application
         const app = new pc.Application(canvas, {
             mouse: new pc.Mouse(canvas),
             touch: new pc.TouchDevice(canvas),
             graphicsDeviceOptions: {
-                alpha: false,
+                alpha: true,
                 preferWebGl2: true
             }
         });
@@ -144,6 +148,7 @@ class Viewer {
         window.addEventListener('drop', this.dropHandler.bind(this), false);
 
         app.on('prerender', this.onPrerender, this);
+        app.on('postrender', this.onPostrender, this);
         app.on('frameend', this.onFrameend, this);
 
         // create the scene and debug root nodes
@@ -196,6 +201,9 @@ class Viewer {
         this.miniStats = new pcx.MiniStats(app);
         this.miniStats.enabled = observer.get('show.stats');
         this.observer = observer;
+
+        // multiframe
+        this.multiframe = new Multiframe(this.app.graphicsDevice);
 
         // initialize control events
         this.bindControlEvents();
@@ -979,6 +987,7 @@ class Viewer {
 
     renderNextFrame() {
         this.app.renderNextFrame = true;
+        this.multiframeDirty = true;
     }
 
     // use webkitGetAsEntry to extract files so we can include folders
@@ -1444,6 +1453,12 @@ class Viewer {
                 this.debugGrid.update();
             }
         }
+    }
+
+    private onPostrender() {
+        this.app.graphicsDevice.setRenderTarget(null);
+        this.multiframe.prepareTexture(this.multiframeDirty);
+        this.multiframeDirty = false;
     }
 
     private onFrameend() {
