@@ -5,7 +5,7 @@ function getAssetPath(assetPath: string): string {
 
 function getRootPath(): string {
     // @ts-ignore: path variable injected at build time
-    return (__PUBLIC_PATH__ ? './viewer' : '.');
+    return (__PUBLIC_PATH__ ? './model-viewer' : '.');
 }
 
 export { getAssetPath, getRootPath };
