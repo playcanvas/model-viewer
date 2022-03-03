@@ -3,6 +3,7 @@
         "outDir": "./dist/",
         "noImplicitAny": true,
         "module": "ES2015",
+        "moduleResolution": "node",
         "target": "es5",
         "allowJs": true,
         "jsx": "react",

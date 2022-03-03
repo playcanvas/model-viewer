@@ -1,22 +1,30 @@
 import * as pc from 'playcanvas';
+import { Observer } from '@playcanvas/observer';
 import React from 'react';
 import ReactDOM from 'react-dom';
-// @ts-ignore: library file import
-import { wasmSupported, loadWasmModuleAsync } from '../lib/wasm-loader.js';
 
-import Viewer from './viewer';
-// import { Skybox, setSkyboxes } from './controls';
+import { Container, Spinner } from '@playcanvas/pcui/react';
+
+import { wasmSupported, loadWasmModuleAsync } from './wasm-loader';
+import { getAssetPath, getRootPath } from './helpers';
+import { Option } from './types';
 import Controls from './controls';
 import LoadControls from './load-ui';
 import ErrorBox from './errors';
-// @ts-ignore: library file import
-import { Observer } from '@playcanvas/observer';
-// @ts-ignore: library file import
-import Container from '@playcanvas/pcui/Container/component';
-// @ts-ignore: library file import
-import Spinner from '@playcanvas/pcui/Spinner/component';
-import { getAssetPath, getRootPath } from './helpers';
-import { Skybox, Option } from './types';
+import Viewer from './viewer';
+
+// Permit some additional properties to be set on the window
+declare global {
+    interface Window {
+        pc: any;
+        viewer: Viewer;
+    }
+}
+
+interface Skybox {
+    url: string,
+    label: string
+}
 
 // initialize the apps state
 const observer: Observer = new Observer({
@@ -98,7 +106,7 @@ const loadOptions = (name: string) => {
         if (filter.indexOf(path) !== -1) {
             return;
         }
-        if (typeof(value) === 'object') {
+        if (typeof value === 'object') {
             Object.keys(value).forEach((k) => {
                 loadRec(path ? `${path}.${k}` : k, value[k]);
             });
@@ -146,15 +154,12 @@ const dependencyArrived = () => {
             saveOptions('default');
         });
 
-        // @ts-ignore: Assign global viewer
-        window.viewer = new Viewer(document.getElementById("application-canvas"), observer);
-
-        // @ts-ignore
+        const canvas = document.getElementById("application-canvas") as HTMLCanvasElement;
+        window.viewer = new Viewer(canvas, observer);
         window.viewer.handleUrlParams();
     }
 };
 
-// @ts-ignore: Assign global pc
 window.pc = pc;
 
 pc.basisInitialize({
@@ -164,16 +169,13 @@ pc.basisInitialize({
     lazyInit: true
 });
 
-// download asset manifest
-new pc.Http().get(
-    getAssetPath("asset_manifest.json"),
-    {
-        cache: true,
-        responseType: "text",
-        retry: false
-    },
-    function (err: string, result: { skyboxes: Array<Skybox>, defaultSkybox: string }) {
-    // (err: string) => {
+const url = getAssetPath("asset_manifest.json");
+new pc.Http().get(url, {
+    // @ts-ignore
+    cache: true,
+    responseType: "text",
+    retry: false
+}, function (err: string, result: { skyboxes: Array<Skybox>, defaultSkybox: string }) {
         if (err) {
             console.warn(err);
         } else {

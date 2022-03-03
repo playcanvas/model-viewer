@@ -1,13 +1,15 @@
 import * as pc from 'playcanvas';
+import { Observer } from '@playcanvas/observer';
 // @ts-ignore: No extras declarations
 import * as pcx from 'playcanvas/build/playcanvas-extras.js';
-import DebugLines from './debug';
-// @ts-ignore: library file import
-import * as MeshoptDecoder from '../lib/meshopt_decoder.js';
-import { getAssetPath } from './helpers';
-import { Morph, File, Observer, HierarchyNode } from './types';
 // @ts-ignore: library file import
 import * as VoxParser from 'playcanvas/scripts/parsers/vox-parser.js';
+
+import * as MeshoptDecoder from '../lib/meshopt_decoder.js';
+
+import { getAssetPath } from './helpers';
+import { Morph, File, HierarchyNode } from './types';
+import DebugLines from './debug';
 
 // model filename extensions
 const modelExtensions = ['.gltf', '.glb', '.vox'];
@@ -26,8 +28,7 @@ class Viewer {
     entities: Array<pc.Entity>;
     assets: Array<pc.Asset>;
     meshInstances: Array<pc.MeshInstance>;
-    // TODO replace with Array<pc.AnimTrack> when definition is available in pc
-    animTracks: Array<any>;
+    animTracks: Array<pc.AnimTrack>;
     animationMap: Record<string, string>;
     morphs: Array<Morph>;
     firstFrame: boolean;
@@ -55,7 +56,7 @@ class Viewer {
     miniStats: any;
     observer: Observer;
 
-    constructor(canvas: any, observer: Observer) {
+    constructor(canvas: HTMLCanvasElement, observer: Observer) {
         // create the application
         const app = new pc.Application(canvas, {
             mouse: new pc.Mouse(canvas),
@@ -204,10 +205,10 @@ class Viewer {
     }
 
     // extract query params. taken from https://stackoverflow.com/a/21152762
-    private handleUrlParams() {
+    handleUrlParams() {
         const urlParams: any = {};
         if (location.search) {
-            location.search.substr(1).split("&").forEach((item) => {
+            location.search.substring(1).split("&").forEach((item) => {
                 const s = item.split("="),
                     k = s[0],
                     v = s[1] && decodeURIComponent(s[1]);
@@ -379,42 +380,33 @@ class Viewer {
     // initialize the faces and prefiltered lighting data from the given
     // skybox texture, which is either a cubemap or equirect texture.
     private initSkyboxFromTextureNew(env: pc.Texture) {
-        // @ts-ignore
         const t0 = pc.now();
 
-        // @ts-ignore
         const skybox = pc.EnvLighting.generateSkyboxCubemap(env);
 
-        // @ts-ignore
         const t1 = pc.now();
 
-        // @ts-ignore
         const lighting = pc.EnvLighting.generateLightingSource(env);
 
-        // @ts-ignore
         const t2 = pc.now();
 
-        // @ts-ignore
-        const envAtlas = pc.EnvLighting.generateAtlas(lighting);
+        // The second options parameter should not be necessary but the TS declarations require it for now
+        const envAtlas = pc.EnvLighting.generateAtlas(lighting, {});
 
-        // @ts-ignore
         const t3 = pc.now();
 
         lighting.destroy();
 
-        // @ts-ignore
         this.app.scene.envAtlas = envAtlas;
         this.app.scene.skybox = skybox;
         this.app.renderNextFrame = true;                         // ensure we render again when the cubemap arrives
 
-        // @ts-ignore
         console.log(`prefilter timings skybox=${(t1 - t0).toFixed(2)}ms lighting=${(t2 - t1).toFixed(2)}ms envAtlas=${(t3 - t2).toFixed(2)}ms`);
     }
 
     // initialize the faces and prefiltered lighting data from the given
     // skybox texture, which is either a cubemap or equirect texture.
     private initSkyboxFromTexture(skybox: pc.Texture) {
-        // @ts-ignore
         if (pc.EnvLighting) {
             return this.initSkyboxFromTextureNew(skybox);
         }
@@ -438,10 +430,8 @@ class Viewer {
 
         const cubemaps = [];
 
-        // @ts-ignore skybox
         cubemaps.push(pc.EnvLighting.generateSkyboxCubemap(skybox));
 
-        // @ts-ignore
         const lightingSource = pc.EnvLighting.generateLightingSource(skybox);
 
         // create top level
@@ -459,7 +449,6 @@ class Viewer {
             pc.reprojectTexture(lightingSource, level, {
                 numSamples: 1024,
                 specularPower: specPower[i],
-                // @ts-ignore
                 distribution: 'ggx'
             });
 
@@ -537,7 +526,6 @@ class Viewer {
             const cubemapAsset = new pc.Asset('skybox_cubemap', 'cubemap', null, {
                 textures: faceAssets.map(faceAsset => faceAsset.id)
             });
-            // @ts-ignore TODO not defined in pc
             cubemapAsset.loadFaces = true;
             cubemapAsset.on('load', () => {
                 this.initSkyboxFromTexture(cubemapAsset.resource);
@@ -1123,8 +1111,8 @@ class Viewer {
             entity = asset.resource.instantiateRenderEntity();
 
             // update mesh stats
-            resource.renders.forEach((renderAsset : pc.Asset) => {
-                renderAsset.resource.meshes.forEach((mesh : pc.Mesh) => {
+            resource.renders.forEach((renderAsset: pc.Asset) => {
+                renderAsset.resource.meshes.forEach((mesh: pc.Mesh) => {
                     meshCount++;
                     vertexCount += mesh.vertexBuffer.getNumVertices();
                     primitiveCount += mesh.primitive[0].count;
@@ -1192,7 +1180,7 @@ class Viewer {
         if (morphInstances.length > 0) {
             // make a list of all the morph instance target names
             const morphs: Array<Morph> = this.morphs;
-            morphInstances.forEach((morphInstance: any, morphIndex: number) => {
+            morphInstances.forEach((morphInstance: pc.MorphInstance, morphIndex: number) => {
                 const meshInstance = morphInstance.meshInstance;
 
                 // mesh name line
@@ -1201,8 +1189,7 @@ class Viewer {
                 });
 
                 // morph targets
-                // @ts-ignore TODO accessing private const
-                morphInstance.morph._targets.forEach((target, targetIndex) => {
+                morphInstance.morph.targets.forEach((target: pc.MorphTarget, targetIndex: number) => {
                     morphs.push({
                         name: target.name,
                         targetIndex: targetIndex
@@ -1311,7 +1298,6 @@ class Viewer {
         });
 
         // create the state graph instance
-        // @ts-ignore TODO AnimStateGraph constructor argument missing from typings
         entity.anim.loadStateGraph(new pc.AnimStateGraph({
             layers: [{ name: 'all_layer', states: states, transitions: transitions }],
             parameters: {
@@ -1393,10 +1379,7 @@ class Viewer {
                             meshInstance.morphInstance._vertexBuffer : meshInstance.mesh.vertexBuffer;
 
                         if (vertexBuffer) {
-                            // @ts-ignore TODO not defined in pc
-                            const skinMatrices = meshInstance.skinInstance ?
-                                // @ts-ignore TODO not defined in pc
-                                meshInstance.skinInstance.matrices : null;
+                            const skinMatrices = meshInstance.skinInstance ? meshInstance.skinInstance.matrices : null;
 
                             // if there is skinning we need to manually update matrices here otherwise
                             // our normals are always a frame behind

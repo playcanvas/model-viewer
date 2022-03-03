@@ -1,13 +1,11 @@
-// @ts-ignore: library file import
-import InfoBox from '@playcanvas/pcui/InfoBox/component';
-// @ts-ignore: library file import
 import React, { useState } from 'react';
-import { Observer } from './types';
+import { Observer } from '@playcanvas/observer';
+import { InfoBox } from '@playcanvas/pcui/react';
 
 const useObserverState = (observer: Observer, path: string) => {
     const parseFunc = (observerValue: any) => observerValue;
     const [value, setValue] = useState(parseFunc(observer.get(path)));
-    observer.on(`${path}:set`, (value) => setValue(parseFunc(value)));
+    observer.on(`${path}:set`, value => setValue(parseFunc(value)));
     return value;
 };
 

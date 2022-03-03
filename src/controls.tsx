@@ -1,36 +1,19 @@
-// @ts-ignore: library file import
-import Panel from '@playcanvas/pcui/Panel/component';
-// @ts-ignore: library file import
-import Container from '@playcanvas/pcui/Container/component';
-// @ts-ignore: library file import
-import BooleanInput from '@playcanvas/pcui/BooleanInput/component';
-// @ts-ignore: library file import
-import Label from '@playcanvas/pcui/Label/component';
-// @ts-ignore: library file import
-import SliderInput from '@playcanvas/pcui/SliderInput/component';
-// @ts-ignore: library file import
-import Button from '@playcanvas/pcui/Button/component';
-// @ts-ignore: library file import
-import TreeViewItem from '@playcanvas/pcui/TreeViewItem/component';
-// @ts-ignore: library file import
-import TreeView from '@playcanvas/pcui/TreeView/component';
-// @ts-ignore: library file import
-import VectorInput from '@playcanvas/pcui/VectorInput/component';
-// @ts-ignore: library file import
-import SelectInput from '@playcanvas/pcui/SelectInput/component';
-// @ts-ignore: library file import
-import BindingTwoWay from '@playcanvas/pcui/BindingTwoWay';
-// @ts-ignore: library file import
 import React, { useEffect, useState, useContext } from 'react';
-import { Morph, Option, Observer, HierarchyNode } from './types';
+import { Observer } from '@playcanvas/observer';
+import { BindingTwoWay } from '@playcanvas/pcui';
+import { Panel, Container, BooleanInput, Label, SliderInput, Button, TreeViewItem, TreeView, VectorInput, SelectInput } from '@playcanvas/pcui/react';
+
+import { Morph, Option, HierarchyNode } from './types';
 
 const ObserverContext = React.createContext(null);
 const ObserverProvider = ObserverContext.Provider;
 
 const useObserverState = (observer: Observer, path: string, json?: boolean) => {
-    const parseFunc = (observerValue: any) => json ? JSON.parse(observerValue) : observerValue;
+    const parseFunc = (observerValue: any) => {
+        return json ? JSON.parse(observerValue) : observerValue;
+    };
     const [value, setValue] = useState(parseFunc(observer.get(path)));
-    observer.on(`${path}:set`, (value) => setValue(parseFunc(value)));
+    observer.on(`${path}:set`, value => setValue(parseFunc(value)));
     return value;
 };
 
@@ -63,7 +46,7 @@ const Slider = (props: { name: string, path:string, precision: number, min: numb
     const observer: Observer = useContext(ObserverContext);
     return <Container class='panel-option'>
         <Label text={props.label ? props.label : props.name.substring(0, 1).toUpperCase() + props.name.substring(1, props.name.length)} />
-        <SliderInput min={props.min} max={props.max} sliderMin={props.min} sliderMax={props.max} precision={props.precision} step={0.01}  link={{ observer, path: props.path }} binding={new BindingTwoWay()} enabled={props.enabled} />
+        <SliderInput min={props.min} max={props.max} sliderMin={props.min} sliderMax={props.max} precision={props.precision} step={0.01} link={{ observer, path: props.path }} binding={new BindingTwoWay()} enabled={props.enabled} />
     </Container>;
 };
 Slider.defaultProps = { enabled: true };
@@ -72,7 +55,7 @@ const MorphSlider = (props: { name: string, path:string, precision: number, min:
     const observer: Observer = useContext(ObserverContext);
     return <Container class='panel-option'>
         <Label flexGrow={1} text={props.label ? props.label : props.name.substring(0, 1).toUpperCase() + props.name.substring(1, props.name.length)} flex />
-        <SliderInput flexGrow={0} flexShrink={0} min={props.min} max={props.max} sliderMin={props.min} sliderMax={props.max} precision={props.precision} step={0.01}  link={{ observer, path: props.path }} binding={new BindingTwoWay()} enabled={props.enabled} />
+        <SliderInput flexGrow={0} flexShrink={0} min={props.min} max={props.max} sliderMin={props.min} sliderMax={props.max} precision={props.precision} step={0.01} link={{ observer, path: props.path }} binding={new BindingTwoWay()} enabled={props.enabled} />
     </Container>;
 };
 MorphSlider.defaultProps = { enabled: true };
@@ -90,8 +73,8 @@ const ShowPanel = () => {
     return (
         <Panel headerText='SHOW' collapsible>
             <Toggle name='stats' path='show.stats' />
-            <Toggle name='wireframe'  path='show.wireframe' />
-            <Toggle name='bounds'  path='show.bounds' />
+            <Toggle name='wireframe' path='show.wireframe' />
+            <Toggle name='bounds' path='show.bounds' />
             <Toggle name='skeleton' path='show.skeleton' />
             <Toggle name='axes' path='show.axes' />
             <Toggle name='grid' path='show.grid' />
@@ -109,10 +92,10 @@ const LightingPanel = () => {
             <Slider name='lightingDirect' precision={2} min={0} max={6} path='lighting.direct' label='Direct' />
             <Toggle name='lightingShadow' path='lighting.shadow' label='Shadow' />
             <Select name='lightingEnv' type='string' options={skyboxOptions} path='lighting.env.value' label='Environment' />
-            <Select name='lightingSkyboxMip' type='number' options={[0, 1, 2, 3, 4, 5, 6].map((v) => ({ v: v, t: v === 0 ? 'Disable' : Number(v - 1).toString() }))} path='lighting.env.skyboxMip' label='Skybox Level' />
+            <Select name='lightingSkyboxMip' type='number' options={[0, 1, 2, 3, 4, 5, 6].map(v => ({ v: v, t: v === 0 ? 'Disable' : Number(v - 1).toString() }))} path='lighting.env.skyboxMip' label='Skybox Level' />
             <Slider name='lightingEnv' precision={2} min={0} max={6} path='lighting.env.intensity' label='Intensity' />
             <Slider name='lightingRotation' precision={0} min={-180} max={180} path='lighting.rotation' label='Rotation' />
-            <Select name='lightingTonemapping' type='string' options={['Linear', 'Filmic', 'Hejl', 'ACES'].map((v) => ({ v, t: v }))} path='lighting.tonemapping' label='Tonemap' />
+            <Select name='lightingTonemapping' type='string' options={['Linear', 'Filmic', 'Hejl', 'ACES'].map(v => ({ v, t: v }))} path='lighting.tonemapping' label='Tonemap' />
         </Panel>
     );
 };
@@ -173,7 +156,7 @@ const AnimationPanel = () => {
             <Slider name='animationSpeed' precision={2} min={0} max={4} path='animation.speed' label='Speed' enabled={enabled} />
             { !allTracks && <Slider name='animationFrameTimeline' precision={2} min={0} max={1} path='animation.progress' label='Timeline' enabled={enabled} /> }
             { allTracks && <Slider name='animationTransition' precision={2} min={0} max={4} path='animation.transition' label='Transition' enabled={enabled} /> }
-            { allTracks && <Select name='animationLoops' type='number' options={[1, 2, 3, 4].map((v) => ({ v, t: Number(v).toString() }))} path='animation.loops' label='Loops' enabled={enabled} /> }
+            { allTracks && <Select name='animationLoops' type='number' options={[1, 2, 3, 4].map(v => ({ v, t: Number(v).toString() }))} path='animation.loops' label='Loops' enabled={enabled} /> }
         </Panel>
     );
 };
