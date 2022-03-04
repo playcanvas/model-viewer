@@ -175,6 +175,10 @@ class Multiframe {
     prepareTexture() {
         const device = this.device;
 
+        if (this.accumTexture && (this.accumTexture.width !== device.width || this.accumTexture.height !== device.height)) {
+            this.destroy();
+        }
+
         if (!this.accumTexture) {
             this.create();
         }
