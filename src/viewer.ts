@@ -58,7 +58,7 @@ class Viewer {
     observer: Observer;
 
     multiframe: Multiframe | null;
-    multiframeDirty: boolean = true;
+    multiframeBusy: boolean = false;
 
     constructor(canvas: HTMLCanvasElement, observer: Observer) {
         // create the application
@@ -67,7 +67,8 @@ class Viewer {
             touch: new pc.TouchDevice(canvas),
             graphicsDeviceOptions: {
                 alpha: true,
-                preferWebGl2: true
+                preferWebGl2: true,
+                antialias: false
             }
         });
         this.app = app;
@@ -75,7 +76,7 @@ class Viewer {
         // register vox support
         VoxParser.registerVoxParser(app);
 
-        app.graphicsDevice.maxPixelRatio = window.devicePixelRatio;
+        app.graphicsDevice.maxPixelRatio = 0.25; // window.devicePixelRatio;
         app.scene.gammaCorrection = pc.GAMMA_SRGB;
 
         // Set the canvas to fill the window and automatically change resolution to be the same as the canvas size
@@ -103,7 +104,7 @@ class Viewer {
                 camera.addComponent("script");
                 camera.script.create("orbitCamera", {
                     attributes: {
-                        inertiaFactor: 0.1
+                        inertiaFactor: 0.02
                     }
                 });
                 camera.script.create("orbitCameraInputMouse");
@@ -203,7 +204,7 @@ class Viewer {
         this.observer = observer;
 
         // multiframe
-        this.multiframe = new Multiframe(this.app.graphicsDevice);
+        this.multiframe = new Multiframe(this.app.graphicsDevice, this.camera.camera);
 
         // initialize control events
         this.bindControlEvents();
@@ -987,7 +988,9 @@ class Viewer {
 
     renderNextFrame() {
         this.app.renderNextFrame = true;
-        this.multiframeDirty = true;
+        if (this.multiframe) {
+            this.multiframe.moved();
+        }
     }
 
     // use webkitGetAsEntry to extract files so we can include folders
@@ -1457,8 +1460,7 @@ class Viewer {
 
     private onPostrender() {
         this.app.graphicsDevice.setRenderTarget(null);
-        this.multiframe.prepareTexture(this.multiframeDirty);
-        this.multiframeDirty = false;
+        this.multiframeBusy = this.multiframe.prepareTexture();
     }
 
     private onFrameend() {
@@ -1469,6 +1471,10 @@ class Viewer {
             // boxes are incorrect
             this.focusCamera();
             this.renderNextFrame();
+        }
+
+        if (this.multiframeBusy) {
+            this.app.renderNextFrame = true;
         }
     }
 }
