@@ -211,8 +211,9 @@ class Multiframe {
                 const blendSrcAlpha = device.blendSrcAlpha;
                 const blendDstAlpha = device.blendDstAlpha;
 
-                device.setBlending(true);
-                device.setBlendFunctionSeparate(pc.BLENDMODE_ONE, pc.BLENDMODE_ONE, pc.BLENDMODE_ONE, pc.BLENDMODE_ZERO);
+                const gl = device.gl;
+                gl.blendFuncSeparate(gl.CONSTANT_ALPHA, gl.ONE_MINUS_CONSTANT_ALPHA, gl.ONE, gl.ZERO);
+                gl.blendColor(0, 0, 0, 1.0 / (this.sampleId + 1));
 
                 this.multiframeTexUniform.setValue(this.grabPass.texture);
                 this.multiplierUniform.setValue(1.0);
@@ -225,7 +226,7 @@ class Multiframe {
                 // resolve final frame
                 if (this.sampleId === (sampleCnt - 1)) {
                     this.multiframeTexUniform.setValue(this.accumTexture);
-                    this.multiplierUniform.setValue(1.0 / sampleCnt);
+                    this.multiplierUniform.setValue(1.0);
                     this.powerUniform.setValue(1.0 / gamma);
                     pc.drawQuadWithShader(device, this.firstRenderTarget, this.shader);
                 }
