@@ -94,8 +94,8 @@ class Multiframe {
             this.camera._camera._viewMatDirty = true;
             this.camera._camera._viewProjMatDirty = true;
 
-            // this.globalTextureBiasUniform.setValue(this.sampleId === 0 ? 0.0 : -5.0);
-            this.globalTextureBiasUniform.setValue(-5.0);
+            this.globalTextureBiasUniform.setValue(this.sampleId === 0 ? 0.0 : -5.0);
+            // this.globalTextureBiasUniform.setValue(-5.0);
         }
 
         this.camera.onPostRender = () => {

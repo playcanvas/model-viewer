@@ -694,6 +694,8 @@ class Viewer {
                 const textureAsset = new pc.Asset(u.filename, 'texture', {
                     url: u.url,
                     filename: u.filename
+                }, {
+                    anisotropy: this.app.graphicsDevice.maxAnisotropy
                 });
                 textureAsset.on('load', () => {
                     continuation(null, textureAsset);
