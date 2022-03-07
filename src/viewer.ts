@@ -68,7 +68,7 @@ class Viewer {
             graphicsDeviceOptions: {
                 alpha: true,
                 preferWebGl2: true,
-                antialias: false
+                antialias: true
             }
         });
         this.app = app;
@@ -76,7 +76,7 @@ class Viewer {
         // register vox support
         VoxParser.registerVoxParser(app);
 
-        app.graphicsDevice.maxPixelRatio = 0.25; // window.devicePixelRatio;
+        app.graphicsDevice.maxPixelRatio = window.devicePixelRatio;
         app.scene.gammaCorrection = pc.GAMMA_SRGB;
 
         // Set the canvas to fill the window and automatically change resolution to be the same as the canvas size
@@ -204,7 +204,7 @@ class Viewer {
         this.observer = observer;
 
         // multiframe
-        this.multiframe = new Multiframe(this.app.graphicsDevice, this.camera.camera);
+        this.multiframe = new Multiframe(this.app.graphicsDevice, this.camera.camera, 5);
 
         // initialize control events
         this.bindControlEvents();
@@ -382,7 +382,7 @@ class Viewer {
     private clearSkybox() {
         this.app.scene.envAtlas = null;
         this.app.scene.setSkybox(null);
-        this.app.renderNextFrame = true;
+        this.renderNextFrame();
         this.skyboxLoaded = false;
     }
 
@@ -408,7 +408,7 @@ class Viewer {
 
         this.app.scene.envAtlas = envAtlas;
         this.app.scene.skybox = skybox;
-        this.app.renderNextFrame = true;                         // ensure we render again when the cubemap arrives
+        this.renderNextFrame();
 
         console.log(`prefilter timings skybox=${(t1 - t0).toFixed(2)}ms lighting=${(t2 - t1).toFixed(2)}ms envAtlas=${(t3 - t2).toFixed(2)}ms`);
     }
@@ -468,7 +468,7 @@ class Viewer {
 
         // assign the textures to the scene
         app.scene.setSkybox(cubemaps);
-        app.renderNextFrame = true;                         // ensure we render again when the cubemap arrives
+        this.renderNextFrame();
     }
 
     // load the image files into the skybox. this function supports loading a single equirectangular
@@ -559,7 +559,7 @@ class Viewer {
         });
         cubemap.on('load', () => {
             app.scene.setSkybox(cubemap.resources);
-            app.renderNextFrame = true;                             // ensure we render again when the cubemap arrives
+            this.renderNextFrame();
         });
         app.assets.add(cubemap);
         app.assets.load(cubemap);
@@ -576,7 +576,7 @@ class Viewer {
     resizeCanvas() {
         const canvasSize = this.getCanvasSize();
         this.app.resizeCanvas(canvasSize.width, canvasSize.height);
-        this.app.renderNextFrame = true;
+        this.renderNextFrame();
     }
 
     // reset the viewer, unloading resources
@@ -609,7 +609,7 @@ class Viewer {
 
         this.dirtyWireframe = this.dirtyBounds = this.dirtySkeleton = this.dirtyGrid = this.dirtyNormals = true;
 
-        this.app.renderNextFrame = true;
+        this.renderNextFrame();
     }
 
     // move the camera to view the loaded object

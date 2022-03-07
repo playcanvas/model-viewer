@@ -63,38 +63,44 @@ class Multiframe {
     firstRenderTarget: pc.RenderTarget = null;
     accumTexture: pc.Texture = null;
     accumRenderTarget: pc.RenderTarget = null;
-    frameId: number = 0;
-    frameTotal: number = 32;
+    sampleId: number = 0;
+    samples: pc.Vec2[] = [];
 
-    constructor(device: pc.GraphicsDevice, camera: pc.CameraComponent) {
+    constructor(device: pc.GraphicsDevice, camera: pc.CameraComponent, numSamples: number) {
         this.device = device;
         this.camera = camera;
 
+        // generate jittered grid samples (poisson would be better)
+        for (let x = 0; x < numSamples; ++x) {
+            for (let y = 0; y < numSamples; ++y) {
+                this.samples.push(new pc.Vec2(
+                    (x + Math.random()) / numSamples * 2.0 - 1.0,
+                    (y + Math.random()) / numSamples * 2.0 - 1.0
+                ));
+            }
+        }
+
         const pmat = this.camera.projectionMatrix;
-        let offset = new pc.Vec2();
         let store = new pc.Vec2();
 
         this.camera.onPreRender = () => {
-            if (this.frameId !== 0) {
-                offset.x = (Math.random() * 2.0 - 1.0) * (1 / device.width);
-                offset.y = (Math.random() * 2.0 - 1.0) * (1 / device.height);
+            const sample = this.samples[this.sampleId];
 
-                store.set(pmat.data[12], pmat.data[13]);
-                pmat.data[8] += offset.x;
-                pmat.data[9] += offset.y;
+            store.set(pmat.data[12], pmat.data[13]);
+            pmat.data[8] += sample.x / device.width;
+            pmat.data[9] += sample.y / device.height;
 
-                // look away
-                this.camera._camera._viewMatDirty = true;
-                this.camera._camera._viewProjMatDirty = true;
-            }
-            this.globalTextureBiasUniform.setValue(this.frameId === 0 ? 0.0 : -5.0);
+            // look away
+            this.camera._camera._viewMatDirty = true;
+            this.camera._camera._viewProjMatDirty = true;
+
+            // this.globalTextureBiasUniform.setValue(this.sampleId === 0 ? 0.0 : -5.0);
+            this.globalTextureBiasUniform.setValue(-5.0);
         }
 
         this.camera.onPostRender = () => {
-            if (this.frameId !== 0) {
-                pmat.data[8] = store.x;
-                pmat.data[9] = store.y;
-            }
+            pmat.data[8] = store.x;
+            pmat.data[9] = store.y;
         }
 
         // @ts-ignore
@@ -145,7 +151,7 @@ class Multiframe {
     }
 
     moved() {
-        this.frameId = 0;
+        this.sampleId = 0;
     }
 
     create() {
@@ -161,7 +167,7 @@ class Multiframe {
 
         this.accumTexture = new pc.Texture(this.device, {
             width: this.device.width,
-            height:  this.device.height,
+            height: this.device.height,
             format: this.pixelFormat,
             mipmaps: false
         });
@@ -183,11 +189,13 @@ class Multiframe {
             this.create();
         }
 
-        if (this.frameId < this.frameTotal) {
+        const sampleCnt = this.samples.length;
+
+        if (this.sampleId < sampleCnt) {
             // grab the backbuffer
             this.grabPass.prepareTexture();
 
-            if (this.frameId === 0) {
+            if (this.sampleId === 0) {
                 // store the grabpass in both accumulation and current
                 this.multiframeTexUniform.setValue(this.grabPass.texture);
                 this.multiplierUniform.setValue(1.0);
@@ -215,9 +223,9 @@ class Multiframe {
                 device.setBlendFunctionSeparate(blendSrc, blendDst, blendSrcAlpha, blendDstAlpha);
 
                 // resolve final frame
-                if (this.frameId === (this.frameTotal - 1)) {
+                if (this.sampleId === (sampleCnt - 1)) {
                     this.multiframeTexUniform.setValue(this.accumTexture);
-                    this.multiplierUniform.setValue(1.0 / this.frameTotal);
+                    this.multiplierUniform.setValue(1.0 / sampleCnt);
                     this.powerUniform.setValue(1.0 / gamma);
                     pc.drawQuadWithShader(device, this.firstRenderTarget, this.shader);
                 }
@@ -230,11 +238,11 @@ class Multiframe {
         this.powerUniform.setValue(1.0);
         pc.drawQuadWithShader(device, null, this.shader);
 
-        if (this.frameId < this.frameTotal) {
-            this.frameId++;
+        if (this.sampleId < sampleCnt) {
+            this.sampleId++;
         }
 
-        return this.frameId < this.frameTotal;
+        return this.sampleId < sampleCnt;
     }
 }
 
