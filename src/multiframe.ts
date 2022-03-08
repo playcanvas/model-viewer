@@ -55,7 +55,7 @@ class Multiframe {
     pixelFormat: number;
     multiframeTexUniform: pc.ScopeId = null;
     powerUniform: pc.ScopeId = null;
-    globalTextureBiasUniform: pc.ScopeId = null;
+    textureBiasUniform: pc.ScopeId = null;
     accumTexture: pc.Texture = null;
     accumRenderTarget: pc.RenderTarget = null;
     sampleId: number = 0;
@@ -98,8 +98,8 @@ class Multiframe {
             this.camera._camera._viewMatDirty = true;
             this.camera._camera._viewProjMatDirty = true;
 
-            this.globalTextureBiasUniform.setValue(this.sampleId === 0 ? 0.0 : -5.0);
-            // this.globalTextureBiasUniform.setValue(-5.0);
+            this.textureBiasUniform.setValue(this.sampleId === 0 ? 0.0 : -5.0);
+            // this.textureBiasUniform.setValue(-5.0);
         }
 
         // restore the camera's projection matrix jitter once rendering is
@@ -120,7 +120,7 @@ class Multiframe {
         this.pixelFormat = choosePixelFormat(device);
         this.multiframeTexUniform = device.scope.resolve('multiframeTex');
         this.powerUniform = device.scope.resolve('power');
-        this.globalTextureBiasUniform = device.scope.resolve('globalTextureBias');
+        this.textureBiasUniform = device.scope.resolve('textureBias');
 
         const handler = () => {
             this.destroy();
