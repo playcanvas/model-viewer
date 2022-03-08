@@ -59,7 +59,7 @@ class Viewer {
     observer: Observer;
 
     multiframe: Multiframe | null;
-    multiframeBusy: boolean = false;
+    multiframeBusy = false;
     readDepth: ReadDepth = null;
     cursorWorld = new pc.Vec3();
 
@@ -622,7 +622,7 @@ class Viewer {
                 addressU: pc.ADDRESS_CLAMP_TO_EDGE,
                 addressV: pc.ADDRESS_CLAMP_TO_EDGE
             });
-        }
+        };
 
         const w = canvasSize.width;
         const h = canvasSize.height;

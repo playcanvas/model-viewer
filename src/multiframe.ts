@@ -2,7 +2,7 @@ import * as pc from 'playcanvas';
 
 const gamma = 2.2;
 
-const vshader: string = `
+const vshader = `
 attribute vec2 vertex_position;
 varying vec2 texcoord;
 void main(void) {
@@ -11,7 +11,7 @@ void main(void) {
 }
 `;
 
-const fshader: string = `
+const fshader = `
 varying vec2 texcoord;
 uniform sampler2D multiframeTex;
 uniform float power;
@@ -24,13 +24,13 @@ void main(void) {
 const vertexShaderHeader = (device: pc.GraphicsDevice) => {
     // @ts-ignore
     return device.webgl2 ? `#version 300 es\n\n${pc.shaderChunks.gles3VS}\n` : '';
-}
+};
 
 const fragmentShaderHeader = (device: pc.GraphicsDevice) => {
     // @ts-ignore
     return (device.webgl2 ? `#version 300 es\n\n${pc.shaderChunks.gles3PS}\n` : '') +
             `precision ${device.precision} float;\n\n`;
-}
+};
 
 const supportsFloat16 = (device: pc.GraphicsDevice): boolean => {
     return device.extTextureHalfFloat && device.textureHalfFloatRenderable;
@@ -58,7 +58,7 @@ class Multiframe {
     textureBiasUniform: pc.ScopeId = null;
     accumTexture: pc.Texture = null;
     accumRenderTarget: pc.RenderTarget = null;
-    sampleId: number = 0;
+    sampleId = 0;
     samples: pc.Vec2[] = [];
 
     constructor(device: pc.GraphicsDevice, camera: pc.CameraComponent, numSamples: number) {
@@ -100,14 +100,14 @@ class Multiframe {
 
             this.textureBiasUniform.setValue(this.sampleId === 0 ? 0.0 : -5.0);
             // this.textureBiasUniform.setValue(-5.0);
-        }
+        };
 
         // restore the camera's projection matrix jitter once rendering is
         // done
         this.camera.onPostRender = () => {
             pmat.data[8] = store.x;
             pmat.data[9] = store.y;
-        }
+        };
 
         this.shader = new pc.Shader(device, {
             attributes: {
@@ -229,4 +229,4 @@ class Multiframe {
 
 export {
     Multiframe
-}
+};

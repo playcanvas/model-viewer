@@ -3,7 +3,7 @@ import * as pc from 'playcanvas';
 // @ts-ignore
 const packDepthPS = pc.shaderChunks.packDepthPS;
 
-const vshader: string = `
+const vshader = `
 attribute vec2 vertex_position;
 varying vec2 texcoord;
 void main(void) {
@@ -12,7 +12,7 @@ void main(void) {
 }
 `;
 
-const fshader: string = `
+const fshader = `
 varying vec2 texcoord;
 uniform sampler2D depthTex;
 uniform vec4 texcoordRange;
@@ -26,13 +26,13 @@ void main(void) {
 const vertexShaderHeader = (device: pc.GraphicsDevice) => {
     // @ts-ignore
     return device.webgl2 ? `#version 300 es\n\n${pc.shaderChunks.gles3VS}\n` : '';
-}
+};
 
 const fragmentShaderHeader = (device: pc.GraphicsDevice) => {
     // @ts-ignore
     return (device.webgl2 ? `#version 300 es\n\n${pc.shaderChunks.gles3PS}\n` : '') +
             `precision ${device.precision} float;\n\n`;
-}
+};
 
 // helper class for reading out the depth values from depth render targets.
 class ReadDepth {
@@ -85,7 +85,7 @@ class ReadDepth {
             format: pc.PIXELFORMAT_R8_G8_B8_A8,
             mipmaps: false,
             minFilter: pc.FILTER_NEAREST,
-            magFilter: pc.FILTER_NEAREST,
+            magFilter: pc.FILTER_NEAREST
         });
 
         this.renderTarget = new pc.RenderTarget({
@@ -130,4 +130,4 @@ class ReadDepth {
 
 export {
     ReadDepth
-}
+};
