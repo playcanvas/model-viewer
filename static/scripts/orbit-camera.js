@@ -124,11 +124,11 @@ Object.defineProperty(OrbitCamera.prototype, "yaw", {
         var diff = this._yaw.distance();
         var reminder = diff % 360;
         if (reminder > 180) {
-            this._yaw.snapTo(this._yaw.value - (360 - reminder));
+            this._yaw._targetValue = this._yaw.value - (360 - reminder);
         } else if (reminder < -180) {
-            this._yaw.snapTo(this._yaw.value + (360 + reminder));
+            this._yaw._targetValue = this._yaw.value + (360 + reminder);
         } else {
-            this._yaw.snapTo(this._yaw.value + reminder);
+            this._yaw._targetValue = this._yaw.value + reminder;
         }
     }
 });
@@ -245,7 +245,7 @@ OrbitCamera.prototype.initialize = function () {
     } else {
         var distanceBetween = new pc.Vec3();
         distanceBetween.sub2(this.entity.getPosition(), this._pivotPoint);
-        this._distance.value = this._clampDistance(distanceBetween.length());
+        this._distance.snapTo(this._clampDistance(distanceBetween.length()));
     }
 
     // Reapply the clamps if they are changed in the editor
