@@ -105,11 +105,7 @@ class Viewer {
             () => {
                 // setup orbit script component
                 camera.addComponent("script");
-                camera.script.create("orbitCamera", {
-                    attributes: {
-                        inertiaFactor: 0.02
-                    }
-                });
+                camera.script.create("orbitCamera");
                 camera.script.create("orbitCameraInputMouse");
                 camera.script.create("orbitCameraInputTouch");
                 app.root.addChild(camera);
@@ -1025,9 +1021,16 @@ class Viewer {
     }
 
     update() {
+        const maxdiff = (a: pc.Mat4, b: pc.Mat4) => {
+            let result = 0;
+            for (let i = 0; i < 16; ++i) {
+                result = Math.max(result, Math.abs(a.data[i] - b.data[i]));
+            }
+            return result;
+        };
         // if the camera has moved since the last render
         const cameraWorldTransform = this.camera.getWorldTransform();
-        if (!this.prevCameraMat.equals(cameraWorldTransform)) {
+        if (maxdiff(cameraWorldTransform, this.prevCameraMat) > 1e-04) {
             this.prevCameraMat.copy(cameraWorldTransform);
             this.renderNextFrame();
         }
@@ -1532,7 +1535,8 @@ class Viewer {
     }
 
     private onPostrender() {
-        this.app.graphicsDevice.setRenderTarget(null);
+        // perform mulitiframe update, returned flag indicates whether more frames
+        // are needed.
         this.multiframeBusy = this.multiframe.prepareTexture();
     }
 

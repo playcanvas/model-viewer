@@ -34,6 +34,7 @@ const fragmentShaderHeader = (device: pc.GraphicsDevice) => {
             `precision ${device.precision} float;\n\n`;
 }
 
+// helper class for reading out the depth values from depth render targets.
 class ReadDepth {
     device: pc.GraphicsDevice;
     shader: pc.Shader;

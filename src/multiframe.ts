@@ -13,12 +13,11 @@ void main(void) {
 
 const fshader: string = `
 varying vec2 texcoord;
-uniform sampler2D texture_multiframeSource;
-uniform float multiplier;
+uniform sampler2D multiframeTex;
 uniform float power;
 void main(void) {
-    vec4 t = texture2D(texture_multiframeSource, texcoord);
-    gl_FragColor = vec4(pow(t.xyz * multiplier, vec3(power)), 1.0);
+    vec4 t = texture2D(multiframeTex, texcoord);
+    gl_FragColor = vec4(pow(t.xyz, vec3(power)), 1.0);
 }
 `;
 
@@ -48,17 +47,15 @@ const choosePixelFormat = (device: pc.GraphicsDevice): number => {
             pc.PIXELFORMAT_R8_G8_B8_A8;
 };
 
+// helper class implementing multiframe AA
 class Multiframe {
     device: pc.GraphicsDevice;
     camera: pc.CameraComponent;
     shader: pc.Shader = null;
     pixelFormat: number;
     multiframeTexUniform: pc.ScopeId = null;
-    multiplierUniform: pc.ScopeId = null;
     powerUniform: pc.ScopeId = null;
     globalTextureBiasUniform: pc.ScopeId = null;
-    firstTexture: pc.Texture = null;
-    firstRenderTarget: pc.RenderTarget = null;
     accumTexture: pc.Texture = null;
     accumRenderTarget: pc.RenderTarget = null;
     sampleId: number = 0;
@@ -86,8 +83,10 @@ class Multiframe {
         });
 
         const pmat = this.camera.projectionMatrix;
-        let store = new pc.Vec2();
+        const store = new pc.Vec2();
 
+        // just before rendering the scene we apply a subpixel jitter
+        // to the camera's projection matrix.
         this.camera.onPreRender = () => {
             const sample = this.samples[this.sampleId];
 
@@ -103,6 +102,8 @@ class Multiframe {
             // this.globalTextureBiasUniform.setValue(-5.0);
         }
 
+        // restore the camera's projection matrix jitter once rendering is
+        // done
         this.camera.onPostRender = () => {
             pmat.data[8] = store.x;
             pmat.data[9] = store.y;
@@ -117,8 +118,7 @@ class Multiframe {
         });
 
         this.pixelFormat = choosePixelFormat(device);
-        this.multiframeTexUniform = device.scope.resolve('texture_multiframeSource');
-        this.multiplierUniform = device.scope.resolve('multiplier');
+        this.multiframeTexUniform = device.scope.resolve('multiframeTex');
         this.powerUniform = device.scope.resolve('power');
         this.globalTextureBiasUniform = device.scope.resolve('globalTextureBias');
 
@@ -131,16 +131,6 @@ class Multiframe {
     }
 
     destroy() {
-        if (this.firstTexture) {
-            this.firstTexture.destroy();
-            this.firstTexture = null;
-        }
-
-        if (this.firstRenderTarget) {
-            this.firstRenderTarget.destroy();
-            this.firstRenderTarget = null;
-        }
-
         if (this.accumRenderTarget) {
             this.accumRenderTarget.destroy();
             this.accumRenderTarget = null;
@@ -152,21 +142,7 @@ class Multiframe {
         }
     }
 
-    moved() {
-        this.sampleId = 0;
-    }
-
     create() {
-        this.firstTexture = new pc.Texture(this.device, {
-            width: this.device.width,
-            height: this.device.height,
-            mipmaps: false
-        });
-        this.firstRenderTarget = new pc.RenderTarget({
-            colorBuffer: this.firstTexture,
-            depth: false
-        });
-
         this.accumTexture = new pc.Texture(this.device, {
             width: this.device.width,
             height: this.device.height,
@@ -178,6 +154,10 @@ class Multiframe {
             colorBuffer: this.accumTexture,
             depth: false
         });
+    }
+
+    moved() {
+        this.sampleId = 0;
     }
 
     prepareTexture() {
@@ -192,20 +172,14 @@ class Multiframe {
         }
 
         const sampleCnt = this.samples.length;
+        const sourceTex = this.camera.renderTarget.colorBuffer;
 
         if (this.camera.renderTarget && this.sampleId < sampleCnt) {
-            const sourceTex = this.camera.renderTarget.colorBuffer;
-            // const sourceTex = this.camera.renderTarget.depthBuffer;
-
             if (this.sampleId === 0) {
                 // store the grabpass in both accumulation and current
                 this.multiframeTexUniform.setValue(sourceTex);
-                this.multiplierUniform.setValue(1.0);
                 this.powerUniform.setValue(gamma);
                 pc.drawQuadWithShader(device, this.accumRenderTarget, this.shader, null, null, true);
-
-                this.powerUniform.setValue(1.0);
-                pc.drawQuadWithShader(device, this.firstRenderTarget, this.shader, null, null, true);
             } else {
                 // blend grabpass with accumulation buffer
                 const blendSrc = device.blendSrc;
@@ -218,28 +192,24 @@ class Multiframe {
                 gl.blendColor(0, 0, 0, 1.0 / (this.sampleId + 1));
 
                 this.multiframeTexUniform.setValue(sourceTex);
-                this.multiplierUniform.setValue(1.0);
                 this.powerUniform.setValue(gamma);
                 pc.drawQuadWithShader(device, this.accumRenderTarget, this.shader, null, null, true);
 
                 // restore states
                 device.setBlendFunctionSeparate(blendSrc, blendDst, blendSrcAlpha, blendDstAlpha);
-
-                // resolve final frame
-                if (this.sampleId === (sampleCnt - 1)) {
-                    this.multiframeTexUniform.setValue(this.accumTexture);
-                    this.multiplierUniform.setValue(1.0);
-                    this.powerUniform.setValue(1.0 / gamma);
-                    pc.drawQuadWithShader(device, this.firstRenderTarget, this.shader);
-                }
             }
         }
 
-        // replace backbuffer with multiframe buffer
-        this.multiframeTexUniform.setValue(this.firstTexture);
-        this.multiplierUniform.setValue(1.0);
-        this.powerUniform.setValue(1.0);
-        pc.drawQuadWithShader(device, null, this.shader);
+        // update backbuffer on the first and last frame only
+        if (this.sampleId === 0) {
+            this.multiframeTexUniform.setValue(sourceTex);
+            this.powerUniform.setValue(1.0);
+            pc.drawQuadWithShader(device, null, this.shader);
+        } else if (this.sampleId === (sampleCnt - 1)) {
+            this.multiframeTexUniform.setValue(this.accumTexture);
+            this.powerUniform.setValue(1.0 / gamma);
+            pc.drawQuadWithShader(device, null, this.shader);
+        }
 
         if (this.sampleId < sampleCnt) {
             this.sampleId++;
