@@ -51,8 +51,6 @@ const choosePixelFormat = (device: pc.GraphicsDevice): number => {
 class Multiframe {
     device: pc.GraphicsDevice;
     camera: pc.CameraComponent;
-    // @ts-ignore
-    grabPass: pc.GrabPass = null;
     shader: pc.Shader = null;
     pixelFormat: number;
     multiframeTexUniform: pc.ScopeId = null;
@@ -80,6 +78,13 @@ class Multiframe {
             }
         }
 
+        // closes sample first
+        this.samples.sort((a, b) => {
+            const aL = a.length();
+            const bL = b.length();
+            return aL < bL ? -1 : (bL < aL ? 1 : 0);
+        });
+
         const pmat = this.camera.projectionMatrix;
         let store = new pc.Vec2();
 
@@ -102,9 +107,6 @@ class Multiframe {
             pmat.data[8] = store.x;
             pmat.data[9] = store.y;
         }
-
-        // @ts-ignore
-        this.grabPass = new pc.GrabPass(device, true, false, 'texture_multiframeSource');
 
         this.shader = new pc.Shader(device, {
             attributes: {
@@ -191,13 +193,13 @@ class Multiframe {
 
         const sampleCnt = this.samples.length;
 
-        if (this.sampleId < sampleCnt) {
-            // grab the backbuffer
-            this.grabPass.prepareTexture();
+        if (this.camera.renderTarget && this.sampleId < sampleCnt) {
+            const sourceTex = this.camera.renderTarget.colorBuffer;
+            // const sourceTex = this.camera.renderTarget.depthBuffer;
 
             if (this.sampleId === 0) {
                 // store the grabpass in both accumulation and current
-                this.multiframeTexUniform.setValue(this.grabPass.texture);
+                this.multiframeTexUniform.setValue(sourceTex);
                 this.multiplierUniform.setValue(1.0);
                 this.powerUniform.setValue(gamma);
                 pc.drawQuadWithShader(device, this.accumRenderTarget, this.shader, null, null, true);
@@ -215,7 +217,7 @@ class Multiframe {
                 gl.blendFuncSeparate(gl.CONSTANT_ALPHA, gl.ONE_MINUS_CONSTANT_ALPHA, gl.ONE, gl.ZERO);
                 gl.blendColor(0, 0, 0, 1.0 / (this.sampleId + 1));
 
-                this.multiframeTexUniform.setValue(this.grabPass.texture);
+                this.multiframeTexUniform.setValue(sourceTex);
                 this.multiplierUniform.setValue(1.0);
                 this.powerUniform.setValue(gamma);
                 pc.drawQuadWithShader(device, this.accumRenderTarget, this.shader, null, null, true);

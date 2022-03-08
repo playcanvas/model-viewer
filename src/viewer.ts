@@ -11,6 +11,7 @@ import { getAssetPath } from './helpers';
 import { Morph, File, HierarchyNode } from './types';
 import DebugLines from './debug';
 import { Multiframe } from './multiframe';
+import { ReadDepth } from './read-depth';
 
 // model filename extensions
 const modelExtensions = ['.gltf', '.glb', '.vox'];
@@ -59,6 +60,8 @@ class Viewer {
 
     multiframe: Multiframe | null;
     multiframeBusy: boolean = false;
+    readDepth: ReadDepth = null;
+    cursorWorld = new pc.Vec3();
 
     constructor(canvas: HTMLCanvasElement, observer: Observer) {
         // create the application
@@ -79,20 +82,20 @@ class Viewer {
         app.graphicsDevice.maxPixelRatio = window.devicePixelRatio;
         app.scene.gammaCorrection = pc.GAMMA_SRGB;
 
-        // Set the canvas to fill the window and automatically change resolution to be the same as the canvas size
-        const canvasSize = this.getCanvasSize();
-        app.setCanvasFillMode(pc.FILLMODE_NONE, canvasSize.width, canvasSize.height);
-        app.setCanvasResolution(pc.RESOLUTION_AUTO);
-        window.addEventListener("resize", () => {
-            this.resizeCanvas();
-        });
-
         // create the orbit camera
         const camera = new pc.Entity("Camera");
         camera.addComponent("camera", {
             fov: 75,
             clearColor: new pc.Color(0.4, 0.45, 0.5),
             frustumCulling: true
+        });
+
+        // Set the canvas to fill the window and automatically change resolution to be the same as the canvas size
+        const canvasSize = this.getCanvasSize();
+        app.setCanvasFillMode(pc.FILLMODE_NONE, canvasSize.width, canvasSize.height);
+        app.setCanvasResolution(pc.RESOLUTION_AUTO);
+        window.addEventListener("resize", () => {
+            this.resizeCanvas();
         });
 
         // load orbit script
@@ -113,6 +116,8 @@ class Viewer {
 
                 // @ts-ignore
                 camera.script.orbitCamera.pivotPoint = new pc.Vec3(0, 1, 0);
+                // @ts-ignore
+                camera.script.orbitCameraInputMouse.distanceSensitivity = 0.4;
             });
 
         // create the light
@@ -208,6 +213,33 @@ class Viewer {
 
         // initialize control events
         this.bindControlEvents();
+
+        this.resizeCanvas();
+
+        // construct the depth reader
+        this.readDepth = new ReadDepth(this.app.graphicsDevice);
+        this.cursorWorld = new pc.Vec3();
+
+        // double click handler
+        canvas.addEventListener('dblclick', (event) => {
+            const camera = this.camera.camera;
+
+            // read depth
+            const depth = this.readDepth.read(camera.renderTarget.depthBuffer, event.offsetX, event.offsetY);
+
+            // convert to linear depth
+            const near = camera.nearClip;
+            const far = camera.farClip;
+            const a = (1 - far / near) / 2;
+            const b = (1 + far / near) / 2;
+            const linearDepth = 1.0 / (a * (depth * 2.0 - 1.0) + b);
+
+            // map to world space
+            camera.screenToWorld(event.offsetX, event.offsetY, camera.nearClip + linearDepth * (camera.farClip - camera.nearClip), this.cursorWorld);
+
+            // @ts-ignore TODO not defined in pc
+            this.camera.script.orbitCamera.pivotPoint = this.cursorWorld;
+        });
 
         // start the application
         app.start();
@@ -574,9 +606,45 @@ class Viewer {
     }
 
     resizeCanvas() {
+        const device = this.app.graphicsDevice;
         const canvasSize = this.getCanvasSize();
         this.app.resizeCanvas(canvasSize.width, canvasSize.height);
         this.renderNextFrame();
+
+        const createTexture = (width: number, height: number, format: number) => {
+            return new pc.Texture(device, {
+                width: width,
+                height: height,
+                format: format,
+                mipmaps: false,
+                minFilter: pc.FILTER_NEAREST,
+                magFilter: pc.FILTER_NEAREST,
+                addressU: pc.ADDRESS_CLAMP_TO_EDGE,
+                addressV: pc.ADDRESS_CLAMP_TO_EDGE
+            });
+        }
+
+        const w = canvasSize.width;
+        const h = canvasSize.height;
+
+        // out with the old
+        const old = this.camera.camera.renderTarget;
+        if (old) {
+            old.colorBuffer.destroy();
+            old.depthBuffer.destroy();
+            old.destroy();
+        }
+
+        // in with the new
+        const colorBuffer = createTexture(w, h, pc.PIXELFORMAT_R8_G8_B8_A8);
+        const depthBuffer = createTexture(w, h, pc.PIXELFORMAT_DEPTH);
+        const renderTarget = new pc.RenderTarget({
+            colorBuffer: colorBuffer,
+            depthBuffer: depthBuffer,
+            flipY: false,
+            samples: device.maxSamples
+        });
+        this.camera.camera.renderTarget = renderTarget;
     }
 
     // reset the viewer, unloading resources
@@ -1458,6 +1526,9 @@ class Viewer {
                 this.debugGrid.update();
             }
         }
+
+        // @ts-ignore
+        // this.app.scene.immediate.drawWireSphere(this.cursorWorld, 1, pc.Color.WHITE, 20, true, this.app.scene.defaultDrawLayer);
     }
 
     private onPostrender() {
