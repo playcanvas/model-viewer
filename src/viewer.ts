@@ -223,18 +223,20 @@ class Viewer {
             // read depth
             const depth = this.readDepth.read(camera.renderTarget.depthBuffer, event.offsetX, event.offsetY);
 
-            // convert to linear depth
-            const near = camera.nearClip;
-            const far = camera.farClip;
-            const a = (1 - far / near) / 2;
-            const b = (1 + far / near) / 2;
-            const linearDepth = 1.0 / (a * (depth * 2.0 - 1.0) + b);
+            if (depth < 1) {
+                // convert to linear depth
+                const near = camera.nearClip;
+                const far = camera.farClip;
+                const a = (1 - far / near) / 2;
+                const b = (1 + far / near) / 2;
+                const linearDepth = 1.0 / (a * (depth * 2.0 - 1.0) + b);
 
-            // map to world space
-            camera.screenToWorld(event.offsetX, event.offsetY, camera.nearClip + linearDepth * (camera.farClip - camera.nearClip), this.cursorWorld);
+                // map to world space
+                camera.screenToWorld(event.offsetX, event.offsetY, camera.nearClip + linearDepth * (camera.farClip - camera.nearClip), this.cursorWorld);
 
-            // @ts-ignore TODO not defined in pc
-            this.camera.script.orbitCamera.pivotPoint = this.cursorWorld;
+                // @ts-ignore TODO not defined in pc
+                this.camera.script.orbitCamera.pivotPoint = this.cursorWorld;
+            }
         });
 
         // start the application
