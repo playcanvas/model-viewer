@@ -69,9 +69,11 @@ class Viewer {
             mouse: new pc.Mouse(canvas),
             touch: new pc.TouchDevice(canvas),
             graphicsDeviceOptions: {
-                alpha: true,
                 preferWebGl2: true,
-                antialias: true
+                // the following are needed since we're rendering to an offscreen render target
+                antialias: false,
+                alpha: false,
+                depth: false
             }
         });
         this.app = app;
@@ -1539,7 +1541,7 @@ class Viewer {
     private onPostrender() {
         // perform mulitiframe update, returned flag indicates whether more frames
         // are needed.
-        this.multiframeBusy = this.multiframe.prepareTexture();
+        this.multiframeBusy = this.multiframe.update();
     }
 
     private onFrameend() {

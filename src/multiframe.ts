@@ -47,7 +47,7 @@ const choosePixelFormat = (device: pc.GraphicsDevice): number => {
             pc.PIXELFORMAT_R8_G8_B8_A8;
 };
 
-// helper class implementing multiframe AA
+// generate multiframe, supersampled AA
 class Multiframe {
     device: pc.GraphicsDevice;
     camera: pc.CameraComponent;
@@ -156,11 +156,15 @@ class Multiframe {
         });
     }
 
+    // flag the camera as moved
     moved() {
         this.sampleId = 0;
     }
 
-    prepareTexture() {
+    // update the multiframe accumulation buffer.
+    // blend the camera's render target colour buffer with the multiframe accumulation buffer.
+    // writes results to the backbuffer.
+    update() {
         const device = this.device;
 
         if (this.accumTexture && (this.accumTexture.width !== device.width || this.accumTexture.height !== device.height)) {
@@ -174,7 +178,7 @@ class Multiframe {
         const sampleCnt = this.samples.length;
         const sourceTex = this.camera.renderTarget.colorBuffer;
 
-        if (this.camera.renderTarget && this.sampleId < sampleCnt) {
+        if (this.sampleId < sampleCnt) {
             if (this.sampleId === 0) {
                 // store the grabpass in both accumulation and current
                 this.multiframeTexUniform.setValue(sourceTex);
@@ -187,6 +191,8 @@ class Multiframe {
                 const blendSrcAlpha = device.blendSrcAlpha;
                 const blendDstAlpha = device.blendDstAlpha;
 
+                // TODO: add constant blend support to the engine
+                // look away
                 const gl = device.gl;
                 gl.blendFuncSeparate(gl.CONSTANT_ALPHA, gl.ONE_MINUS_CONSTANT_ALPHA, gl.ONE, gl.ZERO);
                 gl.blendColor(0, 0, 0, 1.0 / (this.sampleId + 1));
@@ -202,10 +208,12 @@ class Multiframe {
 
         // update backbuffer on the first and last frame only
         if (this.sampleId === 0) {
+            // first sample - copy the camera render target directly to the back buffer
             this.multiframeTexUniform.setValue(sourceTex);
             this.powerUniform.setValue(1.0);
             pc.drawQuadWithShader(device, null, this.shader);
         } else if (this.sampleId === (sampleCnt - 1)) {
+            // last multiframe sample - copy the accumulation buffer to the back buffer
             this.multiframeTexUniform.setValue(this.accumTexture);
             this.powerUniform.setValue(1.0 / gamma);
             pc.drawQuadWithShader(device, null, this.shader);
