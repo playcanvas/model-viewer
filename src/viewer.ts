@@ -206,8 +206,10 @@ class Viewer {
         this.miniStats.enabled = observer.get('show.stats');
         this.observer = observer;
 
+        const device = this.app.graphicsDevice as pc.WebglGraphicsDevice;
+
         // multiframe
-        this.multiframe = new Multiframe(this.app.graphicsDevice, this.camera.camera, 5);
+        this.multiframe = new Multiframe(device, this.camera.camera, 5);
 
         // initialize control events
         this.bindControlEvents();
@@ -215,7 +217,7 @@ class Viewer {
         this.resizeCanvas();
 
         // construct the depth reader
-        this.readDepth = new ReadDepth(this.app.graphicsDevice);
+        this.readDepth = new ReadDepth(device);
         this.cursorWorld = new pc.Vec3();
 
         // double click handler
@@ -606,7 +608,7 @@ class Viewer {
     }
 
     resizeCanvas() {
-        const device = this.app.graphicsDevice;
+        const device = this.app.graphicsDevice as pc.WebglGraphicsDevice;
         const canvasSize = this.getCanvasSize();
         this.app.resizeCanvas(canvasSize.width, canvasSize.height);
         this.renderNextFrame();
@@ -642,7 +644,6 @@ class Viewer {
             colorBuffer: colorBuffer,
             depthBuffer: depthBuffer,
             flipY: false,
-            // @ts-ignore: maxSamples is on webgl device, not base class
             samples: device.maxSamples
         });
         this.camera.camera.renderTarget = renderTarget;
@@ -1534,9 +1535,6 @@ class Viewer {
                 this.debugGrid.update();
             }
         }
-
-        // @ts-ignore
-        // this.app.scene.immediate.drawWireSphere(this.cursorWorld, 1, pc.Color.WHITE, 20, true, this.app.scene.defaultDrawLayer);
     }
 
     private onPostrender() {

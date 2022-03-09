@@ -171,7 +171,6 @@ pc.basisInitialize({
 
 const url = getAssetPath("asset_manifest.json");
 new pc.Http().get(url, {
-    // @ts-ignore
     cache: true,
     responseType: "text",
     retry: false

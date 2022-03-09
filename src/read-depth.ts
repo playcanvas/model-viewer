@@ -23,12 +23,12 @@ void main(void) {
 }
 `;
 
-const vertexShaderHeader = (device: pc.GraphicsDevice) => {
+const vertexShaderHeader = (device: pc.WebglGraphicsDevice) => {
     // @ts-ignore
     return device.webgl2 ? `#version 300 es\n\n${pc.shaderChunks.gles3VS}\n` : '';
 };
 
-const fragmentShaderHeader = (device: pc.GraphicsDevice) => {
+const fragmentShaderHeader = (device: pc.WebglGraphicsDevice) => {
     // @ts-ignore
     return (device.webgl2 ? `#version 300 es\n\n${pc.shaderChunks.gles3PS}\n` : '') +
             `precision ${device.precision} float;\n\n`;
@@ -36,7 +36,7 @@ const fragmentShaderHeader = (device: pc.GraphicsDevice) => {
 
 // helper class for reading out the depth values from depth render targets.
 class ReadDepth {
-    device: pc.GraphicsDevice;
+    device: pc.WebglGraphicsDevice;
     shader: pc.Shader;
     depthTexUniform: pc.ScopeId;
     texcoordRangeUniform: pc.ScopeId;
@@ -44,7 +44,7 @@ class ReadDepth {
     texture: pc.Texture = null;
     renderTarget: pc.RenderTarget = null;
 
-    constructor(device: pc.GraphicsDevice) {
+    constructor(device: pc.WebglGraphicsDevice) {
         this.device = device;
 
         this.shader = new pc.Shader(device, {
@@ -107,19 +107,15 @@ class ReadDepth {
         this.texcoordRangeUniform.setValue([tx, ty, tx, ty]);
         pc.drawQuadWithShader(this.device, this.renderTarget, this.shader);
 
-        // @ts-ignore: doesn't exist on base graphics device
         const gl = device.gl;
         const oldRt = device.renderTarget;
 
         device.setRenderTarget(this.renderTarget);
-        // @ts-ignore: doesn't exist on base graphics device
         device.updateBegin();
         gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, this.pixels);
 
-        // @ts-ignore: doesn't exist on base graphics device
         device.updateEnd();
         device.setRenderTarget(oldRt);
-        // @ts-ignore: doesn't exist on base graphics device
         device.updateBegin();
 
         // console.log(`${this.pixels[0]}, ${this.pixels[1]}, ${this.pixels[2]}, ${this.pixels[3]}`);

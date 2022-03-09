@@ -21,29 +21,27 @@ void main(void) {
 }
 `;
 
-const vertexShaderHeader = (device: pc.GraphicsDevice) => {
+const vertexShaderHeader = (device: pc.WebglGraphicsDevice) => {
     // @ts-ignore
     return device.webgl2 ? `#version 300 es\n\n${pc.shaderChunks.gles3VS}\n` : '';
 };
 
-const fragmentShaderHeader = (device: pc.GraphicsDevice) => {
+const fragmentShaderHeader = (device: pc.WebglGraphicsDevice) => {
     // @ts-ignore
     return (device.webgl2 ? `#version 300 es\n\n${pc.shaderChunks.gles3PS}\n` : '') +
             `precision ${device.precision} float;\n\n`;
 };
 
-const supportsFloat16 = (device: pc.GraphicsDevice): boolean => {
-    // @ts-ignore: doesn't exist on base graphics device
+const supportsFloat16 = (device: pc.WebglGraphicsDevice): boolean => {
     return device.extTextureHalfFloat && device.textureHalfFloatRenderable;
 };
 
-const supportsFloat32 = (device: pc.GraphicsDevice): boolean => {
-    // @ts-ignore: doesn't exist on base graphics device
+const supportsFloat32 = (device: pc.WebglGraphicsDevice): boolean => {
     return device.extTextureFloat && device.textureFloatRenderable;
 };
 
 // lighting source should be stored HDR
-const choosePixelFormat = (device: pc.GraphicsDevice): number => {
+const choosePixelFormat = (device: pc.WebglGraphicsDevice): number => {
     return supportsFloat16(device) ? pc.PIXELFORMAT_RGBA16F :
         supportsFloat32(device) ? pc.PIXELFORMAT_RGBA32F :
             pc.PIXELFORMAT_R8_G8_B8_A8;
@@ -51,7 +49,7 @@ const choosePixelFormat = (device: pc.GraphicsDevice): number => {
 
 // generate multiframe, supersampled AA
 class Multiframe {
-    device: pc.GraphicsDevice;
+    device: pc.WebglGraphicsDevice;
     camera: pc.CameraComponent;
     shader: pc.Shader = null;
     pixelFormat: number;
@@ -63,7 +61,7 @@ class Multiframe {
     sampleId = 0;
     samples: pc.Vec2[] = [];
 
-    constructor(device: pc.GraphicsDevice, camera: pc.CameraComponent, numSamples: number) {
+    constructor(device: pc.WebglGraphicsDevice, camera: pc.CameraComponent, numSamples: number) {
         this.device = device;
         this.camera = camera;
 
@@ -167,7 +165,7 @@ class Multiframe {
     // blend the camera's render target colour buffer with the multiframe accumulation buffer.
     // writes results to the backbuffer.
     update() {
-        const device = this.device;
+        const device = this.device as pc.WebglGraphicsDevice;
 
         if (this.accumTexture && (this.accumTexture.width !== device.width || this.accumTexture.height !== device.height)) {
             this.destroy();
@@ -188,17 +186,12 @@ class Multiframe {
                 pc.drawQuadWithShader(device, this.accumRenderTarget, this.shader, null, null, true);
             } else {
                 // blend grabpass with accumulation buffer
-                // @ts-ignore: doesn't exist on base graphics device
                 const blendSrc = device.blendSrc;
-                // @ts-ignore: doesn't exist on base graphics device
                 const blendDst = device.blendDst;
-                // @ts-ignore: doesn't exist on base graphics device
                 const blendSrcAlpha = device.blendSrcAlpha;
-                // @ts-ignore: doesn't exist on base graphics device
                 const blendDstAlpha = device.blendDstAlpha;
 
                 // TODO: add constant blend support to the engine
-                // @ts-ignore: doesn't exist on base graphics device
                 const gl = device.gl;
 
                 // look away
@@ -210,7 +203,6 @@ class Multiframe {
                 pc.drawQuadWithShader(device, this.accumRenderTarget, this.shader, null, null, true);
 
                 // restore states
-                // @ts-ignore: doesn't exist on base graphics device
                 device.setBlendFunctionSeparate(blendSrc, blendDst, blendSrcAlpha, blendDstAlpha);
             }
         }
