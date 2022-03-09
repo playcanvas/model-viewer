@@ -77,6 +77,7 @@ class DebugLines {
                 passThrough: true,
                 overrideClear: true,
                 onDrawCall: (drawCall: any, index: number) => {
+                    // @ts-ignore: doesn't exist on base graphics device
                     app.graphicsDevice.setDepthFunc(pc.FUNC_GREATER);
                 }
             });

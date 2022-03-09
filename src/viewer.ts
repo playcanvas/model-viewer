@@ -642,6 +642,7 @@ class Viewer {
             colorBuffer: colorBuffer,
             depthBuffer: depthBuffer,
             flipY: false,
+            // @ts-ignore: maxSamples is on webgl device, not base class
             samples: device.maxSamples
         });
         this.camera.camera.renderTarget = renderTarget;

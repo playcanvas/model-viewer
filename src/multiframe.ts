@@ -33,10 +33,12 @@ const fragmentShaderHeader = (device: pc.GraphicsDevice) => {
 };
 
 const supportsFloat16 = (device: pc.GraphicsDevice): boolean => {
+    // @ts-ignore: doesn't exist on base graphics device
     return device.extTextureHalfFloat && device.textureHalfFloatRenderable;
 };
 
 const supportsFloat32 = (device: pc.GraphicsDevice): boolean => {
+    // @ts-ignore: doesn't exist on base graphics device
     return device.extTextureFloat && device.textureFloatRenderable;
 };
 
@@ -186,14 +188,20 @@ class Multiframe {
                 pc.drawQuadWithShader(device, this.accumRenderTarget, this.shader, null, null, true);
             } else {
                 // blend grabpass with accumulation buffer
+                // @ts-ignore: doesn't exist on base graphics device
                 const blendSrc = device.blendSrc;
+                // @ts-ignore: doesn't exist on base graphics device
                 const blendDst = device.blendDst;
+                // @ts-ignore: doesn't exist on base graphics device
                 const blendSrcAlpha = device.blendSrcAlpha;
+                // @ts-ignore: doesn't exist on base graphics device
                 const blendDstAlpha = device.blendDstAlpha;
 
                 // TODO: add constant blend support to the engine
-                // look away
+                // @ts-ignore: doesn't exist on base graphics device
                 const gl = device.gl;
+
+                // look away
                 gl.blendFuncSeparate(gl.CONSTANT_ALPHA, gl.ONE_MINUS_CONSTANT_ALPHA, gl.ONE, gl.ZERO);
                 gl.blendColor(0, 0, 0, 1.0 / (this.sampleId + 1));
 
@@ -202,6 +210,7 @@ class Multiframe {
                 pc.drawQuadWithShader(device, this.accumRenderTarget, this.shader, null, null, true);
 
                 // restore states
+                // @ts-ignore: doesn't exist on base graphics device
                 device.setBlendFunctionSeparate(blendSrc, blendDst, blendSrcAlpha, blendDstAlpha);
             }
         }
