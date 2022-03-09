@@ -118,8 +118,6 @@ class ReadDepth {
         device.setRenderTarget(oldRt);
         device.updateBegin();
 
-        // console.log(`${this.pixels[0]}, ${this.pixels[1]}, ${this.pixels[2]}, ${this.pixels[3]}`);
-
         // unpackFloat
         return this.pixels[0] / (255 * 256 * 256 * 256) +
                this.pixels[1] / (255 * 256 * 256) +
