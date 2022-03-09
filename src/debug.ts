@@ -67,6 +67,8 @@ class DebugLines {
     colorData: Uint32Array;
 
     constructor(app: pc.Application, camera: pc.Entity, backLayer = true) {
+        const device = app.graphicsDevice as pc.WebglGraphicsDevice;
+
         if (!debugLayerFront) {
             // construct the debug layer
             debugLayerBack = new pc.Layer({
@@ -77,7 +79,7 @@ class DebugLines {
                 passThrough: true,
                 overrideClear: true,
                 onDrawCall: (drawCall: any, index: number) => {
-                    app.graphicsDevice.setDepthFunc(pc.FUNC_GREATER);
+                    device.setDepthFunc(pc.FUNC_GREATER);
                 }
             });
 
@@ -94,8 +96,6 @@ class DebugLines {
             app.scene.layers.pushTransparent(debugLayerFront);
             camera.camera.layers = camera.camera.layers.concat([debugLayerBack.id, debugLayerFront.id]);
         }
-
-        const device = app.graphicsDevice;
 
         const vertexFormat = new pc.VertexFormat(device, [
             { semantic: pc.SEMANTIC_POSITION, components: 3, type: pc.TYPE_FLOAT32 },

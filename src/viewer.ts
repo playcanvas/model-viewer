@@ -10,6 +10,8 @@ import * as MeshoptDecoder from '../lib/meshopt_decoder.js';
 import { getAssetPath } from './helpers';
 import { Morph, File, HierarchyNode } from './types';
 import DebugLines from './debug';
+import { Multiframe } from './multiframe';
+import { ReadDepth } from './read-depth';
 
 // model filename extensions
 const modelExtensions = ['.gltf', '.glb', '.vox'];
@@ -56,14 +58,22 @@ class Viewer {
     miniStats: any;
     observer: Observer;
 
+    multiframe: Multiframe | null;
+    multiframeBusy = false;
+    readDepth: ReadDepth = null;
+    cursorWorld = new pc.Vec3();
+
     constructor(canvas: HTMLCanvasElement, observer: Observer) {
         // create the application
         const app = new pc.Application(canvas, {
             mouse: new pc.Mouse(canvas),
             touch: new pc.TouchDevice(canvas),
             graphicsDeviceOptions: {
+                preferWebGl2: true,
+                // the following are needed since we're rendering to an offscreen render target
+                antialias: false,
                 alpha: false,
-                preferWebGl2: true
+                depth: false
             }
         });
         this.app = app;
@@ -74,20 +84,20 @@ class Viewer {
         app.graphicsDevice.maxPixelRatio = window.devicePixelRatio;
         app.scene.gammaCorrection = pc.GAMMA_SRGB;
 
-        // Set the canvas to fill the window and automatically change resolution to be the same as the canvas size
-        const canvasSize = this.getCanvasSize();
-        app.setCanvasFillMode(pc.FILLMODE_NONE, canvasSize.width, canvasSize.height);
-        app.setCanvasResolution(pc.RESOLUTION_AUTO);
-        window.addEventListener("resize", () => {
-            this.resizeCanvas();
-        });
-
         // create the orbit camera
         const camera = new pc.Entity("Camera");
         camera.addComponent("camera", {
             fov: 75,
             clearColor: new pc.Color(0.4, 0.45, 0.5),
             frustumCulling: true
+        });
+
+        // Set the canvas to fill the window and automatically change resolution to be the same as the canvas size
+        const canvasSize = this.getCanvasSize();
+        app.setCanvasFillMode(pc.FILLMODE_NONE, canvasSize.width, canvasSize.height);
+        app.setCanvasResolution(pc.RESOLUTION_AUTO);
+        window.addEventListener("resize", () => {
+            this.resizeCanvas();
         });
 
         // load orbit script
@@ -97,17 +107,15 @@ class Viewer {
             () => {
                 // setup orbit script component
                 camera.addComponent("script");
-                camera.script.create("orbitCamera", {
-                    attributes: {
-                        inertiaFactor: 0.1
-                    }
-                });
+                camera.script.create("orbitCamera");
                 camera.script.create("orbitCameraInputMouse");
                 camera.script.create("orbitCameraInputTouch");
                 app.root.addChild(camera);
 
                 // @ts-ignore
                 camera.script.orbitCamera.pivotPoint = new pc.Vec3(0, 1, 0);
+                // @ts-ignore
+                camera.script.orbitCameraInputMouse.distanceSensitivity = 0.4;
             });
 
         // create the light
@@ -144,6 +152,7 @@ class Viewer {
         window.addEventListener('drop', this.dropHandler.bind(this), false);
 
         app.on('prerender', this.onPrerender, this);
+        app.on('postrender', this.onPostrender, this);
         app.on('frameend', this.onFrameend, this);
 
         // create the scene and debug root nodes
@@ -197,8 +206,42 @@ class Viewer {
         this.miniStats.enabled = observer.get('show.stats');
         this.observer = observer;
 
+        const device = this.app.graphicsDevice as pc.WebglGraphicsDevice;
+
+        // multiframe
+        this.multiframe = new Multiframe(device, this.camera.camera, 5);
+
         // initialize control events
         this.bindControlEvents();
+
+        this.resizeCanvas();
+
+        // construct the depth reader
+        this.readDepth = new ReadDepth(device);
+        this.cursorWorld = new pc.Vec3();
+
+        // double click handler
+        canvas.addEventListener('dblclick', (event) => {
+            const camera = this.camera.camera;
+
+            // read depth
+            const depth = this.readDepth.read(camera.renderTarget.depthBuffer, event.offsetX, event.offsetY);
+
+            if (depth < 1) {
+                // convert to linear depth
+                const near = camera.nearClip;
+                const far = camera.farClip;
+                const a = (1 - far / near) / 2;
+                const b = (1 + far / near) / 2;
+                const linearDepth = 1.0 / (a * (depth * 2.0 - 1.0) + b);
+
+                // map to world space
+                camera.screenToWorld(event.offsetX, event.offsetY, camera.nearClip + linearDepth * (camera.farClip - camera.nearClip), this.cursorWorld);
+
+                // @ts-ignore TODO not defined in pc
+                this.camera.script.orbitCamera.pivotPoint = this.cursorWorld;
+            }
+        });
 
         // start the application
         app.start();
@@ -373,7 +416,7 @@ class Viewer {
     private clearSkybox() {
         this.app.scene.envAtlas = null;
         this.app.scene.setSkybox(null);
-        this.app.renderNextFrame = true;
+        this.renderNextFrame();
         this.skyboxLoaded = false;
     }
 
@@ -399,7 +442,7 @@ class Viewer {
 
         this.app.scene.envAtlas = envAtlas;
         this.app.scene.skybox = skybox;
-        this.app.renderNextFrame = true;                         // ensure we render again when the cubemap arrives
+        this.renderNextFrame();
 
         console.log(`prefilter timings skybox=${(t1 - t0).toFixed(2)}ms lighting=${(t2 - t1).toFixed(2)}ms envAtlas=${(t3 - t2).toFixed(2)}ms`);
     }
@@ -459,7 +502,7 @@ class Viewer {
 
         // assign the textures to the scene
         app.scene.setSkybox(cubemaps);
-        app.renderNextFrame = true;                         // ensure we render again when the cubemap arrives
+        this.renderNextFrame();
     }
 
     // load the image files into the skybox. this function supports loading a single equirectangular
@@ -550,7 +593,7 @@ class Viewer {
         });
         cubemap.on('load', () => {
             app.scene.setSkybox(cubemap.resources);
-            app.renderNextFrame = true;                             // ensure we render again when the cubemap arrives
+            this.renderNextFrame();
         });
         app.assets.add(cubemap);
         app.assets.load(cubemap);
@@ -565,9 +608,45 @@ class Viewer {
     }
 
     resizeCanvas() {
+        const device = this.app.graphicsDevice as pc.WebglGraphicsDevice;
         const canvasSize = this.getCanvasSize();
         this.app.resizeCanvas(canvasSize.width, canvasSize.height);
-        this.app.renderNextFrame = true;
+        this.renderNextFrame();
+
+        const createTexture = (width: number, height: number, format: number) => {
+            return new pc.Texture(device, {
+                width: width,
+                height: height,
+                format: format,
+                mipmaps: false,
+                minFilter: pc.FILTER_NEAREST,
+                magFilter: pc.FILTER_NEAREST,
+                addressU: pc.ADDRESS_CLAMP_TO_EDGE,
+                addressV: pc.ADDRESS_CLAMP_TO_EDGE
+            });
+        };
+
+        const w = canvasSize.width;
+        const h = canvasSize.height;
+
+        // out with the old
+        const old = this.camera.camera.renderTarget;
+        if (old) {
+            old.colorBuffer.destroy();
+            old.depthBuffer.destroy();
+            old.destroy();
+        }
+
+        // in with the new
+        const colorBuffer = createTexture(w, h, pc.PIXELFORMAT_R8_G8_B8_A8);
+        const depthBuffer = createTexture(w, h, pc.PIXELFORMAT_DEPTH);
+        const renderTarget = new pc.RenderTarget({
+            colorBuffer: colorBuffer,
+            depthBuffer: depthBuffer,
+            flipY: false,
+            samples: device.maxSamples
+        });
+        this.camera.camera.renderTarget = renderTarget;
     }
 
     // reset the viewer, unloading resources
@@ -600,7 +679,7 @@ class Viewer {
 
         this.dirtyWireframe = this.dirtyBounds = this.dirtySkeleton = this.dirtyGrid = this.dirtyNormals = true;
 
-        this.app.renderNextFrame = true;
+        this.renderNextFrame();
     }
 
     // move the camera to view the loaded object
@@ -685,6 +764,8 @@ class Viewer {
                 const textureAsset = new pc.Asset(u.filename, 'texture', {
                     url: u.url,
                     filename: u.filename
+                }, {
+                    anisotropy: this.app.graphicsDevice.maxAnisotropy
                 });
                 textureAsset.on('load', () => {
                     continuation(null, textureAsset);
@@ -946,9 +1027,16 @@ class Viewer {
     }
 
     update() {
+        const maxdiff = (a: pc.Mat4, b: pc.Mat4) => {
+            let result = 0;
+            for (let i = 0; i < 16; ++i) {
+                result = Math.max(result, Math.abs(a.data[i] - b.data[i]));
+            }
+            return result;
+        };
         // if the camera has moved since the last render
         const cameraWorldTransform = this.camera.getWorldTransform();
-        if (!this.prevCameraMat.equals(cameraWorldTransform)) {
+        if (maxdiff(cameraWorldTransform, this.prevCameraMat) > 1e-04) {
             this.prevCameraMat.copy(cameraWorldTransform);
             this.renderNextFrame();
         }
@@ -979,6 +1067,9 @@ class Viewer {
 
     renderNextFrame() {
         this.app.renderNextFrame = true;
+        if (this.multiframe) {
+            this.multiframe.moved();
+        }
     }
 
     // use webkitGetAsEntry to extract files so we can include folders
@@ -1446,6 +1537,12 @@ class Viewer {
         }
     }
 
+    private onPostrender() {
+        // perform mulitiframe update, returned flag indicates whether more frames
+        // are needed.
+        this.multiframeBusy = this.multiframe.update();
+    }
+
     private onFrameend() {
         if (this.firstFrame) {
             this.firstFrame = false;
@@ -1454,6 +1551,10 @@ class Viewer {
             // boxes are incorrect
             this.focusCamera();
             this.renderNextFrame();
+        }
+
+        if (this.multiframeBusy) {
+            this.app.renderNextFrame = true;
         }
     }
 }
