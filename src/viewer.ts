@@ -725,7 +725,7 @@ class Viewer {
     }
 
     // load gltf model given its url and list of external urls
-    private loadGltf(gltfUrl: File, externalUrls: Array<File>, finishedCallback: (err: string | null) => void) {
+    private loadGltf(gltfUrl: File, externalUrls: Array<File>, finishedCallback: (err: string | null, asset: pc.Asset) => void) {
 
         // provide buffer view callback so we can handle models compressed with MeshOptimizer
         // https://github.com/zeux/meshoptimizer
@@ -809,12 +809,10 @@ class Viewer {
             }
         });
         containerAsset.on('load', () => {
-            this.onLoaded(null, containerAsset);
-            finishedCallback(null);
+            finishedCallback(null, containerAsset);
         });
         containerAsset.on('error', (err : string) => {
-            this.onLoaded(err, containerAsset);
-            finishedCallback(err);
+            finishedCallback(err, containerAsset);
         });
 
         this.observer.set('spinner', true);
@@ -844,19 +842,25 @@ class Viewer {
         const hasModelFilename = files.reduce((p, f) => p || this.isModelFilename(f.filename), false);
 
         if (hasModelFilename) {
-            // step through urls loading gltf/glb models
-            let index = 0;
-            const loadNext = () => {
-                if (index < files.length) {
-                    const file = files[index++];
-                    if (this.isModelFilename(file.filename)) {
-                        this.loadGltf(file, files, (err) => {
-                            loadNext();
-                        });
-                    }
+            // kick off simultanious asset load
+            let awaiting = 0;
+            const assets: { err: string, asset: pc.Asset }[] = [];
+            files.forEach((file, index) => {
+                if (this.isModelFilename(file.filename)) {
+                    awaiting++;
+                    this.loadGltf(file, files, (err, asset) => {
+                        assets[index] = { err: err, asset: asset };
+                        if (--awaiting === 0) {
+                            // done loading assets, add them to the scene
+                            assets.forEach((asset) => {
+                                if (asset) {
+                                    this.onLoaded(asset.err, asset.asset);
+                                }
+                            });
+                        }
+                    });
                 }
-            };
-            loadNext();
+            });
         } else {
             // load skybox
             this.loadSkybox(files);
