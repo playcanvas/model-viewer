@@ -51,6 +51,7 @@ const choosePixelFormat = (device: pc.WebglGraphicsDevice): number => {
 class Multiframe {
     device: pc.WebglGraphicsDevice;
     camera: pc.CameraComponent;
+    textureBias: number;
     shader: pc.Shader = null;
     pixelFormat: number;
     multiframeTexUniform: pc.ScopeId = null;
@@ -64,6 +65,7 @@ class Multiframe {
     constructor(device: pc.WebglGraphicsDevice, camera: pc.CameraComponent, numSamples: number) {
         this.device = device;
         this.camera = camera;
+        this.textureBias = -Math.round(Math.log2(numSamples));
 
         // generate jittered grid samples (poisson would be better)
         for (let x = 0; x < numSamples; ++x) {
@@ -98,8 +100,8 @@ class Multiframe {
             this.camera._camera._viewMatDirty = true;
             this.camera._camera._viewProjMatDirty = true;
 
-            this.textureBiasUniform.setValue(this.sampleId === 0 ? 0.0 : -5.0);
-            // this.textureBiasUniform.setValue(-5.0);
+            this.textureBiasUniform.setValue(this.sampleId === 0 ? 0.0 : this.textureBias);
+            // this.textureBiasUniform.setValue(this.textureBias);
         };
 
         // restore the camera's projection matrix jitter once rendering is
