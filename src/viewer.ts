@@ -826,7 +826,7 @@ class Viewer {
     // returns true if the filename has one of the recognized model extensions
     isModelFilename(filename: string) {
         const filenameExt = pc.path.getExtension(filename).toLowerCase();
-        return modelExtensions.indexOf(filenameExt) !== -1
+        return modelExtensions.indexOf(filenameExt) !== -1;
     }
 
     // load the list of urls.
