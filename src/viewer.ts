@@ -725,7 +725,7 @@ class Viewer {
     }
 
     // load gltf model given its url and list of external urls
-    private loadGltf(gltfUrl: File, externalUrls: Array<File>) {
+    private loadGltf(gltfUrl: File, externalUrls: Array<File>, finishedCallback: (err: string | null, asset: pc.Asset) => void) {
 
         // provide buffer view callback so we can handle models compressed with MeshOptimizer
         // https://github.com/zeux/meshoptimizer
@@ -809,10 +809,10 @@ class Viewer {
             }
         });
         containerAsset.on('load', () => {
-            this.onLoaded(null, containerAsset);
+            finishedCallback(null, containerAsset);
         });
         containerAsset.on('error', (err : string) => {
-            this.onLoaded(err, containerAsset);
+            finishedCallback(err, containerAsset);
         });
 
         this.observer.set('spinner', true);
@@ -821,6 +821,12 @@ class Viewer {
 
         this.app.assets.add(containerAsset);
         this.app.assets.load(containerAsset);
+    }
+
+    // returns true if the filename has one of the recognized model extensions
+    isModelFilename(filename: string) {
+        const filenameExt = pc.path.getExtension(filename).toLowerCase();
+        return modelExtensions.indexOf(filenameExt) !== -1;
     }
 
     // load the list of urls.
@@ -832,23 +838,36 @@ class Viewer {
             files = [files];
         }
 
-        // step through urls loading gltf/glb models
-        let result = false;
-        files.forEach((file) => {
-            const filenameExt = pc.path.getExtension(file.filename).toLowerCase();
-            if (modelExtensions.indexOf(filenameExt) !== -1) {
-                this.loadGltf(file, files);
-                result = true;
-            }
-        });
+        // check if any file is a model
+        const hasModelFilename = files.reduce((p, f) => p || this.isModelFilename(f.filename), false);
 
-        if (!result) {
-            // if no models were loaded, load the files as skydome images instead
+        if (hasModelFilename) {
+            // kick off simultaneous asset load
+            let awaiting = 0;
+            const assets: { err: string, asset: pc.Asset }[] = [];
+            files.forEach((file, index) => {
+                if (this.isModelFilename(file.filename)) {
+                    awaiting++;
+                    this.loadGltf(file, files, (err, asset) => {
+                        assets[index] = { err: err, asset: asset };
+                        if (--awaiting === 0) {
+                            // done loading assets, add them to the scene
+                            assets.forEach((asset) => {
+                                if (asset) {
+                                    this.onLoaded(asset.err, asset.asset);
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+        } else {
+            // load skybox
             this.loadSkybox(files);
         }
 
         // return true if a model/scene was loaded and false otherwise
-        return result;
+        return hasModelFilename;
     }
 
     // play an animation / play all the animations
