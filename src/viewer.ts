@@ -842,7 +842,7 @@ class Viewer {
         const hasModelFilename = files.reduce((p, f) => p || this.isModelFilename(f.filename), false);
 
         if (hasModelFilename) {
-            // kick off simultanious asset load
+            // kick off simultaneous asset load
             let awaiting = 0;
             const assets: { err: string, asset: pc.Asset }[] = [];
             files.forEach((file, index) => {
