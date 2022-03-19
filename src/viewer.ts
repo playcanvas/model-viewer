@@ -8,8 +8,9 @@ import * as VoxParser from 'playcanvas/scripts/parsers/vox-parser.js';
 import * as MeshoptDecoder from '../lib/meshopt_decoder.js';
 
 import { getAssetPath } from './helpers';
+import { DropHandler } from './drop-handler';
 import { Morph, File, HierarchyNode } from './types';
-import DebugLines from './debug';
+import { DebugLines } from './debug';
 import { Multiframe } from './multiframe';
 import { ReadDepth } from './read-depth';
 
@@ -20,6 +21,7 @@ const defaultSceneBounds = new pc.BoundingBox(new pc.Vec3(0, 1, 0), new pc.Vec3(
 
 class Viewer {
     app: pc.Application;
+    dropHandler: DropHandler;
     prevCameraMat: pc.Mat4;
     camera: pc.Entity;
     cameraFocusBBox: pc.BoundingBox | null;
@@ -58,6 +60,8 @@ class Viewer {
     miniStats: any;
     observer: Observer;
 
+    selectedNode: pc.GraphNode | null;
+
     multiframe: Multiframe | null;
     multiframeBusy = false;
     readDepth: ReadDepth = null;
@@ -77,12 +81,16 @@ class Viewer {
             }
         });
         this.app = app;
+        app.graphicsDevice.maxPixelRatio = window.devicePixelRatio;
+        app.scene.gammaCorrection = pc.GAMMA_SRGB;
 
         // register vox support
         VoxParser.registerVoxParser(app);
 
-        app.graphicsDevice.maxPixelRatio = window.devicePixelRatio;
-        app.scene.gammaCorrection = pc.GAMMA_SRGB;
+        // create drop handler
+        this.dropHandler = new DropHandler((files, resetScene) => {
+            this.loadFiles(files, resetScene);
+        });
 
         // create the orbit camera
         const camera = new pc.Entity("Camera");
@@ -137,20 +145,6 @@ class Viewer {
         app.autoRender = false;
         this.prevCameraMat = new pc.Mat4();
         app.on('update', this.update, this);
-
-        // configure drag and drop
-        window.addEventListener('dragstart', (ev) => {
-            ev.preventDefault();
-            ev.stopPropagation();
-            ev.dataTransfer.effectAllowed = "all";
-        }, false);
-        window.addEventListener('dragover', (ev) => {
-            ev.preventDefault();
-            ev.stopPropagation();
-            ev.dataTransfer.effectAllowed = "all";
-        }, false);
-        window.addEventListener('drop', this.dropHandler.bind(this), false);
-
         app.on('prerender', this.onPrerender, this);
         app.on('postrender', this.onPostrender, this);
         app.on('frameend', this.onFrameend, this);
@@ -262,7 +256,7 @@ class Viewer {
         // handle load url param
         const loadUrls = (urlParams.load || []).concat(urlParams.assetUrl || []);
         if (loadUrls.length > 0) {
-            this.load(
+            this.loadFiles(
                 loadUrls.map((url: string) => {
                     return { url, filename: url };
                 })
@@ -376,7 +370,7 @@ class Viewer {
             'lighting.direct': this.setDirectLighting.bind(this),
             'lighting.env.value': (value: string) => {
                 if (value && value !== 'None') {
-                    this.load([{ url: value, filename: value }]);
+                    this.loadFiles([{ url: value, filename: value }]);
                 } else {
                     this.clearSkybox();
                 }
@@ -601,8 +595,9 @@ class Viewer {
     }
 
     private getCanvasSize() {
+        console.log(`width=${document.body.clientWidth - document.getElementById("panel").offsetWidth}`);
         return {
-            width: document.body.clientWidth - document.getElementById("panel").offsetWidth,
+            width: document.body.clientWidth - document.getElementById("panel").offsetWidth - document.getElementById("settings-panel").offsetWidth,
             height: document.body.clientHeight
         };
     }
@@ -653,18 +648,16 @@ class Viewer {
     resetScene() {
         const app = this.app;
 
-        for (let i = 0; i < this.entities.length; ++i) {
-            const entity = this.entities[i];
+        this.entities.forEach((entity) => {
             this.sceneRoot.removeChild(entity);
             entity.destroy();
-        }
+        })
         this.entities = [];
 
-        for (let i = 0; i < this.assets.length; ++i) {
-            const asset = this.assets[i];
+        this.assets.forEach((asset) => {
             app.assets.remove(asset);
             asset.unload();
-        }
+        });
         this.assets = [];
 
         this.meshInstances = [];
@@ -677,9 +670,52 @@ class Viewer {
         this.morphs = [];
         this.observer.set('morphTargets', null);
 
-        this.dirtyWireframe = this.dirtyBounds = this.dirtySkeleton = this.dirtyGrid = this.dirtyNormals = true;
+        this.updateSceneInfo();
 
+        this.dirtyWireframe = this.dirtyBounds = this.dirtySkeleton = this.dirtyGrid = this.dirtyNormals = true;
         this.renderNextFrame();
+    }
+
+    updateSceneInfo() {
+        let meshCount = 0;
+        let vertexCount = 0;
+        let primitiveCount = 0;
+
+        // update mesh stats
+        this.assets.forEach((asset) => {
+            asset.resource.renders.forEach((renderAsset: pc.Asset) => {
+                renderAsset.resource.meshes.forEach((mesh: pc.Mesh) => {
+                    meshCount++;
+                    vertexCount += mesh.vertexBuffer.getNumVertices();
+                    primitiveCount += mesh.primitive[0].count;
+                });
+            });
+        });
+
+        const mapChildren = function (node: pc.GraphNode): Array<HierarchyNode> {
+            return node.children.map((child: pc.GraphNode) => ({
+                name: child.name,
+                path: child.path,
+                children: mapChildren(child)
+            }));
+        };
+
+        const graph: Array<HierarchyNode> = this.entities.map((entity) => {
+            return {
+                name: entity.name,
+                path: entity.path,
+                children: mapChildren(entity)
+            }
+        });
+
+        // hierarchy
+        this.observer.set('scene.nodes', JSON.stringify(graph));
+
+        // mesh stats
+        this.observer.set('scene.meshCount', meshCount);
+        this.observer.set('scene.vertexCount', vertexCount);
+        this.observer.set('scene.primitiveCount', primitiveCount);
+
     }
 
     // move the camera to view the loaded object
@@ -832,7 +868,7 @@ class Viewer {
     // load the list of urls.
     // urls can reference glTF files, glb files and skybox textures.
     // returns true if a model was loaded.
-    load(files: Array<File>) {
+    loadFiles(files: Array<File>, resetScene: boolean = false) {
         // convert single url to list
         if (!Array.isArray(files)) {
             files = [files];
@@ -842,6 +878,10 @@ class Viewer {
         const hasModelFilename = files.reduce((p, f) => p || this.isModelFilename(f.filename), false);
 
         if (hasModelFilename) {
+            if (resetScene) {
+                this.resetScene();
+            }
+
             // kick off simultaneous asset load
             let awaiting = 0;
             const assets: { err: string, asset: pc.Asset }[] = [];
@@ -854,7 +894,7 @@ class Viewer {
                             // done loading assets, add them to the scene
                             assets.forEach((asset) => {
                                 if (asset) {
-                                    this.onLoaded(asset.err, asset.asset);
+                                    this.addToScene(asset.err, asset.asset);
                                 }
                             });
                         }
@@ -948,10 +988,14 @@ class Viewer {
                 name: graphNode.name,
                 path: path,
                 position: graphNode.getLocalPosition().toString(),
-                rotation: graphNode.getLocalRotation().toString(),
+                rotation: graphNode.getLocalEulerAngles().toString(),
                 scale: graphNode.getLocalScale().toString()
             });
         }
+
+        this.selectedNode = graphNode;
+        this.dirtySkeleton = true;
+        this.renderNextFrame();
     }
 
     setStats(show: boolean) {
@@ -1091,103 +1135,15 @@ class Viewer {
         }
     }
 
-    // use webkitGetAsEntry to extract files so we can include folders
-    private dropHandler(event: DragEvent) {
-
-        const removeCommonPrefix = (urls: Array<File>) => {
-            const split = (pathname: string) => {
-                const parts = pathname.split(pc.path.delimiter);
-                const base = parts[0];
-                const rest = parts.slice(1).join(pc.path.delimiter);
-                return [base, rest];
-            };
-            while (true) {
-                const parts = split(urls[0].filename);
-                if (parts[1].length === 0) {
-                    return;
-                }
-                for (let i = 1; i < urls.length; ++i) {
-                    const other = split(urls[i].filename);
-                    if (parts[0] !== other[0]) {
-                        return;
-                    }
-                }
-                for (let i = 0; i < urls.length; ++i) {
-                    urls[i].filename = split(urls[i].filename)[1];
-                }
-            }
-        };
-
-        const resolveFiles = (entries: Array<FileSystemFileEntry>) => {
-            const files: Array<File> = [];
-            entries.forEach((entry: FileSystemFileEntry) => {
-                entry.file((entryFile: any) => {
-                    files.push({
-                        url: URL.createObjectURL(entryFile),
-                        filename: entry.fullPath.substring(1)
-                    });
-                    if (files.length === entries.length) {
-                        // remove common prefix from files in order to support dragging in the
-                        // root of a folder containing related assets
-                        if (files.length > 1) {
-                            removeCommonPrefix(files);
-                        }
-
-                        // if a scene was loaded (and not just a skybox), clear the current scene
-                        if (this.load(files) && !event.shiftKey) {
-                            this.resetScene();
-                        }
-                    }
-                });
-            });
-        };
-
-        const resolveDirectories = (entries: Array<FileSystemEntry>) => {
-            let awaiting = 0;
-            const files: Array<FileSystemFileEntry> = [];
-            const recurse = (entries: Array<FileSystemEntry>) => {
-                entries.forEach((entry: FileSystemEntry) => {
-                    if (entry.isFile) {
-                        files.push(entry as FileSystemFileEntry);
-                    } else if (entry.isDirectory) {
-                        awaiting++;
-                        const reader = (entry as FileSystemDirectoryEntry).createReader();
-                        reader.readEntries((subEntries: Array<FileSystemEntry>) => {
-                            awaiting--;
-                            recurse(subEntries);
-                        });
-                    }
-                });
-                if (awaiting === 0) {
-                    resolveFiles(files);
-                }
-            };
-            recurse(entries);
-        };
-
-        // first things first
-        event.preventDefault();
-
-        const items = event.dataTransfer.items;
-        if (!items) {
-            return;
-        }
-
-        const entries = [];
-        for (let i = 0; i < items.length; ++i) {
-            entries.push(items[i].webkitGetAsEntry());
-        }
-        resolveDirectories(entries);
-    }
-
     clearCta() {
         document.querySelector('#panel').classList.add('no-cta');
         document.querySelector('#application-canvas').classList.add('no-cta');
         document.querySelector('.load-button-panel').classList.add('hide');
     }
 
-    // container asset has been loaded, add it to the scene
-    private onLoaded(err: string, asset: pc.Asset) {
+    // add a loaded asset to the scene
+    // asset is a container asset with renders and/or animations
+    private addToScene(err: string, asset: pc.Asset) {
         this.observer.set('spinner', false);
 
         if (err) {
@@ -1197,75 +1153,22 @@ class Viewer {
 
         const resource = asset.resource;
         const meshesLoaded = resource.renders && resource.renders.length > 0;
-        const animLoaded = resource.animations && resource.animations.length > 0;
+        const animsLoaded = resource.animations && resource.animations.length > 0;
         const prevEntity : pc.Entity = this.entities.length === 0 ? null : this.entities[this.entities.length - 1];
 
         let entity: pc.Entity;
 
-        if (prevEntity) {
-            // check if this loaded resource can be added to the existing entity,
-            // for example loading an animation onto an existing model (or visa versa)
-            const preEntityRenders = !!prevEntity.findComponent("render");
-            if ((meshesLoaded && !preEntityRenders) ||
-                (animLoaded && !meshesLoaded)) {
-                entity = prevEntity;
-            }
-        }
-
-        let meshCount = 0;
-        let vertexCount = 0;
-        let primitiveCount = 0;
-
-        if (!entity) {
-            // create entity
+        // create entity
+        if (!meshesLoaded && prevEntity && prevEntity.findComponent("render")) {
+            entity = prevEntity;
+        } else {
             entity = asset.resource.instantiateRenderEntity();
-
-            // update mesh stats
-            resource.renders.forEach((renderAsset: pc.Asset) => {
-                renderAsset.resource.meshes.forEach((mesh: pc.Mesh) => {
-                    meshCount++;
-                    vertexCount += mesh.vertexBuffer.getNumVertices();
-                    primitiveCount += mesh.primitive[0].count;
-                });
-            });
-
             this.entities.push(entity);
             this.sceneRoot.addChild(entity);
         }
 
-        const mapChildren = function (node: pc.GraphNode): Array<HierarchyNode> {
-            return node.children.map((child: pc.GraphNode) => ({
-                name: child.name,
-                path: child.path,
-                children: mapChildren(child)
-            }));
-        };
-
-        const graph: Array<HierarchyNode> = [{
-            name: entity.name,
-            path: entity.path,
-            children: mapChildren(entity)
-        }];
-
-        // hierarchy
-        this.observer.set('scene.nodes', JSON.stringify(graph));
-
-        // mesh stats
-        this.observer.set('scene.meshCount', meshCount);
-        this.observer.set('scene.vertexCount', vertexCount);
-        this.observer.set('scene.primitiveCount', primitiveCount);
-
         // create animation component
-        if (animLoaded) {
-            // create the anim component if there isn't one already
-            if (!entity.anim) {
-                entity.addComponent('anim', {
-                    activate: true,
-                    speed: this.animSpeed
-                });
-                entity.anim.rootBone = this.sceneRoot;
-            }
-
+        if (animsLoaded) {
             // append anim tracks to global list
             resource.animations.forEach((a : any) => {
                 this.animTracks.push(a.resource);
@@ -1350,6 +1253,9 @@ class Viewer {
         // store the loaded asset
         this.assets.push(asset);
 
+        // update
+        this.updateSceneInfo();
+
         // construct a list of meshInstances so we can quickly access them when configuring wireframe rendering etc.
         this.updateMeshInstanceList();
 
@@ -1370,19 +1276,6 @@ class Viewer {
 
     // rebuild the animation state graph
     private rebuildAnimTracks() {
-        let i;
-        for (i = this.entities.length - 1; i >= 0; --i) {
-            if (this.entities[i].anim) {
-                break;
-            }
-        }
-
-        if (i < 0) {
-            return;
-        }
-
-        const entity = this.entities[i];
-
         // create states
         const states : Array<{ name: string, speed?: number }> = [{ name: pc.ANIM_STATE_START }];
         this.animTracks.forEach((t, i) => {
@@ -1407,23 +1300,34 @@ class Viewer {
             };
         });
 
-        // create the state graph instance
-        entity.anim.loadStateGraph(new pc.AnimStateGraph({
-            layers: [{ name: 'all_layer', states: states, transitions: transitions }],
-            parameters: {
-                loop: {
-                    name: 'loop',
-                    type: pc.ANIM_PARAMETER_BOOLEAN,
-                    value: false
-                }
+        this.entities.forEach((entity) => {
+            // create the anim component if there isn't one already
+            if (!entity.anim) {
+                entity.addComponent('anim', {
+                    activate: true,
+                    speed: this.animSpeed
+                });
+                entity.anim.rootBone = entity;
             }
-        }));
 
-        const allLayer = entity.anim.findAnimationLayer('all_layer');
-        this.animTracks.forEach((t: any, i: number) => {
-            const name = states[i + 1].name;
-            allLayer.assignAnimation(name, t);
-            this.animationMap[t.name] = name;
+            // create the state graph instance
+            entity.anim.loadStateGraph(new pc.AnimStateGraph({
+                layers: [{ name: 'all_layer', states: states, transitions: transitions }],
+                parameters: {
+                    loop: {
+                        name: 'loop',
+                        type: pc.ANIM_PARAMETER_BOOLEAN,
+                        value: false
+                    }
+                }
+            }));
+
+            const allLayer = entity.anim.findAnimationLayer('all_layer');
+            this.animTracks.forEach((t: any, i: number) => {
+                const name = states[i + 1].name;
+                allLayer.assignAnimation(name, t);
+                this.animationMap[t.name] = name;
+            });
         });
 
         // let the controls know about the new animations
@@ -1514,12 +1418,11 @@ class Viewer {
                 this.debugSkeleton.clear();
 
                 if (this.showSkeleton || this.showAxes) {
-                    for (let i = 0; i < this.entities.length; ++i) {
-                        const entity = this.entities[i];
+                    this.entities.forEach((entity) => {
                         if (this.meshInstances.length === 0 || entity.findComponent("render")) {
-                            this.debugSkeleton.generateSkeleton(entity, this.showSkeleton, this.showAxes);
+                            this.debugSkeleton.generateSkeleton(entity, this.showSkeleton, this.showAxes, this.selectedNode);
                         }
-                    }
+                    });
                 }
 
                 this.debugSkeleton.update();
