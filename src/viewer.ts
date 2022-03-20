@@ -74,7 +74,7 @@ class Viewer {
             touch: new pc.TouchDevice(canvas),
             graphicsDeviceOptions: {
                 preferWebGl2: true,
-                // the following are needed since we're rendering to an offscreen render target
+                // the following aren't needed since we're rendering to an offscreen render target
                 antialias: false,
                 alpha: false,
                 depth: false
@@ -222,18 +222,20 @@ class Viewer {
             const depth = this.readDepth.read(camera.renderTarget.depthBuffer, event.offsetX, event.offsetY);
 
             if (depth < 1) {
-                // convert to linear depth
-                const near = camera.nearClip;
-                const far = camera.farClip;
-                const a = (1 - far / near) / 2;
-                const b = (1 + far / near) / 2;
-                const linearDepth = 1.0 / (a * (depth * 2.0 - 1.0) + b);
+                const x = event.offsetX / canvas.width;
+                const y = 1.0 - event.offsetY / canvas.height;
 
-                // map to world space
-                camera.screenToWorld(event.offsetX, event.offsetY, camera.nearClip + linearDepth * (camera.farClip - camera.nearClip), this.cursorWorld);
+                const pos = new pc.Vec4(x, y, depth, 1.0).mulScalar(2.0).subScalar(1.0);            // clip space
+                camera.projectionMatrix.clone().invert().transformVec4(pos, pos);                   // homogeneous view space
+                pos.mulScalar(1.0 / pos.w);                                                         // perform perspective divide
 
-                // @ts-ignore TODO not defined in pc
-                this.camera.script.orbitCamera.pivotPoint = this.cursorWorld;
+                this.cursorWorld.set(pos.x, pos.y, pos.z);
+                this.camera.getWorldTransform().transformPoint(this.cursorWorld, this.cursorWorld); // world space
+
+                // @ts-ignore
+                const from = this.camera.getWorldTransform().getTranslation();
+                // @ts-ignore
+                this.camera.script.orbitCamera.resetAndLookAtPoint(from, this.cursorWorld);
             }
         });
 
@@ -437,8 +439,6 @@ class Viewer {
         this.app.scene.envAtlas = envAtlas;
         this.app.scene.skybox = skybox;
         this.renderNextFrame();
-
-        console.log(`prefilter timings skybox=${(t1 - t0).toFixed(2)}ms lighting=${(t2 - t1).toFixed(2)}ms envAtlas=${(t3 - t2).toFixed(2)}ms`);
     }
 
     // initialize the faces and prefiltered lighting data from the given
@@ -595,9 +595,8 @@ class Viewer {
     }
 
     private getCanvasSize() {
-        console.log(`width=${document.body.clientWidth - document.getElementById("panel").offsetWidth}`);
         return {
-            width: document.body.clientWidth - document.getElementById("panel").offsetWidth - document.getElementById("settings-panel").offsetWidth,
+            width: document.body.clientWidth - document.getElementById("panel-left").offsetWidth - document.getElementById("panel-right").offsetWidth,
             height: document.body.clientHeight
         };
     }
@@ -621,9 +620,6 @@ class Viewer {
             });
         };
 
-        const w = canvasSize.width;
-        const h = canvasSize.height;
-
         // out with the old
         const old = this.camera.camera.renderTarget;
         if (old) {
@@ -633,6 +629,8 @@ class Viewer {
         }
 
         // in with the new
+        const w = canvasSize.width;
+        const h = canvasSize.height;
         const colorBuffer = createTexture(w, h, pc.PIXELFORMAT_R8_G8_B8_A8);
         const depthBuffer = createTexture(w, h, pc.PIXELFORMAT_DEPTH);
         const renderTarget = new pc.RenderTarget({
@@ -1136,7 +1134,7 @@ class Viewer {
     }
 
     clearCta() {
-        document.querySelector('#panel').classList.add('no-cta');
+        document.querySelector('#panel-left').classList.add('no-cta');
         document.querySelector('#application-canvas').classList.add('no-cta');
         document.querySelector('.load-button-panel').classList.add('hide');
     }
@@ -1457,6 +1455,8 @@ class Viewer {
                 this.debugGrid.update();
             }
         }
+
+        this.app.drawWireSphere(this.cursorWorld, 0.01);
     }
 
     private onPostrender() {

@@ -8,8 +8,7 @@ import { Container, Spinner } from '@playcanvas/pcui/react';
 import { wasmSupported, loadWasmModuleAsync } from './wasm-loader';
 import { getAssetPath, getRootPath } from './helpers';
 import { Option } from './types';
-import InspectorControls from './inspector-ui'
-import SettingsControls from './settings-ui';
+import { SettingControls, InspectorControls } from './controls'
 import LoadControls from './load-ui';
 import ErrorBox from './errors';
 import Viewer from './viewer';
@@ -129,11 +128,11 @@ const loadOptions = (name: string) => {
 // render out the app
 ReactDOM.render(
     <div id="flex-container">
-        <Container id="wrapper" resizable='right' resizeMin={220} resizeMax={800} onResize={() => observer.emit('canvasResized')}>
-            <Container id="panel" class="control-panel">
+        <Container id="wrapper-left" resizable='right' resizeMin={220} resizeMax={800} onResize={() => observer.emit('canvasResized')}>
+            <Container id="panel-left" class="control-panel">
                 <div id="panel-toggle"></div>
                 <div className="header" style={{ display: 'none' }}><a href={getRootPath()}><img src={getAssetPath('playcanvas-logo.png')}/><div><b>PLAY</b>CANVAS <span>viewer</span></div></a></div>
-                <SettingsControls observer={observer} />
+                <SettingControls observer={observer} />
             </Container>
         </Container>
         <div id='canvas-wrapper'>
@@ -142,8 +141,8 @@ ReactDOM.render(
             <canvas id="application-canvas" />
             <Spinner id="spinner" size={30} hidden={true} />
         </div>
-        <Container id="right-wrapper" resizable="left" resizeMin={220} resizeMax={800} onResize={() => observer.emit('canvasResized')}>
-            <Container id="settings-panel" class="control-panel">
+        <Container id="wrapper-right" resizable="left" resizeMin={220} resizeMax={800} onResize={() => observer.emit('canvasResized')}>
+            <Container id="panel-right" class="control-panel">
                 <InspectorControls observer={observer} />
             </Container>
         </Container>

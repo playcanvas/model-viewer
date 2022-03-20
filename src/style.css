@@ -20,13 +20,23 @@ body {
     height: 100%;
 }
 
-#wrapper {
+#wrapper-left {
     width: 300px;
     height: 100%;
     background-color: #374346;
 }
 
-#right-wrapper {
+#wrapper-left.collapsed {
+    width: 32px !important;
+    overflow: hidden;
+    overflow-y: hidden !important;
+}
+
+#wrapper-left.collapsed #panel-toggle::before {
+    transform: translateY(-50%) translateX(-50%) rotateZ(90deg);
+}
+
+#wrapper-right {
     width: 300px;
     height: 100%;
     background-color: #374346;
@@ -42,12 +52,6 @@ body {
     -moz-user-select: none;
     -ms-user-select: none;
     position: relative;
-}
-
-#wrapper.collapsed {
-    width: 32px !important;
-    overflow: hidden;
-    overflow-y: hidden !important;
 }
 
 #panel-toggle {
@@ -77,10 +81,6 @@ body {
 
 #panel-toggle:hover::before {
     color: white;
-}
-
-#wrapper.collapsed #panel-toggle::before {
-    transform: translateY(-50%) translateX(-50%) rotateZ(90deg);
 }
 
 #canvas-wrapper {
@@ -320,6 +320,10 @@ input {
     font-size: 14px;
 }
 
-#wrapper.collapsed #controls, #wrapper.collapsed .header {
+/* #wrapper-left.collapsed #controls-left, #wrapper-right.collapsed #controls-right, #wrapper-left.collapsed .header {
+    display: none !important;
+} */
+
+#wrapper-left.collapsed #controls-left, #wrapper-left.collapsed .header, #wrapper-right.collapsed {
     display: none !important;
 }

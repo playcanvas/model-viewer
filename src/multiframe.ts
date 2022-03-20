@@ -226,6 +226,10 @@ class Multiframe {
             this.sampleId++;
         }
 
+        // activate backbuffer for upcoming rendering
+        device.setRenderTarget(null);
+        device.updateBegin();
+
         return this.sampleId < sampleCnt;
     }
 }
