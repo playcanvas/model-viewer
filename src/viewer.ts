@@ -1456,7 +1456,7 @@ class Viewer {
             }
         }
 
-        this.app.drawWireSphere(this.cursorWorld, 0.01);
+        // this.app.drawWireSphere(this.cursorWorld, 0.01);
     }
 
     private onPostrender() {

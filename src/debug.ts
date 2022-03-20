@@ -297,7 +297,7 @@ class DebugLines {
     generateSkeleton(node: pc.GraphNode, showBones: boolean, showAxes: boolean, selectedNode: pc.GraphNode) {
         const recurse = (curr: pc.GraphNode, selected: boolean) => {
             if (curr.enabled) {
-                selected ||= curr === selectedNode;
+                selected ||= (curr === selectedNode);
 
                 // render child links
                 for (let i = 0; i < curr.children.length; ++i) {

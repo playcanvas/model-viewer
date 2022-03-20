@@ -212,18 +212,6 @@ const SettingControls = (props: { observer: Observer }) => {
 };
 
 const InspectorControls = (props: { observer: Observer }) => {
-    useEffect(() => {
-        // set up the control panel toggle button
-        // const panelToggleDiv = document.getElementById('panel-toggle');
-        // const wrapper = document.getElementById('wrapper-right');
-        // panelToggleDiv.addEventListener('click', function () {
-        //     wrapper.classList.toggle('collapsed');
-        //     props.observer.emit('canvasResized');
-        // });
-        // if (document.body.clientWidth <= 600) {
-        //     wrapper.classList.toggle('collapsed');
-        // }
-    });
     return (
         <div id='controls-right'>
             <ObserverProvider value={props.observer}>
