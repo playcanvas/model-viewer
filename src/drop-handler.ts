@@ -18,7 +18,7 @@ class DropHandler {
             ev.stopPropagation();
             ev.dataTransfer.effectAllowed = "all";
         }, false);
-        window.addEventListener('drop', (event) => this.handleDrop(event), false);
+        window.addEventListener('drop', event => this.handleDrop(event), false);
     }
 
     // use webkitGetAsEntry to extract files so we can include folders
@@ -107,7 +107,6 @@ class DropHandler {
         }
         resolveDirectories(entries);
     }
-   
 }
 
 export {

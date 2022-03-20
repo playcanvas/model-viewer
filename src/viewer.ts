@@ -419,21 +419,10 @@ class Viewer {
     // initialize the faces and prefiltered lighting data from the given
     // skybox texture, which is either a cubemap or equirect texture.
     private initSkyboxFromTextureNew(env: pc.Texture) {
-        const t0 = pc.now();
-
         const skybox = pc.EnvLighting.generateSkyboxCubemap(env);
-
-        const t1 = pc.now();
-
         const lighting = pc.EnvLighting.generateLightingSource(env);
-
-        const t2 = pc.now();
-
         // The second options parameter should not be necessary but the TS declarations require it for now
         const envAtlas = pc.EnvLighting.generateAtlas(lighting, {});
-
-        const t3 = pc.now();
-
         lighting.destroy();
 
         this.app.scene.envAtlas = envAtlas;
@@ -649,7 +638,7 @@ class Viewer {
         this.entities.forEach((entity) => {
             this.sceneRoot.removeChild(entity);
             entity.destroy();
-        })
+        });
         this.entities = [];
 
         this.assets.forEach((asset) => {
@@ -703,7 +692,7 @@ class Viewer {
                 name: entity.name,
                 path: entity.path,
                 children: mapChildren(entity)
-            }
+            };
         });
 
         // hierarchy
@@ -866,7 +855,7 @@ class Viewer {
     // load the list of urls.
     // urls can reference glTF files, glb files and skybox textures.
     // returns true if a model was loaded.
-    loadFiles(files: Array<File>, resetScene: boolean = false) {
+    loadFiles(files: Array<File>, resetScene = false) {
         // convert single url to list
         if (!Array.isArray(files)) {
             files = [files];
