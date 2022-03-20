@@ -596,7 +596,7 @@ class Viewer {
 
     private getCanvasSize() {
         return {
-            width: document.body.clientWidth - document.getElementById("panel-left").offsetWidth - document.getElementById("panel-right").offsetWidth,
+            width: document.body.clientWidth - document.getElementById("panel-left").offsetWidth, // - document.getElementById("panel-right").offsetWidth,
             height: document.body.clientHeight
         };
     }

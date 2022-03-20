@@ -320,10 +320,6 @@ input {
     font-size: 14px;
 }
 
-/* #wrapper-left.collapsed #controls-left, #wrapper-right.collapsed #controls-right, #wrapper-left.collapsed .header {
-    display: none !important;
-} */
-
 #wrapper-left.collapsed #controls-left, #wrapper-left.collapsed .header, #wrapper-right.collapsed {
     display: none !important;
 }

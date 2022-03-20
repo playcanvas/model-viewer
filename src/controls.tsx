@@ -185,14 +185,13 @@ const MorphPanel = () => {
 
 const toggleCollapsed = () => {
     document.getElementById('wrapper-left').classList.toggle('collapsed');
-    document.getElementById('wrapper-right').classList.toggle('collapsed');
+    // document.getElementById('wrapper-right').classList.toggle('collapsed');
 };
 
-const SettingControls = (props: { observer: Observer }) => {
+const Controls = (props: { observer: Observer }) => {
     useEffect(() => {
         // set up the control panel toggle button
         const panelToggleDiv = document.getElementById('panel-toggle');
-        // const wrapper = document.getElementById('wrapper-left');
         panelToggleDiv.addEventListener('click', function () {
             toggleCollapsed();
             props.observer.emit('canvasResized');
@@ -206,15 +205,6 @@ const SettingControls = (props: { observer: Observer }) => {
             <ObserverProvider value={props.observer}>
                 <ShowPanel />
                 <LightingPanel />
-            </ObserverProvider>
-        </div>
-    );
-};
-
-const InspectorControls = (props: { observer: Observer }) => {
-    return (
-        <div id='controls-right'>
-            <ObserverProvider value={props.observer}>
                 <AnimationPanel />
                 <ScenePanel />
                 <MorphPanel />
@@ -223,9 +213,6 @@ const InspectorControls = (props: { observer: Observer }) => {
     );
 };
 
-
-
 export {
-    SettingControls,
-    InspectorControls
+    Controls
 };
