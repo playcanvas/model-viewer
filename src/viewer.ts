@@ -13,6 +13,7 @@ import { Morph, File, HierarchyNode } from './types';
 import { DebugLines } from './debug';
 import { Multiframe } from './multiframe';
 import { ReadDepth } from './read-depth';
+import { OrbitCamera, OrbitCameraInputMouse, OrbitCameraInputTouch } from './orbit-camera';
 
 // model filename extensions
 const modelExtensions = ['.gltf', '.glb', '.vox'];
@@ -24,6 +25,9 @@ class Viewer {
     dropHandler: DropHandler;
     prevCameraMat: pc.Mat4;
     camera: pc.Entity;
+    orbitCamera: OrbitCamera;
+    orbitCameraInputMouse: OrbitCameraInputMouse;
+    orbitCameraInputTouch: OrbitCameraInputTouch;
     cameraFocusBBox: pc.BoundingBox | null;
     cameraPosition: pc.Vec3 | null;
     light: pc.Entity;
@@ -88,16 +92,8 @@ class Viewer {
         VoxParser.registerVoxParser(app);
 
         // create drop handler
-        this.dropHandler = new DropHandler((files, resetScene) => {
+        this.dropHandler = new DropHandler((files: Array<File>, resetScene: boolean) => {
             this.loadFiles(files, resetScene);
-        });
-
-        // create the orbit camera
-        const camera = new pc.Entity("Camera");
-        camera.addComponent("camera", {
-            fov: 75,
-            clearColor: new pc.Color(0.4, 0.45, 0.5),
-            frustumCulling: true
         });
 
         // Set the canvas to fill the window and automatically change resolution to be the same as the canvas size
@@ -108,23 +104,21 @@ class Viewer {
             this.resizeCanvas();
         });
 
-        // load orbit script
-        app.assets.loadFromUrl(
-            getAssetPath("scripts/orbit-camera.js"),
-            "script",
-            () => {
-                // setup orbit script component
-                camera.addComponent("script");
-                camera.script.create("orbitCamera");
-                camera.script.create("orbitCameraInputMouse");
-                camera.script.create("orbitCameraInputTouch");
-                app.root.addChild(camera);
+        // create the orbit camera
+        const camera = new pc.Entity("Camera");
+        camera.addComponent("camera", {
+            fov: 75,
+            clearColor: new pc.Color(0.4, 0.45, 0.5),
+            frustumCulling: true
+        });
 
-                // @ts-ignore
-                camera.script.orbitCamera.pivotPoint = new pc.Vec3(0, 1, 0);
-                // @ts-ignore
-                camera.script.orbitCameraInputMouse.distanceSensitivity = 0.4;
-            });
+        this.orbitCamera = new OrbitCamera(camera, 0.25);
+        this.orbitCameraInputMouse = new OrbitCameraInputMouse(this.app, this.orbitCamera);
+        this.orbitCameraInputTouch = new OrbitCameraInputTouch(this.app, this.orbitCamera);
+
+        this.orbitCamera.focalPoint.snapto(new pc.Vec3(0, 1, 0));
+
+        app.root.addChild(camera);
 
         // create the light
         const light = new pc.Entity();
@@ -222,20 +216,17 @@ class Viewer {
             const depth = this.readDepth.read(camera.renderTarget.depthBuffer, event.offsetX, event.offsetY);
 
             if (depth < 1) {
-                const x = event.offsetX / canvas.width;
-                const y = 1.0 - event.offsetY / canvas.height;
+                const x = event.offsetX / canvas.clientWidth;
+                const y = 1.0 - event.offsetY / canvas.clientHeight;
 
                 const pos = new pc.Vec4(x, y, depth, 1.0).mulScalar(2.0).subScalar(1.0);            // clip space
                 camera.projectionMatrix.clone().invert().transformVec4(pos, pos);                   // homogeneous view space
                 pos.mulScalar(1.0 / pos.w);                                                         // perform perspective divide
-
                 this.cursorWorld.set(pos.x, pos.y, pos.z);
                 this.camera.getWorldTransform().transformPoint(this.cursorWorld, this.cursorWorld); // world space
 
-                // @ts-ignore
-                const from = this.camera.getWorldTransform().getTranslation();
-                // @ts-ignore
-                this.camera.script.orbitCamera.resetAndLookAtPoint(from, this.cursorWorld);
+                // move camera towards focal point
+                this.orbitCamera.focalPoint.goto(this.cursorWorld);
             }
         });
 
@@ -702,7 +693,6 @@ class Viewer {
         this.observer.set('scene.meshCount', meshCount);
         this.observer.set('scene.vertexCount', vertexCount);
         this.observer.set('scene.primitiveCount', primitiveCount);
-
     }
 
     // move the camera to view the loaded object
@@ -724,20 +714,21 @@ class Viewer {
             }
         }
 
-        // @ts-ignore TODO not defined in pc
-        const orbitCamera = this.camera.script.orbitCamera;
-
         // calculate scene bounding box
         const radius = bbox.halfExtents.length();
         const distance = (radius * 1.4) / Math.sin(0.5 * camera.fov * camera.aspectRatio * pc.math.DEG_TO_RAD);
 
         if (this.cameraPosition) {
-            orbitCamera.resetAndLookAtPoint(this.cameraPosition, bbox.center);
+            const vec = bbox.center.clone().sub(this.cameraPosition);
+            this.orbitCamera.vecToAzimElevDistance(vec, vec);
+            this.orbitCamera.azimElevDistance.snapto(vec);
             this.cameraPosition = null;
         } else {
-            orbitCamera.pivotPoint = bbox.center;
-            orbitCamera.distance = distance;
+            const aed = this.orbitCamera.azimElevDistance.target.clone();
+            aed.z = distance;
+            this.orbitCamera.azimElevDistance.snapto(aed);
         }
+        this.orbitCamera.focalPoint.snapto(bbox.center);
         camera.nearClip = distance / 100;
         camera.farClip = distance * 10;
 
@@ -1076,7 +1067,10 @@ class Viewer {
         this.renderNextFrame();
     }
 
-    update() {
+    update(deltaTime: number) {
+        // update the orbit camera
+        this.orbitCamera.update(deltaTime);
+
         const maxdiff = (a: pc.Mat4, b: pc.Mat4) => {
             let result = 0;
             for (let i = 0; i < 16; ++i) {
