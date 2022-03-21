@@ -112,7 +112,7 @@ class Viewer {
             frustumCulling: true
         });
 
-        this.orbitCamera = new OrbitCamera(camera, 0.4);
+        this.orbitCamera = new OrbitCamera(camera, 0.25);
         this.orbitCameraInputMouse = new OrbitCameraInputMouse(this.app, this.orbitCamera);
         this.orbitCameraInputTouch = new OrbitCameraInputTouch(this.app, this.orbitCamera);
 
