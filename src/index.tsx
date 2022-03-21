@@ -8,7 +8,7 @@ import { Container, Spinner } from '@playcanvas/pcui/react';
 import { wasmSupported, loadWasmModuleAsync } from './wasm-loader';
 import { getAssetPath, getRootPath } from './helpers';
 import { Option } from './types';
-import Controls from './controls';
+import { Controls } from './controls'
 import LoadControls from './load-ui';
 import ErrorBox from './errors';
 import Viewer from './viewer';
@@ -128,8 +128,8 @@ const loadOptions = (name: string) => {
 // render out the app
 ReactDOM.render(
     <div id="flex-container">
-        <Container id="wrapper" resizable='right' resizeMin={220} resizeMax={800} onResize={() => observer.emit('canvasResized')}>
-            <Container id="panel">
+        <Container id="wrapper-left" resizable='right' resizeMin={220} resizeMax={800} onResize={() => observer.emit('canvasResized')}>
+            <Container id="panel-left" class="control-panel">
                 <div id="panel-toggle"></div>
                 <div className="header" style={{ display: 'none' }}><a href={getRootPath()}><img src={getAssetPath('playcanvas-logo.png')}/><div><b>PLAY</b>CANVAS <span>viewer</span></div></a></div>
                 <Controls observer={observer} />

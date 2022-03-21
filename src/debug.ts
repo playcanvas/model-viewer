@@ -258,7 +258,7 @@ class DebugLines {
     }
 
     // render a bone originating at p0 and ending at p1
-    bone(p0: pc.Vec3, p1: pc.Vec3) {
+    bone(p0: pc.Vec3, p1: pc.Vec3, clr = 0xffffffff) {
         mat.setLookAt(p0, p1, up);
 
         v0.sub2(p1, p0);
@@ -271,7 +271,7 @@ class DebugLines {
         unitBone.forEach((line) => {
             transform(v1, line[0]);
             transform(v2, line[1]);
-            this.line(v1, v2);
+            this.line(v1, v2, clr);
         });
     }
 
@@ -294,16 +294,18 @@ class DebugLines {
     }
 
     // generate skeleton
-    generateSkeleton(node: pc.GraphNode, showBones: boolean, showAxes: boolean) {
-        const recurse = (curr: pc.GraphNode) => {
+    generateSkeleton(node: pc.GraphNode, showBones: boolean, showAxes: boolean, selectedNode: pc.GraphNode) {
+        const recurse = (curr: pc.GraphNode, selected: boolean) => {
             if (curr.enabled) {
+                selected ||= (curr === selectedNode);
+
                 // render child links
                 for (let i = 0; i < curr.children.length; ++i) {
                     const child = curr.children[i];
                     if (showBones) {
-                        this.bone(curr.getPosition(), child.getPosition());
+                        this.bone(curr.getPosition(), child.getPosition(), selected ? 0xffffff00 : 0xffffffff);
                     }
-                    recurse(child);
+                    recurse(child, selected);
                 }
 
                 // render axis
@@ -316,7 +318,7 @@ class DebugLines {
                 }
             }
         };
-        recurse(node);
+        recurse(node, false);
     }
 
     update() {
@@ -336,4 +338,6 @@ class DebugLines {
     }
 }
 
-export default DebugLines;
+export {
+    DebugLines
+};

@@ -18,19 +18,23 @@ const LoadButton = () => {
     const onFileSelected = (event: React.ChangeEvent<any>) => {
         // `event` points to the selected file
         const viewer = (window as any).viewer;
-        if (viewer && event.target.files.length) {
-            const urls: Array<File> = [];
-            urls.push({
-                url: URL.createObjectURL(event.target.files[0]),
-                filename: event.target.files[0].name
-            });
-            viewer.load(urls);
+        const files = event.target.files;
+        if (viewer && files.length) {
+            const loadList: Array<File> = [];
+            for (let i = 0; i < files.length; ++i) {
+                const file = files[i];
+                loadList.push({
+                    url: URL.createObjectURL(file),
+                    filename: file.name
+                });
+            }
+            viewer.loadFiles(loadList);
         }
     };
 
     return (
         <>
-            <input type='file' id='file' onChange={onFileSelected} ref={inputFile} style={{ display: 'none' }} />
+            <input type='file' id='file' multiple onChange={onFileSelected} ref={inputFile} style={{ display: 'none' }} />
             <Button onClick={onLoadButtonClick} text='Choose a file' width="calc(100% - 15px)" font-size="14px" />
         </>
     );

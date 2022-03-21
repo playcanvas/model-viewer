@@ -65,7 +65,7 @@ class Multiframe {
     constructor(device: pc.WebglGraphicsDevice, camera: pc.CameraComponent, numSamples: number) {
         this.device = device;
         this.camera = camera;
-        this.textureBias = -Math.round(Math.log2(numSamples));
+        this.textureBias = -Math.log2(numSamples);
 
         // generate jittered grid samples (poisson would be better)
         for (let x = 0; x < numSamples; ++x) {
@@ -225,6 +225,10 @@ class Multiframe {
         if (this.sampleId < sampleCnt) {
             this.sampleId++;
         }
+
+        // activate backbuffer for upcoming rendering
+        device.setRenderTarget(null);
+        device.updateBegin();
 
         return this.sampleId < sampleCnt;
     }

@@ -118,7 +118,7 @@ const ScenePanel = () => {
             <Panel headerText='SELECTED NODE' collapsible class={'modelSelectedNodePanel'} enabled={enabled}>
                 <Detail name='selectedNodeName' label='Name' path='scene.selectedNode.name'/>
                 <Vector name='selectedNodePosition' label='Position' dimensions={3} path='scene.selectedNode.position' enabled={false}/>
-                <Vector name='selectedNodeRotation' label='Rotation' dimensions={4} path='scene.selectedNode.rotation' enabled={false}/>
+                <Vector name='selectedNodeRotation' label='Rotation' dimensions={3} path='scene.selectedNode.rotation' enabled={false}/>
                 <Vector name='selectedNodeScale' label='Scale' dimensions={3} path='scene.selectedNode.scale' enabled={false}/>
             </Panel>
             <Panel headerText='HIERARCHY' collapsible class={'modelHierarchyPanel'} enabled={enabled}>
@@ -183,21 +183,25 @@ const MorphPanel = () => {
     );
 };
 
+const toggleCollapsed = () => {
+    document.getElementById('wrapper-left').classList.toggle('collapsed');
+    // document.getElementById('wrapper-right').classList.toggle('collapsed');
+};
+
 const Controls = (props: { observer: Observer }) => {
     useEffect(() => {
         // set up the control panel toggle button
         const panelToggleDiv = document.getElementById('panel-toggle');
-        const wrapper = document.getElementById('wrapper');
         panelToggleDiv.addEventListener('click', function () {
-            wrapper.classList.toggle('collapsed');
+            toggleCollapsed();
             props.observer.emit('canvasResized');
         });
         if (document.body.clientWidth <= 600) {
-            wrapper.classList.toggle('collapsed');
+            toggleCollapsed();
         }
     });
     return (
-        <div id='controls'>
+        <div id='controls-left'>
             <ObserverProvider value={props.observer}>
                 <ShowPanel />
                 <LightingPanel />
@@ -209,4 +213,6 @@ const Controls = (props: { observer: Observer }) => {
     );
 };
 
-export default Controls;
+export {
+    Controls
+};
