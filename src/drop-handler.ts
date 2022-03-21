@@ -1,5 +1,7 @@
 import * as pc from 'playcanvas';
-import { File, DropHandlerFunc } from './types';
+import { File } from './types';
+
+type DropHandlerFunc = (files: Array<File>, resetScene: boolean) => void;
 
 class DropHandler {
     dropHandler: DropHandlerFunc;

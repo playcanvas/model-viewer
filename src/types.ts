@@ -19,5 +19,3 @@ export interface HierarchyNode {
     path: string,
     children: Array<HierarchyNode>
 }
-
-export type DropHandlerFunc =(files: Array<File>, resetScene: boolean) => void;
