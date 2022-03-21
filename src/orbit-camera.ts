@@ -88,7 +88,7 @@ class OrbitCamera {
         this.cameraNode.setLocalPosition(vec);
         this.cameraNode.setLocalEulerAngles(aed.y, aed.x, 0);
     }
-};
+}
 
 // OrbitCameraInputMouse
 
@@ -144,7 +144,7 @@ class OrbitCameraInputMouse {
         worldDiff.add(this.orbitCamera.focalPoint.target);
 
         this.orbitCamera.focalPoint.goto(worldDiff);
-    };
+    }
 
 
     onMouseDown(event: MouseEvent) {
@@ -157,7 +157,7 @@ class OrbitCameraInputMouse {
                 this.panButtonDown = true;
                 break;
         }
-    };
+    }
 
     onMouseUp(event: MouseEvent) {
         switch (event.button) {
@@ -169,7 +169,7 @@ class OrbitCameraInputMouse {
                 this.panButtonDown = false;
                 break;
         }
-    };
+    }
 
     onMouseMove(event: pc.MouseEvent) {
         if (this.lookButtonDown) {
@@ -182,20 +182,20 @@ class OrbitCameraInputMouse {
         }
 
         this.lastPoint.set(event.x, event.y);
-    };
+    }
 
     onMouseWheel(event: pc.MouseEvent) {
         vec.copy(this.orbitCamera.azimElevDistance.target);
         vec.z -= event.wheelDelta * -2 * this.distanceSensitivity * (vec.z * 0.1);
         this.orbitCamera.azimElevDistance.goto(vec);
         event.event.preventDefault();
-    };
+    }
 
     onMouseOut() {
         this.lookButtonDown = false;
         this.panButtonDown = false;
-    };
-};
+    }
+}
 
 // OrbitCameraInputTouch
 
@@ -236,14 +236,14 @@ class OrbitCameraInputTouch {
         const dx = pointA.x - pointB.x;
         const dy = pointA.y - pointB.y;
         return Math.sqrt((dx * dx) + (dy * dy));
-    };
+    }
 
     calcMidPoint(pointA: pc.Touch, pointB: pc.Touch, result: pc.Vec2) {
         result.set(pointB.x - pointA.x, pointB.y - pointA.y);
         result.mulScalar(0.5);
         result.x += pointA.x;
         result.y += pointA.y;
-    };
+    }
 
     onTouchStartEndCancel(event: pc.TouchEvent) {
         // We only care about the first touch for camera rotation. As the user touches the screen,
@@ -256,7 +256,7 @@ class OrbitCameraInputTouch {
             this.lastPinchDistance = this.getPinchDistance(touches[0], touches[1]);
             this.calcMidPoint(touches[0], touches[1], this.lastPinchMidPoint);
         }
-    };
+    }
 
     pan(midPoint: pc.Vec2) {
         // For panning to work at any zoom level, we use screen point to world projection
@@ -271,7 +271,7 @@ class OrbitCameraInputTouch {
         worldDiff.add(this.orbitCamera.focalPoint.target);
 
         this.orbitCamera.focalPoint.goto(worldDiff);
-    };
+    }
 
     onTouchMove(event: pc.TouchEvent) {
         const pinchMidPoint = this.pinchMidPoint;
@@ -301,7 +301,7 @@ class OrbitCameraInputTouch {
             this.pan(pinchMidPoint);
             this.lastPinchMidPoint.copy(pinchMidPoint);
         }
-    };
+    }
 }
 
 export {
@@ -309,4 +309,3 @@ export {
     OrbitCameraInputMouse,
     OrbitCameraInputTouch
 };
-
