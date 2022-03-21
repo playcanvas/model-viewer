@@ -6,7 +6,6 @@ class SmoothedValue {
     target: any;
     transitionTime: number;
     timer: number;
-    lerpFunc: any;
 
     constructor(value: any, transitionTime = 0.25) {
         this.value = value.clone();
@@ -43,6 +42,9 @@ class SmoothedValue {
 }
 
 const vec = new pc.Vec3();
+const fromWorldPoint = new pc.Vec3();
+const toWorldPoint = new pc.Vec3();
+const worldDiff = new pc.Vec3();
 
 class OrbitCamera {
     cameraNode: pc.Entity;
@@ -95,9 +97,6 @@ class OrbitCameraInputMouse {
     orbitCamera: OrbitCamera;
     orbitSensitivity = 0.3;
     distanceSensitivity = 0.4;
-    fromWorldPoint = new pc.Vec3();
-    toWorldPoint = new pc.Vec3();
-    worldDiff = new pc.Vec3();
     lookButtonDown = false;
     panButtonDown = false;
     lastPoint = new pc.Vec2();
@@ -133,10 +132,6 @@ class OrbitCameraInputMouse {
     }
 
     pan(screenPoint: pc.MouseEvent) {
-        const fromWorldPoint = this.fromWorldPoint;
-        const toWorldPoint = this.toWorldPoint;
-        const worldDiff = this.worldDiff;
-
         // For panning to work at any zoom level, we use screen point to world projection
         // to work out how far we need to pan the pivotEntity in world space
         const camera = this.orbitCamera.cameraNode.camera;
@@ -209,9 +204,6 @@ class OrbitCameraInputTouch {
     orbitCamera: OrbitCamera;
     orbitSensitivity = 0.3;
     distanceSensitivity = 0.4;
-    fromWorldPoint = new pc.Vec3();
-    toWorldPoint = new pc.Vec3();
-    worldDiff = new pc.Vec3();
     lastTouchPoint = new pc.Vec2();
     lastPinchMidPoint = new pc.Vec2();
     lastPinchDistance = 0;
@@ -267,10 +259,6 @@ class OrbitCameraInputTouch {
     };
 
     pan(midPoint: pc.Vec2) {
-        const fromWorldPoint = this.fromWorldPoint;
-        const toWorldPoint = this.toWorldPoint;
-        const worldDiff = this.worldDiff;
-
         // For panning to work at any zoom level, we use screen point to world projection
         // to work out how far we need to pan the pivotEntity in world space
         const camera = this.orbitCamera.cameraNode.camera;
