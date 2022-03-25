@@ -948,6 +948,7 @@ class Viewer {
     setAnimationProgress(progress: number) {
         this.observer.set('animation.playing', false);
         this.entities.forEach((e) => {
+            e.anim.baseLayer.pause();
             e.anim.baseLayer.activeStateCurrentTime = e.anim.baseLayer.activeStateDuration * progress;
         });
     }
