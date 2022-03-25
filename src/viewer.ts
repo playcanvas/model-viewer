@@ -897,11 +897,10 @@ class Viewer {
         }
         this.entities.forEach((e) => {
             const anim = e.anim;
-            if (anim) {
-                anim.setBoolean('loop', !!a);
-                anim.findAnimationLayer('all_layer').play(a || pc.ANIM_STATE_START);
-                anim.playing = true;
+            if (anim && animationName !== 'ALL_TRACKS') {
+                anim.baseLayer.transition(a);
             }
+            anim.baseLayer.play();
         });
     }
 
@@ -909,8 +908,8 @@ class Viewer {
     stop() {
         this.entities.forEach((e) => {
             const anim = e.anim;
-            if (anim) {
-                anim.findAnimationLayer('all_layer').pause();
+            if (anim && anim.baseLayer) {
+                anim.baseLayer.pause();
             }
         });
     }
@@ -949,13 +948,8 @@ class Viewer {
     setAnimationProgress(progress: number) {
         this.observer.set('animation.playing', false);
         this.entities.forEach((e) => {
-            const anim = e.anim;
-            anim.playing = true;
-            anim.baseLayer.activeStateCurrentTime = anim.baseLayer.activeStateDuration * progress;
-            // @ts-ignore
-            anim.system.onAnimationUpdate(0);
-            anim.playing = false;
-            anim.baseLayer.play();
+            e.anim.baseLayer.pause();
+            e.anim.baseLayer.activeStateCurrentTime = e.anim.baseLayer.activeStateDuration * progress;
         });
     }
 
@@ -1089,7 +1083,7 @@ class Viewer {
         let isAnimationPlaying = false;
         for (let i = 0; i < this.entities.length; ++i) {
             const anim = this.entities[i].anim;
-            if (anim && anim.findAnimationLayer('all_layer').playing) {
+            if (anim && anim.playing) {
                 isAnimationPlaying = true;
                 break;
             }
@@ -1257,30 +1251,6 @@ class Viewer {
 
     // rebuild the animation state graph
     private rebuildAnimTracks() {
-        // create states
-        const states : Array<{ name: string, speed?: number }> = [{ name: pc.ANIM_STATE_START }];
-        this.animTracks.forEach((t, i) => {
-            states.push({ name: 'track_' + i, speed: 1 });
-        });
-
-        // create a transition for each state
-        const transition = this.animTransition;
-        const loops = this.animLoops;
-        const transitions = states.map((s, i) => {
-            return {
-                from: s.name,
-                to: states[(i + 1) % states.length || 1].name,
-                time: s.name ===  pc.ANIM_STATE_START ? 0 : transition,
-                exitTime: s.name === pc.ANIM_STATE_START ? 0 : loops,
-                conditions: [{
-                    parameterName: 'loop',
-                    predicate: pc.ANIM_EQUAL_TO,
-                    value: false
-                }],
-                interruptionSource: pc.ANIM_INTERRUPTION_NEXT
-            };
-        });
-
         this.entities.forEach((entity) => {
             // create the anim component if there isn't one already
             if (!entity.anim) {
@@ -1289,25 +1259,29 @@ class Viewer {
                     speed: this.animSpeed
                 });
                 entity.anim.rootBone = entity;
+            } else {
+                // clean up any previous animations
+                entity.anim.removeStateGraph();
             }
 
-            // create the state graph instance
-            entity.anim.loadStateGraph(new pc.AnimStateGraph({
-                layers: [{ name: 'all_layer', states: states, transitions: transitions }],
-                parameters: {
-                    loop: {
-                        name: 'loop',
-                        type: pc.ANIM_PARAMETER_BOOLEAN,
-                        value: false
-                    }
-                }
-            }));
-
-            const allLayer = entity.anim.findAnimationLayer('all_layer');
             this.animTracks.forEach((t: any, i: number) => {
-                const name = states[i + 1].name;
-                allLayer.assignAnimation(name, t);
-                this.animationMap[t.name] = name;
+                // add an event to each track which transitions to the next track when it ends
+                t.events = new pc.AnimEvents([
+                    {
+                        name: "transition",
+                        time: t.duration,
+                        nextTrack: "track_" + (i === this.animTracks.length - 1 ? 0 : i + 1)
+                    }
+                ]);
+                entity.anim.assignAnimation('track_' + i, t);
+                this.animationMap[t.name] = 'track_' + i;
+            });
+            // if the user has selected to play all tracks in succession, then transition to the next track after a set amount of loops
+            entity.anim.on('transition', (e) => {
+                const animationName: string = this.observer.get('animation.selectedTrack');
+                if (animationName === 'ALL_TRACKS' && entity.anim.baseLayer.activeStateProgress >= this.animLoops) {
+                    entity.anim.baseLayer.transition(e.nextTrack, this.animTransition);
+                }
             });
         });
 
