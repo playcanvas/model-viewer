@@ -900,9 +900,7 @@ class Viewer {
             if (anim && animationName !== 'ALL_TRACKS') {
                 anim.baseLayer.transition(a);
             }
-            if (anim && anim.baseLayer) {
-                anim.baseLayer.play();
-            }
+            anim.baseLayer.play();
         });
     }
 
