@@ -7,13 +7,19 @@ import { Morph, Option, HierarchyNode } from './types';
 
 const ObserverContext = React.createContext(null);
 const ObserverProvider = ObserverContext.Provider;
+const observerSetFunctions: { [key: string]: (value: string | number | object) => void } = {};
 
 const useObserverState = (observer: Observer, path: string, json?: boolean) => {
     const parseFunc = (observerValue: any) => {
         return json ? JSON.parse(observerValue) : observerValue;
     };
     const [value, setValue] = useState(parseFunc(observer.get(path)));
-    observer.on(`${path}:set`, value => setValue(parseFunc(value)));
+    if (!observerSetFunctions[path]) {
+        observerSetFunctions[path] = (value: string | number | object) => {
+            setValue(parseFunc(value));
+        };
+        observer.on(`${path}:set`, observerSetFunctions[path]);
+    }
     return value;
 };
 
