@@ -211,14 +211,13 @@ class Viewer {
         // double click handler
         canvas.addEventListener('dblclick', (event) => {
             const camera = this.camera.camera;
+            const x = event.offsetX / canvas.clientWidth;
+            const y = 1.0 - event.offsetY / canvas.clientHeight;
 
             // read depth
-            const depth = this.readDepth.read(camera.renderTarget.depthBuffer, event.offsetX, event.offsetY);
+            const depth = this.readDepth.read(camera.renderTarget.depthBuffer, x, y);
 
             if (depth < 1) {
-                const x = event.offsetX / canvas.clientWidth;
-                const y = 1.0 - event.offsetY / canvas.clientHeight;
-
                 const pos = new pc.Vec4(x, y, depth, 1.0).mulScalar(2.0).subScalar(1.0);            // clip space
                 camera.projectionMatrix.clone().invert().transformVec4(pos, pos);                   // homogeneous view space
                 pos.mulScalar(1.0 / pos.w);                                                         // perform perspective divide
@@ -1435,6 +1434,12 @@ class Viewer {
         if (this.multiframeBusy) {
             this.app.renderNextFrame = true;
         }
+    }
+
+    // to change samples at runtime execute in the debugger 'viewer.setSamples(5, false, 2, 0)'
+    setSamples(numSamples: number, jitter = false, size = 1, sigma = 0) {
+        this.multiframe.setSamples(numSamples, jitter, size, sigma);
+        this.renderNextFrame();
     }
 }
 
