@@ -124,6 +124,11 @@ class Multiframe {
         device.on('devicelost', handler);
     }
 
+    // configure sampling
+    // numSamples: square root of number of samples: 5 === 25 total samples
+    // jitter: enable sample jittering
+    // size: size of the filter, in pixels
+    // sigma: guassian sigma filter value or 0 to use box filtering instead
     setSamples(numSamples: number, jitter=false, size=1, sigma=0) {
         this.textureBias = -Math.log2(numSamples);
         this.samples = this.generateSamples(numSamples, jitter, size, sigma);
