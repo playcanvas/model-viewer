@@ -1412,7 +1412,7 @@ class Viewer {
             }
         }
 
-        this.app.drawWireSphere(this.cursorWorld, 0.01);
+        // this.app.drawWireSphere(this.cursorWorld, 0.01);
     }
 
     private onPostrender() {
@@ -1436,7 +1436,7 @@ class Viewer {
         }
     }
 
-    // temp, from debugger execute 'viewer.setSamples(5, false, 2, 0)'
+    // to change samples at runtime execute in the debugger 'viewer.setSamples(5, false, 2, 0)'
     setSamples(numSamples: number, jitter=false, size=1, sigma=0) {
         this.multiframe.setSamples(numSamples, jitter, size, sigma);
         this.renderNextFrame();
