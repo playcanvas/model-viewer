@@ -100,11 +100,11 @@ class ReadDepth {
         }
 
         const device = this.device;
-        const tx = (x + 0.5) / depthTexture.width;
-        const ty = 1.0 - (y + 0.5) / depthTexture.height;
+        const tx = x + 0.5 / depthTexture.width;
+        const ty = y + 0.5 / depthTexture.height;
 
         this.depthTexUniform.setValue(depthTexture);
-        this.texcoordRangeUniform.setValue([tx, ty, tx, ty]);
+        this.texcoordRangeUniform.setValue([x, y, x, y]);
         pc.drawQuadWithShader(this.device, this.renderTarget, this.shader);
 
         const gl = device.gl;

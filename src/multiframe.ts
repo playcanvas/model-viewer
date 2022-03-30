@@ -47,6 +47,11 @@ const choosePixelFormat = (device: pc.WebglGraphicsDevice): number => {
             pc.PIXELFORMAT_R8_G8_B8_A8;
 };
 
+// calculate 1d gauss
+const gauss = (x: number, sigma: number): number => {
+    return (1.0 / (Math.sqrt(2.0 * Math.PI) * sigma)) * Math.exp(-(x * x) / (2.0 * sigma * sigma));
+};
+
 // generate multiframe, supersampled AA
 class Multiframe {
     device: pc.WebglGraphicsDevice;
@@ -60,22 +65,30 @@ class Multiframe {
     accumTexture: pc.Texture = null;
     accumRenderTarget: pc.RenderTarget = null;
     sampleId = 0;
-    samples: pc.Vec2[] = [];
+    samples: pc.Vec3[] = [];
 
     constructor(device: pc.WebglGraphicsDevice, camera: pc.CameraComponent, numSamples: number) {
         this.device = device;
         this.camera = camera;
         this.textureBias = -Math.log2(numSamples);
 
+        const gaussSigma = 2;
+        const kernelSize = Math.ceil(3 * gaussSigma) + 1;
+
         // generate jittered grid samples (poisson would be better)
         for (let x = 0; x < numSamples; ++x) {
             for (let y = 0; y < numSamples; ++y) {
-                this.samples.push(new pc.Vec2(
-                    (x + Math.random()) / numSamples * 2.0 - 1.0,
-                    (y + Math.random()) / numSamples * 2.0 - 1.0
-                ));
+                const sx = x / (numSamples - 1) - 0.5; // * 2.0 - 1.0;
+                const sy = y / (numSamples - 1) - 0.5; // * 2.0 - 1.0;
+                const weight = 1; // gauss(sx * kernelSize, gaussSigma) * gauss(sy * kernelSize, gaussSigma);
+                this.samples.push(new pc.Vec3(sx, sy, weight));
             }
         }
+
+        // normalize weights
+        let totalWeight = 0;
+        this.samples.forEach(v => totalWeight += v.z);
+        this.samples.forEach(v => v.z /= totalWeight);
 
         // closes sample first
         this.samples.sort((a, b) => {
@@ -90,18 +103,21 @@ class Multiframe {
         // just before rendering the scene we apply a subpixel jitter
         // to the camera's projection matrix.
         this.camera.onPreRender = () => {
-            const sample = this.samples[this.sampleId];
-
             store.set(pmat.data[12], pmat.data[13]);
-            pmat.data[8] += sample.x / device.width;
-            pmat.data[9] += sample.y / device.height;
 
-            // look away
-            this.camera._camera._viewMatDirty = true;
-            this.camera._camera._viewProjMatDirty = true;
+            if (this.accumTexture) {
+                const sample = this.samples[this.sampleId];
 
-            this.textureBiasUniform.setValue(this.sampleId === 0 ? 0.0 : this.textureBias);
-            // this.textureBiasUniform.setValue(this.textureBias);
+                pmat.data[8] += sample.x / this.accumTexture.width;
+                pmat.data[9] += sample.y / this.accumTexture.height;
+
+                // look away
+                this.camera._camera._viewMatDirty = true;
+                this.camera._camera._viewProjMatDirty = true;
+
+                this.textureBiasUniform.setValue(this.sampleId === 0 ? 0.0 : this.textureBias);
+                // this.textureBiasUniform.setValue(this.textureBias);
+            }
         };
 
         // restore the camera's projection matrix jitter once rendering is
@@ -145,9 +161,11 @@ class Multiframe {
     }
 
     create() {
+        const source = this.camera.renderTarget.colorBuffer;
+
         this.accumTexture = new pc.Texture(this.device, {
-            width: this.device.width,
-            height: this.device.height,
+            width: source.width,
+            height: source.height,
             format: this.pixelFormat,
             mipmaps: false
         });
@@ -168,8 +186,10 @@ class Multiframe {
     // writes results to the backbuffer.
     update() {
         const device = this.device;
+        const sampleCnt = this.samples.length;
+        const sourceTex = this.camera.renderTarget.colorBuffer;
 
-        if (this.accumTexture && (this.accumTexture.width !== device.width || this.accumTexture.height !== device.height)) {
+        if (this.accumTexture && (this.accumTexture.width !== sourceTex.width || this.accumTexture.height !== sourceTex.height)) {
             this.destroy();
         }
 
@@ -177,16 +197,13 @@ class Multiframe {
             this.create();
         }
 
-        const sampleCnt = this.samples.length;
-        const sourceTex = this.camera.renderTarget.colorBuffer;
-
         if (this.sampleId < sampleCnt) {
-            if (this.sampleId === 0) {
-                // store the grabpass in both accumulation and current
-                this.multiframeTexUniform.setValue(sourceTex);
-                this.powerUniform.setValue(gamma);
-                pc.drawQuadWithShader(device, this.accumRenderTarget, this.shader, null, null, true);
-            } else {
+            // if (this.sampleId === 0) {
+            //     // store the grabpass in both accumulation and current
+            //     this.multiframeTexUniform.setValue(sourceTex);
+            //     this.powerUniform.setValue(gamma);
+            //     pc.drawQuadWithShader(device, this.accumRenderTarget, this.shader, null, null, true);
+            // } else {
                 // blend grabpass with accumulation buffer
                 const blendSrc = device.blendSrc;
                 const blendDst = device.blendDst;
@@ -197,8 +214,8 @@ class Multiframe {
                 const gl = device.gl;
 
                 // look away
-                gl.blendFuncSeparate(gl.CONSTANT_ALPHA, gl.ONE_MINUS_CONSTANT_ALPHA, gl.ONE, gl.ZERO);
-                gl.blendColor(0, 0, 0, 1.0 / (this.sampleId + 1));
+                gl.blendFuncSeparate(gl.CONSTANT_ALPHA, this.sampleId === 0 ? gl.ZERO : gl.ONE, gl.ONE, gl.ZERO);
+                gl.blendColor(0, 0, 0, this.samples[this.sampleId].z);
 
                 this.multiframeTexUniform.setValue(sourceTex);
                 this.powerUniform.setValue(gamma);
@@ -206,7 +223,7 @@ class Multiframe {
 
                 // restore states
                 device.setBlendFunctionSeparate(blendSrc, blendDst, blendSrcAlpha, blendDstAlpha);
-            }
+            // }
         }
 
         // update backbuffer on the first and last frame only

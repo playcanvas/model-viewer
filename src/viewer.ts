@@ -211,14 +211,13 @@ class Viewer {
         // double click handler
         canvas.addEventListener('dblclick', (event) => {
             const camera = this.camera.camera;
+            const x = event.offsetX / canvas.clientWidth;
+            const y = 1.0 - event.offsetY / canvas.clientHeight;
 
             // read depth
-            const depth = this.readDepth.read(camera.renderTarget.depthBuffer, event.offsetX, event.offsetY);
+            const depth = this.readDepth.read(camera.renderTarget.depthBuffer, x, y);
 
             if (depth < 1) {
-                const x = event.offsetX / canvas.clientWidth;
-                const y = 1.0 - event.offsetY / canvas.clientHeight;
-
                 const pos = new pc.Vec4(x, y, depth, 1.0).mulScalar(2.0).subScalar(1.0);            // clip space
                 camera.projectionMatrix.clone().invert().transformVec4(pos, pos);                   // homogeneous view space
                 pos.mulScalar(1.0 / pos.w);                                                         // perform perspective divide
@@ -609,15 +608,15 @@ class Viewer {
         }
 
         // in with the new
-        const w = canvasSize.width;
-        const h = canvasSize.height;
+        const w = canvasSize.width * 0.25;
+        const h = canvasSize.height * 0.25;
         const colorBuffer = createTexture(w, h, pc.PIXELFORMAT_R8_G8_B8_A8);
         const depthBuffer = createTexture(w, h, pc.PIXELFORMAT_DEPTH);
         const renderTarget = new pc.RenderTarget({
             colorBuffer: colorBuffer,
             depthBuffer: depthBuffer,
             flipY: false,
-            samples: device.maxSamples
+            samples: 1 // device.maxSamples
         });
         this.camera.camera.renderTarget = renderTarget;
     }
@@ -1413,7 +1412,7 @@ class Viewer {
             }
         }
 
-        // this.app.drawWireSphere(this.cursorWorld, 0.01);
+        this.app.drawWireSphere(this.cursorWorld, 0.01);
     }
 
     private onPostrender() {
