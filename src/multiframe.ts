@@ -158,7 +158,7 @@ class Multiframe {
         samples.forEach(v => totalWeight += v.z);
         samples.forEach(v => v.z /= totalWeight);
 
-        // closes sample first
+        // closest sample first
         samples.sort((a, b) => {
             const aL = a.length();
             const bL = b.length();

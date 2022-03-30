@@ -608,15 +608,15 @@ class Viewer {
         }
 
         // in with the new
-        const w = canvasSize.width * 0.25;
-        const h = canvasSize.height * 0.25;
+        const w = canvasSize.width;
+        const h = canvasSize.height;
         const colorBuffer = createTexture(w, h, pc.PIXELFORMAT_R8_G8_B8_A8);
         const depthBuffer = createTexture(w, h, pc.PIXELFORMAT_DEPTH);
         const renderTarget = new pc.RenderTarget({
             colorBuffer: colorBuffer,
             depthBuffer: depthBuffer,
             flipY: false,
-            samples: 1 // device.maxSamples
+            samples: device.maxSamples
         });
         this.camera.camera.renderTarget = renderTarget;
     }
