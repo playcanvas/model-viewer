@@ -129,13 +129,13 @@ class Multiframe {
     // jitter: enable sample jittering
     // size: size of the filter, in pixels
     // sigma: guassian sigma filter value or 0 to use box filtering instead
-    setSamples(numSamples: number, jitter=false, size=1, sigma=0) {
+    setSamples(numSamples: number, jitter = false, size = 1, sigma = 0) {
         this.textureBias = -Math.log2(numSamples);
         this.samples = this.generateSamples(numSamples, jitter, size, sigma);
         this.sampleId = 0;
     }
 
-    generateSamples(numSamples: number, jitter=false, size=1, sigma=0): pc.Vec3[] {
+    generateSamples(numSamples: number, jitter = false, size = 1, sigma = 0): pc.Vec3[] {
         const samples: pc.Vec3[] = [];
         const kernelSize = Math.ceil(3 * sigma) + 1;
         const halfSize = size * 0.5;
@@ -160,8 +160,12 @@ class Multiframe {
 
         // normalize weights
         let totalWeight = 0;
-        samples.forEach(v => totalWeight += v.z);
-        samples.forEach(v => v.z /= totalWeight);
+        samples.forEach((v) => {
+            totalWeight += v.z;
+        });
+        samples.forEach((v) => {
+            v.z /= totalWeight;
+        });
 
         // closest sample first
         samples.sort((a, b) => {

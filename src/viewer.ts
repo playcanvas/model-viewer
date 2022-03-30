@@ -1437,7 +1437,7 @@ class Viewer {
     }
 
     // to change samples at runtime execute in the debugger 'viewer.setSamples(5, false, 2, 0)'
-    setSamples(numSamples: number, jitter=false, size=1, sigma=0) {
+    setSamples(numSamples: number, jitter = false, size = 1, sigma = 0) {
         this.multiframe.setSamples(numSamples, jitter, size, sigma);
         this.renderNextFrame();
     }
