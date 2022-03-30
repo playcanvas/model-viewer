@@ -71,31 +71,7 @@ class Multiframe {
         this.device = device;
         this.camera = camera;
         this.textureBias = -Math.log2(numSamples);
-
-        const gaussSigma = 2;
-        const kernelSize = Math.ceil(3 * gaussSigma) + 1;
-
-        // generate jittered grid samples (poisson would be better)
-        for (let x = 0; x < numSamples; ++x) {
-            for (let y = 0; y < numSamples; ++y) {
-                const sx = x / (numSamples - 1) - 0.5; // * 2.0 - 1.0;
-                const sy = y / (numSamples - 1) - 0.5; // * 2.0 - 1.0;
-                const weight = 1; // gauss(sx * kernelSize, gaussSigma) * gauss(sy * kernelSize, gaussSigma);
-                this.samples.push(new pc.Vec3(sx, sy, weight));
-            }
-        }
-
-        // normalize weights
-        let totalWeight = 0;
-        this.samples.forEach(v => totalWeight += v.z);
-        this.samples.forEach(v => v.z /= totalWeight);
-
-        // closes sample first
-        this.samples.sort((a, b) => {
-            const aL = a.length();
-            const bL = b.length();
-            return aL < bL ? -1 : (bL < aL ? 1 : 0);
-        });
+        this.samples = this.generateSamples(numSamples, false, 2, 0);
 
         const pmat = this.camera.projectionMatrix;
         const store = new pc.Vec2();
@@ -148,6 +124,50 @@ class Multiframe {
         device.on('devicelost', handler);
     }
 
+    setSamples(numSamples: number, jitter=false, size=1, sigma=0) {
+        this.textureBias = -Math.log2(numSamples);
+        this.samples = this.generateSamples(numSamples, jitter, size, sigma);
+        this.sampleId = 0;
+    }
+
+    generateSamples(numSamples: number, jitter=false, size=1, sigma=0): pc.Vec3[] {
+        const samples: pc.Vec3[] = [];
+        const kernelSize = Math.ceil(3 * sigma) + 1;
+        const halfSize = size * 0.5;
+        let sx, sy, weight;
+
+        // generate jittered grid samples (poisson would be better)
+        for (let x = 0; x < numSamples; ++x) {
+            for (let y = 0; y < numSamples; ++y) {
+                // generate sx, sy in range -1..1
+                if (jitter) {
+                    sx = (x + Math.random()) / numSamples * 2.0 - 1.0;
+                    sy = (y + Math.random()) / numSamples * 2.0 - 1.0;
+                } else {
+                    sx = x / (numSamples - 1) * 2.0 - 1.0;
+                    sy = y / (numSamples - 1) * 2.0 - 1.0;
+                }
+                // calculate sample weight
+                weight = (sigma <= 0.0) ? 1.0 : gauss(sx * kernelSize, sigma) * gauss(sy * kernelSize, sigma);
+                samples.push(new pc.Vec3(sx * halfSize, sy * halfSize, weight));
+            }
+        }
+
+        // normalize weights
+        let totalWeight = 0;
+        samples.forEach(v => totalWeight += v.z);
+        samples.forEach(v => v.z /= totalWeight);
+
+        // closes sample first
+        samples.sort((a, b) => {
+            const aL = a.length();
+            const bL = b.length();
+            return aL < bL ? -1 : (bL < aL ? 1 : 0);
+        });
+
+        return samples;
+    }
+
     destroy() {
         if (this.accumRenderTarget) {
             this.accumRenderTarget.destroy();
@@ -198,32 +218,29 @@ class Multiframe {
         }
 
         if (this.sampleId < sampleCnt) {
-            // if (this.sampleId === 0) {
-            //     // store the grabpass in both accumulation and current
-            //     this.multiframeTexUniform.setValue(sourceTex);
-            //     this.powerUniform.setValue(gamma);
-            //     pc.drawQuadWithShader(device, this.accumRenderTarget, this.shader, null, null, true);
-            // } else {
-                // blend grabpass with accumulation buffer
-                const blendSrc = device.blendSrc;
-                const blendDst = device.blendDst;
-                const blendSrcAlpha = device.blendSrcAlpha;
-                const blendDstAlpha = device.blendDstAlpha;
+            // blend grabpass with accumulation buffer
+            const blendSrc = device.blendSrc;
+            const blendDst = device.blendDst;
+            const blendSrcAlpha = device.blendSrcAlpha;
+            const blendDstAlpha = device.blendDstAlpha;
 
-                // TODO: add constant blend support to the engine
-                const gl = device.gl;
+            // TODO: add constant blend support to the engine
+            const gl = device.gl;
 
-                // look away
-                gl.blendFuncSeparate(gl.CONSTANT_ALPHA, this.sampleId === 0 ? gl.ZERO : gl.ONE, gl.ONE, gl.ZERO);
-                gl.blendColor(0, 0, 0, this.samples[this.sampleId].z);
+            // look away
+            if (this.sampleId === 0) {
+                gl.blendFuncSeparate(gl.ONE, gl.ZERO, gl.ONE, gl.ZERO);
+            } else {
+                gl.blendFuncSeparate(gl.CONSTANT_ALPHA, gl.ONE_MINUS_CONSTANT_ALPHA, gl.ONE, gl.ZERO);
+            }
+            gl.blendColor(0, 0, 0, this.samples[this.sampleId].z);
 
-                this.multiframeTexUniform.setValue(sourceTex);
-                this.powerUniform.setValue(gamma);
-                pc.drawQuadWithShader(device, this.accumRenderTarget, this.shader, null, null, true);
+            this.multiframeTexUniform.setValue(sourceTex);
+            this.powerUniform.setValue(gamma);
+            pc.drawQuadWithShader(device, this.accumRenderTarget, this.shader, null, null, true);
 
-                // restore states
-                device.setBlendFunctionSeparate(blendSrc, blendDst, blendSrcAlpha, blendDstAlpha);
-            // }
+            // restore states
+            device.setBlendFunctionSeparate(blendSrc, blendDst, blendSrcAlpha, blendDstAlpha);
         }
 
         // update backbuffer on the first and last frame only

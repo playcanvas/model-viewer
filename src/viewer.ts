@@ -1435,6 +1435,11 @@ class Viewer {
             this.app.renderNextFrame = true;
         }
     }
+
+    setSamples(numSamples: number, jitter=false, size=1, sigma=0) {
+        this.multiframe.setSamples(numSamples, jitter, size, sigma);
+        this.renderNextFrame();
+    }
 }
 
 export default Viewer;
