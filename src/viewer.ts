@@ -80,7 +80,7 @@ class Viewer {
                 preferWebGl2: true,
                 // the following aren't needed since we're rendering to an offscreen render target
                 antialias: false,
-                alpha: false,
+                alpha: true,
                 depth: false
             }
         });
