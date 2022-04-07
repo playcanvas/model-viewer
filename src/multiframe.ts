@@ -238,9 +238,9 @@ class Multiframe {
 
             // look away
             if (this.sampleId === 0) {
-                gl.blendFuncSeparate(gl.ONE, gl.ZERO, gl.ONE, gl.ZERO);
+                gl.blendFuncSeparate(gl.CONSTANT_ALPHA, gl.ZERO, gl.CONSTANT_ALPHA, gl.ZERO);
             } else {
-                gl.blendFuncSeparate(gl.CONSTANT_ALPHA, gl.ONE_MINUS_CONSTANT_ALPHA, gl.ONE, gl.ZERO);
+                gl.blendFuncSeparate(gl.CONSTANT_ALPHA, gl.ONE, gl.CONSTANT_ALPHA, gl.ONE);
             }
             gl.blendColor(0, 0, 0, this.samples[this.sampleId].z);
 
