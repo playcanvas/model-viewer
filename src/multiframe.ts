@@ -246,6 +246,7 @@ class Multiframe {
 
             this.multiframeTexUniform.setValue(sourceTex);
             this.powerUniform.setValue(gamma);
+            device.setBlending(true);
             pc.drawQuadWithShader(device, this.accumRenderTarget, this.shader, null, null, true);
 
             // restore states
