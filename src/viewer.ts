@@ -368,7 +368,7 @@ class Viewer {
                 }
             },
             'lighting.env.skyboxMip': this.setSkyboxMip.bind(this),
-            'lighting.env.intensity': this.setEnvIntensity.bind(this),
+            'lighting.env.exposure': this.setEnvExposure.bind(this),
             'lighting.rotation': this.setLightingRotation.bind(this),
             'lighting.tonemapping': this.setTonemapping.bind(this),
 
@@ -1037,8 +1037,8 @@ class Viewer {
         this.renderNextFrame();
     }
 
-    setEnvIntensity(factor: number) {
-        this.app.scene.skyboxIntensity = factor;
+    setEnvExposure(factor: number) {
+        this.app.scene.skyboxIntensity = Math.pow(2, factor);
         this.renderNextFrame();
     }
 

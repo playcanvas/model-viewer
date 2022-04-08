@@ -99,7 +99,7 @@ const LightingPanel = () => {
             <Toggle name='lightingShadow' path='lighting.shadow' label='Shadow' />
             <Select name='lightingEnv' type='string' options={skyboxOptions} path='lighting.env.value' label='Environment' />
             <Select name='lightingSkyboxMip' type='number' options={[0, 1, 2, 3, 4, 5, 6].map(v => ({ v: v, t: v === 0 ? 'Disable' : Number(v - 1).toString() }))} path='lighting.env.skyboxMip' label='Skybox Level' />
-            <Slider name='lightingEnv' precision={2} min={0} max={6} path='lighting.env.intensity' label='Intensity' />
+            <Slider name='lightingEnv' precision={2} min={-6} max={6} path='lighting.env.exposure' label='Exposure' />
             <Slider name='lightingRotation' precision={0} min={-180} max={180} path='lighting.rotation' label='Rotation' />
             <Select name='lightingTonemapping' type='string' options={['Linear', 'Filmic', 'Hejl', 'ACES'].map(v => ({ v, t: v }))} path='lighting.tonemapping' label='Tonemap' />
         </Panel>
