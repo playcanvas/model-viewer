@@ -46,7 +46,7 @@ const observer: Observer = new Observer({
             options: null,
             default: null,
             skyboxMip: '3',
-            intensity: 1
+            exposure: 0
         },
         rotation: 0,
         tonemapping: 'Linear'
