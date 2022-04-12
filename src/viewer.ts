@@ -777,8 +777,6 @@ class Viewer {
                 const textureAsset = new pc.Asset(u.filename, 'texture', {
                     url: u.url,
                     filename: u.filename
-                }, {
-                    anisotropy: this.app.graphicsDevice.maxAnisotropy
                 });
                 textureAsset.on('load', () => {
                     continuation(null, textureAsset);
@@ -788,6 +786,11 @@ class Viewer {
             } else {
                 continuation(null, null);
             }
+        };
+
+        const postProcessImage = (gltfImage: any, textureAsset: pc.Asset) => {
+            // max anisotropy on all textures
+            textureAsset.resource.anisotropy = this.app.graphicsDevice.maxAnisotropy;
         };
 
         const processBuffer = function (gltfBuffer: any, continuation: (err: string, result: any) => void) {
@@ -815,7 +818,8 @@ class Viewer {
                 processAsync: processBufferView.bind(this)
             },
             image: {
-                processAsync: processImage.bind(this)
+                processAsync: processImage.bind(this),
+                postprocess: postProcessImage
             },
             buffer: {
                 processAsync: processBuffer.bind(this)
