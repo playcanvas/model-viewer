@@ -238,11 +238,11 @@ class Multiframe {
 
             // look away
             if (this.sampleId === 0) {
-                gl.blendFuncSeparate(gl.CONSTANT_ALPHA, gl.ZERO, gl.CONSTANT_ALPHA, gl.ZERO);
+                device.setBlendFunction(pc.BLENDMODE_CONSTANT_ALPHA, pc.BLENDMODE_ZERO);
             } else {
-                gl.blendFuncSeparate(gl.CONSTANT_ALPHA, gl.ONE, gl.CONSTANT_ALPHA, gl.ONE);
+                device.setBlendFunction(pc.BLENDMODE_CONSTANT_ALPHA, pc.BLENDMODE_ONE);
             }
-            gl.blendColor(0, 0, 0, this.samples[this.sampleId].z);
+            device.setBlendColor(0, 0, 0, this.samples[this.sampleId].z);
 
             this.multiframeTexUniform.setValue(sourceTex);
             this.powerUniform.setValue(gamma);
