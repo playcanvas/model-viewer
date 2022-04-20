@@ -1,7 +1,7 @@
 {
     "background_color": "black",
     "categories": ["productivity", "utilities"],
-    "description": "Fast and lightweight glTF viewer.",
+    "description": "Fast and lightweight model viewer.",
     "dir": "auto",
     "display": "standalone",
     "icons": [{
@@ -10,9 +10,9 @@
         "type": "image/png"
     }],
     "lang": "en-US",
-    "name": "PlayCanvas glTF Viewer",
+    "name": "PlayCanvas Model Viewer",
     "orientation": "any",
     "prefer_related_applications": false,
-    "short_name": "glTF Viewer",
+    "short_name": "Model Viewer",
     "start_url": "."
 }

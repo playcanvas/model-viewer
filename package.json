@@ -3,7 +3,7 @@
   "version": "1.0.13",
   "author": "PlayCanvas<support@playcanvas.com>",
   "homepage": "https://playcanvas.com",
-  "description": "PlayCanvas glTF Viewer",
+  "description": "PlayCanvas Model Viewer",
   "keywords": [
     "2d",
     "3d",
