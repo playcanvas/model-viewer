@@ -78,9 +78,10 @@ class Viewer {
             touch: new pc.TouchDevice(canvas),
             graphicsDeviceOptions: {
                 preferWebGl2: true,
-                // the following aren't needed since we're rendering to an offscreen render target
-                antialias: false,
                 alpha: true,
+                // the following aren't needed since we're rendering to an offscreen render target
+                // and would only result in extra memory usage.
+                antialias: false,
                 depth: false
             }
         });
@@ -349,6 +350,13 @@ class Viewer {
     // construct the controls interface and initialize controls
     private bindControlEvents() {
         const controlEvents:any = {
+            'render.multisample': this.resizeCanvas.bind(this),
+            'render.hq': (enabled: boolean) => {
+                console.log(`enabled=${enabled}`);
+                this.multiframe.enabled = enabled;
+                this.renderNextFrame();
+            },
+            'render.pixelScale': this.resizeCanvas.bind(this),
             'show.stats': this.setStats.bind(this),
             'show.wireframe': this.setShowWireframe.bind(this),
             'show.bounds': this.setShowBounds.bind(this),
@@ -581,6 +589,8 @@ class Viewer {
     }
 
     resizeCanvas() {
+        const observer = this.observer;
+
         const device = this.app.graphicsDevice as pc.WebglGraphicsDevice;
         const canvasSize = this.getCanvasSize();
         this.app.resizeCanvas(canvasSize.width, canvasSize.height);
@@ -608,15 +618,16 @@ class Viewer {
         }
 
         // in with the new
-        const w = canvasSize.width * window.devicePixelRatio;
-        const h = canvasSize.height * window.devicePixelRatio;
+        const pixelScale = observer.get('render.pixelScale');
+        const w = Math.floor(canvasSize.width * window.devicePixelRatio / pixelScale);
+        const h = Math.floor(canvasSize.height * window.devicePixelRatio / pixelScale);
         const colorBuffer = createTexture(w, h, pc.PIXELFORMAT_R8_G8_B8_A8);
         const depthBuffer = createTexture(w, h, pc.PIXELFORMAT_DEPTH);
         const renderTarget = new pc.RenderTarget({
             colorBuffer: colorBuffer,
             depthBuffer: depthBuffer,
             flipY: false,
-            samples: device.maxSamples
+            samples: observer.get('render.multisample') ? device.maxSamples : 1
         });
         this.camera.camera.renderTarget = renderTarget;
     }
@@ -1086,7 +1097,7 @@ class Viewer {
         let isAnimationPlaying = false;
         for (let i = 0; i < this.entities.length; ++i) {
             const anim = this.entities[i].anim;
-            if (anim && anim.playing) {
+            if (anim && anim.baseLayer && anim.baseLayer.playing) {
                 isAnimationPlaying = true;
                 break;
             }
