@@ -608,8 +608,8 @@ class Viewer {
         }
 
         // in with the new
-        const w = canvasSize.width;
-        const h = canvasSize.height;
+        const w = canvasSize.width * window.devicePixelRatio;
+        const h = canvasSize.height * window.devicePixelRatio;
         const colorBuffer = createTexture(w, h, pc.PIXELFORMAT_R8_G8_B8_A8);
         const depthBuffer = createTexture(w, h, pc.PIXELFORMAT_DEPTH);
         const renderTarget = new pc.RenderTarget({
