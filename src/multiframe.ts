@@ -92,7 +92,7 @@ class Multiframe {
                 this.camera._camera._viewMatDirty = true;
                 this.camera._camera._viewProjMatDirty = true;
             }
- 
+
             this.textureBiasUniform.setValue(this.sampleId === 0 || !this.enabled ? 0.0 : this.textureBias);
             // this.textureBiasUniform.setValue(this.textureBias);
         };
