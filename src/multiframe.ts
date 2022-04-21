@@ -66,6 +66,7 @@ class Multiframe {
     accumRenderTarget: pc.RenderTarget = null;
     sampleId = 0;
     samples: pc.Vec3[] = [];
+    enabled = true;
 
     constructor(device: pc.WebglGraphicsDevice, camera: pc.CameraComponent, numSamples: number) {
         this.device = device;
@@ -81,7 +82,7 @@ class Multiframe {
         this.camera.onPreRender = () => {
             store.set(pmat.data[12], pmat.data[13]);
 
-            if (this.accumTexture) {
+            if (this.enabled && this.accumTexture) {
                 const sample = this.samples[this.sampleId];
 
                 pmat.data[8] += sample.x / this.accumTexture.width;
@@ -90,10 +91,10 @@ class Multiframe {
                 // look away
                 this.camera._camera._viewMatDirty = true;
                 this.camera._camera._viewProjMatDirty = true;
-
-                this.textureBiasUniform.setValue(this.sampleId === 0 ? 0.0 : this.textureBias);
-                // this.textureBiasUniform.setValue(this.textureBias);
             }
+
+            this.textureBiasUniform.setValue(this.sampleId === 0 || !this.enabled ? 0.0 : this.textureBias);
+            // this.textureBiasUniform.setValue(this.textureBias);
         };
 
         // restore the camera's projection matrix jitter once rendering is
@@ -218,7 +219,17 @@ class Multiframe {
         const sampleCnt = this.samples.length;
         const sourceTex = this.camera.renderTarget.colorBuffer;
 
-        if (this.accumTexture && (this.accumTexture.width !== sourceTex.width || this.accumTexture.height !== sourceTex.height)) {
+        // in disabled state we resolve directly from source to backbuffer
+        if (!this.enabled) {
+            this.multiframeTexUniform.setValue(sourceTex);
+            this.powerUniform.setValue(1.0);
+            pc.drawQuadWithShader(device, null, this.shader);
+            this.activateBackbuffer();
+            return false;
+        }
+
+        if (this.accumTexture && (this.accumTexture.width !== sourceTex.width ||
+                                  this.accumTexture.height !== sourceTex.height)) {
             this.destroy();
         }
 
@@ -270,11 +281,18 @@ class Multiframe {
             this.sampleId++;
         }
 
-        // activate backbuffer for upcoming rendering
-        device.setRenderTarget(null);
-        device.updateBegin();
+        this.activateBackbuffer();
 
         return this.sampleId < sampleCnt;
+    }
+
+    // activate the backbuffer for upcoming rendering
+    activateBackbuffer() {
+        const device = this.device;
+        device.setRenderTarget(null);
+        device.updateBegin();
+        device.setViewport(0, 0, device.width, device.height);
+        device.setScissor(0, 0, device.width, device.height);
     }
 }
 

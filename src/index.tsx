@@ -28,6 +28,11 @@ interface Skybox {
 
 // initialize the apps state
 const observer: Observer = new Observer({
+    render: {
+        multisample: true,
+        hq: true,
+        pixelScale: 1
+    },
     show: {
         stats: false,
         wireframe: false,
@@ -94,7 +99,8 @@ const observer: Observer = new Observer({
 
 const saveOptions = (name: string) => {
     const options = observer.json();
-    window.localStorage.setItem(`options_${name}`, JSON.stringify({
+    window.localStorage.setItem(`model-viewer-${name}`, JSON.stringify({
+        render: options.render,
         show: options.show,
         lighting: options.lighting
     }));
@@ -117,7 +123,7 @@ const loadOptions = (name: string) => {
         }
     };
 
-    const options = window.localStorage.getItem(`options_${name}`);
+    const options = window.localStorage.getItem(`model-viewer-${name}`);
     if (options) {
         try {
             loadRec('', JSON.parse(options));
@@ -148,10 +154,10 @@ ReactDOM.render(
 let awaiting = 2;
 const dependencyArrived = () => {
     if (--awaiting === 0) {
-        loadOptions('default');
+        loadOptions('uistate');
 
         observer.on('*:set', () => {
-            saveOptions('default');
+            saveOptions('uistate');
         });
 
         const canvas = document.getElementById("application-canvas") as HTMLCanvasElement;

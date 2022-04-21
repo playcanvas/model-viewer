@@ -75,6 +75,16 @@ const Select = (props: { name: string, path:string, type: string, options: Array
 };
 Select.defaultProps = { enabled: true };
 
+const RenderPanel = () => {
+    return (
+        <Panel headerText="RENDER" collapsible>
+            <Toggle name='multisample' path='render.multisample' />
+            <Toggle name='hq' path='render.hq' label='High Quality' />
+            <Select name='pixelScale' path='render.pixelScale' label='Pixel Scale' type='number' options={[1, 2, 4, 8, 16].map(v => ({ v: v, t: Number(v).toString() }))} />
+        </Panel>
+    );
+};
+
 const ShowPanel = () => {
     return (
         <Panel headerText='SHOW' collapsible>
@@ -209,6 +219,7 @@ const Controls = (props: { observer: Observer }) => {
     return (
         <div id='controls-left'>
             <ObserverProvider value={props.observer}>
+                <RenderPanel />
                 <ShowPanel />
                 <LightingPanel />
                 <AnimationPanel />
