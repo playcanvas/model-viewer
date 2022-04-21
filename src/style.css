@@ -254,8 +254,16 @@ input {
 }
 
 .panel-option > .pcui-vector-input {
-    margin-right: 6px;
     flex-grow: 1;
+}
+
+/* apply spacing to all panel option elements */
+.panel-option > .pcui-vector-input > .pcui-numeric-input, .panel-option > .pcui-select-input, .panel-option > .pcui-slider {
+    margin: 4px 4px;
+}
+
+.panel-option > .pcui-label, .panel-option > .pcui-boolean-input-toggle {
+    margin: 8px 4px;
 }
 
 .animation-buttons {

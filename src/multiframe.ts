@@ -95,7 +95,7 @@ class Multiframe {
  
             this.textureBiasUniform.setValue(this.sampleId === 0 || !this.enabled ? 0.0 : this.textureBias);
             // this.textureBiasUniform.setValue(this.textureBias);
-       };
+        };
 
         // restore the camera's projection matrix jitter once rendering is
         // done
