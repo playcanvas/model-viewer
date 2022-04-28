@@ -627,7 +627,8 @@ class Viewer {
             colorBuffer: colorBuffer,
             depthBuffer: depthBuffer,
             flipY: false,
-            samples: observer.get('render.multisample') ? device.maxSamples : 1
+            samples: observer.get('render.multisample') ? device.maxSamples : 1,
+            autoResolve: false
         });
         this.camera.camera.renderTarget = renderTarget;
     }
@@ -1433,6 +1434,7 @@ class Viewer {
     private onPostrender() {
         // perform mulitiframe update, returned flag indicates whether more frames
         // are needed.
+        this.camera.camera.renderTarget.resolve();
         this.multiframeBusy = this.multiframe.update();
     }
 
