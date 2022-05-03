@@ -83,7 +83,6 @@ class Viewer {
                 // and would only result in extra memory usage.
                 antialias: false,
                 depth: false,
-                stencil: false,
                 preserveDrawingBuffer: true
             }
         });
