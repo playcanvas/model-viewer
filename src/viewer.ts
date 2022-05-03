@@ -82,7 +82,9 @@ class Viewer {
                 // the following aren't needed since we're rendering to an offscreen render target
                 // and would only result in extra memory usage.
                 antialias: false,
-                depth: false
+                depth: false,
+                stencil: false,
+                preserveDrawingBuffer: true
             }
         });
         this.app = app;
@@ -1434,7 +1436,9 @@ class Viewer {
     private onPostrender() {
         // perform mulitiframe update, returned flag indicates whether more frames
         // are needed.
-        this.camera.camera.renderTarget.resolve();
+        if (this.camera.camera.renderTarget._samples > 1) {
+            this.camera.camera.renderTarget.resolve();
+        }
         this.multiframeBusy = this.multiframe.update();
     }
 
