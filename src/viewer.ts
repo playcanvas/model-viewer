@@ -1433,11 +1433,13 @@ class Viewer {
     }
 
     private onPostrender() {
-        // perform mulitiframe update, returned flag indicates whether more frames
-        // are needed.
+        // resolve the (possibly multisampled) render target
         if (this.camera.camera.renderTarget._samples > 1) {
             this.camera.camera.renderTarget.resolve();
         }
+
+        // perform mulitiframe update. returned flag indicates whether more frames
+        // are needed.
         this.multiframeBusy = this.multiframe.update();
     }
 
