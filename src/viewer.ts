@@ -216,6 +216,11 @@ class Viewer {
             const x = event.offsetX / canvas.clientWidth;
             const y = 1.0 - event.offsetY / canvas.clientHeight;
 
+            // resolve msaa depth
+            if (camera.renderTarget._samples > 1) {
+                camera.renderTarget.resolve(false, true);
+            }
+
             // read depth
             const depth = this.readDepth.read(camera.renderTarget.depthBuffer, x, y);
 
@@ -1435,7 +1440,7 @@ class Viewer {
     private onPostrender() {
         // resolve the (possibly multisampled) render target
         if (this.camera.camera.renderTarget._samples > 1) {
-            this.camera.camera.renderTarget.resolve();
+            this.camera.camera.renderTarget.resolve(true, false);
         }
 
         // perform mulitiframe update. returned flag indicates whether more frames
