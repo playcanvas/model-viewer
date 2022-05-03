@@ -244,15 +244,7 @@ class Multiframe {
             const blendSrcAlpha = device.blendSrcAlpha;
             const blendDstAlpha = device.blendDstAlpha;
 
-            // TODO: add constant blend support to the engine
-            const gl = device.gl;
-
-            // look away
-            if (this.sampleId === 0) {
-                device.setBlendFunction(pc.BLENDMODE_CONSTANT_ALPHA, pc.BLENDMODE_ZERO);
-            } else {
-                device.setBlendFunction(pc.BLENDMODE_CONSTANT_ALPHA, pc.BLENDMODE_ONE);
-            }
+            device.setBlendFunction(pc.BLENDMODE_CONSTANT_ALPHA, this.sampleId === 0 ? pc.BLENDMODE_ZERO : pc.BLENDMODE_ONE);
             device.setBlendColor(0, 0, 0, this.samples[this.sampleId].z);
 
             this.multiframeTexUniform.setValue(sourceTex);
