@@ -90,6 +90,11 @@ class Viewer {
         app.graphicsDevice.maxPixelRatio = window.devicePixelRatio;
         app.scene.gammaCorrection = pc.GAMMA_SRGB;
 
+        // @ts-ignore
+        const multisampleSupported = app.graphicsDevice.maxSamples > 1;
+        observer.set('render.multisampleSupported', multisampleSupported);
+        observer.set('render.multisample', multisampleSupported && observer.get('render.multisample'));
+
         // register vox support
         VoxParser.registerVoxParser(app);
 
