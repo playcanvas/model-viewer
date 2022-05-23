@@ -29,6 +29,7 @@ interface Skybox {
 // initialize the apps state
 const observer: Observer = new Observer({
     render: {
+        multisampleSupported: true,
         multisample: true,
         hq: true,
         pixelScale: 1

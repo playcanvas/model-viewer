@@ -76,9 +76,11 @@ const Select = (props: { name: string, path:string, type: string, options: Array
 Select.defaultProps = { enabled: true };
 
 const RenderPanel = () => {
+    const observer: Observer = useContext(ObserverContext);
+    const multisampleSupported: boolean = useObserverState(observer, 'render.multisampleSupported', true);
     return (
         <Panel headerText="RENDER" collapsible>
-            <Toggle name='multisample' path='render.multisample' />
+            <Toggle name='multisample' path='render.multisample' enabled={multisampleSupported}/>
             <Toggle name='hq' path='render.hq' label='High Quality' />
             <Select name='pixelScale' path='render.pixelScale' label='Pixel Scale' type='number' options={[1, 2, 4, 8, 16].map(v => ({ v: v, t: Number(v).toString() }))} />
         </Panel>
