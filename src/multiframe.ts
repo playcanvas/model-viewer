@@ -244,8 +244,12 @@ class Multiframe {
             const blendSrcAlpha = device.blendSrcAlpha;
             const blendDstAlpha = device.blendDstAlpha;
 
-            device.setBlendFunction(pc.BLENDMODE_CONSTANT_ALPHA, this.sampleId === 0 ? pc.BLENDMODE_ZERO : pc.BLENDMODE_ONE);
-            device.setBlendColor(0, 0, 0, this.samples[this.sampleId].z);
+            if (this.sampleId === 0) {
+                device.setBlendFunction(pc.BLENDMODE_ONE, pc.BLENDMODE_ZERO);
+            } else {
+                device.setBlendFunction(pc.BLENDMODE_CONSTANT_ALPHA, pc.BLENDMODE_ONE_MINUS_CONSTANT_ALPHA);
+                device.setBlendColor(0, 0, 0, this.samples[this.sampleId].z);
+            }
 
             this.multiframeTexUniform.setValue(sourceTex);
             this.powerUniform.setValue(gamma);
@@ -256,14 +260,12 @@ class Multiframe {
             device.setBlendFunctionSeparate(blendSrc, blendDst, blendSrcAlpha, blendDstAlpha);
         }
 
-        // update backbuffer on the first and last frame only
         if (this.sampleId === 0) {
-            // first sample - copy the camera render target directly to the back buffer
+            // first frame - copy the camera render target directly to the back buffer
             this.multiframeTexUniform.setValue(sourceTex);
             this.powerUniform.setValue(1.0);
             pc.drawQuadWithShader(device, null, this.shader);
-        } else if (this.sampleId === (sampleCnt - 1)) {
-            // last multiframe sample - copy the accumulation buffer to the back buffer
+        } else {
             this.multiframeTexUniform.setValue(this.accumTexture);
             this.powerUniform.setValue(1.0 / gamma);
             pc.drawQuadWithShader(device, null, this.shader);
