@@ -14,10 +14,10 @@ void main(void) {
 const fshader = `
 varying vec2 texcoord;
 uniform sampler2D multiframeTex;
-uniform vec2 power;
+uniform float power;
 void main(void) {
     vec4 t = texture2D(multiframeTex, texcoord);
-    gl_FragColor = vec4(pow(t.xyz * power.y, vec3(power.x)), 1.0);
+    gl_FragColor = vec4(pow(t.xyz, vec3(power)), 1.0);
 }
 `;
 
@@ -67,7 +67,6 @@ class Multiframe {
     sampleId = 0;
     samples: pc.Vec3[] = [];
     enabled = true;
-    blendTotal = 0;
 
     constructor(device: pc.WebglGraphicsDevice, camera: pc.CameraComponent, numSamples: number) {
         this.device = device;
@@ -210,7 +209,6 @@ class Multiframe {
     // flag the camera as moved
     moved() {
         this.sampleId = 0;
-        this.blendTotal = 0;
     }
 
     // update the multiframe accumulation buffer.
@@ -224,7 +222,7 @@ class Multiframe {
         // in disabled state we resolve directly from source to backbuffer
         if (!this.enabled) {
             this.multiframeTexUniform.setValue(sourceTex);
-            this.powerUniform.setValue([1.0, 1.0]);
+            this.powerUniform.setValue(1.0);
             pc.drawQuadWithShader(device, null, this.shader);
             this.activateBackbuffer();
             return false;
@@ -246,28 +244,30 @@ class Multiframe {
             const blendSrcAlpha = device.blendSrcAlpha;
             const blendDstAlpha = device.blendDstAlpha;
 
-            device.setBlendFunction(pc.BLENDMODE_CONSTANT_ALPHA, this.sampleId === 0 ? pc.BLENDMODE_ZERO : pc.BLENDMODE_ONE);
-            device.setBlendColor(0, 0, 0, this.samples[this.sampleId].z);
+            if (this.sampleId === 0) {
+                device.setBlendFunction(pc.BLENDMODE_ONE, pc.BLENDMODE_ZERO);
+            } else {
+                device.setBlendFunction(pc.BLENDMODE_CONSTANT_ALPHA, pc.BLENDMODE_ONE_MINUS_CONSTANT_ALPHA);
+                device.setBlendColor(0, 0, 0, this.samples[this.sampleId].z);
+            }
 
             this.multiframeTexUniform.setValue(sourceTex);
-            this.powerUniform.setValue([gamma, 1.0]);
+            this.powerUniform.setValue(gamma);
             device.setBlending(true);
             pc.drawQuadWithShader(device, this.accumRenderTarget, this.shader, null, null, true);
 
             // restore states
             device.setBlendFunctionSeparate(blendSrc, blendDst, blendSrcAlpha, blendDstAlpha);
-
-            this.blendTotal += this.samples[this.sampleId].z;
         }
 
         if (this.sampleId === 0) {
             // first frame - copy the camera render target directly to the back buffer
             this.multiframeTexUniform.setValue(sourceTex);
-            this.powerUniform.setValue([1.0, 1.0]);
+            this.powerUniform.setValue(1.0);
             pc.drawQuadWithShader(device, null, this.shader);
         } else {
             this.multiframeTexUniform.setValue(this.accumTexture);
-            this.powerUniform.setValue([1.0 / gamma, 1.0 / this.blendTotal]);
+            this.powerUniform.setValue(1.0 / gamma);
             pc.drawQuadWithShader(device, null, this.shader);
         }
 
