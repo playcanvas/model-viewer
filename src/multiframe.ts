@@ -14,10 +14,10 @@ void main(void) {
 const fshader = `
 varying vec2 texcoord;
 uniform sampler2D multiframeTex;
-uniform float power;
+uniform vec2 power;
 void main(void) {
     vec4 t = texture2D(multiframeTex, texcoord);
-    gl_FragColor = vec4(pow(t.xyz, vec3(power)), 1.0);
+    gl_FragColor = vec4(pow(t.xyz * power.y, vec3(power.x)), 1.0);
 }
 `;
 
@@ -67,6 +67,7 @@ class Multiframe {
     sampleId = 0;
     samples: pc.Vec3[] = [];
     enabled = true;
+    blendTotal = 0;
 
     constructor(device: pc.WebglGraphicsDevice, camera: pc.CameraComponent, numSamples: number) {
         this.device = device;
@@ -209,6 +210,7 @@ class Multiframe {
     // flag the camera as moved
     moved() {
         this.sampleId = 0;
+        this.blendTotal = 0;
     }
 
     // update the multiframe accumulation buffer.
@@ -222,7 +224,7 @@ class Multiframe {
         // in disabled state we resolve directly from source to backbuffer
         if (!this.enabled) {
             this.multiframeTexUniform.setValue(sourceTex);
-            this.powerUniform.setValue(1.0);
+            this.powerUniform.setValue([1.0, 1.0]);
             pc.drawQuadWithShader(device, null, this.shader);
             this.activateBackbuffer();
             return false;
@@ -248,24 +250,24 @@ class Multiframe {
             device.setBlendColor(0, 0, 0, this.samples[this.sampleId].z);
 
             this.multiframeTexUniform.setValue(sourceTex);
-            this.powerUniform.setValue(gamma);
+            this.powerUniform.setValue([gamma, 1.0]);
             device.setBlending(true);
             pc.drawQuadWithShader(device, this.accumRenderTarget, this.shader, null, null, true);
 
             // restore states
             device.setBlendFunctionSeparate(blendSrc, blendDst, blendSrcAlpha, blendDstAlpha);
+
+            this.blendTotal += this.samples[this.sampleId].z;
         }
 
-        // update backbuffer on the first and last frame only
         if (this.sampleId === 0) {
-            // first sample - copy the camera render target directly to the back buffer
+            // first frame - copy the camera render target directly to the back buffer
             this.multiframeTexUniform.setValue(sourceTex);
-            this.powerUniform.setValue(1.0);
+            this.powerUniform.setValue([1.0, 1.0]);
             pc.drawQuadWithShader(device, null, this.shader);
-        } else if (this.sampleId === (sampleCnt - 1)) {
-            // last multiframe sample - copy the accumulation buffer to the back buffer
+        } else {
             this.multiframeTexUniform.setValue(this.accumTexture);
-            this.powerUniform.setValue(1.0 / gamma);
+            this.powerUniform.setValue([1.0 / gamma, 1.0 / this.blendTotal]);
             pc.drawQuadWithShader(device, null, this.shader);
         }
 
