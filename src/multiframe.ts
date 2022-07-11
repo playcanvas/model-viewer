@@ -67,6 +67,7 @@ class Multiframe {
     sampleId = 0;
     samples: pc.Vec3[] = [];
     enabled = true;
+    totalWeight = 0;
 
     constructor(device: pc.WebglGraphicsDevice, camera: pc.CameraComponent, numSamples: number) {
         this.device = device;
@@ -209,6 +210,7 @@ class Multiframe {
     // flag the camera as moved
     moved() {
         this.sampleId = 0;
+        this.totalWeight = 0;
     }
 
     // update the multiframe accumulation buffer.
@@ -244,11 +246,13 @@ class Multiframe {
             const blendSrcAlpha = device.blendSrcAlpha;
             const blendDstAlpha = device.blendDstAlpha;
 
+            const sampleWeight = this.samples[this.sampleId].z;
+
             if (this.sampleId === 0) {
                 device.setBlendFunction(pc.BLENDMODE_ONE, pc.BLENDMODE_ZERO);
             } else {
                 device.setBlendFunction(pc.BLENDMODE_CONSTANT_ALPHA, pc.BLENDMODE_ONE_MINUS_CONSTANT_ALPHA);
-                device.setBlendColor(0, 0, 0, this.samples[this.sampleId].z);
+                device.setBlendColor(0, 0, 0, sampleWeight / (this.totalWeight + sampleWeight));
             }
 
             this.multiframeTexUniform.setValue(sourceTex);
@@ -258,6 +262,8 @@ class Multiframe {
 
             // restore states
             device.setBlendFunctionSeparate(blendSrc, blendDst, blendSrcAlpha, blendDstAlpha);
+
+            this.totalWeight += sampleWeight;
         }
 
         if (this.sampleId === 0) {
