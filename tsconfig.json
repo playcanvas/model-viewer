@@ -4,7 +4,7 @@
         "noImplicitAny": true,
         "module": "ES2015",
         "moduleResolution": "node",
-        "target": "es5",
+        "target": "es6",
         "allowJs": true,
         "jsx": "react",
         "lib": [

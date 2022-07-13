@@ -14,6 +14,7 @@ import { DebugLines } from './debug';
 import { Multiframe } from './multiframe';
 import { ReadDepth } from './read-depth';
 import { OrbitCamera, OrbitCameraInputMouse, OrbitCameraInputTouch } from './orbit-camera';
+import { SSAOEffect } from './ssao.js';
 
 // model filename extensions
 const modelExtensions = ['.gltf', '.glb', '.vox'];
@@ -236,8 +237,12 @@ class Viewer {
             }
         });
 
+        const ssao = new SSAOEffect(this.app.graphicsDevice as pc.WebglGraphicsDevice, camera);
+        // @ts-ignore
+        camera.camera.postEffects.addEffect(ssao);
+
         // start the application
-        app.start();
+        app.start();    
     }
 
     // extract query params. taken from https://stackoverflow.com/a/21152762

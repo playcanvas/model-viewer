@@ -2,12 +2,12 @@ import resolve from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
 import replace from '@rollup/plugin-replace';
 import typescript from 'rollup-plugin-typescript2';
-import copy from 'rollup-plugin-copy';
 import { terser } from 'rollup-plugin-terser';
 import alias from '@rollup/plugin-alias';
 import Handlebars from 'handlebars';
 import fs from 'fs';
 import path from 'path';
+import copyAndWatch from "./copy-and-watch";
 
 const html = fs.readFileSync(`./src/index.mustache`, "utf8");
 const template = Handlebars.compile(html);
@@ -21,27 +21,21 @@ fs.writeFileSync(`./dist/index.html`, template({
     oneTrustDeveloperID: process.env.ONETRUST_DEVELOPER_ID
 }));
 
-const aliasEntries = () => {
-    const entries = [];
-
-    if (process.env.PCUI_PATH) {
-        entries.push({
-            find: /^@playcanvas\/pcui/,
-            replacement: path.resolve(process.env.PCUI_PATH)
-        });
-    }
-
-    if (process.env.ENGINE_PATH) {
-        entries.push({
-            find: /^playcanvas/,
-            replacement: path.resolve(process.env.ENGINE_PATH)
-        });
-    }
-
-    return {
-        entries: entries
-    };
+// define supported module overrides
+const moduleOverrides = {
+    PCUI_PATH: /^@playcanvas\/pcui(.*)/,
+    ENGINE_PATH: /^playcanvas(.*)/
 };
+
+const aliasEntries = Object.keys(moduleOverrides)
+    .filter(key => process.env.hasOwnProperty(key))
+    .map((key) => {
+        return {
+            find: moduleOverrides[key],
+            replacement: `${path.resolve(process.env[key])}$1`
+        };
+    });
+
 
 export default {
     input: 'src/index.tsx',
@@ -50,7 +44,9 @@ export default {
         format: 'es'
     },
     plugins: [
-        alias(aliasEntries()),
+        alias({
+            entries: aliasEntries
+        }),
         replace({
             values: {
                 'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
@@ -58,11 +54,11 @@ export default {
             },
             preventAssignment: true
         }),
-        copy({
+        copyAndWatch({
             targets: [
-                { src: './src/style.css', dest: 'dist/' },
-                { src: './src/fonts.css', dest: 'dist/' },
-                { src: './static/*', dest: 'dist/static/' }
+                { src: './src/style.css' },
+                { src: './src/fonts.css' },
+                { src: './static' }
             ]
         }),
         commonjs(),
