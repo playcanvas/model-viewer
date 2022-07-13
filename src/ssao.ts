@@ -265,7 +265,7 @@ class SSAOEffect extends pc.PostEffect {
                 "",
                 "    vec4 inCol = vec4(1.0, 1.0, 1.0, 1.0); //texture2D( uColorBuffer,  uv );",
                 "",
-                "    gl_FragColor.r = aoVisibility; //postProcess.color.rgb = vec3(aoVisibility, pack(origin.z));",
+                "    gl_FragColor = vec4(aoVisibility, 0, 0, 1); //postProcess.color.rgb = vec3(aoVisibility, pack(origin.z));",
                 "}",
                 "",
                 "void main_old()",
@@ -356,7 +356,7 @@ class SSAOEffect extends pc.PostEffect {
                 "    // ao += ((random(gl_FragCoord.xy) - 0.5) / 255.0);",
                 "",
                 "    ao = mix(ao, 1.0, uBrightness);",
-                "    gl_FragColor.a = ao;",
+                "    gl_FragColor = vec4(ao, 0, 0, 1);",
                 "}"
             ].join("\n")
         });
@@ -372,14 +372,13 @@ class SSAOEffect extends pc.PostEffect {
                 "precision " + graphicsDevice.precision + " float;",
                 "varying vec2 vUv0;",
                 "uniform sampler2D uColorBuffer;",
-                "uniform sampler2D uSSAOBuffer;",
+                "uniform sampler2D uBlurredBuffer;",
                 "",
                 "void main(void)",
                 "{",
                 "    vec4 inCol = texture2D( uColorBuffer,  vUv0 );",
-                "    float ssao = texture2D( uSSAOBuffer,  vUv0 ).a;",
-                "    gl_FragColor.rgb = inCol.rgb * ssao;",
-                "    gl_FragColor.a = inCol.a;",
+                "    float ssao = texture2D( uBlurredBuffer,  vUv0 ).r;",
+                "    gl_FragColor = vec4(inCol.rgb * ssao, inCol.a);",
                 "}"
             ].join("\n")
         });
@@ -490,23 +489,21 @@ class SSAOEffect extends pc.PostEffect {
         scope.resolve("uIntensity").setValue(intensity);
         scope.resolve("uPower").setValue(1.0);
         scope.resolve("uProjectionScaleRadius").setValue(projectionScale * radius);
+        scope.resolve("uFarPlaneOverEdgeDistance").setValue(1);
+        scope.resolve("uBilatSampleCount").setValue(4);
+
+        scope.resolve("uColorBuffer").setValue(inputTarget.colorBuffer);
+        scope.resolve("uSceneDepthMap").setValue(inputTarget.depthBuffer);
+        scope.resolve("uSSAOBuffer").setValue(this.target.colorBuffer);
+        scope.resolve("uBlurredBuffer").setValue(this.blurTarget.colorBuffer);
 
         // Render SSAO
         pc.drawFullscreenQuad(device, this.target, this.vertexBuffer, this.ssaoShader, rect);
-
-        scope.resolve("uSSAOBuffer").setValue(this.target.colorBuffer);
-
-        // scope.resolve("uFarPlaneOverEdgeDistance").setValue(cameraFarClip / bilateralThreshold);
-        scope.resolve("uFarPlaneOverEdgeDistance").setValue(1);
-
-        scope.resolve("uBilatSampleCount").setValue(4);
 
         // Perform the blur
         pc.drawFullscreenQuad(device, this.blurTarget, this.vertexBuffer, this.blurShader, rect);
 
         // Finally output to screen
-        scope.resolve("uSSAOBuffer").setValue(this.blurTarget.colorBuffer);
-        scope.resolve("uColorBuffer").setValue(inputTarget.colorBuffer);
         pc.drawFullscreenQuad(device, outputTarget, this.vertexBuffer, this.outputShader, rect);
     }
 }

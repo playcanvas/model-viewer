@@ -72,6 +72,8 @@ class Viewer {
     readDepth: ReadDepth = null;
     cursorWorld = new pc.Vec3();
 
+    ssao: SSAOEffect;
+
     constructor(canvas: HTMLCanvasElement, observer: Observer) {
         // create the application
         const app = new pc.Application(canvas, {
@@ -237,9 +239,7 @@ class Viewer {
             }
         });
 
-        const ssao = new SSAOEffect(this.app.graphicsDevice as pc.WebglGraphicsDevice, camera);
-        // @ts-ignore
-        camera.camera.postEffects.addEffect(ssao);
+        this.ssao = new SSAOEffect(this.app.graphicsDevice as pc.WebglGraphicsDevice, camera);
 
         // start the application
         app.start();    
@@ -1450,7 +1450,10 @@ class Viewer {
 
         // perform mulitiframe update. returned flag indicates whether more frames
         // are needed.
-        this.multiframeBusy = this.multiframe.update();
+        // this.multiframeBusy = this.multiframe.update();
+
+        // render ssao
+        this.ssao.render(this.camera.camera.renderTarget, null, null);
     }
 
     private onFrameend() {
