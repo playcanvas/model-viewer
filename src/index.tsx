@@ -5,7 +5,6 @@ import ReactDOM from 'react-dom';
 
 import { Container, Spinner } from '@playcanvas/pcui/react';
 
-import { wasmSupported, loadWasmModuleAsync } from './wasm-loader';
 import { getAssetPath, getRootPath } from './helpers';
 import { Option } from './types';
 import { Controls } from './controls'
@@ -152,21 +151,6 @@ ReactDOM.render(
     document.getElementById('app')
 );
 
-let awaiting = 2;
-const dependencyArrived = () => {
-    if (--awaiting === 0) {
-        loadOptions('uistate');
-
-        observer.on('*:set', () => {
-            saveOptions('uistate');
-        });
-
-        const canvas = document.getElementById("application-canvas") as HTMLCanvasElement;
-        window.viewer = new Viewer(canvas, observer);
-        window.viewer.handleUrlParams();
-    }
-};
-
 window.pc = pc;
 
 pc.basisInitialize({
@@ -174,6 +158,23 @@ pc.basisInitialize({
     wasmUrl: getAssetPath('lib/basis/basis.wasm.wasm'),
     fallbackUrl: getAssetPath('lib/basis/basis.js'),
     lazyInit: true
+});
+
+// @ts-ignore
+pc.WasmModule.setConfig('DracoDecoderModule', {
+    glueUrl: getAssetPath('lib/draco/draco.wasm.js'),
+    wasmUrl: getAssetPath('lib/draco/draco.wasm.wasm'),
+    fallbackUrl: getAssetPath('lib/draco/draco.js')
+});
+
+// hide / show spinner when loading files
+observer.on('spinner:set', (value: boolean) => {
+    const spinner = document.getElementById('spinner');
+    if (value) {
+        spinner.classList.remove('pcui-hidden');
+    } else {
+        spinner.classList.add('pcui-hidden');
+    }
 });
 
 const url = getAssetPath("asset_manifest.json");
@@ -196,23 +197,16 @@ new pc.Http().get(url, {
             skyboxData.options = JSON.stringify(skyboxOptions);
             skyboxData.default = getAssetPath(result.defaultSkybox);
             observer.set('lighting.env', skyboxData);
-            dependencyArrived();
+            
+            loadOptions('uistate');
+    
+            observer.on('*:set', () => {
+                saveOptions('uistate');
+            });
+    
+            const canvas = document.getElementById("application-canvas") as HTMLCanvasElement;
+            window.viewer = new Viewer(canvas, observer);
+            window.viewer.handleUrlParams();
         }
     }
 );
-
-// hide / show spinner when loading files
-observer.on('spinner:set', (value: boolean) => {
-    const spinner = document.getElementById('spinner');
-    if (value) {
-        spinner.classList.remove('pcui-hidden');
-    } else {
-        spinner.classList.add('pcui-hidden');
-    }
-});
-
-// initialize draco module
-loadWasmModuleAsync('DracoDecoderModule',
-                    wasmSupported() ? getAssetPath('lib/draco/draco.wasm.js') : getAssetPath('lib/draco/draco.js'),
-                    wasmSupported() ? getAssetPath('lib/draco/draco.wasm.wasm') : '',
-                    dependencyArrived);
