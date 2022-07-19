@@ -59,7 +59,7 @@ export default {
     output: {
         dir: 'dist',
         format: 'es',
-        sourcemap: PROD_BUILD ? true : 'inline'
+        sourcemap: true
     },
     plugins: [
         copy({
