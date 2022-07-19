@@ -10,6 +10,11 @@
     <link rel="icon" type="image/png" href="/model-viewer/static/playcanvas-logo.png" />
     <link rel="manifest" href="/model-viewer/static/manifest.json">
     <link rel="stylesheet" href="/model-viewer/style.css" />
+    <script type="text/javascript">
+        if (/playcanvas\.com/.test(window.top.location.host)) {
+            document.write('<link rel="stylesheet" type="text/css" href="pc-font.css" />');
+        }
+    </script>
     {{#hasAnalyticsID}}
     <!-- Global site tag (gtag.js) - Google Analytics -->
     <script>
@@ -48,11 +53,6 @@
     {{/hasAnalyticsID}}
     {{/hasPublicPath}}
     {{^hasPublicPath}}
-    <script type="text/javascript">
-        if (/playcanvas\.com/.test(window.top.location.host)) {
-            document.write('<link rel="stylesheet" type="text/css" href="pc-font.css" />');
-        }
-    </script>
     <link rel="icon" type="image/png" href="./static/playcanvas-logo.png" />
     <link rel="manifest" href="./static/manifest.json">
     <link rel="stylesheet" type="text/css" href="./style.css" />
