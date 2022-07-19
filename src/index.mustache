@@ -48,9 +48,14 @@
     {{/hasAnalyticsID}}
     {{/hasPublicPath}}
     {{^hasPublicPath}}
+    <script type="text/javascript">
+        if (/playcanvas\.com/.test(window.top.location.host)) {
+            document.write('<link rel="stylesheet" type="text/css" href="pc-font.css" />');
+        }
+    </script>
     <link rel="icon" type="image/png" href="./static/playcanvas-logo.png" />
     <link rel="manifest" href="./static/manifest.json">
-    <link rel="stylesheet" href="./style.css" />
+    <link rel="stylesheet" type="text/css" href="./style.css" />
     {{/hasPublicPath}}
 </head>
 
