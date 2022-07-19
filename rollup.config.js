@@ -52,7 +52,7 @@ if (paths.ENGINE_PATH) {
     });
 }
 
-const PROD_BUILD = process.env.NODE_ENV === 'production';
+const PROD_BUILD = process.env.BUILD_TYPE === 'prod';
 
 export default {
     input: 'src/index.tsx',
