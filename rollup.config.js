@@ -1,10 +1,11 @@
 import resolve from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
 import replace from '@rollup/plugin-replace';
+import alias from '@rollup/plugin-alias';
 import typescript from 'rollup-plugin-typescript2';
 import copy from 'rollup-plugin-copy';
 import { terser } from 'rollup-plugin-terser';
-import alias from '@rollup/plugin-alias';
+import sourcemaps from 'rollup-plugin-sourcemaps';
 import Handlebars from 'handlebars';
 import fs from 'fs';
 import path from 'path';
@@ -21,43 +22,46 @@ fs.writeFileSync(`./dist/index.html`, template({
     oneTrustDeveloperID: process.env.ONETRUST_DEVELOPER_ID
 }));
 
-const aliasEntries = () => {
-    const entries = [];
-
-    if (process.env.PCUI_PATH) {
-        entries.push({
-            find: /^@playcanvas\/pcui/,
-            replacement: path.resolve(process.env.PCUI_PATH)
-        });
+const paths = {};
+['PCUI_PATH', 'ENGINE_PATH'].forEach((p) => {
+    const envPath = process.env[p];
+    if (envPath) {
+        paths[p] = path.resolve(envPath)
     }
+});
 
-    if (process.env.ENGINE_PATH) {
-        entries.push({
-            find: /^playcanvas/,
-            replacement: path.resolve(process.env.ENGINE_PATH)
-        });
-    }
+// define supported module overrides
+const aliasEntries = [];
 
-    return {
-        entries: entries
-    };
-};
+if (paths.PCUI_PATH) {
+    aliasEntries.push({
+        find: /^@playcanvas\/pcui(.*)/,
+        replacement: `${paths.PCUI_PATH}$1`
+    });
+}
+
+if (paths.ENGINE_PATH) {
+    aliasEntries.push({
+        find: /^playcanvas$/,
+        replacement: `${paths.ENGINE_PATH}/build/playcanvas.dbg.js`
+    });
+
+    aliasEntries.push({
+        find: /^playcanvas(.*)/,
+        replacement: `${paths.ENGINE_PATH}$1`
+    });
+}
+
+const PROD_BUILD = process.env.BUILD_TYPE === 'prod';
 
 export default {
     input: 'src/index.tsx',
     output: {
         dir: 'dist',
-        format: 'es'
+        format: 'es',
+        sourcemap: true
     },
     plugins: [
-        alias(aliasEntries()),
-        replace({
-            values: {
-                'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
-                '__PUBLIC_PATH__': JSON.stringify(process.env.PUBLIC_PATH)
-            },
-            preventAssignment: true
-        }),
         copy({
             targets: [
                 { src: './src/style.css', dest: 'dist/' },
@@ -65,9 +69,18 @@ export default {
                 { src: './static/*', dest: 'dist/static/' }
             ]
         }),
-        commonjs(),
+        alias({ entries: aliasEntries }),
         resolve(),
+        replace({
+            values: {
+                'process.env.NODE_ENV': JSON.stringify(PROD_BUILD ? 'production' : 'development'),
+                '__PUBLIC_PATH__': JSON.stringify(process.env.PUBLIC_PATH)
+            },
+            preventAssignment: true
+        }),
+        sourcemaps(),
+        commonjs(),
         typescript(),
-        (process.env.NODE_ENV === 'production' && terser())
+        (PROD_BUILD && terser())
     ]
 };

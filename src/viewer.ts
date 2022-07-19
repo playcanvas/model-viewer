@@ -358,7 +358,6 @@ class Viewer {
         const controlEvents:any = {
             'render.multisample': this.resizeCanvas.bind(this),
             'render.hq': (enabled: boolean) => {
-                console.log(`enabled=${enabled}`);
                 this.multiframe.enabled = enabled;
                 this.renderNextFrame();
             },
