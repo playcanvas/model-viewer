@@ -75,11 +75,11 @@
     "typescript": "^4.7.4"
   },
   "scripts": {
-    "lint": "eslint --ignore-pattern 'src/lib' --ext .ts src",
-    "serve": "serve dist",
     "build": "rollup -c",
     "build:watch": "rollup -c -w",
     "develop": "concurrently --kill-others \"npm run build:watch\" \"npm run serve\"",
-    "develop:local": "cross-env ENGINE_PATH=../engine npm run develop"
+    "develop:local": "cross-env ENGINE_PATH=../engine npm run develop",
+    "lint": "eslint --ignore-pattern 'src/lib' --ext .ts src",
+    "serve": "serve dist"
   }
 }
