@@ -63,10 +63,10 @@ export default {
     plugins: [
         copyAndWatch({
             targets: [
-                { src: 'src/style.css', dest: '' },
-                { src: 'src/fonts.css', dest: '' },
-                { src: 'static/', dest: '' },
-                { src: 'src/index.mustache', dest: '', destFilename: 'index.html', transform: compileMustache }
+                { src: 'src/index.mustache', destFilename: 'index.html', transform: compileMustache },
+                { src: 'src/style.css' },
+                { src: 'src/fonts.css' },
+                { src: 'static/' }
             ]
         }),
         alias({ entries: aliasEntries }),

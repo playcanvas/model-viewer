@@ -21,9 +21,9 @@ export default function copyAndWatch(config) {
                 } else {
                     let dest;
                     if (fs.lstatSync(target.src).isDirectory()) {
-                        dest = path.join(target.dest, path.basename(target.destFilename || target.src), path.relative(target.src, pathname));
+                        dest = path.join(target.dest || '', path.basename(target.destFilename || target.src), path.relative(target.src, pathname));
                     } else {
-                        dest = path.join(target.dest, path.basename(target.destFilename || target.src));
+                        dest = path.join(target.dest || '', path.basename(target.destFilename || target.src));
                     }
                     resolvedConfig.targets.push({
                         src: pathname,
