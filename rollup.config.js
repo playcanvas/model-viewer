@@ -3,24 +3,13 @@ import commonjs from "@rollup/plugin-commonjs";
 import replace from '@rollup/plugin-replace';
 import alias from '@rollup/plugin-alias';
 import typescript from 'rollup-plugin-typescript2';
-import copy from 'rollup-plugin-copy';
 import { terser } from 'rollup-plugin-terser';
 import sourcemaps from 'rollup-plugin-sourcemaps';
 import Handlebars from 'handlebars';
-import fs from 'fs';
 import path from 'path';
+import copyAndWatch from "./copy-and-watch";
 
-const html = fs.readFileSync(`./src/index.mustache`, "utf8");
-const template = Handlebars.compile(html);
-if (!fs.existsSync('./dist')) fs.mkdirSync('./dist');
-fs.writeFileSync(`./dist/index.html`, template({
-    hasPublicPath: !!process.env.PUBLIC_PATH,
-    hasAnalyticsID: !!process.env.ANALYTICS_ID,
-    hasOneTrustDeveloperID: !!process.env.ONETRUST_DEVELOPER_ID,
-    analyticsID: process.env.ANALYTICS_ID,
-    oneTrustDomainKey: process.env.ONETRUST_DOMAIN_KEY,
-    oneTrustDeveloperID: process.env.ONETRUST_DEVELOPER_ID
-}));
+const PROD_BUILD = process.env.BUILD_TYPE === 'prod';
 
 const paths = {};
 ['PCUI_PATH', 'ENGINE_PATH'].forEach((p) => {
@@ -52,7 +41,17 @@ if (paths.ENGINE_PATH) {
     });
 }
 
-const PROD_BUILD = process.env.BUILD_TYPE === 'prod';
+// compile mustache template
+const compileMustache = (content, srcFilename) => {
+    return Handlebars.compile(content.toString('utf8'))({
+        hasPublicPath: !!process.env.PUBLIC_PATH,
+        hasAnalyticsID: !!process.env.ANALYTICS_ID,
+        hasOneTrustDeveloperID: !!process.env.ONETRUST_DEVELOPER_ID,
+        analyticsID: process.env.ANALYTICS_ID,
+        oneTrustDomainKey: process.env.ONETRUST_DOMAIN_KEY,
+        oneTrustDeveloperID: process.env.ONETRUST_DEVELOPER_ID
+    });
+};
 
 export default {
     input: 'src/index.tsx',
@@ -62,11 +61,12 @@ export default {
         sourcemap: true
     },
     plugins: [
-        copy({
+        copyAndWatch({
             targets: [
-                { src: './src/style.css', dest: 'dist/' },
-                { src: './src/fonts.css', dest: 'dist/' },
-                { src: './static/*', dest: 'dist/static/' }
+                { src: 'src/style.css', dest: '' },
+                { src: 'src/fonts.css', dest: '' },
+                { src: 'static/', dest: '' },
+                { src: 'src/index.mustache', dest: '', destFilename: 'index.html', transform: compileMustache }
             ]
         }),
         alias({ entries: aliasEntries }),
