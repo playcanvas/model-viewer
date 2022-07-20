@@ -32,7 +32,7 @@ if (paths.PCUI_PATH) {
 if (paths.ENGINE_PATH) {
     aliasEntries.push({
         find: /^playcanvas$/,
-        replacement: `${paths.ENGINE_PATH}/build/playcanvas.dbg.js`
+        replacement: `${paths.ENGINE_PATH}/build/playcanvas.dbg.mjs`
     });
 
     aliasEntries.push({
