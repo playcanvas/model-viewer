@@ -398,7 +398,8 @@ class Viewer {
             'animation.loops': this.setLoops.bind(this),
             'animation.progress': this.setAnimationProgress.bind(this),
 
-            'scene.selectedNode.path': this.setSelectedNode.bind(this)
+            'scene.selectedNode.path': this.setSelectedNode.bind(this),
+            'scene.variant.selected': this.setSelectedVariant.bind(this)
         };
 
         // register control events
@@ -659,7 +660,8 @@ class Viewer {
         // reset animation state
         this.animTracks = [];
         this.animationMap = { };
-        this.observer.set('animations.list', '[]');
+        this.observer.set('animation.list', '[]');
+        this.observer.set('scene.variants.list', '[]');
 
         this.morphs = [];
         this.observer.set('morphTargets', null);
@@ -674,9 +676,11 @@ class Viewer {
         let meshCount = 0;
         let vertexCount = 0;
         let primitiveCount = 0;
+        let variants = {};
 
         // update mesh stats
         this.assets.forEach((asset) => {
+            variants = asset.resource.getMaterialVariants();
             asset.resource.renders.forEach((renderAsset: pc.Asset) => {
                 renderAsset.resource.meshes.forEach((mesh: pc.Mesh) => {
                     meshCount++;
@@ -709,6 +713,10 @@ class Viewer {
         this.observer.set('scene.meshCount', meshCount);
         this.observer.set('scene.vertexCount', vertexCount);
         this.observer.set('scene.primitiveCount', primitiveCount);
+
+        // variant stats
+        if (variants)
+            this.observer.set('scene.variants.list', JSON.stringify(Object.keys(variants)));
     }
 
     // move the camera to view the loaded object
@@ -987,6 +995,19 @@ class Viewer {
 
         this.selectedNode = graphNode;
         this.dirtySkeleton = true;
+        this.renderNextFrame();
+    }
+
+    setSelectedVariant(path: string) {
+        this.assets.forEach((asset) => {
+            this.entities.forEach((entity) => {
+                const renders = entity.findComponents("render");
+                for (let i = 0; i < renders.length; i++) {
+                    const renderComponent = renders[i] as pc.RenderComponent;
+                    asset.resource.applyMaterialVariant(path, renderComponent.meshInstances);
+                }
+            });
+        });
         this.renderNextFrame();
     }
 
