@@ -1001,11 +1001,7 @@ class Viewer {
     setSelectedVariant(path: string) {
         this.assets.forEach((asset) => {
             this.entities.forEach((entity) => {
-                const renders = entity.findComponents("render");
-                for (let i = 0; i < renders.length; i++) {
-                    const renderComponent = renders[i] as pc.RenderComponent;
-                    asset.resource.applyMaterialVariant(path, renderComponent.meshInstances);
-                }
+                asset.resource.applyMaterialVariant(path, entity);
             });
         });
         this.renderNextFrame();
