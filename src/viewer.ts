@@ -676,7 +676,7 @@ class Viewer {
         let meshCount = 0;
         let vertexCount = 0;
         let primitiveCount = 0;
-        let variants = {};
+        let variants = null;
 
         // update mesh stats
         this.assets.forEach((asset) => {
@@ -716,7 +716,7 @@ class Viewer {
 
         // variant stats
         if (variants)
-            this.observer.set('scene.variants.list', JSON.stringify(Object.keys(variants)));
+            this.observer.set('scene.variants.list', JSON.stringify(variants));
     }
 
     // move the camera to view the loaded object
