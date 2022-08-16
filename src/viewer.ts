@@ -1008,7 +1008,7 @@ class Viewer {
     setSelectedVariant(path: string) {
         this.assets.forEach((asset) => {
             this.entities.forEach((entity) => {
-                asset.resource.applyMaterialVariant(path, entity);
+                asset.resource.applyMaterialVariant(entity, path);
             });
         });
         this.renderNextFrame();
