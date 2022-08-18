@@ -200,11 +200,11 @@ const Controls = (props: { observer: Observer }) => {
 
 const PopupButtons = () => {
     const observer: Observer = useContext(ObserverContext);
-    const observerState = new ObserverState(observer);
     const handleClick = (value: string) => {
         observer.set('ui.active', observer.get('ui.active') === value ? null : value);
     };
     const buildClass = (value: string) => {
+        const observerState = new ObserverState(observer);
         return (observerState.useState('ui.active') === value) ? 'popup-button-selected' : 'popup-button';
     };
     return (
