@@ -184,14 +184,14 @@ input {
     margin: 12px !important;
     color: white;
     border: 0px !important;
-    background-color: rgba(64, 64, 64, 0.5) !important;
+    background-color: rgba(32, 32, 32, 0.4) !important;
 }
 
 .popup-button-selected {
     margin: 12px !important;
     color: white;
     border: 0px !important;
-    background-color: rgba(64, 64, 64, 0.9) !important;
+    background-color: rgba(32, 32, 32, 0.8) !important;
 }
 
 .popup-panel-parent > .pcui-container {
