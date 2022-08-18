@@ -7,7 +7,7 @@ import { Container, Spinner } from '@playcanvas/pcui/react';
 
 import { getAssetPath, getRootPath } from './helpers';
 import { Option } from './types';
-import { Controls } from './controls'
+import { Controls, ToggleButtonControls, TogglePanelControls } from './controls'
 import LoadControls from './load-ui';
 import ErrorBox from './errors';
 import Viewer from './viewer';
@@ -27,6 +27,9 @@ interface Skybox {
 
 // initialize the apps state
 const observer: Observer = new Observer({
+    ui: {
+        active: null
+    },
     render: {
         multisampleSupported: true,
         multisample: true,
@@ -142,10 +145,12 @@ ReactDOM.render(
             </Container>
         </Container>
         <div id='canvas-wrapper'>
-            <LoadControls observer={observer} />
             <ErrorBox observer={observer} path='error' />
             <canvas id="application-canvas" />
             <Spinner id="spinner" size={30} hidden={true} />
+            <LoadControls observer={observer} />
+            <ToggleButtonControls observer={observer} />
+            <TogglePanelControls observer={observer} />
         </div>
     </div>,
     document.getElementById('app')
