@@ -7,19 +7,15 @@ import { Morph, Option, HierarchyNode } from './types';
 
 const ObserverContext = React.createContext(null);
 const ObserverProvider = ObserverContext.Provider;
-const observerSetFunctions: { [key: string]: (value: string | number | object) => void } = {};
 
 const useObserverState = (observer: Observer, path: string, json?: boolean) => {
     const parseFunc = (observerValue: any) => {
         return json ? JSON.parse(observerValue) : observerValue;
     };
     const [value, setValue] = useState(parseFunc(observer.get(path)));
-    if (!observerSetFunctions[path]) {
-        observerSetFunctions[path] = (value: string | number | object) => {
-            setValue(parseFunc(value));
-        };
-        observer.on(`${path}:set`, observerSetFunctions[path]);
-    }
+    observer.on(`${path}:set`, (value: string | number | object) => {
+        setValue(parseFunc(value));
+    });
     return value;
 };
 
@@ -186,37 +182,38 @@ const Controls = (props: { observer: Observer }) => {
     );
 };
 
-const ToggleButtons = () => {
+const PopupButtons = () => {
     const observer: Observer = useContext(ObserverContext);
     const handleClick = (value: string) => {
         observer.set('ui.active', observer.get('ui.active') === value ? null : value);
-        console.log(observer.get('ui.active'));
     };
     return (
-        <div className='toggle-buttons-parent'>
-            <Button class='toggle-button' icon='E212' width={30} onClick={() => handleClick('camera')} />
-            <Button class='toggle-button' icon='E410' width={30} onClick={() => handleClick('show')} />
-            <Button class='toggle-button' icon='E192' width={30} onClick={() => handleClick('lighting')} />
-            <Button class='toggle-button' icon='E217' width={30} onClick={() => handleClick('fullscreen')} />
+        <div className='popup-buttons-parent'>
+            <Button class='popup-button' icon='E212' width={30} onClick={() => handleClick('camera')} />
+            <Button class='popup-button' icon='E410' width={30} onClick={() => handleClick('show')} />
+            <Button class='popup-button' icon='E192' width={30} onClick={() => handleClick('lighting')} />
+            <Button class='popup-button' icon='E217' width={30} onClick={() => handleClick('fullscreen')} />
         </div>
     );
 };
 
-const ToggleButtonControls = (props: { observer: Observer }) => {
+const PopupButtonControls = (props: { observer: Observer }) => {
     return (
         <ObserverProvider value={props.observer}>
-            <ToggleButtons />
+            <PopupButtons />
         </ObserverProvider>
     );
 };
 
-const RenderPanel = () => {
+const CameraPanel = () => {
     const observer: Observer = useContext(ObserverContext);
-    const hidden = () => useObserverState(observer, 'ui.active') !== 'render';
+    const hidden = () => useObserverState(observer, 'ui.active') !== 'camera';
     const multisampleSupported: boolean = useObserverState(observer, 'render.multisampleSupported', true);
     return (
-        <div className='toggle-panel-parent'>
-            <Container class='toggle-panel' flex hidden={hidden()}>
+        <div className='popup-panel-parent'>
+            <Container class='popup-panel' flex hidden={hidden()}>
+                <Slider name='fov' precision={0} min={35} max={150} path='show.fov' />
+                <Select name='lightingTonemapping' type='string' options={['Linear', 'Filmic', 'Hejl', 'ACES'].map(v => ({ v, t: v }))} path='lighting.tonemapping' label='Tonemap' />
                 <Toggle name='multisample' path='render.multisample' enabled={multisampleSupported}/>
                 <Toggle name='hq' path='render.hq' label='High Quality' />
                 <Select name='pixelScale' path='render.pixelScale' label='Pixel Scale' type='number' options={[1, 2, 4, 8, 16].map(v => ({ v: v, t: Number(v).toString() }))} />
@@ -229,16 +226,15 @@ const ShowPanel = () => {
     const observer: Observer = useContext(ObserverContext);
     const hidden = () => useObserverState(observer, 'ui.active') !== 'show';
     return (
-        <div className='toggle-panel-parent'>
-            <Container class='toggle-panel' flex hidden={hidden()}>
-                <Toggle name='stats' path='show.stats' />
-                <Toggle name='wireframe' path='show.wireframe' />
-                <Toggle name='bounds' path='show.bounds' />
-                <Toggle name='skeleton' path='show.skeleton' />
-                <Toggle name='axes' path='show.axes' />
+        <div className='popup-panel-parent'>
+            <Container class='popup-panel' flex hidden={hidden()}>
                 <Toggle name='grid' path='show.grid' />
+                <Toggle name='wireframe' path='show.wireframe' />
+                <Toggle name='axes' path='show.axes' />
+                <Toggle name='skeleton' path='show.skeleton' />
+                <Toggle name='bounds' path='show.bounds' />
+                <Toggle name='stats' path='show.stats' />
                 <Slider name='normals' precision={2} min={0} max={1} path='show.normals' />
-                <Slider name='fov' precision={0} min={35} max={150} path='show.fov' />
             </Container>
         </div>
     );
@@ -249,32 +245,31 @@ const LightingPanel = () => {
     const hidden = () => useObserverState(observer, 'ui.active') !== 'lighting';
     const skyboxOptions: Array<Option> = useObserverState(observer, 'lighting.env.options', true);
     return (
-        <div className='toggle-panel-parent'>
-            <Container class='toggle-panel' flex hidden={hidden()}>
+        <div className='popup-panel-parent'>
+            <Container class='popup-panel' flex hidden={hidden()}>
+                <Select name='lightingEnv' type='string' options={skyboxOptions} path='lighting.env.value' label='Environment' />
+                <Slider name='lightingExposure' precision={2} min={-6} max={6} path='lighting.env.exposure' label='Exposure' />
+                <Slider name='lightingRotation' precision={0} min={-180} max={180} path='lighting.rotation' label='Rotation' />
+                <Select name='lightingSkyboxMip' type='number' options={[0, 1, 2, 3, 4, 5, 6].map(v => ({ v: v, t: v === 0 ? 'Disable' : Number(v - 1).toString() }))} path='lighting.env.skyboxMip' label='Skybox Level' />
                 <Slider name='lightingDirect' precision={2} min={0} max={6} path='lighting.direct' label='Direct' />
                 <Toggle name='lightingShadow' path='lighting.shadow' label='Shadow' />
-                <Select name='lightingEnv' type='string' options={skyboxOptions} path='lighting.env.value' label='Environment' />
-                <Select name='lightingSkyboxMip' type='number' options={[0, 1, 2, 3, 4, 5, 6].map(v => ({ v: v, t: v === 0 ? 'Disable' : Number(v - 1).toString() }))} path='lighting.env.skyboxMip' label='Skybox Level' />
-                <Slider name='lightingEnv' precision={2} min={-6} max={6} path='lighting.env.exposure' label='Exposure' />
-                <Slider name='lightingRotation' precision={0} min={-180} max={180} path='lighting.rotation' label='Rotation' />
-                <Select name='lightingTonemapping' type='string' options={['Linear', 'Filmic', 'Hejl', 'ACES'].map(v => ({ v, t: v }))} path='lighting.tonemapping' label='Tonemap' />
             </Container>
         </div>
     );
 };
 
-const TogglePanelControls = (props: { observer: Observer }) => {
+const PopupPanelControls = (props: { observer: Observer }) => {
     return (
         <ObserverProvider value={props.observer}>
-            <LightingPanel />
-            <RenderPanel />
+            <CameraPanel />
             <ShowPanel />
+            <LightingPanel />
         </ObserverProvider>
     );
 };
 
 export {
     Controls,
-    ToggleButtonControls,
-    TogglePanelControls
+    PopupButtonControls,
+    PopupPanelControls
 };
