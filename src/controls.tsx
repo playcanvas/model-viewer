@@ -187,12 +187,15 @@ const PopupButtons = () => {
     const handleClick = (value: string) => {
         observer.set('ui.active', observer.get('ui.active') === value ? null : value);
     };
+    const buildClass = (value: string) => {
+        return (useObserverState(observer, 'ui.active') === value) ? 'popup-button-selected' : 'popup-button';
+    };
     return (
         <div className='popup-buttons-parent'>
-            <Button class='popup-button' icon='E212' width={30} onClick={() => handleClick('camera')} />
-            <Button class='popup-button' icon='E410' width={30} onClick={() => handleClick('show')} />
-            <Button class='popup-button' icon='E192' width={30} onClick={() => handleClick('lighting')} />
-            <Button class='popup-button' icon='E217' width={30} onClick={() => handleClick('fullscreen')} />
+            <Button class={buildClass('camera')} icon='E212' width={40} height={40} onClick={() => handleClick('camera')} />
+            <Button class={buildClass('show')} icon='E410' width={40} height={40} onClick={() => handleClick('show')} />
+            <Button class={buildClass('lighting')} icon='E192' width={40} height={40} onClick={() => handleClick('lighting')} />
+            <Button class={buildClass('fullscreen')} icon='E127' width={40} height={40} onClick={() => handleClick('fullscreen')} />
         </div>
     );
 };

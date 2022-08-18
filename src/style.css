@@ -176,8 +176,22 @@ input {
 .popup-buttons-parent {
     position: absolute;
     left: 50%;
-    bottom: 50px;
+    bottom: 40px;
     transform: translateX(-50%);
+}
+
+.popup-button {
+    margin: 12px !important;
+    color: white;
+    border: 0px !important;
+    background-color: rgba(64, 64, 64, 0.5) !important;
+}
+
+.popup-button-selected {
+    margin: 12px !important;
+    color: white;
+    border: 0px !important;
+    background-color: rgba(64, 64, 64, 0.9) !important;
 }
 
 .popup-panel-parent > .pcui-container {
@@ -187,14 +201,13 @@ input {
 .popup-panel {
     position: absolute;
     width: 400px;
-    /* height: 240px; */
     left: 50%;
-    bottom: 116px;
+    bottom: 120px;
     transform: translateX(-50%);
     padding: 16px 16px 16px 16px;
     border-radius: 8px;
     font-size: 16px;
-    background-color: rgba(64, 64, 64, 0.4);
+    background-color: rgba(64, 64, 64, 0.6);
 }
 
 #load-controls .pcui-container {
