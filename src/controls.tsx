@@ -203,11 +203,14 @@ const PopupButtons = () => {
     const handleClick = (value: string) => {
         observer.set('ui.active', observer.get('ui.active') === value ? null : value);
     };
+
+    const observerState = new ObserverState(observer);
+    const state = observerState.useState('ui.active');
     const buildClass = (value: string) => {
-        const observerState = new ObserverState(observer);
-        const state = observerState.useState('ui.active');
+        console.log(`${value}=${state}`);
         return (state === value) ? 'popup-button-selected' : 'popup-button';
     };
+
     return (
         <div className='popup-buttons-parent'>
             <Button class={buildClass('camera')} icon='E212' width={40} height={40} onClick={() => handleClick('camera')} />
