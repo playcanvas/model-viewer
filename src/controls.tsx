@@ -8,16 +8,29 @@ import { Morph, Option, HierarchyNode } from './types';
 const ObserverContext = React.createContext(null);
 const ObserverProvider = ObserverContext.Provider;
 
-const useObserverState = (observer: Observer, path: string, json?: boolean) => {
-    const parseFunc = (observerValue: any) => {
-        return json ? JSON.parse(observerValue) : observerValue;
-    };
-    const [value, setValue] = useState(parseFunc(observer.get(path)));
-    observer.on(`${path}:set`, (value: string | number | object) => {
-        setValue(parseFunc(value));
-    });
-    return value;
-};
+class ObserverState {
+    observer: Observer;
+    observerSetFunctions: { [key: string]: any } = {};
+
+    constructor(observer: Observer) {
+        this.observer = observer;
+    }
+
+    useState(path: string, json?: boolean) {
+        const parseFunc = (observerValue: any) => {
+            return json ? JSON.parse(observerValue) : observerValue;
+        };
+        const [value, setValue] = useState(parseFunc(this.observer.get(path)));
+        if (!this.observerSetFunctions[path]) {
+            const func = (value: string | number | object) => {
+                setValue(parseFunc(value));
+            };
+            this.observerSetFunctions[path] = func;
+            this.observer.on(`${path}:set`, func);
+        }
+        return value;
+    }
+}
 
 const Detail = (props: { name: string, path:string, label?: string, enabled?: boolean}) => {
     const observer: Observer = useContext(ObserverContext);
@@ -73,7 +86,8 @@ Select.defaultProps = { enabled: true };
 
 const ScenePanel = () => {
     const observer: Observer = useContext(ObserverContext);
-    const modelHierarchy: Array<HierarchyNode> = useObserverState(observer, 'scene.nodes', true);
+    const observerState = new ObserverState(observer);
+    const modelHierarchy: Array<HierarchyNode> = observerState.useState('scene.nodes', true);
     const enabled: boolean =  modelHierarchy.length > 0;
     const mapNodes = (nodes: Array<HierarchyNode>) => {
         return nodes.map((node:HierarchyNode) => <TreeViewItem text={`${node.name}`} key={node.path} onSelected={() => observer.set('scene.selectedNode.path', node.path)}>
@@ -105,8 +119,9 @@ const ScenePanel = () => {
 
 const AnimationPanel = () => {
     const observer: Observer = useContext(ObserverContext);
-    const playing: boolean = useObserverState(observer, 'animation.playing');
-    const animationsList: Array<string> = useObserverState(observer, 'animation.list', true);
+    const observerState = new ObserverState(observer);
+    const playing: boolean = observerState.useState('animation.playing');
+    const animationsList: Array<string> = observerState.useState('animation.list', true);
     const enabled: boolean =  animationsList.length > 0;
     let selectTrackOptions: Array<{ v: string, t: string }> = animationsList.map((animation: string) => ({ v: animation, t: animation }));
     if (selectTrackOptions.length > 1) {
@@ -117,7 +132,7 @@ const AnimationPanel = () => {
     } else if (selectTrackOptions.length === 1) {
         observer.set('animation.selectedTrack', selectTrackOptions[0].v);
     }
-    const allTracks: boolean = useObserverState(observer, 'animation.selectedTrack') === 'ALL_TRACKS';
+    const allTracks: boolean = observerState.useState('animation.selectedTrack') === 'ALL_TRACKS';
     return (
         <Panel headerText='ANIMATION' collapsible>
             <Select name='animationTrack' type='string' options={selectTrackOptions} path='animation.selectedTrack' label='Track' enabled={enabled} />
@@ -134,7 +149,8 @@ const AnimationPanel = () => {
 
 const MorphPanel = () => {
     const observer: Observer = useContext(ObserverContext);
-    const morphTargets: Record<string, {name: string, morphs: Record<string, Morph>}> = useObserverState(observer, 'morphTargets');
+    const observerState = new ObserverState(observer);
+    const morphTargets: Record<string, {name: string, morphs: Record<string, Morph>}> = observerState.useState('morphTargets');
     if (!morphTargets) return null;
     return (
         <Panel headerText='MORPH TARGETS' collapsible>
@@ -184,11 +200,12 @@ const Controls = (props: { observer: Observer }) => {
 
 const PopupButtons = () => {
     const observer: Observer = useContext(ObserverContext);
+    const observerState = new ObserverState(observer);
     const handleClick = (value: string) => {
         observer.set('ui.active', observer.get('ui.active') === value ? null : value);
     };
     const buildClass = (value: string) => {
-        return (useObserverState(observer, 'ui.active') === value) ? 'popup-button-selected' : 'popup-button';
+        return (observerState.useState('ui.active') === value) ? 'popup-button-selected' : 'popup-button';
     };
     return (
         <div className='popup-buttons-parent'>
@@ -210,8 +227,9 @@ const PopupButtonControls = (props: { observer: Observer }) => {
 
 const CameraPanel = () => {
     const observer: Observer = useContext(ObserverContext);
-    const hidden = () => useObserverState(observer, 'ui.active') !== 'camera';
-    const multisampleSupported: boolean = useObserverState(observer, 'render.multisampleSupported', true);
+    const observerState = new ObserverState(observer);
+    const hidden = () => observerState.useState('ui.active') !== 'camera';
+    const multisampleSupported: boolean = observerState.useState('render.multisampleSupported', true);
     return (
         <div className='popup-panel-parent'>
             <Container class='popup-panel' flex hidden={hidden()}>
@@ -227,7 +245,8 @@ const CameraPanel = () => {
 
 const ShowPanel = () => {
     const observer: Observer = useContext(ObserverContext);
-    const hidden = () => useObserverState(observer, 'ui.active') !== 'show';
+    const observerState = new ObserverState(observer);
+    const hidden = () => observerState.useState('ui.active') !== 'show';
     return (
         <div className='popup-panel-parent'>
             <Container class='popup-panel' flex hidden={hidden()}>
@@ -245,8 +264,9 @@ const ShowPanel = () => {
 
 const LightingPanel = () => {
     const observer: Observer = useContext(ObserverContext);
-    const hidden = () => useObserverState(observer, 'ui.active') !== 'lighting';
-    const skyboxOptions: Array<Option> = useObserverState(observer, 'lighting.env.options', true);
+    const observerState = new ObserverState(observer);
+    const hidden = () => observerState.useState('ui.active') !== 'lighting';
+    const skyboxOptions: Array<Option> = observerState.useState('lighting.env.options', true);
     return (
         <div className='popup-panel-parent'>
             <Container class='popup-panel' flex hidden={hidden()}>
