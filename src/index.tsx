@@ -7,7 +7,7 @@ import { Container, Spinner } from '@playcanvas/pcui/react';
 
 import { getAssetPath, getRootPath } from './helpers';
 import { Option } from './types';
-import { Controls, PopupButtonControls, PopupPanelControls } from './controls'
+import { SceneControls, PopupButtonControls, PopupPanelControls, SelectedNodeControls } from './controls'
 import LoadControls from './load-ui';
 import ErrorBox from './errors';
 import Viewer from './viewer';
@@ -136,13 +136,16 @@ const loadOptions = (name: string) => {
 
 // render out the app
 ReactDOM.render(
-    <div id="flex-container">
-        <Container id="wrapper-left" resizable='right' resizeMin={220} resizeMax={800} onResize={() => observer.emit('canvasResized')}>
-            <Container id="panel-left" class="control-panel">
-                <div id="panel-toggle"></div>
-                <div className="header" style={{ display: 'none' }}><a href={getRootPath()}><img src={getAssetPath('playcanvas-logo.png')}/><div><b>PLAY</b>CANVAS <span>viewer</span></div></a></div>
-                <Controls observer={observer} />
-            </Container>
+    <div id="application-container">
+        <Container id="panel-left" flex resizable='right' resizeMin={220} resizeMax={800} onResize={() => observer.emit('canvasResized')}>
+            <div className="header" style={{ display: 'none' }}>
+                <a href={getRootPath()}>
+                    <img src={getAssetPath('playcanvas-logo.png')}/>
+                    <div><b>PLAY</b>CANVAS <span>viewer</span></div>
+                </a>
+            </div>
+            <div id="panel-toggle"></div>
+            <SceneControls observer={observer} />
         </Container>
         <div id='canvas-wrapper'>
             <ErrorBox observer={observer} path='error' />
@@ -151,6 +154,7 @@ ReactDOM.render(
             <LoadControls observer={observer} />
             <PopupButtonControls observer={observer} />
             <PopupPanelControls observer={observer} />
+            <SelectedNodeControls observer={observer} />
         </div>
     </div>,
     document.getElementById('app')

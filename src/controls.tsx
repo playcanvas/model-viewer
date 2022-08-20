@@ -1,8 +1,7 @@
 import React, { useEffect, useState, useContext } from 'react';
 import { Observer } from '@playcanvas/observer';
 import { BindingTwoWay } from '@playcanvas/pcui';
-import { Panel, Container, BooleanInput, Label, SliderInput, Button, TreeViewItem, TreeView, VectorInput, SelectInput } from '@playcanvas/pcui/react';
-
+import { Panel, Container, BooleanInput, Label, SliderInput, Button, TreeViewItem, TreeView, VectorInput, SelectInput, TextInput } from '@playcanvas/pcui/react';
 import { Morph, Option, HierarchyNode } from './types';
 
 const ObserverContext = React.createContext(null);
@@ -35,24 +34,24 @@ class ObserverState {
 const Detail = (props: { name: string, path:string, label?: string, enabled?: boolean}) => {
     const observer: Observer = useContext(ObserverContext);
     return <Container class='panel-option'>
-        <Label text={props.label ? props.label : props.name.substring(0, 1).toUpperCase() + props.name.substring(1, props.name.length)} />
-        <Label link={{ observer, path: props.path }} binding={new BindingTwoWay()} enabled={props.enabled}/>
+        <Label class='panel-label' text={props.label ? props.label : props.name.substring(0, 1).toUpperCase() + props.name.substring(1, props.name.length)} />
+        <Label class='panel-value' link={{ observer, path: props.path }} binding={new BindingTwoWay()} enabled={props.enabled}/>
     </Container>;
 };
 
 const Vector = (props: { name: string, path:string, label?: string, dimensions: number, enabled?: boolean}) => {
     const observer: Observer = useContext(ObserverContext);
     return <Container class='panel-option'>
-        <Label text={props.label ? props.label : props.name.substring(0, 1).toUpperCase() + props.name.substring(1, props.name.length)} />
-        <VectorInput link={{ observer, path: props.path }} binding={new BindingTwoWay()} dimensions={props.dimensions} enabled={props.enabled}/>
+        <Label class='panel-label' text={props.label ? props.label : props.name.substring(0, 1).toUpperCase() + props.name.substring(1, props.name.length)} />
+        <VectorInput class='panel-value' link={{ observer, path: props.path }} binding={new BindingTwoWay()} dimensions={props.dimensions} enabled={props.enabled}/>
     </Container>;
 };
 
 const Toggle = (props: { name: string, path:string, label?: string, enabled?: boolean}) => {
     const observer: Observer = useContext(ObserverContext);
     return <Container class='panel-option'>
-        <Label text={props.label ? props.label : props.name.substring(0, 1).toUpperCase() + props.name.substring(1, props.name.length)} />
-        <BooleanInput type='toggle' link={{ observer, path: props.path }} binding={new BindingTwoWay()} enabled={props.enabled}/>
+        <Label class='panel-label' text={props.label ? props.label : props.name.substring(0, 1).toUpperCase() + props.name.substring(1, props.name.length)} />
+        <BooleanInput class='panel-value-boolean' type='toggle' link={{ observer, path: props.path }} binding={new BindingTwoWay()} enabled={props.enabled}/>
     </Container>;
 };
 Toggle.defaultProps = { enabled: true };
@@ -60,8 +59,8 @@ Toggle.defaultProps = { enabled: true };
 const Slider = (props: { name: string, path:string, precision: number, min: number, max: number, label?: string, enabled?: boolean }) => {
     const observer: Observer = useContext(ObserverContext);
     return <Container class='panel-option'>
-        <Label text={props.label ? props.label : props.name.substring(0, 1).toUpperCase() + props.name.substring(1, props.name.length)} />
-        <SliderInput min={props.min} max={props.max} sliderMin={props.min} sliderMax={props.max} precision={props.precision} step={0.01} link={{ observer, path: props.path }} binding={new BindingTwoWay()} enabled={props.enabled} />
+        <Label class='panel-label' text={props.label ? props.label : props.name.substring(0, 1).toUpperCase() + props.name.substring(1, props.name.length)} />
+        <SliderInput class='panel-value' min={props.min} max={props.max} sliderMin={props.min} sliderMax={props.max} precision={props.precision} step={0.01} link={{ observer, path: props.path }} binding={new BindingTwoWay()} enabled={props.enabled} />
     </Container>;
 };
 Slider.defaultProps = { enabled: true };
@@ -69,8 +68,8 @@ Slider.defaultProps = { enabled: true };
 const MorphSlider = (props: { name: string, path:string, precision: number, min: number, max: number, label?: string, enabled?: boolean }) => {
     const observer: Observer = useContext(ObserverContext);
     return <Container class='panel-option'>
-        <Label flexGrow={1} text={props.label ? props.label : props.name.substring(0, 1).toUpperCase() + props.name.substring(1, props.name.length)} flex />
-        <SliderInput flexGrow={0} flexShrink={0} min={props.min} max={props.max} sliderMin={props.min} sliderMax={props.max} precision={props.precision} step={0.01} link={{ observer, path: props.path }} binding={new BindingTwoWay()} enabled={props.enabled} />
+        <Label class='panel-label' flexGrow={1} text={props.label ? props.label : props.name.substring(0, 1).toUpperCase() + props.name.substring(1, props.name.length)} flex />
+        <SliderInput class='panel-value' flexGrow={0} flexShrink={0} min={props.min} max={props.max} sliderMin={props.min} sliderMax={props.max} precision={props.precision} step={0.01} link={{ observer, path: props.path }} binding={new BindingTwoWay()} enabled={props.enabled} />
     </Container>;
 };
 MorphSlider.defaultProps = { enabled: true };
@@ -78,16 +77,30 @@ MorphSlider.defaultProps = { enabled: true };
 const Select = (props: { name: string, path:string, type: string, options: Array<Option>, label?: string, enabled?: boolean }) => {
     const observer: Observer = useContext(ObserverContext);
     return <Container class='panel-option'>
-        <Label text={props.label ? props.label : props.name.substring(0, 1).toUpperCase() + props.name.substring(1, props.name.length)} />
-        <SelectInput type={props.type} options={props.options} link={{ observer, path: props.path }} binding={new BindingTwoWay()} enabled={props.enabled} />
+        <Label class='panel-label' text={props.label ? props.label : props.name.substring(0, 1).toUpperCase() + props.name.substring(1, props.name.length)} />
+        <SelectInput class='panel-value' type={props.type} options={props.options} link={{ observer, path: props.path }} binding={new BindingTwoWay()} enabled={props.enabled} />
     </Container>;
 };
 Select.defaultProps = { enabled: true };
+
+// naked versions
+const NakedSelect = (props: { width: number, path:string, type: string, options: Array<Option>, enabled?: boolean, class?: string }) => {
+    const observer: Observer = useContext(ObserverContext);
+    return <SelectInput width={props.width} type={props.type} options={props.options} link={{ observer, path: props.path }} binding={new BindingTwoWay()} enabled={props.enabled} class={props.class} />;
+};
+NakedSelect.defaultProps = { enabled: true };
+
+const NakedSlider = (props: { path:string, precision: number, min: number, max: number, enabled?: boolean }) => {
+    const observer: Observer = useContext(ObserverContext);
+    return <SliderInput min={props.min} max={props.max} sliderMin={props.min} sliderMax={props.max} precision={props.precision} step={0.01} link={{ observer, path: props.path }} binding={new BindingTwoWay()} enabled={props.enabled} />;
+};
+NakedSlider.defaultProps = { enabled: true };
 
 const ScenePanel = () => {
     const observer: Observer = useContext(ObserverContext);
     const observerState = new ObserverState(observer);
     const modelHierarchy: Array<HierarchyNode> = observerState.useState('scene.nodes', true);
+    const morphTargets: Record<string, {name: string, morphs: Record<string, Morph>}> = observerState.useState('morphTargets');
     const enabled: boolean =  modelHierarchy.length > 0;
     const mapNodes = (nodes: Array<HierarchyNode>) => {
         return nodes.map((node:HierarchyNode) => <TreeViewItem text={`${node.name}`} key={node.path} onSelected={() => observer.set('scene.selectedNode.path', node.path)}>
@@ -95,87 +108,45 @@ const ScenePanel = () => {
         </TreeViewItem>);
     };
     return (
-        <Panel headerText='SCENE' collapsible >
-            <Detail name='meshCount' label='Meshes' path='scene.meshCount'/>
-            <Detail name='vertexCount' label='Verts' path='scene.vertexCount'/>
-            <Detail name='primitiveCount' label='Primitives' path='scene.primitiveCount'/>
-            <Vector name='bounds' label='Bounds' dimensions={3} path='scene.bounds' enabled={false}/>
-            <Panel headerText='SELECTED NODE' collapsible class={'modelSelectedNodePanel'} enabled={enabled}>
-                <Detail name='selectedNodeName' label='Name' path='scene.selectedNode.name'/>
-                <Vector name='selectedNodePosition' label='Position' dimensions={3} path='scene.selectedNode.position' enabled={false}/>
-                <Vector name='selectedNodeRotation' label='Rotation' dimensions={3} path='scene.selectedNode.rotation' enabled={false}/>
-                <Vector name='selectedNodeScale' label='Scale' dimensions={3} path='scene.selectedNode.scale' enabled={false}/>
+        <Container id='scene-container' flex>
+            <div id='scene-scrolly-bits'>
+                <Panel headerText='HIERARCHY' class='scene-hierarchy-panel' enabled={enabled} collapsible>
+                    { modelHierarchy.length > 0 &&
+                        <TreeView allowReordering={false} allowDrag={false}>
+                            { mapNodes(modelHierarchy) }
+                        </TreeView>
+                    }
+                </Panel>
+                { morphTargets && <Panel headerText='MORPH TARGETS' class='scene-morph-panel' collapsible>
+                    {Object.keys(morphTargets).map((key) => {
+                        const panel = morphTargets[key];
+                        return (
+                            <Panel key={`${key}.${panel.name}`} headerText={panel.name} collapsible class='morph-target-panel'>
+                                {Object.keys(panel.morphs).map((morphKey) => {
+                                    const morph: Morph = panel.morphs[morphKey];
+                                    return <MorphSlider key={`${key}.${morphKey}`} name={`${morph.name}`} precision={2} min={0} max={1} path={`morphTargets.${key}.morphs.${morph.targetIndex}.weight`} />;
+                                })}
+                            </Panel>
+                        );
+                    }
+                    )}
+                </Panel> }
+            </div>
+            <Panel headerText='SCENE' flexShrink={0} flexGrow={0} collapsible >
+                <Detail name='meshCount' label='Meshes' path='scene.meshCount'/>
+                <Detail name='vertexCount' label='Verts' path='scene.vertexCount'/>
+                <Detail name='primitiveCount' label='Primitives' path='scene.primitiveCount'/>
+                <Vector name='bounds' label='Bounds' dimensions={3} path='scene.bounds' enabled={false}/>
             </Panel>
-            <Panel headerText='HIERARCHY' collapsible class={'modelHierarchyPanel'} enabled={enabled}>
-                { modelHierarchy.length > 0 &&
-                    <TreeView allowReordering={false} allowDrag={false}>
-                        { mapNodes(modelHierarchy) }
-                    </TreeView>
-                }
-            </Panel>
-        </Panel>
-    );
-};
-
-const AnimationPanel = () => {
-    const observer: Observer = useContext(ObserverContext);
-    const observerState = new ObserverState(observer);
-    const playing: boolean = observerState.useState('animation.playing');
-    const animationsList: Array<string> = observerState.useState('animation.list', true);
-    const enabled: boolean =  animationsList.length > 0;
-    let selectTrackOptions: Array<{ v: string, t: string }> = animationsList.map((animation: string) => ({ v: animation, t: animation }));
-    if (selectTrackOptions.length > 1) {
-        selectTrackOptions = [{ v: 'ALL_TRACKS', t: 'All tracks' }, ...selectTrackOptions];
-        if (!animationsList.includes(observer.get('animation.selectedTrack'))) {
-            observer.set('animation.selectedTrack', selectTrackOptions[0].v);
-        }
-    } else if (selectTrackOptions.length === 1) {
-        observer.set('animation.selectedTrack', selectTrackOptions[0].v);
-    }
-    const allTracks: boolean = observerState.useState('animation.selectedTrack') === 'ALL_TRACKS';
-    return (
-        <Panel headerText='ANIMATION' collapsible>
-            <Select name='animationTrack' type='string' options={selectTrackOptions} path='animation.selectedTrack' label='Track' enabled={enabled} />
-            <Container class='panel-option'>
-                <Button icon={ playing ? 'E376' : 'E286' } text='' onClick={() => observer.set('animation.playing', !observer.get('animation.playing'))} enabled={enabled} />
-            </Container>
-            <Slider name='animationSpeed' precision={2} min={0} max={4} path='animation.speed' label='Speed' enabled={enabled} />
-            { !allTracks && <Slider name='animationFrameTimeline' precision={2} min={0} max={1} path='animation.progress' label='Timeline' enabled={enabled} /> }
-            { allTracks && <Slider name='animationTransition' precision={2} min={0} max={4} path='animation.transition' label='Transition' enabled={enabled} /> }
-            { allTracks && <Select name='animationLoops' type='number' options={[1, 2, 3, 4].map(v => ({ v, t: Number(v).toString() }))} path='animation.loops' label='Loops' enabled={enabled} /> }
-        </Panel>
-    );
-};
-
-const MorphPanel = () => {
-    const observer: Observer = useContext(ObserverContext);
-    const observerState = new ObserverState(observer);
-    const morphTargets: Record<string, {name: string, morphs: Record<string, Morph>}> = observerState.useState('morphTargets');
-    if (!morphTargets) return null;
-    return (
-        <Panel headerText='MORPH TARGETS' collapsible>
-            {Object.keys(morphTargets).map((key) => {
-                const panel = morphTargets[key];
-                return (
-                    <Panel key={`${key}.${panel.name}`} headerText={panel.name} collapsible class='morph-target-panel'>
-                        {Object.keys(panel.morphs).map((morphKey) => {
-                            const morph: Morph = panel.morphs[morphKey];
-                            return <MorphSlider key={`${key}.${morphKey}`} name={`${morph.name}`} precision={2} min={0} max={1} path={`morphTargets.${key}.morphs.${morph.targetIndex}.weight`} />;
-                        })}
-                    </Panel>
-                );
-            }
-            )}
-        </Panel>
+        </Container>
     );
 };
 
 const toggleCollapsed = () => {
-    document.getElementById('wrapper-left').classList.toggle('collapsed');
-    // document.getElementById('wrapper-right').classList.toggle('collapsed');
+    document.getElementById('panel-left').classList.toggle('collapsed');
 };
 
-const Controls = (props: { observer: Observer }) => {
+const SceneControls = (props: { observer: Observer }) => {
     useEffect(() => {
         // set up the control panel toggle button
         const panelToggleDiv = document.getElementById('panel-toggle');
@@ -188,14 +159,73 @@ const Controls = (props: { observer: Observer }) => {
         }
     });
     return (
-        <div id='controls-left'>
-            <ObserverProvider value={props.observer}>
-                <AnimationPanel />
-                <ScenePanel />
-                <MorphPanel />
-            </ObserverProvider>
-        </div>
+        <ObserverProvider value={props.observer}>
+            <ScenePanel />
+        </ObserverProvider>
     );
+};
+
+const SelectedNodePanel = () => {
+    const observer: Observer = useContext(ObserverContext);
+    const observerState = new ObserverState(observer);
+    const hasHierarchy = observerState.useState('scene.nodes', true).length > 0;
+    const nodeSelected = observerState.useState('scene.selectedNode.path');
+    return hasHierarchy && nodeSelected ? (
+        <div className='selected-node-panel-parent'>
+            <Container class='selected-node-panel' flex>
+                <Detail name='selectedNodeName' label='Name' path='scene.selectedNode.name'/>
+                <Vector name='selectedNodePosition' label='Position' dimensions={3} path='scene.selectedNode.position' enabled={false}/>
+                <Vector name='selectedNodeRotation' label='Rotation' dimensions={3} path='scene.selectedNode.rotation' enabled={false}/>
+                <Vector name='selectedNodeScale' label='Scale' dimensions={3} path='scene.selectedNode.scale' enabled={false}/>
+            </Container>
+        </div>
+    ) : <div></div>;
+};
+
+const SelectedNodeControls = (props: { observer: Observer }) => {
+    return (
+        <ObserverProvider value={props.observer}>
+            <SelectedNodePanel />
+        </ObserverProvider>
+    );
+};
+
+const AnimationControlsPanel = () => {
+    const observer: Observer = useContext(ObserverContext);
+    const observerState = new ObserverState(observer);
+    const playing: boolean = observerState.useState('animation.playing');
+    const animationsList: Array<string> = observerState.useState('animation.list', true);
+    const enabled: boolean =  animationsList.length > 0;
+
+    let selectTrackOptions: Array<{ v: string, t: string }> = animationsList.map((animation: string) => ({ v: animation, t: animation }));
+    if (selectTrackOptions.length > 1) {
+        selectTrackOptions = [{ v: 'ALL_TRACKS', t: 'All tracks' }, ...selectTrackOptions];
+        if (!animationsList.includes(observer.get('animation.selectedTrack'))) {
+            observer.set('animation.selectedTrack', selectTrackOptions[0].v);
+        }
+    } else if (selectTrackOptions.length === 1) {
+        observer.set('animation.selectedTrack', selectTrackOptions[0].v);
+    }
+
+    const speedOptions: Array<{ v: string, t: string }> = [
+        { v: '0.25', t: '0.25x' },
+        { v: '0.5',  t: '0.5x' },
+        { v: '1',    t: '1x' },
+        { v: '1.5',  t: '1.5x' },
+        { v: '2',    t: '2x' }
+    ];
+
+    const allTracks: boolean = observerState.useState('animation.selectedTrack') === 'ALL_TRACKS';
+    return enabled ? (
+        <div className='animation-controls-panel-parent'>
+            <Button class='anim-control-button' width={30} height={30} icon={ playing ? 'E376' : 'E286' } text='' onClick={() => observer.set('animation.playing', !observer.get('animation.playing'))} />
+            <NakedSelect width={150} type='string' options={selectTrackOptions} path='animation.selectedTrack' />
+            <NakedSelect width={70} type='string' options={speedOptions} path='animation.speed' />
+            {/* { !allTracks && <Slider name='animationFrameTimeline' precision={2} min={0} max={1} path='animation.progress' label='Timeline' enabled={enabled} /> }
+            { allTracks && <Slider name='animationTransition' precision={2} min={0} max={4} path='animation.transition' label='Transition' enabled={enabled} /> }
+            { allTracks && <Select name='animationLoops' type='number' options={[1, 2, 3, 4].map(v => ({ v, t: Number(v).toString() }))} path='animation.loops' label='Loops' enabled={enabled} /> } */}
+        </div>
+    ) : <div></div>;
 };
 
 const PopupButtons = () => {
@@ -207,12 +237,12 @@ const PopupButtons = () => {
     const observerState = new ObserverState(observer);
     const state = observerState.useState('ui.active');
     const buildClass = (value: string) => {
-        console.log(`${value}=${state}`);
         return (state === value) ? 'popup-button-selected' : 'popup-button';
     };
 
     return (
-        <div className='popup-buttons-parent'>
+        <div id='popup-buttons-parent'>
+            <AnimationControlsPanel />
             <Button class={buildClass('camera')} icon='E212' width={40} height={40} onClick={() => handleClick('camera')} />
             <Button class={buildClass('show')} icon='E410' width={40} height={40} onClick={() => handleClick('show')} />
             <Button class={buildClass('lighting')} icon='E192' width={40} height={40} onClick={() => handleClick('lighting')} />
@@ -296,7 +326,8 @@ const PopupPanelControls = (props: { observer: Observer }) => {
 };
 
 export {
-    Controls,
+    SceneControls,
     PopupButtonControls,
-    PopupPanelControls
+    PopupPanelControls,
+    SelectedNodeControls
 };
