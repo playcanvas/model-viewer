@@ -7,6 +7,10 @@ import { Morph, Option, HierarchyNode } from './types';
 const ObserverContext = React.createContext(null);
 const ObserverProvider = ObserverContext.Provider;
 
+// TODO:
+// - remove animation when loading new file
+// - remove node properties popup on deselection
+
 class ObserverState {
     observer: Observer;
     observerSetFunctions: { [key: string]: any } = {};
@@ -142,8 +146,9 @@ const ScenePanel = () => {
     );
 };
 
-const toggleCollapsed = () => {
+const toggleCollapsed = (observer: Observer) => {
     document.getElementById('panel-left').classList.toggle('collapsed');
+    observer.emit('canvasResized');
 };
 
 const SceneControls = (props: { observer: Observer }) => {
@@ -151,11 +156,10 @@ const SceneControls = (props: { observer: Observer }) => {
         // set up the control panel toggle button
         const panelToggleDiv = document.getElementById('panel-toggle');
         panelToggleDiv.addEventListener('click', function () {
-            toggleCollapsed();
-            props.observer.emit('canvasResized');
+            toggleCollapsed(props.observer);
         });
         if (document.body.clientWidth <= 600) {
-            toggleCollapsed();
+            toggleCollapsed(props.observer);
         }
     });
     return (
@@ -190,7 +194,7 @@ const SelectedNodeControls = (props: { observer: Observer }) => {
     );
 };
 
-const AnimationControlsPanel = () => {
+const AnimationControls = () => {
     const observer: Observer = useContext(ObserverContext);
     const observerState = new ObserverState(observer);
     const playing: boolean = observerState.useState('animation.playing');
@@ -242,11 +246,11 @@ const PopupButtons = () => {
 
     return (
         <div id='popup-buttons-parent'>
-            <AnimationControlsPanel />
+            <AnimationControls />
             <Button class={buildClass('camera')} icon='E212' width={40} height={40} onClick={() => handleClick('camera')} />
-            <Button class={buildClass('show')} icon='E410' width={40} height={40} onClick={() => handleClick('show')} />
+            <Button class={buildClass('show')} icon='E188' width={40} height={40} onClick={() => handleClick('show')} />
             <Button class={buildClass('lighting')} icon='E192' width={40} height={40} onClick={() => handleClick('lighting')} />
-            <Button class={buildClass('fullscreen')} icon='E127' width={40} height={40} onClick={() => toggleCollapsed()} />
+            <Button class={buildClass('fullscreen')} icon='E127' width={40} height={40} onClick={() => toggleCollapsed(observer)} />
         </div>
     );
 };
@@ -264,14 +268,17 @@ const CameraPanel = () => {
     const observerState = new ObserverState(observer);
     const hidden = () => observerState.useState('ui.active') !== 'camera';
     const multisampleSupported: boolean = observerState.useState('render.multisampleSupported', true);
+    const animationPlaying: boolean = observerState.useState('animation.playing');
+    const statsShowing: boolean = observerState.useState('show.stats');
     return (
         <div className='popup-panel-parent'>
             <Container class='popup-panel' flex hidden={hidden()}>
                 <Slider name='fov' precision={0} min={35} max={150} path='show.fov' />
                 <Select name='lightingTonemapping' type='string' options={['Linear', 'Filmic', 'Hejl', 'ACES'].map(v => ({ v, t: v }))} path='lighting.tonemapping' label='Tonemap' />
-                <Toggle name='multisample' path='render.multisample' enabled={multisampleSupported}/>
-                <Toggle name='hq' path='render.hq' label='High Quality' />
                 <Select name='pixelScale' path='render.pixelScale' label='Pixel Scale' type='number' options={[1, 2, 4, 8, 16].map(v => ({ v: v, t: Number(v).toString() }))} />
+                <Toggle name='multisample' path='render.multisample' enabled={multisampleSupported}/>
+                <Toggle name='hq' path='render.hq' label='High Quality' enabled={!animationPlaying && !statsShowing}/>
+                <Toggle name='stats' path='show.stats' />
             </Container>
         </div>
     );
@@ -289,7 +296,6 @@ const ShowPanel = () => {
                 <Toggle name='axes' path='show.axes' />
                 <Toggle name='skeleton' path='show.skeleton' />
                 <Toggle name='bounds' path='show.bounds' />
-                <Toggle name='stats' path='show.stats' />
                 <Slider name='normals' precision={2} min={0} max={1} path='show.normals' />
             </Container>
         </div>

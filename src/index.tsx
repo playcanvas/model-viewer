@@ -148,13 +148,13 @@ ReactDOM.render(
             <SceneControls observer={observer} />
         </Container>
         <div id='canvas-wrapper'>
-            <ErrorBox observer={observer} path='error' />
             <canvas id="application-canvas" />
-            <Spinner id="spinner" size={30} hidden={true} />
             <LoadControls observer={observer} />
-            <PopupButtonControls observer={observer} />
-            <PopupPanelControls observer={observer} />
             <SelectedNodeControls observer={observer} />
+            <PopupPanelControls observer={observer} />
+            <PopupButtonControls observer={observer} />
+            <ErrorBox observer={observer} path='error' />
+            <Spinner id="spinner" size={30} hidden={true} />
         </div>
     </div>,
     document.getElementById('app')
