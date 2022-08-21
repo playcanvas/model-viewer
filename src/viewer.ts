@@ -14,6 +14,7 @@ import { DebugLines } from './debug';
 import { Multiframe } from './multiframe';
 import { ReadDepth } from './read-depth';
 import { OrbitCamera, OrbitCameraInputMouse, OrbitCameraInputTouch } from './orbit-camera';
+import { PngExporter } from './png-exporter.js';
 
 // model filename extensions
 const modelExtensions = ['.gltf', '.glb', '.vox'];
@@ -23,6 +24,7 @@ const defaultSceneBounds = new pc.BoundingBox(new pc.Vec3(0, 1, 0), new pc.Vec3(
 class Viewer {
     app: pc.Application;
     dropHandler: DropHandler;
+    pngExporter: PngExporter = null;
     prevCameraMat: pc.Mat4;
     camera: pc.Entity;
     orbitCamera: OrbitCamera;
@@ -97,6 +99,9 @@ class Viewer {
 
         // register vox support
         VoxParser.registerVoxParser(app);
+
+        // create the exporter
+        this.pngExporter = new PngExporter();
 
         // create drop handler
         this.dropHandler = new DropHandler((files: Array<File>, resetScene: boolean) => {
@@ -709,6 +714,10 @@ class Viewer {
         this.observer.set('scene.meshCount', meshCount);
         this.observer.set('scene.vertexCount', vertexCount);
         this.observer.set('scene.primitiveCount', primitiveCount);
+    }
+
+    downloadPngScreenshot() {
+        this.pngExporter.export('model-viewer.png', this.camera.camera.renderTarget.colorBuffer);
     }
 
     // move the camera to view the loaded object

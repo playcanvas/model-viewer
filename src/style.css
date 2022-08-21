@@ -181,11 +181,12 @@ input {
     background-color: rgba(32, 32, 32, 0.4) !important;
 }
 
-.popup-button-selected {
-    margin: 12px !important;
-    color: white;
-    border: 0px !important;
+.popup-button.selected {
     background-color: rgba(32, 32, 32, 0.8) !important;
+}
+
+.popup-button::before {
+    font-size: 16px !important;
 }
 
 .popup-panel-parent > .pcui-container {
@@ -202,6 +203,28 @@ input {
     border-radius: 8px;
     font-size: 16px;
     background-color: rgba(64, 64, 64, 0.6);
+}
+
+#download-button-parent {
+    position: absolute;
+    right: 40px;
+    bottom: 40px;
+}
+
+.download-button {
+    margin: 12px !important;
+    color: white;
+    border: 0px !important;
+    background-color: rgba(32, 32, 32, 0.4) !important;
+}
+
+.download-button::before {
+    font-size: 16px !important;
+}
+
+#github-button {
+    margin: 0px;
+    padding: 0px;
 }
 
 #scene-container {
@@ -228,6 +251,10 @@ input {
     padding: 16px 16px 16px 16px;
     border-radius: 8px;
     background-color: rgba(64, 64, 64, 0.6);
+}
+
+.scene-hierarchy-panel .scene-morph-panel {
+    width: 100%;
 }
 
 .scene-hierarchy-panel, .selected-node-panel {
@@ -358,47 +385,21 @@ input {
     
 }
 
+.morph-label {
+    width: 40px;
+    font-size: 14px;
+}
+
+.morph-value {
+    font-size: 14px;
+    margin: 2px !important;
+    width: 180px;
+}
+
 .pcui-select-input-value {
     overflow: visible !important;
     font-size: 14px;
 }
-
-/* .panel-option > .pcui-select-input {
-    flex-grow: 1;
-}
-
-.panel-option > .pcui-label {
-    min-width: 30%;
-    font-size: 14px;
-    flex-grow: 1;
-}
-
-.panel-option > .pcui-slider {
-    flex-grow: 1;
-}
-
-.panel-option > .pcui-vector-input {
-    flex-grow: 1;
-}
-
-/* apply spacing to all panel option elements */
-/* .panel-option > .pcui-vector-input > .pcui-numeric-input, .panel-option > .pcui-select-input, .panel-option > .pcui-slider {
-    margin: 4px 4px;
-}
-
-.panel-option > .pcui-label, .panel-option > .pcui-boolean-input-toggle {
-    margin: 8px 4px;
-} */
-
-/* .animation-buttons {
-    display: flex;
-}
-
-.animation-list-container {
-    display: flex;
-    flex-direction: column;
-    margin-right: 12px;
-} */
 
 .morph-target-panel {
     margin: 6px;

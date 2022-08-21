@@ -7,7 +7,7 @@ import { Container, Spinner } from '@playcanvas/pcui/react';
 
 import { getAssetPath, getRootPath } from './helpers';
 import { Option } from './types';
-import { SceneControls, PopupButtonControls, PopupPanelControls, SelectedNodeControls } from './controls'
+import { SceneControls, PopupButtonControls, PopupPanelControls, SelectedNodeControls, DownloadButton } from './controls'
 import LoadControls from './load-ui';
 import ErrorBox from './errors';
 import Viewer from './viewer';
@@ -155,6 +155,7 @@ ReactDOM.render(
             <PopupButtonControls observer={observer} />
             <ErrorBox observer={observer} path='error' />
             <Spinner id="spinner" size={30} hidden={true} />
+            <DownloadButton viewer={window.viewer}/>
         </div>
     </div>,
     document.getElementById('app')

@@ -3,6 +3,7 @@ import { Observer } from '@playcanvas/observer';
 import { BindingTwoWay } from '@playcanvas/pcui';
 import { Panel, Container, BooleanInput, Label, SliderInput, Button, TreeViewItem, TreeView, VectorInput, SelectInput, TextInput } from '@playcanvas/pcui/react';
 import { Morph, Option, HierarchyNode } from './types';
+import Viewer from './viewer';
 
 const ObserverContext = React.createContext(null);
 const ObserverProvider = ObserverContext.Provider;
@@ -10,6 +11,7 @@ const ObserverProvider = ObserverContext.Provider;
 // TODO:
 // - remove animation when loading new file
 // - remove node properties popup on deselection
+// - github links to engine & pciu
 
 class ObserverState {
     observer: Observer;
@@ -72,8 +74,8 @@ Slider.defaultProps = { enabled: true };
 const MorphSlider = (props: { name: string, path:string, precision: number, min: number, max: number, label?: string, enabled?: boolean }) => {
     const observer: Observer = useContext(ObserverContext);
     return <Container class='panel-option'>
-        <Label class='panel-label' flexGrow={1} text={props.label ? props.label : props.name.substring(0, 1).toUpperCase() + props.name.substring(1, props.name.length)} flex />
-        <SliderInput class='panel-value' flexGrow={0} flexShrink={0} min={props.min} max={props.max} sliderMin={props.min} sliderMax={props.max} precision={props.precision} step={0.01} link={{ observer, path: props.path }} binding={new BindingTwoWay()} enabled={props.enabled} />
+        <Label class='morph-label' flexGrow={1} flexShrink={1} text={props.label ? props.label : props.name.substring(0, 1).toUpperCase() + props.name.substring(1, props.name.length)} flex />
+        <SliderInput class='morph-value' flexGrow={0} flexShrink={0} min={props.min} max={props.max} sliderMin={props.min} sliderMax={props.max} precision={props.precision} step={0.01} link={{ observer, path: props.path }} binding={new BindingTwoWay()} enabled={props.enabled} />
     </Container>;
 };
 MorphSlider.defaultProps = { enabled: true };
@@ -132,8 +134,7 @@ const ScenePanel = () => {
                                 })}
                             </Panel>
                         );
-                    }
-                    )}
+                    })}
                 </Panel> }
             </div>
             <Panel headerText='SCENE' flexShrink={0} flexGrow={0} collapsible >
@@ -241,7 +242,7 @@ const PopupButtons = () => {
     const observerState = new ObserverState(observer);
     const state = observerState.useState('ui.active');
     const buildClass = (value: string) => {
-        return (state === value) ? 'popup-button-selected' : 'popup-button';
+        return (state === value) ? ['popup-button', 'selected'] : 'popup-button';
     };
 
     return (
@@ -331,9 +332,18 @@ const PopupPanelControls = (props: { observer: Observer }) => {
     );
 };
 
+const DownloadButton = (props: { viewer: Viewer }) => {
+    return (
+        <div id='download-button-parent'>
+            <Button class='download-button' icon='E228' width={40} height={40} onClick={() => window.viewer.downloadPngScreenshot()} />
+        </div>
+    );
+}
+
 export {
     SceneControls,
+    SelectedNodeControls,
     PopupButtonControls,
     PopupPanelControls,
-    SelectedNodeControls
+    DownloadButton
 };
