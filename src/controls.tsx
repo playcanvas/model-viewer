@@ -8,17 +8,6 @@ import Viewer from './viewer';
 const ObserverContext = React.createContext(null);
 const ObserverProvider = ObserverContext.Provider;
 
-// TODO:
-// - show names of loaded files
-// - show versions of editor, engine, pcui
-// - show github links to engine & pciu
-// - show bound of currently selected node
-// - name screenshot download based on loaded filename
-// - remove animations correctly when loading new file
-// - handle hierarchy node deselection
-// - review animation controls
-// - support camera frame of scene / currently selected node
-
 class ObserverState {
     observer: Observer;
     observerSetFunctions: { [key: string]: any } = {};
