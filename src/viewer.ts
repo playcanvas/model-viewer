@@ -96,12 +96,20 @@ class Viewer {
         // when they don't originate from the canvas.
         const origMouseHandler = app.mouse._moveHandler;
         app.mouse.detach();
-        app.mouse._moveHandler = (event: MouseEvent) => { event.target === canvas && origMouseHandler(event); };
+        app.mouse._moveHandler = (event: MouseEvent) => {
+            if (event.target === canvas) {
+                origMouseHandler(event);
+            }
+        };
         app.mouse.attach(canvas);
 
         const origTouchHandler = app.touch._moveHandler;
         app.touch.detach();
-        app.touch._moveHandler = (event: MouseEvent) => { event.target === canvas && origTouchHandler(event); }
+        app.touch._moveHandler = (event: MouseEvent) => {
+            if (event.target === canvas) {
+                origTouchHandler(event);
+            }
+        };
         app.touch.attach(canvas);
 
         // @ts-ignore
