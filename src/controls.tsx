@@ -9,9 +9,15 @@ const ObserverContext = React.createContext(null);
 const ObserverProvider = ObserverContext.Provider;
 
 // TODO:
-// - remove animation when loading new file
-// - remove node properties popup on deselection
-// - github links to engine & pciu
+// - show names of loaded files
+// - show versions of editor, engine, pcui
+// - show github links to engine & pciu
+// - show bound of currently selected node
+// - name screenshot download based on loaded filename
+// - remove animations correctly when loading new file
+// - handle hierarchy node deselection
+// - review animation controls
+// - support camera frame of scene / currently selected node
 
 class ObserverState {
     observer: Observer;

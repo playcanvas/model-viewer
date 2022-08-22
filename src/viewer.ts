@@ -92,6 +92,18 @@ class Viewer {
         app.graphicsDevice.maxPixelRatio = window.devicePixelRatio;
         app.scene.gammaCorrection = pc.GAMMA_SRGB;
 
+        // monkeypatch the mouse and touch input devices to ignore touch events
+        // when they don't originate from the canvas.
+        const origMouseHandler = app.mouse._moveHandler;
+        app.mouse.detach();
+        app.mouse._moveHandler = (event: MouseEvent) => { event.target === canvas && origMouseHandler(event); };
+        app.mouse.attach(canvas);
+
+        const origTouchHandler = app.touch._moveHandler;
+        app.touch.detach();
+        app.touch._moveHandler = (event: MouseEvent) => { event.target === canvas && origTouchHandler(event); }
+        app.touch.attach(canvas);
+
         // @ts-ignore
         const multisampleSupported = app.graphicsDevice.maxSamples > 1;
         observer.set('render.multisampleSupported', multisampleSupported);
