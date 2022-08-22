@@ -47,8 +47,8 @@ const observer: Observer = new Observer({
         fov: 50
     },
     lighting: {
-        direct: 1,
-        shadow: true,
+        direct: 0,
+        shadow: false,
         env: {
             value: getAssetPath('./skybox/adams_place_bridge_2k.hdr'),
             options: null,

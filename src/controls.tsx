@@ -110,6 +110,12 @@ const ScenePanel = () => {
     };
     return (
         <Container id='scene-container' flex>
+            <Panel headerText='SCENE' flexShrink={0} flexGrow={0} collapsible >
+                <Detail name='meshCount' label='Meshes' path='scene.meshCount'/>
+                <Detail name='vertexCount' label='Verts' path='scene.vertexCount'/>
+                <Detail name='primitiveCount' label='Primitives' path='scene.primitiveCount'/>
+                <Vector name='bounds' label='Bounds' dimensions={3} path='scene.bounds' enabled={false}/>
+            </Panel>
             <div id='scene-scrolly-bits'>
                 <Panel headerText='HIERARCHY' class='scene-hierarchy-panel' enabled={enabled} collapsible>
                     { modelHierarchy.length > 0 &&
@@ -132,12 +138,6 @@ const ScenePanel = () => {
                     })}
                 </Panel> }
             </div>
-            <Panel headerText='SCENE' flexShrink={0} flexGrow={0} collapsible >
-                <Detail name='meshCount' label='Meshes' path='scene.meshCount'/>
-                <Detail name='vertexCount' label='Verts' path='scene.vertexCount'/>
-                <Detail name='primitiveCount' label='Primitives' path='scene.primitiveCount'/>
-                <Vector name='bounds' label='Bounds' dimensions={3} path='scene.bounds' enabled={false}/>
-            </Panel>
         </Container>
     );
 };
