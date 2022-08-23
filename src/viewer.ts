@@ -942,9 +942,7 @@ class Viewer {
         if (trackName !== 'ALL_TRACKS') {
             const a = this.animationMap[trackName];
             this.entities.forEach((e) => {
-                if (e.anim) {
-                    e.anim.baseLayer.transition(a);
-                }
+                e.anim?.baseLayer?.transition(a);
             });
         }
     }
@@ -952,17 +950,14 @@ class Viewer {
     // play an animation / play all the animations
     play() {
         this.entities.forEach((e) => {
-            e.anim.baseLayer.play();
+            e.anim?.baseLayer?.play();
         });
     }
 
     // stop playing animations
     stop() {
         this.entities.forEach((e) => {
-            const anim = e.anim;
-            if (anim && anim.baseLayer) {
-                anim.baseLayer.pause();
-            }
+            e.anim?.baseLayer?.pause();
         });
     }
 
@@ -1000,8 +995,11 @@ class Viewer {
     setAnimationProgress(progress: number) {
         this.observer.set('animation.playing', false);
         this.entities.forEach((e) => {
-            e.anim.baseLayer.pause();
-            e.anim.baseLayer.activeStateCurrentTime = e.anim.baseLayer.activeStateDuration * progress;
+            const baseLayer = e.anim?.baseLayer;
+            if (baseLayer) {
+                baseLayer.pause();
+                baseLayer.activeStateCurrentTime = baseLayer.activeStateDuration * progress;
+            }
         });
         this.renderNextFrame();
     }
