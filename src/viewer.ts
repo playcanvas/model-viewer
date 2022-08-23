@@ -939,9 +939,8 @@ class Viewer {
 
     // set the currently selected track
     setSelectedTrack(trackName: string) {
-        const animationName: string = this.observer.get('animation.selectedTrack');
-        if (animationName !== 'ALL_TRACKS') {
-            const a = this.animationMap[animationName];
+        if (trackName !== 'ALL_TRACKS') {
+            const a = this.animationMap[trackName];
             this.entities.forEach((e) => {
                 if (e.anim) {
                     e.anim.baseLayer.transition(a);
