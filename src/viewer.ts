@@ -708,11 +708,11 @@ class Viewer {
         let meshCount = 0;
         let vertexCount = 0;
         let primitiveCount = 0;
-        let variants = null;
+        let variants: any = null;
 
         // update mesh stats
         this.assets.forEach((asset) => {
-            variants = asset.resource.getMaterialVariants && asset.resource.getMaterialVariants();
+            variants = variants || (asset.resource.getMaterialVariants && asset.resource.getMaterialVariants());
             asset.resource.renders.forEach((renderAsset: pc.Asset) => {
                 renderAsset.resource.meshes.forEach((mesh: pc.Mesh) => {
                     meshCount++;
