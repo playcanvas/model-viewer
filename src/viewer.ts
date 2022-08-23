@@ -136,6 +136,12 @@ class Viewer {
             this.resizeCanvas();
         });
 
+        // Depth layer is where the framebuffer is copied to a texture to be used in the following layers.
+        // Move the depth layer to take place after World and Skydome layers, to capture both of them.
+        const depthLayer = app.scene.layers.getLayerById(pc.LAYERID_DEPTH);
+        app.scene.layers.remove(depthLayer);
+        app.scene.layers.insertOpaque(depthLayer, 2);
+
         // create the orbit camera
         const camera = new pc.Entity("Camera");
         camera.addComponent("camera", {
@@ -143,6 +149,7 @@ class Viewer {
             clearColor: new pc.Color(0.4, 0.45, 0.5),
             frustumCulling: true
         });
+        camera.camera.requestSceneColorMap(true);
 
         this.orbitCamera = new OrbitCamera(camera, 0.25);
         this.orbitCameraInputMouse = new OrbitCameraInputMouse(this.app, this.orbitCamera);
@@ -423,7 +430,8 @@ class Viewer {
             'animation.loops': this.setLoops.bind(this),
             'animation.progress': this.setAnimationProgress.bind(this),
 
-            'scene.selectedNode.path': this.setSelectedNode.bind(this)
+            'scene.selectedNode.path': this.setSelectedNode.bind(this),
+            'scene.variant.selected': this.setSelectedVariant.bind(this)
         };
 
         // register control events
@@ -684,7 +692,8 @@ class Viewer {
         // reset animation state
         this.animTracks = [];
         this.animationMap = { };
-        this.observer.set('animations.list', '[]');
+        this.observer.set('animation.list', '[]');
+        this.observer.set('scene.variants.list', '[]');
 
         this.morphs = [];
         this.observer.set('morphTargets', null);
@@ -699,9 +708,11 @@ class Viewer {
         let meshCount = 0;
         let vertexCount = 0;
         let primitiveCount = 0;
+        let variants = null;
 
         // update mesh stats
         this.assets.forEach((asset) => {
+            variants = asset.resource.getMaterialVariants();
             asset.resource.renders.forEach((renderAsset: pc.Asset) => {
                 renderAsset.resource.meshes.forEach((mesh: pc.Mesh) => {
                     meshCount++;
@@ -734,6 +745,10 @@ class Viewer {
         this.observer.set('scene.meshCount', meshCount);
         this.observer.set('scene.vertexCount', vertexCount);
         this.observer.set('scene.primitiveCount', primitiveCount);
+
+        // variant stats
+        if (variants)
+            this.observer.set('scene.variants.list', JSON.stringify(variants));
     }
 
     downloadPngScreenshot() {
@@ -1018,6 +1033,15 @@ class Viewer {
 
         this.selectedNode = graphNode;
         this.dirtySkeleton = true;
+        this.renderNextFrame();
+    }
+
+    setSelectedVariant(path: string) {
+        this.assets.forEach((asset) => {
+            this.entities.forEach((entity) => {
+                asset.resource.applyMaterialVariant(entity, path);
+            });
+        });
         this.renderNextFrame();
     }
 

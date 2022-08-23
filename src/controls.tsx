@@ -102,6 +102,11 @@ const ScenePanel = () => {
     const observerState = new ObserverState(observer);
     const modelHierarchy: Array<HierarchyNode> = observerState.useState('scene.nodes', true);
     const morphTargets: Record<string, {name: string, morphs: Record<string, Morph>}> = observerState.useState('morphTargets');
+    const variantsList: Array<string> = observerState.useState('scene.variants.list', true);
+    const variantListOptions: Array<{ v:string, t:string }> = variantsList.map((variant: string) => ({ v: variant, t: variant }));
+    if (variantListOptions.length > 0) {
+        observer.set('scene.variant.selected', variantListOptions[0].v);
+    }
     const enabled: boolean =  modelHierarchy.length > 0;
     const mapNodes = (nodes: Array<HierarchyNode>) => {
         return nodes.map((node:HierarchyNode) => <TreeViewItem text={`${node.name}`} key={node.path} onSelected={() => observer.set('scene.selectedNode.path', node.path)}>
@@ -115,6 +120,7 @@ const ScenePanel = () => {
                 <Detail name='vertexCount' label='Verts' path='scene.vertexCount'/>
                 <Detail name='primitiveCount' label='Primitives' path='scene.primitiveCount'/>
                 <Vector name='bounds' label='Bounds' dimensions={3} path='scene.bounds' enabled={false}/>
+                <Select name='variant' type='string' options={variantListOptions} path='scene.variant.selected' label='Variant' />
             </Panel>
             <div id='scene-scrolly-bits'>
                 <Panel headerText='HIERARCHY' class='scene-hierarchy-panel' enabled={enabled} collapsible>
