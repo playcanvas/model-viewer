@@ -397,8 +397,15 @@ input {
 }
 
 .pcui-select-input-value {
-    overflow: visible !important;
     font-size: 14px;
+}
+
+#anim-speed-select span {
+    overflow: visible !important;
+}
+
+#anim-scrub-slider > .pcui-text-input {
+    display: none;
 }
 
 .morph-target-panel {

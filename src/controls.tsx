@@ -85,15 +85,15 @@ const Select = (props: { name: string, path:string, type: string, options: Array
 Select.defaultProps = { enabled: true };
 
 // naked versions
-const NakedSelect = (props: { width: number, path:string, type: string, options: Array<Option>, enabled?: boolean, class?: string }) => {
+const NakedSelect = (props: { width: number, path:string, type: string, options: Array<Option>, enabled?: boolean, id?: string, class?: string }) => {
     const observer: Observer = useContext(ObserverContext);
-    return <SelectInput width={props.width} type={props.type} options={props.options} link={{ observer, path: props.path }} binding={new BindingTwoWay()} enabled={props.enabled} class={props.class} />;
+    return <SelectInput id={props.id} class={props.class} width={props.width} type={props.type} options={props.options} link={{ observer, path: props.path }} binding={new BindingTwoWay()} enabled={props.enabled} />;
 };
 NakedSelect.defaultProps = { enabled: true };
 
-const NakedSlider = (props: { path:string, precision: number, min: number, max: number, enabled?: boolean }) => {
+const NakedSlider = (props: { width: number, path:string, precision: number, min: number, max: number, enabled?: boolean, id?: string, class?: string }) => {
     const observer: Observer = useContext(ObserverContext);
-    return <SliderInput min={props.min} max={props.max} sliderMin={props.min} sliderMax={props.max} precision={props.precision} step={0.01} link={{ observer, path: props.path }} binding={new BindingTwoWay()} enabled={props.enabled} />;
+    return <SliderInput id={props.id} class={props.class} width={props.width} min={props.min} max={props.max} sliderMin={props.min} sliderMax={props.max} precision={props.precision} step={0.01} link={{ observer, path: props.path }} binding={new BindingTwoWay()} enabled={props.enabled} />;
 };
 NakedSlider.defaultProps = { enabled: true };
 
@@ -219,10 +219,10 @@ const AnimationControls = () => {
     return enabled ? (
         <div className='animation-controls-panel-parent'>
             <Button class='anim-control-button' width={30} height={30} icon={ playing ? 'E376' : 'E286' } text='' onClick={() => observer.set('animation.playing', !observer.get('animation.playing'))} />
-            <NakedSelect width={150} type='string' options={selectTrackOptions} path='animation.selectedTrack' />
-            <NakedSelect width={70} type='string' options={speedOptions} path='animation.speed' />
-            {/* { !allTracks && <Slider name='animationFrameTimeline' precision={2} min={0} max={1} path='animation.progress' label='Timeline' enabled={enabled} /> }
-            { allTracks && <Slider name='animationTransition' precision={2} min={0} max={4} path='animation.transition' label='Transition' enabled={enabled} /> }
+            <NakedSelect id='anim-track-select' width={160} type='string' options={selectTrackOptions} path='animation.selectedTrack' />
+            <NakedSlider id='anim-scrub-slider' width={240} precision={2} min={0} max={1} path='animation.progress' enabled={!allTracks} />
+            <NakedSelect id='anim-speed-select' width={60} type='string' options={speedOptions} path='animation.speed' />
+            {/* { allTracks && <Slider name='animationTransition' precision={2} min={0} max={4} path='animation.transition' label='Transition' enabled={enabled} /> }
             { allTracks && <Select name='animationLoops' type='number' options={[1, 2, 3, 4].map(v => ({ v, t: Number(v).toString() }))} path='animation.loops' label='Loops' enabled={enabled} /> } */}
         </div>
     ) : <div></div>;

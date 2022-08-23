@@ -417,7 +417,7 @@ class Viewer {
                     this.stop();
                 }
             },
-            'animation.selectedTrack': this.play.bind(this),
+            'animation.selectedTrack': this.setSelectedTrack.bind(this),
             'animation.speed': this.setSpeed.bind(this),
             'animation.transition': this.setTransition.bind(this),
             'animation.loops': this.setLoops.bind(this),
@@ -937,19 +937,23 @@ class Viewer {
         return hasModelFilename;
     }
 
-    // play an animation / play all the animations
-    play() {
-        let a: string;
+    // set the currently selected track
+    setSelectedTrack(trackName: string) {
         const animationName: string = this.observer.get('animation.selectedTrack');
         if (animationName !== 'ALL_TRACKS') {
-            a = this.animationMap[animationName];
+            const a = this.animationMap[animationName];
+            this.entities.forEach((e) => {
+                if (e.anim) {
+                    e.anim.baseLayer.transition(a);
+                }
+            });
         }
+    }
+
+    // play an animation / play all the animations
+    play() {
         this.entities.forEach((e) => {
-            const anim = e.anim;
-            if (anim && animationName !== 'ALL_TRACKS') {
-                anim.baseLayer.transition(a);
-            }
-            anim.baseLayer.play();
+            e.anim.baseLayer.play();
         });
     }
 
@@ -1000,6 +1004,7 @@ class Viewer {
             e.anim.baseLayer.pause();
             e.anim.baseLayer.activeStateCurrentTime = e.anim.baseLayer.activeStateDuration * progress;
         });
+        this.renderNextFrame();
     }
 
     setSelectedNode(path: string) {
@@ -1259,20 +1264,35 @@ class Viewer {
                 }
             });
             this.observer.set('morphTargets', morphTargets);
-            this.observer.on('animationUpdate', () => {
-                const morphTargets = this.observer.get('morphTargets');
-                morphInstances.forEach((morphInstance: any, i: number) => {
-                    if (morphTargets && morphTargets[i]) {
-                        Object.keys(morphTargets[i].morphs).forEach((morphKey) => {
-                            const newWeight = morphInstance.getWeight(Number(morphKey));
-                            if (morphTargets[i].morphs[morphKey].weight !== newWeight) {
-                                this.observer.set(`morphTargets.${i}.morphs.${morphKey}.weight`, newWeight);
-                            }
-                        });
-                    }
-                });
-            });
         }
+
+        // handle animation update
+        const observer = this.observer;
+        observer.on('animationUpdate', () => {
+            const morphTargets = observer.get('morphTargets');
+            morphInstances.forEach((morphInstance: any, i: number) => {
+                if (morphTargets && morphTargets[i]) {
+                    Object.keys(morphTargets[i].morphs).forEach((morphKey) => {
+                        const newWeight = morphInstance.getWeight(Number(morphKey));
+                        if (morphTargets[i].morphs[morphKey].weight !== newWeight) {
+                            observer.set(`morphTargets.${i}.morphs.${morphKey}.weight`, newWeight);
+                        }
+                    });
+                }
+            });
+
+            // set progress
+            if (observer.get('animation.selectedTrack') !== 'ALL_TRACKS') {
+                for (let i = 0; i < this.entities.length; ++i) {
+                    const entity = this.entities[i];
+                    if (entity && entity.anim) {
+                        const baseLayer = entity.anim.baseLayer;
+                        // observer.set('animation.progress', baseLayer.activeStateCurrentTime / baseLayer.activeStateDuration);
+                        break;
+                    }
+                }
+            }
+        });
 
         // store the loaded asset
         this.assets.push(asset);
