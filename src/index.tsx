@@ -90,7 +90,11 @@ const observer: Observer = new Observer({
         meshCount: null,
         vertexCount: null,
         primitiveCount: null,
-        bounds: null
+        bounds: null,
+        variants: {
+            list: '[]',
+            selected: 0
+        }
     },
     morphTargets: null,
     spinner: false,

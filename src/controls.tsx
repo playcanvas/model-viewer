@@ -121,6 +121,11 @@ const LightingPanel = () => {
 const ScenePanel = () => {
     const observer: Observer = useContext(ObserverContext);
     const modelHierarchy: Array<HierarchyNode> = useObserverState(observer, 'scene.nodes', true);
+    const variantsList: Array<string> = useObserverState(observer, 'scene.variants.list', true);
+    const variantListOptions: Array<{ v:string, t:string }> = variantsList.map((variant: string) => ({ v: variant, t: variant }));
+    if (variantListOptions.length > 0) {
+        observer.set('scene.variant.selected', variantListOptions[0].v);
+    }
     const enabled: boolean =  modelHierarchy.length > 0;
     const mapNodes = (nodes: Array<HierarchyNode>) => {
         return nodes.map((node:HierarchyNode) => <TreeViewItem text={`${node.name}`} key={node.path} onSelected={() => observer.set('scene.selectedNode.path', node.path)}>
@@ -138,6 +143,9 @@ const ScenePanel = () => {
                 <Vector name='selectedNodePosition' label='Position' dimensions={3} path='scene.selectedNode.position' enabled={false}/>
                 <Vector name='selectedNodeRotation' label='Rotation' dimensions={3} path='scene.selectedNode.rotation' enabled={false}/>
                 <Vector name='selectedNodeScale' label='Scale' dimensions={3} path='scene.selectedNode.scale' enabled={false}/>
+            </Panel>
+            <Panel>
+                <Select name='variant' type='string' options={variantListOptions} path='scene.variant.selected' label='Variant' />
             </Panel>
             <Panel headerText='HIERARCHY' collapsible class={'modelHierarchyPanel'} enabled={enabled}>
                 { modelHierarchy.length > 0 &&
