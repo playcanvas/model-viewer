@@ -75,34 +75,23 @@ class Multiframe {
         this.textureBias = -Math.log2(numSamples);
         this.samples = this.generateSamples(numSamples, false, 2, 0);
 
-        const pmat = this.camera.projectionMatrix;
-        const store = new pc.Vec2();
-
         // just before rendering the scene we apply a subpixel jitter
         // to the camera's projection matrix.
         this.camera.onPreRender = () => {
-            store.set(pmat.data[12], pmat.data[13]);
-
             if (this.enabled && this.accumTexture) {
                 const sample = this.samples[this.sampleId];
 
-                pmat.data[8] += sample.x / this.accumTexture.width;
-                pmat.data[9] += sample.y / this.accumTexture.height;
+                const pmat = this.camera.camera.projectionMatrix;
+                pmat.data[8] = sample.x / this.accumTexture.width;
+                pmat.data[9] = sample.y / this.accumTexture.height;
 
                 // look away
-                this.camera._camera._viewMatDirty = true;
-                this.camera._camera._viewProjMatDirty = true;
+                this.camera.camera._viewProjMatDirty = true;
+                // this.camera.camera._updateViewProjMat();
             }
 
             this.textureBiasUniform.setValue(this.sampleId === 0 || !this.enabled ? 0.0 : this.textureBias);
             // this.textureBiasUniform.setValue(this.textureBias);
-        };
-
-        // restore the camera's projection matrix jitter once rendering is
-        // done
-        this.camera.onPostRender = () => {
-            pmat.data[8] = store.x;
-            pmat.data[9] = store.y;
         };
 
         this.shader = new pc.Shader(device, {
@@ -198,7 +187,9 @@ class Multiframe {
             width: source.width,
             height: source.height,
             format: this.pixelFormat,
-            mipmaps: false
+            mipmaps: false,
+            minFilter: pc.FILTER_NEAREST,
+            magFilter: pc.FILTER_NEAREST
         });
 
         this.accumRenderTarget = new pc.RenderTarget({
