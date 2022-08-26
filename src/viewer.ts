@@ -65,6 +65,7 @@ class Viewer {
     debugNormals: DebugLines;
     miniStats: any;
     observer: Observer;
+    suppressAnimationProgressUpdate: boolean;
 
     selectedNode: pc.GraphNode | null;
 
@@ -965,14 +966,20 @@ class Viewer {
     // play an animation / play all the animations
     play() {
         this.entities.forEach((e) => {
-            e.anim?.baseLayer?.play();
+            if (e.anim) {
+                e.anim.playing = true;
+                e.anim.baseLayer?.play();
+            }
         });
     }
 
     // stop playing animations
     stop() {
         this.entities.forEach((e) => {
-            e.anim?.baseLayer?.pause();
+            if (e.anim) {
+                e.anim.playing = false;
+                e.anim.baseLayer?.pause();
+            }
         });
     }
 
@@ -1008,12 +1015,16 @@ class Viewer {
     }
 
     setAnimationProgress(progress: number) {
+        if (this.suppressAnimationProgressUpdate) return;
         this.observer.set('animation.playing', false);
         this.entities.forEach((e) => {
-            const baseLayer = e.anim?.baseLayer;
+            const anim = e.anim;
+            const baseLayer = anim?.baseLayer;
             if (baseLayer) {
-                baseLayer.pause();
+                this.play();
                 baseLayer.activeStateCurrentTime = baseLayer.activeStateDuration * progress;
+                anim.update(0);
+                anim.playing = false;
             }
         });
         this.renderNextFrame();
@@ -1308,7 +1319,10 @@ class Viewer {
                     const entity = this.entities[i];
                     if (entity && entity.anim) {
                         const baseLayer = entity.anim.baseLayer;
-                        // observer.set('animation.progress', baseLayer.activeStateCurrentTime / baseLayer.activeStateDuration);
+                        const progress = baseLayer.activeStateCurrentTime / baseLayer.activeStateDuration;
+                        this.suppressAnimationProgressUpdate = true;
+                        observer.set('animation.progress', progress === 1 ? progress : progress % 1);
+                        this.suppressAnimationProgressUpdate = false;
                         break;
                     }
                 }

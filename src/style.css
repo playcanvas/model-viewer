@@ -408,6 +408,10 @@ input {
     display: none;
 }
 
+#anim-scrub-slider > .pcui-slider-container > .pcui-slider-bar > .pcui-slider-handle {
+    transition: none;
+}
+
 .morph-target-panel {
     margin: 6px;
     border: 1px solid #232e30 !important;
