@@ -78,20 +78,22 @@ class Multiframe {
         // just before rendering the scene we apply a subpixel jitter
         // to the camera's projection matrix.
         this.camera.onPreRender = () => {
+            const camera = this.camera.camera;
+            const pmat = camera.projectionMatrix;
+
             if (this.enabled && this.accumTexture) {
                 const sample = this.samples[this.sampleId];
-
-                const pmat = this.camera.camera.projectionMatrix;
                 pmat.data[8] = sample.x / this.accumTexture.width;
                 pmat.data[9] = sample.y / this.accumTexture.height;
-
-                // look away
-                this.camera.camera._viewProjMatDirty = true;
-                // this.camera.camera._updateViewProjMat();
+                this.textureBiasUniform.setValue(this.sampleId === 0 ? 0.0 : this.textureBias);
+            } else {
+                pmat.data[8] = 0;
+                pmat.data[9] = 0;
+                this.textureBiasUniform.setValue(0.0);
             }
 
-            this.textureBiasUniform.setValue(this.sampleId === 0 || !this.enabled ? 0.0 : this.textureBias);
-            // this.textureBiasUniform.setValue(this.textureBias);
+            // look away
+            camera._viewProjMatDirty = true;
         };
 
         this.shader = new pc.Shader(device, {
