@@ -287,6 +287,13 @@ class Multiframe {
         device.setViewport(0, 0, device.width, device.height);
         device.setScissor(0, 0, device.width, device.height);
     }
+
+    copy(target: pc.RenderTarget) {
+        const device = this.device;
+        this.multiframeTexUniform.setValue(this.accumTexture);
+        this.powerUniform.setValue(1.0 / gamma);
+        pc.drawQuadWithShader(device, target, this.shader);
+    }
 }
 
 export {

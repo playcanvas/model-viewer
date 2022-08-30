@@ -753,6 +753,9 @@ class Viewer {
     }
 
     downloadPngScreenshot() {
+        if (this.multiframe.enabled) {
+            this.multiframe.copy(this.camera.camera.renderTarget);
+        }
         this.pngExporter.export('model-viewer.png', this.camera.camera.renderTarget.colorBuffer);
     }
 
