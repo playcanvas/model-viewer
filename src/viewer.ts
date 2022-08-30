@@ -74,6 +74,8 @@ class Viewer {
     readDepth: ReadDepth = null;
     cursorWorld = new pc.Vec3();
 
+    loadTimestamp?: number = null;
+
     constructor(canvas: HTMLCanvasElement, observer: Observer) {
         // create the application
         const app = new pc.Application(canvas, {
@@ -928,7 +930,7 @@ class Viewer {
                 this.resetScene();
             }
 
-            const loadStartTime = Date.now();
+            const loadTimestamp = Date.now();
 
             // kick off simultaneous asset load
             let awaiting = 0;
@@ -939,7 +941,8 @@ class Viewer {
                     this.loadGltf(file, files, (err, asset) => {
                         assets[index] = { err: err, asset: asset };
                         if (--awaiting === 0) {
-                            this.observer.set('scene.loadTime', `${Date.now() - loadStartTime} ms`);
+                            this.loadTimestamp = loadTimestamp;
+
                             // done loading assets, add them to the scene
                             assets.forEach((asset) => {
                                 if (asset) {
@@ -1545,6 +1548,9 @@ class Viewer {
             // boxes are incorrect
             this.focusCamera();
             this.renderNextFrame();
+        } else if (this.loadTimestamp !== null) {
+            this.observer.set('scene.loadTime', `${Date.now() - this.loadTimestamp} ms`);
+            this.loadTimestamp = null;
         }
 
         if (this.multiframeBusy) {
