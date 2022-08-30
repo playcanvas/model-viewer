@@ -75,34 +75,25 @@ class Multiframe {
         this.textureBias = -Math.log2(numSamples);
         this.samples = this.generateSamples(numSamples, false, 2, 0);
 
-        const pmat = this.camera.projectionMatrix;
-        const store = new pc.Vec2();
-
         // just before rendering the scene we apply a subpixel jitter
         // to the camera's projection matrix.
         this.camera.onPreRender = () => {
-            store.set(pmat.data[12], pmat.data[13]);
+            const camera = this.camera.camera;
+            const pmat = camera.projectionMatrix;
 
             if (this.enabled && this.accumTexture) {
                 const sample = this.samples[this.sampleId];
-
-                pmat.data[8] += sample.x / this.accumTexture.width;
-                pmat.data[9] += sample.y / this.accumTexture.height;
-
-                // look away
-                this.camera._camera._viewMatDirty = true;
-                this.camera._camera._viewProjMatDirty = true;
+                pmat.data[8] = sample.x / this.accumTexture.width;
+                pmat.data[9] = sample.y / this.accumTexture.height;
+                this.textureBiasUniform.setValue(this.sampleId === 0 ? 0.0 : this.textureBias);
+            } else {
+                pmat.data[8] = 0;
+                pmat.data[9] = 0;
+                this.textureBiasUniform.setValue(0.0);
             }
 
-            this.textureBiasUniform.setValue(this.sampleId === 0 || !this.enabled ? 0.0 : this.textureBias);
-            // this.textureBiasUniform.setValue(this.textureBias);
-        };
-
-        // restore the camera's projection matrix jitter once rendering is
-        // done
-        this.camera.onPostRender = () => {
-            pmat.data[8] = store.x;
-            pmat.data[9] = store.y;
+            // look away
+            camera._viewProjMatDirty = true;
         };
 
         this.shader = new pc.Shader(device, {
@@ -198,7 +189,9 @@ class Multiframe {
             width: source.width,
             height: source.height,
             format: this.pixelFormat,
-            mipmaps: false
+            mipmaps: false,
+            minFilter: pc.FILTER_NEAREST,
+            magFilter: pc.FILTER_NEAREST
         });
 
         this.accumRenderTarget = new pc.RenderTarget({
@@ -293,6 +286,13 @@ class Multiframe {
         device.updateBegin();
         device.setViewport(0, 0, device.width, device.height);
         device.setScissor(0, 0, device.width, device.height);
+    }
+
+    copy(target: pc.RenderTarget) {
+        const device = this.device;
+        this.multiframeTexUniform.setValue(this.accumTexture);
+        this.powerUniform.setValue(1.0 / gamma);
+        pc.drawQuadWithShader(device, target, this.shader);
     }
 }
 

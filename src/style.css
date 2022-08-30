@@ -8,49 +8,39 @@ body {
     max-height: 100%;
 }
 
-#flex-container {
+#app {
+    height: 100%;
+}
+
+#application-container {
     width: 100%;
     height: 100%;
     display: flex;
     align-items: stretch;
 }
 
-#app {
-    height: 100%;
-}
-
-#wrapper-left {
+#panel-left {
     width: 300px;
     height: 100%;
     background-color: #374346;
-}
-
-#wrapper-left.collapsed {
-    width: 32px !important;
-    overflow: hidden;
-    overflow-y: hidden !important;
-}
-
-#wrapper-left.collapsed #panel-toggle::before {
-    transform: translateY(-50%) translateX(-50%) rotateZ(90deg);
-}
-
-#wrapper-right {
-    width: 300px;
-    height: 100%;
-    background-color: #374346;
-}
-
-.control-panel {
-    width: 100%;
-    height: 100%;
-    overflow-y: auto;
+    display: flex;
+    overflow-y: hidden;
     user-select: none;
     -webkit-touch-callout: none;
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
     position: relative;
+}
+
+#panel-left.collapsed {
+    width: 32px !important;
+    overflow: hidden;
+    overflow-y: hidden !important;
+}
+
+#panel-left.collapsed #panel-toggle::before {
+    transform: translateY(-50%) translateX(-50%) rotateZ(90deg);
 }
 
 #panel-toggle {
@@ -136,6 +126,8 @@ input {
     margin: 0px;
     height: 32px;
     line-height: 32px;
+    flex-shrink: 0;
+    flex-grow: 0;
 }
 
 .header img {
@@ -171,6 +163,141 @@ input {
 
 .pcui-infobox.pcui-error {
     position: absolute;
+}
+
+#popup-buttons-parent {
+    position: absolute;
+    left: 50%;
+    bottom: 40px;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+}
+
+.popup-button {
+    margin: 12px !important;
+    color: white;
+    border: 0px !important;
+    background-color: rgba(32, 32, 32, 0.4) !important;
+}
+
+.popup-button.selected {
+    background-color: rgba(32, 32, 32, 0.8) !important;
+}
+
+.popup-button::before {
+    font-size: 16px !important;
+}
+
+.popup-panel-parent > .pcui-container {
+    position: absolute;
+}
+
+.popup-panel {
+    position: absolute;
+    width: 400px;
+    left: 50%;
+    bottom: 120px;
+    transform: translateX(-50%);
+    padding: 16px 16px 16px 16px;
+    border-radius: 8px;
+    font-size: 16px;
+    background-color: rgba(64, 64, 64, 0.6);
+}
+
+#download-button-parent {
+    position: absolute;
+    right: 40px;
+    bottom: 40px;
+}
+
+.download-button {
+    margin: 12px !important;
+    color: white;
+    border: 0px !important;
+    background-color: rgba(32, 32, 32, 0.4) !important;
+}
+
+.download-button::before {
+    font-size: 16px !important;
+}
+
+#github-button {
+    margin: 0px;
+    padding: 0px;
+}
+
+#scene-container {
+    height: 100%;
+}
+
+#scene-scrolly-bits {
+    flex-grow: 1;
+    overflow-y: auto;
+}
+
+.selected-node-panel-parent > .pcui-container {
+    position: absolute;
+}
+
+.selected-node-panel {
+    position: absolute;
+    right: 40px;
+    top: 40px;
+    display: flex;
+    align-items: center;
+    width: 350px;
+    margin: 12px;
+    padding: 16px 16px 16px 16px;
+    border-radius: 8px;
+    background-color: rgba(64, 64, 64, 0.6);
+}
+
+.scene-hierarchy-panel .scene-morph-panel {
+    width: 100%;
+}
+
+.scene-hierarchy-panel, .selected-node-panel {
+    /* margin: 6px; */
+    border: 1px solid rgb(41, 53, 56);
+}
+
+/* .scene-hierarchy-panel > .pcui-panel-content {
+    overflow: auto;
+} */
+
+.scene-hierarchy-panel .pcui-treeview-item-text {
+    font-size: 14px;
+}
+
+.selected-node-panel > .pcui-panel-content {
+    padding-right: 6px;
+}
+
+.animation-controls-panel-parent {
+    margin: 12px;
+    padding: 0px 8px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    background-color: rgba(64, 64, 64, 0.6);
+}
+
+.animation-panel {
+    position: absolute;
+    width: 400px;
+    left: 50%;
+    bottom: 120px;
+    transform: translateX(-50%);
+    padding: 16px 16px 16px 16px;
+    border-radius: 8px;
+    font-size: 16px;
+    background-color: rgba(64, 64, 64, 0.6);
+}
+
+.anim-control-button {
+    background-color: rgba(0, 0, 0, 0) !important;
+    border: 0px !important;
 }
 
 #load-controls .pcui-container {
@@ -237,42 +364,52 @@ input {
 .panel-option {
     display: flex;
     align-items: center;
+    width: 100%;
+    height: 30px !important;
 }
 
-.panel-option > .pcui-label {
-    min-width: 30%;
+.panel-label {
+    width: 30%;
+    font-size: 14px;
+    flex-shrink: 0;
+    margin: 2px;
+}
+
+.panel-value {
+    flex-grow: 1;
+    font-size: 14px;
+    margin: 2px !important;
+}
+
+.panel-value-boolean {
+    
+}
+
+.morph-label {
+    width: 40px;
     font-size: 14px;
 }
 
-.panel-option > .pcui-select-input {
-    flex-grow: 1;
+.morph-value {
+    font-size: 14px;
+    margin: 2px !important;
+    width: 180px;
 }
 
-.panel-option > .pcui-slider {
-    flex-grow: 1;
+.pcui-select-input-value {
+    font-size: 14px;
 }
 
-.panel-option > .pcui-vector-input {
-    flex-grow: 1;
+#anim-speed-select span {
+    overflow: visible !important;
 }
 
-/* apply spacing to all panel option elements */
-.panel-option > .pcui-vector-input > .pcui-numeric-input, .panel-option > .pcui-select-input, .panel-option > .pcui-slider {
-    margin: 4px 4px;
+#anim-scrub-slider > .pcui-text-input {
+    display: none;
 }
 
-.panel-option > .pcui-label, .panel-option > .pcui-boolean-input-toggle {
-    margin: 8px 4px;
-}
-
-.animation-buttons {
-    display: flex;
-}
-
-.animation-list-container {
-    display: flex;
-    flex-direction: column;
-    margin-right: 12px;
+#anim-scrub-slider > .pcui-slider-container > .pcui-slider-bar > .pcui-slider-handle {
+    transition: none;
 }
 
 .morph-target-panel {
@@ -313,25 +450,7 @@ input {
     background: $editor-tooltip-bg;
 } */
 
-.modelHierarchyPanel > .pcui-panel-content {
-    overflow-x: auto;
-    overflow-y: hidden;
-}
-
-.modelHierarchyPanel, .modelSelectedNodePanel {
-    margin: 6px;
-    border: 1px solid rgb(41, 53, 56);
-}
-
-.modelSelectedNodePanel > .pcui-panel-content {
-    padding-right: 6px;
-}
-
-.modelHierarchyPanel .pcui-treeview-item-text {
-    font-size: 14px;
-}
-
-#wrapper-left.collapsed #controls-left, #wrapper-left.collapsed .header, #wrapper-right.collapsed {
+#panel-left.collapsed #scene-container, #panel-left.collapsed .header {
     display: none !important;
 }
 

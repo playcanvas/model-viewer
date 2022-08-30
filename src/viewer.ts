@@ -14,6 +14,7 @@ import { DebugLines } from './debug';
 import { Multiframe } from './multiframe';
 import { ReadDepth } from './read-depth';
 import { OrbitCamera, OrbitCameraInputMouse, OrbitCameraInputTouch } from './orbit-camera';
+import { PngExporter } from './png-exporter.js';
 
 // model filename extensions
 const modelExtensions = ['.gltf', '.glb', '.vox'];
@@ -23,6 +24,7 @@ const defaultSceneBounds = new pc.BoundingBox(new pc.Vec3(0, 1, 0), new pc.Vec3(
 class Viewer {
     app: pc.Application;
     dropHandler: DropHandler;
+    pngExporter: PngExporter = null;
     prevCameraMat: pc.Mat4;
     camera: pc.Entity;
     orbitCamera: OrbitCamera;
@@ -63,6 +65,7 @@ class Viewer {
     debugNormals: DebugLines;
     miniStats: any;
     observer: Observer;
+    suppressAnimationProgressUpdate: boolean;
 
     selectedNode: pc.GraphNode | null;
 
@@ -70,6 +73,8 @@ class Viewer {
     multiframeBusy = false;
     readDepth: ReadDepth = null;
     cursorWorld = new pc.Vec3();
+
+    loadTimestamp?: number = null;
 
     constructor(canvas: HTMLCanvasElement, observer: Observer) {
         // create the application
@@ -90,6 +95,26 @@ class Viewer {
         app.graphicsDevice.maxPixelRatio = window.devicePixelRatio;
         app.scene.gammaCorrection = pc.GAMMA_SRGB;
 
+        // monkeypatch the mouse and touch input devices to ignore touch events
+        // when they don't originate from the canvas.
+        const origMouseHandler = app.mouse._moveHandler;
+        app.mouse.detach();
+        app.mouse._moveHandler = (event: MouseEvent) => {
+            if (event.target === canvas) {
+                origMouseHandler(event);
+            }
+        };
+        app.mouse.attach(canvas);
+
+        const origTouchHandler = app.touch._moveHandler;
+        app.touch.detach();
+        app.touch._moveHandler = (event: MouseEvent) => {
+            if (event.target === canvas) {
+                origTouchHandler(event);
+            }
+        };
+        app.touch.attach(canvas);
+
         // @ts-ignore
         const multisampleSupported = app.graphicsDevice.maxSamples > 1;
         observer.set('render.multisampleSupported', multisampleSupported);
@@ -97,6 +122,9 @@ class Viewer {
 
         // register vox support
         VoxParser.registerVoxParser(app);
+
+        // create the exporter
+        this.pngExporter = new PngExporter();
 
         // create drop handler
         this.dropHandler = new DropHandler((files: Array<File>, resetScene: boolean) => {
@@ -399,7 +427,7 @@ class Viewer {
                     this.stop();
                 }
             },
-            'animation.selectedTrack': this.play.bind(this),
+            'animation.selectedTrack': this.setSelectedTrack.bind(this),
             'animation.speed': this.setSpeed.bind(this),
             'animation.transition': this.setTransition.bind(this),
             'animation.loops': this.setLoops.bind(this),
@@ -683,11 +711,11 @@ class Viewer {
         let meshCount = 0;
         let vertexCount = 0;
         let primitiveCount = 0;
-        let variants = null;
+        let variants: any = null;
 
         // update mesh stats
         this.assets.forEach((asset) => {
-            variants = asset.resource.getMaterialVariants();
+            variants = variants || (asset.resource.getMaterialVariants && asset.resource.getMaterialVariants());
             asset.resource.renders.forEach((renderAsset: pc.Asset) => {
                 renderAsset.resource.meshes.forEach((mesh: pc.Mesh) => {
                     meshCount++;
@@ -724,6 +752,18 @@ class Viewer {
         // variant stats
         if (variants)
             this.observer.set('scene.variants.list', JSON.stringify(variants));
+    }
+
+    downloadPngScreenshot() {
+        const device = this.app.graphicsDevice as pc.WebglGraphicsDevice;
+
+        // save the backbuffer
+        const w = device.width;
+        const h = device.height;
+        const data = new Uint8Array(w * h * 4);
+        device.setRenderTarget(null);
+        device.gl.readPixels(0, 0, w, h, device.gl.RGBA, device.gl.UNSIGNED_BYTE, data);
+        this.pngExporter.export('model-viewer.png', new Uint32Array(data.buffer), w, h);
     }
 
     // move the camera to view the loaded object
@@ -895,6 +935,8 @@ class Viewer {
                 this.resetScene();
             }
 
+            const loadTimestamp = Date.now();
+
             // kick off simultaneous asset load
             let awaiting = 0;
             const assets: { err: string, asset: pc.Asset }[] = [];
@@ -904,6 +946,8 @@ class Viewer {
                     this.loadGltf(file, files, (err, asset) => {
                         assets[index] = { err: err, asset: asset };
                         if (--awaiting === 0) {
+                            this.loadTimestamp = loadTimestamp;
+
                             // done loading assets, add them to the scene
                             assets.forEach((asset) => {
                                 if (asset) {
@@ -923,28 +967,32 @@ class Viewer {
         return hasModelFilename;
     }
 
+    // set the currently selected track
+    setSelectedTrack(trackName: string) {
+        if (trackName !== 'ALL_TRACKS') {
+            const a = this.animationMap[trackName];
+            this.entities.forEach((e) => {
+                e.anim?.baseLayer?.transition(a);
+            });
+        }
+    }
+
     // play an animation / play all the animations
     play() {
-        let a: string;
-        const animationName: string = this.observer.get('animation.selectedTrack');
-        if (animationName !== 'ALL_TRACKS') {
-            a = this.animationMap[animationName];
-        }
         this.entities.forEach((e) => {
-            const anim = e.anim;
-            if (anim && animationName !== 'ALL_TRACKS') {
-                anim.baseLayer.transition(a);
+            if (e.anim) {
+                e.anim.playing = true;
+                e.anim.baseLayer?.play();
             }
-            anim.baseLayer.play();
         });
     }
 
     // stop playing animations
     stop() {
         this.entities.forEach((e) => {
-            const anim = e.anim;
-            if (anim && anim.baseLayer) {
-                anim.baseLayer.pause();
+            if (e.anim) {
+                e.anim.playing = false;
+                e.anim.baseLayer?.pause();
             }
         });
     }
@@ -981,11 +1029,19 @@ class Viewer {
     }
 
     setAnimationProgress(progress: number) {
+        if (this.suppressAnimationProgressUpdate) return;
         this.observer.set('animation.playing', false);
         this.entities.forEach((e) => {
-            e.anim.baseLayer.pause();
-            e.anim.baseLayer.activeStateCurrentTime = e.anim.baseLayer.activeStateDuration * progress;
+            const anim = e.anim;
+            const baseLayer = anim?.baseLayer;
+            if (baseLayer) {
+                this.play();
+                baseLayer.activeStateCurrentTime = baseLayer.activeStateDuration * progress;
+                anim.update(0);
+                anim.playing = false;
+            }
         });
+        this.renderNextFrame();
     }
 
     setSelectedNode(path: string) {
@@ -1254,20 +1310,38 @@ class Viewer {
                 }
             });
             this.observer.set('morphTargets', morphTargets);
-            this.observer.on('animationUpdate', () => {
-                const morphTargets = this.observer.get('morphTargets');
-                morphInstances.forEach((morphInstance: any, i: number) => {
-                    if (morphTargets && morphTargets[i]) {
-                        Object.keys(morphTargets[i].morphs).forEach((morphKey) => {
-                            const newWeight = morphInstance.getWeight(Number(morphKey));
-                            if (morphTargets[i].morphs[morphKey].weight !== newWeight) {
-                                this.observer.set(`morphTargets.${i}.morphs.${morphKey}.weight`, newWeight);
-                            }
-                        });
-                    }
-                });
-            });
         }
+
+        // handle animation update
+        const observer = this.observer;
+        observer.on('animationUpdate', () => {
+            const morphTargets = observer.get('morphTargets');
+            morphInstances.forEach((morphInstance: any, i: number) => {
+                if (morphTargets && morphTargets[i]) {
+                    Object.keys(morphTargets[i].morphs).forEach((morphKey) => {
+                        const newWeight = morphInstance.getWeight(Number(morphKey));
+                        if (morphTargets[i].morphs[morphKey].weight !== newWeight) {
+                            observer.set(`morphTargets.${i}.morphs.${morphKey}.weight`, newWeight);
+                        }
+                    });
+                }
+            });
+
+            // set progress
+            if (observer.get('animation.selectedTrack') !== 'ALL_TRACKS') {
+                for (let i = 0; i < this.entities.length; ++i) {
+                    const entity = this.entities[i];
+                    if (entity && entity.anim) {
+                        const baseLayer = entity.anim.baseLayer;
+                        const progress = baseLayer.activeStateCurrentTime / baseLayer.activeStateDuration;
+                        this.suppressAnimationProgressUpdate = true;
+                        observer.set('animation.progress', progress === 1 ? progress : progress % 1);
+                        this.suppressAnimationProgressUpdate = false;
+                        break;
+                    }
+                }
+            }
+        });
 
         // store the loaded asset
         this.assets.push(asset);
@@ -1479,6 +1553,9 @@ class Viewer {
             // boxes are incorrect
             this.focusCamera();
             this.renderNextFrame();
+        } else if (this.loadTimestamp !== null) {
+            this.observer.set('scene.loadTime', `${Date.now() - this.loadTimestamp} ms`);
+            this.loadTimestamp = null;
         }
 
         if (this.multiframeBusy) {

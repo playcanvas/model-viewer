@@ -7,7 +7,7 @@ import { Container, Spinner } from '@playcanvas/pcui/react';
 
 import { getAssetPath, getRootPath } from './helpers';
 import { Option } from './types';
-import { Controls } from './controls'
+import { SceneControls, PopupButtonControls, PopupPanelControls, SelectedNodeControls, DownloadButton } from './controls'
 import LoadControls from './load-ui';
 import ErrorBox from './errors';
 import Viewer from './viewer';
@@ -27,6 +27,9 @@ interface Skybox {
 
 // initialize the apps state
 const observer: Observer = new Observer({
+    ui: {
+        active: null
+    },
     render: {
         multisampleSupported: true,
         multisample: true,
@@ -44,8 +47,8 @@ const observer: Observer = new Observer({
         fov: 50
     },
     lighting: {
-        direct: 1,
-        shadow: true,
+        direct: 0,
+        shadow: false,
         env: {
             value: getAssetPath('./skybox/adams_place_bridge_2k.hdr'),
             options: null,
@@ -94,7 +97,8 @@ const observer: Observer = new Observer({
         variants: {
             list: '[]',
             selected: 0
-        }
+        },
+        loadTime: null
     },
     morphTargets: null,
     spinner: false,
@@ -137,19 +141,26 @@ const loadOptions = (name: string) => {
 
 // render out the app
 ReactDOM.render(
-    <div id="flex-container">
-        <Container id="wrapper-left" resizable='right' resizeMin={220} resizeMax={800} onResize={() => observer.emit('canvasResized')}>
-            <Container id="panel-left" class="control-panel">
-                <div id="panel-toggle"></div>
-                <div className="header" style={{ display: 'none' }}><a href={getRootPath()}><img src={getAssetPath('playcanvas-logo.png')}/><div><b>PLAY</b>CANVAS <span>viewer</span></div></a></div>
-                <Controls observer={observer} />
-            </Container>
+    <div id="application-container">
+        <Container id="panel-left" flex resizable='right' resizeMin={220} resizeMax={800} onResize={() => observer.emit('canvasResized')}>
+            <div className="header" style={{ display: 'none' }}>
+                <a href={getRootPath()}>
+                    <img src={getAssetPath('playcanvas-logo.png')}/>
+                    <div><b>PLAY</b>CANVAS <span>viewer</span></div>
+                </a>
+            </div>
+            <div id="panel-toggle"></div>
+            <SceneControls observer={observer} />
         </Container>
         <div id='canvas-wrapper'>
-            <LoadControls observer={observer} />
-            <ErrorBox observer={observer} path='error' />
             <canvas id="application-canvas" />
+            <LoadControls observer={observer} />
+            <SelectedNodeControls observer={observer} />
+            <PopupPanelControls observer={observer} />
+            <PopupButtonControls observer={observer} />
+            <ErrorBox observer={observer} path='error' />
             <Spinner id="spinner" size={30} hidden={true} />
+            <DownloadButton viewer={window.viewer}/>
         </div>
     </div>,
     document.getElementById('app')
