@@ -97,7 +97,8 @@ const observer: Observer = new Observer({
         variants: {
             list: '[]',
             selected: 0
-        }
+        },
+        loadTime: null
     },
     morphTargets: null,
     spinner: false,

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useContext } from 'react';
 import { Observer } from '@playcanvas/observer';
-import { BindingTwoWay } from '@playcanvas/pcui';
+import { BindingTwoWay, BindingObserversToElement } from '@playcanvas/pcui';
 import { Panel, Container, BooleanInput, Label, SliderInput, Button, TreeViewItem, TreeView, VectorInput, SelectInput, TextInput } from '@playcanvas/pcui/react';
 import { Morph, Option, HierarchyNode } from './types';
 import Viewer from './viewer';
@@ -32,35 +32,35 @@ class ObserverState {
     }
 }
 
-const Detail = (props: { name: string, path:string, label?: string, enabled?: boolean}) => {
+const Detail = (props: { label: string, path:string }) => {
     const observer: Observer = useContext(ObserverContext);
     return <Container class='panel-option'>
-        <Label class='panel-label' text={props.label ? props.label : props.name.substring(0, 1).toUpperCase() + props.name.substring(1, props.name.length)} />
-        <Label class='panel-value' link={{ observer, path: props.path }} binding={new BindingTwoWay()} enabled={props.enabled}/>
+        <Label class='panel-label' text={props.label} />
+        <Label class='panel-value' link={{ observer, path: props.path }} binding={new BindingObserversToElement()} />
     </Container>;
 };
 
-const Vector = (props: { name: string, path:string, label?: string, dimensions: number, enabled?: boolean}) => {
+const Vector = (props: { label: string, path:string, dimensions: number, enabled?: boolean}) => {
     const observer: Observer = useContext(ObserverContext);
     return <Container class='panel-option'>
-        <Label class='panel-label' text={props.label ? props.label : props.name.substring(0, 1).toUpperCase() + props.name.substring(1, props.name.length)} />
+        <Label class='panel-label' text={props.label} />
         <VectorInput class='panel-value' link={{ observer, path: props.path }} binding={new BindingTwoWay()} dimensions={props.dimensions} enabled={props.enabled}/>
     </Container>;
 };
 
-const Toggle = (props: { name: string, path:string, label?: string, enabled?: boolean}) => {
+const Toggle = (props: { label: string, path:string, enabled?: boolean}) => {
     const observer: Observer = useContext(ObserverContext);
     return <Container class='panel-option'>
-        <Label class='panel-label' text={props.label ? props.label : props.name.substring(0, 1).toUpperCase() + props.name.substring(1, props.name.length)} />
+        <Label class='panel-label' text={props.label} />
         <BooleanInput class='panel-value-boolean' type='toggle' link={{ observer, path: props.path }} binding={new BindingTwoWay()} enabled={props.enabled}/>
     </Container>;
 };
 Toggle.defaultProps = { enabled: true };
 
-const Slider = (props: { name: string, path:string, precision: number, min: number, max: number, label?: string, enabled?: boolean }) => {
+const Slider = (props: { label: string, path:string, precision: number, min: number, max: number, enabled?: boolean }) => {
     const observer: Observer = useContext(ObserverContext);
     return <Container class='panel-option'>
-        <Label class='panel-label' text={props.label ? props.label : props.name.substring(0, 1).toUpperCase() + props.name.substring(1, props.name.length)} />
+        <Label class='panel-label' text={props.label} />
         <SliderInput class='panel-value' min={props.min} max={props.max} sliderMin={props.min} sliderMax={props.max} precision={props.precision} step={0.01} link={{ observer, path: props.path }} binding={new BindingTwoWay()} enabled={props.enabled} />
     </Container>;
 };
@@ -75,10 +75,10 @@ const MorphSlider = (props: { name: string, path:string, precision: number, min:
 };
 MorphSlider.defaultProps = { enabled: true };
 
-const Select = (props: { name: string, path:string, type: string, options: Array<Option>, label?: string, enabled?: boolean }) => {
+const Select = (props: { label: string, path:string, type: string, options: Array<Option>, enabled?: boolean }) => {
     const observer: Observer = useContext(ObserverContext);
     return <Container class='panel-option'>
-        <Label class='panel-label' text={props.label ? props.label : props.name.substring(0, 1).toUpperCase() + props.name.substring(1, props.name.length)} />
+        <Label class='panel-label' text={props.label} />
         <SelectInput class='panel-value' type={props.type} options={props.options} link={{ observer, path: props.path }} binding={new BindingTwoWay()} enabled={props.enabled} />
     </Container>;
 };
@@ -107,7 +107,7 @@ const ScenePanel = () => {
     if (variantListOptions.length > 0) {
         observer.set('scene.variant.selected', variantListOptions[0].v);
     }
-    const enabled: boolean =  modelHierarchy.length > 0;
+    const enabled = () => modelHierarchy.length > 0;
     const mapNodes = (nodes: Array<HierarchyNode>) => {
         return nodes.map((node:HierarchyNode) => <TreeViewItem text={`${node.name}`} key={node.path} onSelected={() => observer.set('scene.selectedNode.path', node.path)}>
             { mapNodes(node.children) }
@@ -116,14 +116,15 @@ const ScenePanel = () => {
     return (
         <Container id='scene-container' flex>
             <Panel headerText='SCENE' flexShrink={0} flexGrow={0} collapsible >
-                <Detail name='meshCount' label='Meshes' path='scene.meshCount'/>
-                <Detail name='vertexCount' label='Verts' path='scene.vertexCount'/>
-                <Detail name='primitiveCount' label='Primitives' path='scene.primitiveCount'/>
-                <Vector name='bounds' label='Bounds' dimensions={3} path='scene.bounds' enabled={false}/>
-                <Select name='variant' type='string' options={variantListOptions} path='scene.variant.selected' label='Variant' />
+                <Detail label='Load time' path='scene.loadTime' />
+                <Detail label='Meshes' path='scene.meshCount' />
+                <Detail label='Verts' path='scene.vertexCount' />
+                <Detail label='Primitives' path='scene.primitiveCount' />
+                <Vector label='Bounds' dimensions={3} path='scene.bounds' enabled={false}/>
+                <Select label='Variant' type='string' options={variantListOptions} path='scene.variant.selected' />
             </Panel>
             <div id='scene-scrolly-bits'>
-                <Panel headerText='HIERARCHY' class='scene-hierarchy-panel' enabled={enabled} collapsible>
+                <Panel headerText='HIERARCHY' class='scene-hierarchy-panel' enabled={enabled()} collapsible>
                     { modelHierarchy.length > 0 &&
                         <TreeView allowReordering={false} allowDrag={false}>
                             { mapNodes(modelHierarchy) }
@@ -179,10 +180,10 @@ const SelectedNodePanel = () => {
     return hasHierarchy && nodeSelected ? (
         <div className='selected-node-panel-parent'>
             <Container class='selected-node-panel' flex>
-                <Detail name='selectedNodeName' label='Name' path='scene.selectedNode.name'/>
-                <Vector name='selectedNodePosition' label='Position' dimensions={3} path='scene.selectedNode.position' enabled={false}/>
-                <Vector name='selectedNodeRotation' label='Rotation' dimensions={3} path='scene.selectedNode.rotation' enabled={false}/>
-                <Vector name='selectedNodeScale' label='Scale' dimensions={3} path='scene.selectedNode.scale' enabled={false}/>
+                <Detail label='Name' path='scene.selectedNode.name'/>
+                <Vector label='Position' dimensions={3} path='scene.selectedNode.position' enabled={false}/>
+                <Vector label='Rotation' dimensions={3} path='scene.selectedNode.rotation' enabled={false}/>
+                <Vector label='Scale' dimensions={3} path='scene.selectedNode.scale' enabled={false}/>
             </Container>
         </div>
     ) : <div></div>;
@@ -275,12 +276,12 @@ const CameraPanel = () => {
     return (
         <div className='popup-panel-parent'>
             <Container class='popup-panel' flex hidden={hidden()}>
-                <Slider name='fov' precision={0} min={35} max={150} path='show.fov' />
-                <Select name='lightingTonemapping' type='string' options={['Linear', 'Filmic', 'Hejl', 'ACES'].map(v => ({ v, t: v }))} path='lighting.tonemapping' label='Tonemap' />
-                <Select name='pixelScale' path='render.pixelScale' label='Pixel Scale' type='number' options={[1, 2, 4, 8, 16].map(v => ({ v: v, t: Number(v).toString() }))} />
-                <Toggle name='multisample' path='render.multisample' enabled={multisampleSupported}/>
-                <Toggle name='hq' path='render.hq' label='High Quality' enabled={!animationPlaying && !statsShowing}/>
-                <Toggle name='stats' path='show.stats' />
+                <Slider label='Fov' precision={0} min={35} max={150} path='show.fov' />
+                <Select label='Tonemap' type='string' options={['Linear', 'Filmic', 'Hejl', 'ACES'].map(v => ({ v, t: v }))} path='lighting.tonemapping' />
+                <Select label='Pixel Scale' path='render.pixelScale' type='number' options={[1, 2, 4, 8, 16].map(v => ({ v: v, t: Number(v).toString() }))} />
+                <Toggle label='Multisample' path='render.multisample' enabled={multisampleSupported}/>
+                <Toggle label='High Quality' path='render.hq' enabled={!animationPlaying && !statsShowing}/>
+                <Toggle label='Stats' path='show.stats' />
             </Container>
         </div>
     );
@@ -293,12 +294,12 @@ const ShowPanel = () => {
     return (
         <div className='popup-panel-parent'>
             <Container class='popup-panel' flex hidden={hidden()}>
-                <Toggle name='grid' path='show.grid' />
-                <Toggle name='wireframe' path='show.wireframe' />
-                <Toggle name='axes' path='show.axes' />
-                <Toggle name='skeleton' path='show.skeleton' />
-                <Toggle name='bounds' path='show.bounds' />
-                <Slider name='normals' precision={2} min={0} max={1} path='show.normals' />
+                <Toggle label='Grid' path='show.grid' />
+                <Toggle label='Wireframe' path='show.wireframe' />
+                <Toggle label='Axes' path='show.axes' />
+                <Toggle label='Skeleton' path='show.skeleton' />
+                <Toggle label='Bounds' path='show.bounds' />
+                <Slider label='Normals' precision={2} min={0} max={1} path='show.normals' />
             </Container>
         </div>
     );
@@ -312,12 +313,12 @@ const LightingPanel = () => {
     return (
         <div className='popup-panel-parent'>
             <Container class='popup-panel' flex hidden={hidden()}>
-                <Select name='lightingEnv' type='string' options={skyboxOptions} path='lighting.env.value' label='Environment' />
-                <Select name='lightingSkyboxMip' type='number' options={[0, 1, 2, 3, 4, 5, 6].map(v => ({ v: v, t: v === 0 ? 'Disable' : Number(v - 1).toString() }))} path='lighting.env.skyboxMip' label='Skybox Level' />
-                <Slider name='lightingExposure' precision={2} min={-6} max={6} path='lighting.env.exposure' label='Exposure' />
-                <Slider name='lightingRotation' precision={0} min={-180} max={180} path='lighting.rotation' label='Rotation' />
-                <Slider name='lightingDirect' precision={2} min={0} max={6} path='lighting.direct' label='Direct' />
-                <Toggle name='lightingShadow' path='lighting.shadow' label='Shadow' />
+                <Select label='Environment' type='string' options={skyboxOptions} path='lighting.env.value' />
+                <Select label='Skybox Level' type='number' options={[0, 1, 2, 3, 4, 5, 6].map(v => ({ v: v, t: v === 0 ? 'Disable' : Number(v - 1).toString() }))} path='lighting.env.skyboxMip' />
+                <Slider label='Exposure' precision={2} min={-6} max={6} path='lighting.env.exposure' />
+                <Slider label='Rotation' precision={0} min={-180} max={180} path='lighting.rotation' />
+                <Slider label='Direct' precision={2} min={0} max={6} path='lighting.direct' />
+                <Toggle label='Shadow' path='lighting.shadow' />
             </Container>
         </div>
     );

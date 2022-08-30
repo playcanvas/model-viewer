@@ -928,6 +928,8 @@ class Viewer {
                 this.resetScene();
             }
 
+            const loadStartTime = Date.now();
+
             // kick off simultaneous asset load
             let awaiting = 0;
             const assets: { err: string, asset: pc.Asset }[] = [];
@@ -937,6 +939,7 @@ class Viewer {
                     this.loadGltf(file, files, (err, asset) => {
                         assets[index] = { err: err, asset: asset };
                         if (--awaiting === 0) {
+                            this.observer.set('scene.loadTime', `${Date.now() - loadStartTime} ms`);
                             // done loading assets, add them to the scene
                             assets.forEach((asset) => {
                                 if (asset) {
