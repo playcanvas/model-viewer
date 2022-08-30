@@ -61,18 +61,20 @@ const createWorker = () => {
     return new Worker(URL.createObjectURL(workerBlob));
 }
 
-const readPixels = (texture, face) => {
-    const rt = new pc.RenderTarget({ colorBuffer: texture, depth: false, face: face });
-    const data = new Uint8ClampedArray(texture.width * texture.height * 4);
-    const device = texture.device;
-
-    device.setFramebuffer(rt._glFrameBuffer);
-    device.initRenderTarget(rt);
-    device.gl.readPixels(0, 0, texture.width, texture.height, device.gl.RGBA, device.gl.UNSIGNED_BYTE, data);
-
-    rt.destroy();
-
+const readPixels = (renderTarget) => {
+    const device = renderTarget._device;
+    const data = new Uint8ClampedArray(renderTarget.width * renderTarget.height * 4);
+    device.setFramebuffer(renderTarget._glFrameBuffer);
+    device.gl.readPixels(0, 0, renderTarget.width, renderTarget.height, device.gl.RGBA, device.gl.UNSIGNED_BYTE, data);
     return new Uint32Array(data.buffer);
+};
+
+const readTexturePixels = (texture, face) => {
+    const renderTarget = new pc.RenderTarget({ colorBuffer: texture, depth: false, face: face });
+    device.initRenderTarget(renderTarget);
+    const result = readPixels(renderTarget);
+    renderTarget.destroy();
+    return result;
 };
 
 // download the data uri
@@ -115,7 +117,7 @@ class PngExporter {
         };
     }
 
-    async export(filename, texture) {
+    async export(filename, words, width, height) {
         const compress = (words, width, height) => {
             this.worker.postMessage({
                 words: words,
@@ -125,18 +127,24 @@ class PngExporter {
     
             return new Promise(this.promiseFunc);
         };
-    
-        const extension = 'png';
+
+        downloadFile(filename, await compress(words, width, height));
+    }
+
+    async exportRenderTarget(filename, renderTarget) {
+        this.export(filename, readPixels(renderTarget), renderTarget.width, renderTarget.height);
+    }
+
+    async exportTexture(filename, texture) {
         if (texture.cubemap) {
             const faceNames = ['posx', 'negx', 'posy', 'negy', 'posz', 'negz'];
             const lastPoint = filename.lastIndexOf('.');
             const filenameBase = lastPoint === -1 ? filename : filename.substring(0, lastPoint);
             for (let face = 0; face < 6; ++face) {
-                // eslint-disable-next-line
-                downloadFile(`${filenameBase}_${faceNames[face]}.png`, await compress(readPixels(texture, face), texture.width, texture.height));
+                this.export(`${filenameBase}_${faceNames[face]}.png`, readTexturePixels(texture, face), texture.width, texture.height);
             }
         } else {
-            downloadFile(filename, await compress(readPixels(texture, null), texture.width, texture.height));
+            this.export(filename, readTexturePixels(texture, null), texture.width, texture.height);
         }
     }
 }

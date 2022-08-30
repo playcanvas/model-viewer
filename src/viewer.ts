@@ -755,10 +755,15 @@ class Viewer {
     }
 
     downloadPngScreenshot() {
-        if (this.multiframe.enabled) {
-            this.multiframe.copy(this.camera.camera.renderTarget);
-        }
-        this.pngExporter.export('model-viewer.png', this.camera.camera.renderTarget.colorBuffer);
+        const device = this.app.graphicsDevice as pc.WebglGraphicsDevice;
+
+        // save the backbuffer
+        const w = device.width;
+        const h = device.height;
+        const data = new Uint8Array(w * h * 4);
+        device.setRenderTarget(null);
+        device.gl.readPixels(0, 0, w, h, device.gl.RGBA, device.gl.UNSIGNED_BYTE, data);
+        this.pngExporter.export('model-viewer.png', new Uint32Array(data.buffer), w, h);
     }
 
     // move the camera to view the loaded object
