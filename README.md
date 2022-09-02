@@ -2,7 +2,7 @@
 
 The PlayCanvas glTF scene viewer is blazingly fast and 100% compliant with the glTF 2.0 spec.
 
-[![PlayCanvas Viewer](images/viewer.png)](https://playcanvas.com/model-viewer)
+![PlayCanvas Viewer](https://user-images.githubusercontent.com/11276292/188189268-27d397f2-2085-4d8e-a6b2-4205fd13f0fb.png)
 
 You can find a live version at:
 
