@@ -1,15 +1,9 @@
 import * as pc from 'playcanvas';
 import { Observer } from '@playcanvas/observer';
-import React from 'react';
-import ReactDOM from 'react-dom';
 
-import { Container, Spinner } from '@playcanvas/pcui/react';
-
-import { getAssetPath, getRootPath } from './helpers';
-import { Option } from './types';
-import { SceneControls, PopupButtonControls, PopupPanelControls, SelectedNodeControls, DownloadButton } from './controls'
-import LoadControls from './load-ui';
-import ErrorBox from './errors';
+import { getAssetPath } from './helpers';
+import { Option, ObserverData } from './types';
+import initializeUI from './ui';
 import Viewer from './viewer';
 
 // Permit some additional properties to be set on the window
@@ -25,8 +19,7 @@ interface Skybox {
     label: string
 }
 
-// initialize the apps state
-const observer: Observer = new Observer({
+const observerData: ObserverData = {
     ui: {
         active: null
     },
@@ -94,16 +87,21 @@ const observer: Observer = new Observer({
         vertexCount: null,
         primitiveCount: null,
         bounds: null,
-        variants: {
-            list: '[]',
+        variant: {
             selected: 0
+        },
+        variants: {
+            list: '[]'
         },
         loadTime: null
     },
     morphTargets: null,
     spinner: false,
     error: null
-});
+};
+
+// initialize the apps state
+const observer: Observer = new Observer(observerData);
 
 const saveOptions = (name: string) => {
     const options = observer.json();
@@ -139,32 +137,7 @@ const loadOptions = (name: string) => {
     }
 };
 
-// render out the app
-ReactDOM.render(
-    <div id="application-container">
-        <Container id="panel-left" flex resizable='right' resizeMin={220} resizeMax={800} onResize={() => observer.emit('canvasResized')}>
-            <div className="header" style={{ display: 'none' }}>
-                <a href={getRootPath()}>
-                    <img src={getAssetPath('playcanvas-logo.png')}/>
-                    <div><b>PLAY</b>CANVAS <span>viewer</span></div>
-                </a>
-            </div>
-            <div id="panel-toggle"></div>
-            <SceneControls observer={observer} />
-        </Container>
-        <div id='canvas-wrapper'>
-            <canvas id="application-canvas" />
-            <LoadControls observer={observer} />
-            <SelectedNodeControls observer={observer} />
-            <PopupPanelControls observer={observer} />
-            <PopupButtonControls observer={observer} />
-            <ErrorBox observer={observer} path='error' />
-            <Spinner id="spinner" size={30} hidden={true} />
-            <DownloadButton viewer={window.viewer}/>
-        </div>
-    </div>,
-    document.getElementById('app')
-);
+initializeUI(observer);
 
 window.pc = pc;
 
@@ -198,30 +171,29 @@ new pc.Http().get(url, {
     responseType: "text",
     retry: false
 }, function (err: string, result: { skyboxes: Array<Skybox>, defaultSkybox: string }) {
-        if (err) {
-            console.warn(err);
-        } else {
-            const skyboxes = result.skyboxes;
-            const skyboxOptions: Array<Option> = [{
-                v: 'None', t: 'None'
-            }];
-            skyboxes.forEach((skybox: Skybox) => {
-                skyboxOptions.push({ v: getAssetPath(skybox.url), t: skybox.label });
-            });
-            const skyboxData = observer.get('lighting.env');
-            skyboxData.options = JSON.stringify(skyboxOptions);
-            skyboxData.default = getAssetPath(result.defaultSkybox);
-            observer.set('lighting.env', skyboxData);
-            
-            loadOptions('uistate');
-    
-            observer.on('*:set', () => {
-                saveOptions('uistate');
-            });
-    
-            const canvas = document.getElementById("application-canvas") as HTMLCanvasElement;
-            window.viewer = new Viewer(canvas, observer);
-            window.viewer.handleUrlParams();
-        }
+    if (err) {
+        console.warn(err);
+    } else {
+        const skyboxes = result.skyboxes;
+        const skyboxOptions: Array<Option> = [{
+            v: 'None', t: 'None'
+        }];
+        skyboxes.forEach((skybox: Skybox) => {
+            skyboxOptions.push({ v: getAssetPath(skybox.url), t: skybox.label });
+        });
+        const skyboxData = observer.get('lighting.env');
+        skyboxData.options = JSON.stringify(skyboxOptions);
+        skyboxData.default = getAssetPath(result.defaultSkybox);
+        observer.set('lighting.env', skyboxData);
+        loadOptions('uistate');
+
+        observer.on('*:set', () => {
+            saveOptions('uistate');
+        });
+
+        const canvas = document.getElementById("application-canvas") as HTMLCanvasElement;
+        window.viewer = new Viewer(canvas, observer);
+        window.viewer.handleUrlParams();
     }
+}
 );

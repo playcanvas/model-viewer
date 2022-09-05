@@ -1,11 +1,7 @@
 import React, { useRef } from 'react';
-import { Observer } from '@playcanvas/observer';
 import { Container, Label, Button } from '@playcanvas/pcui/react';
 
-import { File } from './types';
-
-const ObserverContext = React.createContext(null);
-const ObserverProvider = ObserverContext.Provider;
+import { File } from '../types';
 
 const LoadButton = () => {
     const inputFile = useRef(null);
@@ -40,22 +36,14 @@ const LoadButton = () => {
     );
 };
 
-const LoadPanel = () => {
-    return (
-        <Container class="load-button-panel" enabled flex>
-            <Label text="Drag glTF or GLB files here to view" />
-            <Label text="or" class="centered-label" />
-            <LoadButton />
-        </Container>
-    );
-};
-
-const LoadControls = (props: { observer: Observer }) => {
+const LoadControls = () => {
     return (
         <div id='load-controls'>
-            <ObserverProvider value={props.observer}>
-                <LoadPanel />
-            </ObserverProvider>
+            <Container class="load-button-panel" enabled flex>
+                <Label text="Drag glTF or GLB files here to view" />
+                <Label text="or" class="centered-label" />
+                <LoadButton />
+            </Container>
         </div>
     );
 };
