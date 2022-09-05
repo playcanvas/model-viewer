@@ -72,6 +72,10 @@ body {
     color: white;
 }
 
+#scene-panel > .pcui-panel-content {
+    margin-right: 6px;
+}
+
 #canvas-wrapper {
     position: relative;
     width: 0 !important;
@@ -205,7 +209,7 @@ input {
     background-color: rgba(64, 64, 64, 0.6);
 }
 
-#download-button-parent {
+#download-button-parent, #fullscreen-button-parent {
     position: absolute;
     right: 40px;
     bottom: 40px;
@@ -213,12 +217,20 @@ input {
 
 .download-button {
     margin: 12px !important;
+    margin-right: 76px !important;
     color: white;
     border: 0px !important;
     background-color: rgba(32, 32, 32, 0.4) !important;
 }
 
-.download-button::before {
+.fullscreen-button {
+    margin: 12px !important;
+    color: white;
+    border: 0px !important;
+    background-color: rgba(32, 32, 32, 0.4) !important;
+}
+
+.download-button::before, .fullscreen-button::before {
     font-size: 16px !important;
 }
 

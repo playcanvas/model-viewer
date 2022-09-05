@@ -750,8 +750,10 @@ class Viewer {
         this.observer.set('scene.primitiveCount', primitiveCount);
 
         // variant stats
-        if (variants)
+        if (variants) {
             this.observer.set('scene.variants.list', JSON.stringify(variants));
+            this.observer.set('scene.variant.selected', variants[0]);
+        }
     }
 
     downloadPngScreenshot() {
@@ -1030,7 +1032,6 @@ class Viewer {
 
     setAnimationProgress(progress: number) {
         if (this.suppressAnimationProgressUpdate) return;
-        this.observer.set('animation.playing', false);
         this.entities.forEach((e) => {
             const anim = e.anim;
             const baseLayer = anim?.baseLayer;
@@ -1328,17 +1329,15 @@ class Viewer {
             });
 
             // set progress
-            if (observer.get('animation.selectedTrack') !== 'ALL_TRACKS') {
-                for (let i = 0; i < this.entities.length; ++i) {
-                    const entity = this.entities[i];
-                    if (entity && entity.anim) {
-                        const baseLayer = entity.anim.baseLayer;
-                        const progress = baseLayer.activeStateCurrentTime / baseLayer.activeStateDuration;
-                        this.suppressAnimationProgressUpdate = true;
-                        observer.set('animation.progress', progress === 1 ? progress : progress % 1);
-                        this.suppressAnimationProgressUpdate = false;
-                        break;
-                    }
+            for (let i = 0; i < this.entities.length; ++i) {
+                const entity = this.entities[i];
+                if (entity && entity.anim) {
+                    const baseLayer = entity.anim.baseLayer;
+                    const progress = baseLayer.activeStateCurrentTime / baseLayer.activeStateDuration;
+                    this.suppressAnimationProgressUpdate = true;
+                    observer.set('animation.progress', progress === 1 ? progress : progress % 1);
+                    this.suppressAnimationProgressUpdate = false;
+                    break;
                 }
             }
         });
@@ -1403,11 +1402,13 @@ class Viewer {
             });
         });
 
-        // let the controls know about the new animations
-        this.observer.set('animation.list', JSON.stringify(Object.keys(this.animationMap)));
-
-        // immediately start playing the animation
-        this.observer.set('animation.playing', true);
+        // let the controls know about the new animations, set the selected track and immediately start playing the animation
+        const animationState = this.observer.get('animation');
+        const animationKeys = Object.keys(this.animationMap);
+        animationState.list = JSON.stringify(animationKeys);
+        animationState.selectedTrack = animationKeys[0];
+        animationState.playing = true;
+        this.observer.set('animation', animationState);
     }
 
     private calcSceneBounds() {
