@@ -36,7 +36,7 @@ class Viewer {
     sceneRoot: pc.Entity;
     debugRoot: pc.Entity;
     entities: Array<pc.Entity>;
-    entityAssets: Array<{entity: pc.Entity, asset: pc.Asset }> = [];
+    entityAssets: Array<{entity: pc.Entity, asset: pc.Asset }>;
     assets: Array<pc.Asset>;
     meshInstances: Array<pc.MeshInstance>;
     animTracks: Array<pc.AnimTrack>;
@@ -201,6 +201,7 @@ class Viewer {
         this.sceneRoot = sceneRoot;
         this.debugRoot = debugRoot;
         this.entities = [];
+        this.entityAssets = [];
         this.assets = [];
         this.meshInstances = [];
         this.animTracks = [];
