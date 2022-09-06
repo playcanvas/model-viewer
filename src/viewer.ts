@@ -36,6 +36,7 @@ class Viewer {
     sceneRoot: pc.Entity;
     debugRoot: pc.Entity;
     entities: Array<pc.Entity>;
+    entityAssets: Array<{entity: pc.Entity, asset: pc.Asset }> = [];
     assets: Array<pc.Asset>;
     meshInstances: Array<pc.MeshInstance>;
     animTracks: Array<pc.AnimTrack>;
@@ -683,6 +684,7 @@ class Viewer {
             entity.destroy();
         });
         this.entities = [];
+        this.entityAssets = [];
 
         this.assets.forEach((asset) => {
             app.assets.remove(asset);
@@ -711,11 +713,11 @@ class Viewer {
         let meshCount = 0;
         let vertexCount = 0;
         let primitiveCount = 0;
-        let variants: any = null;
+        let variants: string[] = [];
 
         // update mesh stats
         this.assets.forEach((asset) => {
-            variants = variants || (asset.resource.getMaterialVariants && asset.resource.getMaterialVariants());
+            variants = variants.concat(asset.resource.getMaterialVariants());
             asset.resource.renders.forEach((renderAsset: pc.Asset) => {
                 renderAsset.resource.meshes.forEach((mesh: pc.Mesh) => {
                     meshCount++;
@@ -750,10 +752,8 @@ class Viewer {
         this.observer.set('scene.primitiveCount', primitiveCount);
 
         // variant stats
-        if (variants) {
-            this.observer.set('scene.variants.list', JSON.stringify(variants));
-            this.observer.set('scene.variant.selected', variants[0]);
-        }
+        this.observer.set('scene.variants.list', JSON.stringify(variants));
+        this.observer.set('scene.variant.selected', variants[0]);
     }
 
     downloadPngScreenshot() {
@@ -1062,13 +1062,15 @@ class Viewer {
         this.renderNextFrame();
     }
 
-    setSelectedVariant(path: string) {
-        this.assets.forEach((asset) => {
-            this.entities.forEach((entity) => {
-                asset.resource.applyMaterialVariant(entity, path);
+    setSelectedVariant(variant: string) {
+        if (variant) {
+            this.entityAssets.forEach((entityAsset) => {
+                if (entityAsset.asset.resource.getMaterialVariants().indexOf(variant) !== -1) {
+                    entityAsset.asset.resource.applyMaterialVariant(entityAsset.entity, variant);
+                }
             });
-        });
-        this.renderNextFrame();
+            this.renderNextFrame();
+        }
     }
 
     setStats(show: boolean) {
@@ -1240,6 +1242,7 @@ class Viewer {
         } else {
             entity = asset.resource.instantiateRenderEntity();
             this.entities.push(entity);
+            this.entityAssets.push({ entity: entity, asset: asset });
             this.sceneRoot.addChild(entity);
         }
 
