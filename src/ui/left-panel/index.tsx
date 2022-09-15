@@ -121,6 +121,8 @@ class LeftPanel extends React.Component <{ observerData: ObserverData, setProper
             toggleCollapsed();
         });
         if (document.body.clientWidth <= 600) {
+            // we require this setTimeout because panel isn't yet created and so fails
+            // otherwise.
             setTimeout(() => toggleCollapsed());
         }
     }
