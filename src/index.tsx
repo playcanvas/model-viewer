@@ -47,7 +47,8 @@ const observerData: ObserverData = {
             options: null,
             default: null,
             skyboxMip: '3',
-            exposure: 0
+            exposure: 0,
+            clearColor: { r: 0.4, g: 0.45, b: 0.5, a: 1.0 }
         },
         rotation: 0,
         tonemapping: 'Linear'
@@ -97,7 +98,9 @@ const observerData: ObserverData = {
     },
     morphTargets: null,
     spinner: false,
-    error: null
+    error: null,
+    xrSupported: false,
+    xrActive: false
 };
 
 // initialize the apps state

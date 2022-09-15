@@ -17,7 +17,7 @@ uniform sampler2D multiframeTex;
 uniform float power;
 void main(void) {
     vec4 t = texture2D(multiframeTex, texcoord);
-    gl_FragColor = vec4(pow(t.xyz, vec3(power)), 1.0);
+    gl_FragColor = vec4(pow(t.xyz, vec3(power)), t.w);
 }
 `;
 
@@ -259,16 +259,19 @@ class Multiframe {
             this.totalWeight += sampleWeight;
         }
 
+        device.setBlending(true);
+        device.setBlendFunction(pc.BLENDMODE_SRC_ALPHA, pc.BLENDMODE_ONE_MINUS_SRC_ALPHA);
+
         if (this.sampleId === 0) {
             // first frame - copy the camera render target directly to the back buffer
             this.multiframeTexUniform.setValue(sourceTex);
             this.powerUniform.setValue(1.0);
-            pc.drawQuadWithShader(device, null, this.shader);
         } else {
             this.multiframeTexUniform.setValue(this.accumTexture);
             this.powerUniform.setValue(1.0 / gamma);
-            pc.drawQuadWithShader(device, null, this.shader);
         }
+
+        pc.drawQuadWithShader(device, null, this.shader, null, null, true);
 
         if (this.sampleId < sampleCnt) {
             this.sampleId++;

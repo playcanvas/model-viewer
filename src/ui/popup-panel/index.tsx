@@ -40,32 +40,22 @@ const toggleCollapsed = () => {
     if (observer) observer.emit('canvasResized');
 };
 
-const FullscreenButton = () => {
-    return (
-        <div id='fullscreen-button-parent'>
-            <Button class='fullscreen-button' icon='E127' width={40} height={40} onClick={() => {
-                toggleCollapsed();
-            } } />
-        </div>
-    );
-};
-const DownloadButton = () => {
-    return (
-        <div id='download-button-parent'>
-            <Button class='download-button' icon='E228' width={40} height={40} onClick={() => {
-                if (window.viewer) window.viewer.downloadPngScreenshot();
-            } } />
-        </div>
-    );
-};
-
 class PopupPanel extends React.Component <{ observerData: ObserverData, setProperty: SetProperty }> {
     render() {
         return (<>
             <PopupPanelControls observerData={this.props.observerData} setProperty={this.props.setProperty} />
             <PopupButtonControls observerData={this.props.observerData} setProperty={this.props.setProperty} />
-            <DownloadButton />
-            <FullscreenButton />
+            <div id='floating-buttons-parent'>
+                <Button class='popup-button' icon='E274' hidden={!this.props.observerData.xrSupported} width={40} height={40} onClick={() => {
+                    if (window.viewer) window.viewer.startXr();
+                } } />
+                <Button class='popup-button' icon='E228' width={40} height={40} onClick={() => {
+                    if (window.viewer) window.viewer.downloadPngScreenshot();
+                } } />
+                <Button class='popup-button' icon='E127' width={40} height={40} onClick={() => {
+                    toggleCollapsed();
+                } } />
+            </div>
         </>);
     }
 };

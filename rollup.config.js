@@ -11,22 +11,25 @@ import copyAndWatch from "./copy-and-watch";
 
 const PROD_BUILD = process.env.BUILD_TYPE === 'prod';
 
-const paths = {};
-['PCUI_PATH', 'ENGINE_PATH'].forEach((p) => {
-    const envPath = process.env[p];
-    if (envPath) {
-        paths[p] = path.resolve(envPath)
-    }
-});
+const paths = {
+    PCUI_PATH: process.env.PCUI_PATH && path.resolve(process.env.PCUI_PATH),
+    ENGINE_PATH: process.env.ENGINE_PATH && path.resolve(process.env.ENGINE_PATH)
+};
 
 // define supported module overrides
 const aliasEntries = [];
+const tsCompilerOptions = {
+    baseUrl: '.',
+    paths: { }
+};
 
 if (paths.PCUI_PATH) {
     aliasEntries.push({
         find: /^@playcanvas\/pcui(.*)/,
         replacement: `${paths.PCUI_PATH}$1`
     });
+
+    tsCompilerOptions.paths['@playcanvas/pcui/react'] = [`${paths.PCUI_PATH}/react`];
 }
 
 if (paths.ENGINE_PATH) {
@@ -39,6 +42,8 @@ if (paths.ENGINE_PATH) {
         find: /^playcanvas(.*)/,
         replacement: `${paths.ENGINE_PATH}$1`
     });
+
+    tsCompilerOptions.paths['playcanvas'] = [paths.ENGINE_PATH];
 }
 
 // compile mustache template
@@ -54,6 +59,7 @@ const compileMustache = (content, srcFilename) => {
 };
 
 export default {
+    cache: false,
     input: 'src/index.tsx',
     output: {
         dir: 'dist',
@@ -80,7 +86,11 @@ export default {
         }),
         sourcemaps(),
         commonjs(),
-        typescript(),
+        typescript({
+            tsconfig: 'tsconfig.json',
+            clean: true,
+            tsconfigDefaults: { compilerOptions: tsCompilerOptions }
+        }),
         (PROD_BUILD && terser())
     ]
 };
