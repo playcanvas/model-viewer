@@ -2,7 +2,7 @@ import React from 'react';
 import { Panel, Container, TreeViewItem, TreeView } from '@playcanvas/pcui/react';
 import { Morph, HierarchyNode, SetProperty, ObserverData } from '../../types';
 
-import { Vector, Detail, Select, MorphSlider } from '../components';
+import { Vector, Detail, Select, MorphSlider, ColorPickerComponent, GradientPickerComponent } from '../components';
 
 const toggleCollapsed = () => {
     document.getElementById('panel-left').classList.toggle('collapsed');
@@ -37,6 +37,18 @@ class ScenePanel extends React.Component <{ sceneData: ObserverData['scene'], se
                         this.props.setProperty('scene.variant.selected', value);
                     }}
                     enabled={ variantListOptions.length > 0 }
+                />
+                <ColorPickerComponent
+                    value={[0, 0.5, 0, 1]}
+                    setProperty={(value) => {
+                        this.props.setProperty('scene.variant.selected', value);
+                    }}
+                />
+                <GradientPickerComponent
+                    value={null}
+                    setProperty={(value) => {
+                        this.props.setProperty('');
+                    }}
                 />
             </Panel>
         );
