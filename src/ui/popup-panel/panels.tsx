@@ -2,7 +2,7 @@ import React from 'react';
 import { Container } from '@playcanvas/pcui/react';
 import { SetProperty, ObserverData } from '../../types';
 
-import { Slider, Toggle, Select } from '../components';
+import { Slider, Toggle, Select, ColorPickerComponent, GradientPickerComponent } from '../components';
 
 class CameraPanel extends React.Component <{ observerData: ObserverData, setProperty: SetProperty }> {
     shouldComponentUpdate(nextProps: Readonly<{ observerData: ObserverData; setProperty: SetProperty; }>): boolean {
@@ -61,6 +61,7 @@ class LightingPanel extends React.Component <{ lightingData: ObserverData['light
 
     render() {
         const props = this.props;
+        const clr = props.lightingData.env.clearColor;
         return (
             <div className='popup-panel-parent'>
                 <Container class='popup-panel' flex hidden={props.uiData.active !== 'lighting'}>
@@ -70,6 +71,27 @@ class LightingPanel extends React.Component <{ lightingData: ObserverData['light
                     <Slider label='Rotation' precision={0} min={-180} max={180} value={props.lightingData.rotation} setProperty={(value: number) => props.setProperty('lighting.rotation', value)} />
                     <Slider label='Direct' precision={2} min={0} max={6} value={props.lightingData.direct} setProperty={(value: number) => props.setProperty('lighting.direct', value)} />
                     <Toggle label='Shadow' value={props.lightingData.shadow} setProperty={(value: boolean) => props.setProperty('lighting.shadow', value)} />
+
+                    <ColorPickerComponent
+                        value={[clr.r, clr.g, clr.b, clr.a]}
+                        setProperty={(value) => {
+                            this.props.setProperty('lighting.env.clearColor', {
+                                r: value[0],
+                                g: value[1],
+                                b: value[2],
+                                a: value[3]
+                            });
+                        }}
+                    />
+                    <GradientPickerComponent
+                        value={{
+                            type: 4,
+                            keys: [[0, 0], [0, 0], [0, 0], [0, 0]]
+                        }}
+                        setProperty={(value) => {
+                            
+                        }}
+                    />
                 </Container>
             </div>
         );

@@ -1198,6 +1198,7 @@ class Viewer {
 
     setClearColor(color: { r: number, g: number, b: number, a: number }) {
         this.camera.camera.clearColor.set(color.r, color.g, color.b, color.a);
+        this.renderNextFrame();
     }
 
     setSkyboxMip(mip: number) {
