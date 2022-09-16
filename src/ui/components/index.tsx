@@ -1,5 +1,5 @@
 import React from 'react';
-import { Container, BooleanInput, Label, SliderInput, VectorInput, SelectInput } from '@playcanvas/pcui/react';
+import { Container, BooleanInput, Label, SliderInput, VectorInput, SelectInput, ColorPicker, GradientPicker } from '@playcanvas/pcui/react';
 import { Option } from '../../types';
 
 export const Detail = (props: { label: string, value:string|number}) => {
@@ -80,3 +80,21 @@ export const NakedSlider = (props: { value: any, setProperty: any, width: number
     />;
 };
 NakedSlider.defaultProps = { enabled: true };
+
+export const ColorPickerComponent = (props: { value: any, setProperty: (value: any) => void, id?: string, class?: string}) => {
+    return <ColorPicker id={props.id} class={props.class} value={props.value}
+        onChange={(value: any) => {
+            props.setProperty(value)
+        }}
+    />;
+};
+ColorPickerComponent.defaultProps = { enabled: true };
+
+export const GradientPickerComponent = (props: { value: any, setProperty: (value: any) => void, id?: string, class?: string}) => {
+    return <GradientPicker id={props.id} class={props.class} value={props.value}
+        onChange={(value: any) => {
+            props.setProperty(value)
+        }}
+    />;
+};
+GradientPickerComponent.defaultProps = { enabled: true };
