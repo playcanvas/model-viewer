@@ -174,7 +174,6 @@ class Viewer {
         const camera = new pc.Entity("Camera");
         camera.addComponent("camera", {
             fov: 75,
-            clearColor: new pc.Color(0.4, 0.45, 0.5),
             frustumCulling: true
         });
         camera.camera.requestSceneColorMap(true);

@@ -259,8 +259,14 @@ class Multiframe {
             this.totalWeight += sampleWeight;
         }
 
+        // prepare for blit to backbuffer
         device.setBlending(true);
-        device.setBlendFunction(pc.BLENDMODE_SRC_ALPHA, pc.BLENDMODE_ONE_MINUS_SRC_ALPHA);
+        device.setBlendFunctionSeparate(
+            pc.BLENDMODE_SRC_ALPHA,   // SRC_ALPHA,
+            pc.BLENDMODE_ZERO,  // ONE_MINUS_SRC_ALPHA,
+            pc.BLENDMODE_ONE,
+            pc.BLENDMODE_ZERO
+        );
 
         if (this.sampleId === 0) {
             // first frame - copy the camera render target directly to the back buffer
