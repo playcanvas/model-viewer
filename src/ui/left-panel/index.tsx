@@ -5,8 +5,14 @@ import { Morph, HierarchyNode, SetProperty, ObserverData } from '../../types';
 import { Vector, Detail, Select, MorphSlider } from '../components';
 
 const toggleCollapsed = () => {
-    document.getElementById('panel-left').classList.toggle('collapsed');
-    if (window.observer as any) (window.observer as any).emit('canvasResized');
+    const leftPanel = document.getElementById('panel-left');
+    if (leftPanel) {
+        leftPanel.classList.toggle('collapsed');
+
+        if (window.observer as any) {
+            (window.observer as any).emit('canvasResized');
+        }
+    }
 };
 
 class ScenePanel extends React.Component <{ sceneData: ObserverData['scene'], setProperty: SetProperty }> {
@@ -115,7 +121,9 @@ class LeftPanel extends React.Component <{ observerData: ObserverData, setProper
             toggleCollapsed();
         });
         if (document.body.clientWidth <= 600) {
-            toggleCollapsed();
+            // we require this setTimeout because panel isn't yet created and so fails
+            // otherwise.
+            setTimeout(() => toggleCollapsed());
         }
     }
 

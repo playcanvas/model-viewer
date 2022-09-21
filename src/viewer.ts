@@ -93,8 +93,30 @@ class Viewer {
             }
         });
         this.app = app;
-        app.graphicsDevice.maxPixelRatio = window.devicePixelRatio;
-        app.scene.gammaCorrection = pc.GAMMA_SRGB;
+
+        // set xr supported
+        observer.set('xrSupported', false);
+        observer.set('xrActive', false);
+
+        // xr is supported
+        if (this.app.xr.supported) {
+            app.xr.on("available:" + pc.XRTYPE_AR, (available) => {
+                observer.set('xrSupported', !!available);
+            });
+
+            app.xr.on("start", () => {
+                console.log("Immersive AR session has started");
+                observer.set('xrActive', true);
+
+                this.app.scene.layers.getLayerById(pc.LAYERID_SKYBOX).enabled = false;
+            });
+
+            app.xr.on("end", () => {
+                console.log("Immersive AR session has ended");
+                observer.set('xrActive', false);
+                this.setSkyboxMip(this.observer.get('lighting.env.skyboxMip'));
+            });
+        }
 
         // monkeypatch the mouse and touch input devices to ignore touch events
         // when they don't originate from the canvas.
@@ -150,8 +172,8 @@ class Viewer {
         const camera = new pc.Entity("Camera");
         camera.addComponent("camera", {
             fov: 75,
-            clearColor: new pc.Color(0.4, 0.45, 0.5),
-            frustumCulling: true
+            frustumCulling: true,
+            clearColor: new pc.Color(0, 0, 0, 0)
         });
         camera.camera.requestSceneColorMap(true);
 
@@ -219,6 +241,7 @@ class Viewer {
         this.showAxes = observer.get('show.axes');
         this.normalLength = observer.get('show.normals');
         this.setTonemapping(observer.get('lighting.tonemapping'));
+        this.setBackgroundColor(observer.get('lighting.env.backgroundColor'));
 
         this.dirtyWireframe = false;
         this.dirtyBounds = false;
@@ -419,6 +442,7 @@ class Viewer {
             },
             'lighting.env.skyboxMip': this.setSkyboxMip.bind(this),
             'lighting.env.exposure': this.setEnvExposure.bind(this),
+            'lighting.env.backgroundColor': this.setBackgroundColor.bind(this),
             'lighting.rotation': this.setLightingRotation.bind(this),
             'lighting.tonemapping': this.setTonemapping.bind(this),
 
@@ -636,6 +660,8 @@ class Viewer {
 
         const device = this.app.graphicsDevice as pc.WebglGraphicsDevice;
         const canvasSize = this.getCanvasSize();
+
+        device.maxPixelRatio = window.devicePixelRatio;
         this.app.resizeCanvas(canvasSize.width, canvasSize.height);
         this.renderNextFrame();
 
@@ -767,6 +793,16 @@ class Viewer {
         device.setRenderTarget(null);
         device.gl.readPixels(0, 0, w, h, device.gl.RGBA, device.gl.UNSIGNED_BYTE, data);
         this.pngExporter.export('model-viewer.png', new Uint32Array(data.buffer), w, h);
+    }
+
+    startXr() {
+        if (this.app.xr.isAvailable(pc.XRTYPE_AR)) {
+            this.camera.camera.startXr(pc.XRTYPE_AR, pc.XRSPACE_LOCALFLOOR, {
+                callback: (err) => {
+                    console.log(err);
+                }
+            });
+        }
     }
 
     // move the camera to view the loaded object
@@ -1159,6 +1195,11 @@ class Viewer {
         this.renderNextFrame();
     }
 
+    setBackgroundColor(color: { r: number, g: number, b: number }) {
+        const cnv = (value: number) => Math.max(0, Math.min(255, Math.floor(value * 255)));
+        document.getElementById('canvas-wrapper').style.backgroundColor = `rgb(${cnv(color.r)}, ${cnv(color.g)}, ${cnv(color.b)})`;
+    }
+
     setSkyboxMip(mip: number) {
         this.app.scene.layers.getLayerById(pc.LAYERID_SKYBOX).enabled = (mip !== 0);
         this.app.scene.skyboxMip = mip - 1;
@@ -1176,10 +1217,16 @@ class Viewer {
             }
             return result;
         };
+
         // if the camera has moved since the last render
         const cameraWorldTransform = this.camera.getWorldTransform();
         if (maxdiff(cameraWorldTransform, this.prevCameraMat) > 1e-04) {
             this.prevCameraMat.copy(cameraWorldTransform);
+            this.renderNextFrame();
+        }
+
+        // always render during xr sessions
+        if (this.observer.get('xrActive')) {
             this.renderNextFrame();
         }
 
