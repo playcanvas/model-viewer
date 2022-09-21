@@ -109,14 +109,12 @@ class Viewer {
                 observer.set('xrActive', true);
 
                 this.app.scene.layers.getLayerById(pc.LAYERID_SKYBOX).enabled = false;
-                this.camera.camera.clearColor.set(0, 0, 0, 0);
             });
 
             app.xr.on("end", () => {
                 console.log("Immersive AR session has ended");
                 observer.set('xrActive', false);
                 this.setSkyboxMip(this.observer.get('lighting.env.skyboxMip'));
-                this.setClearColor(this.observer.get('lighting.env.clearColor'));
             });
         }
 
@@ -174,7 +172,8 @@ class Viewer {
         const camera = new pc.Entity("Camera");
         camera.addComponent("camera", {
             fov: 75,
-            frustumCulling: true
+            frustumCulling: true,
+            clearColor: new pc.Color(0, 0, 0, 0)
         });
         camera.camera.requestSceneColorMap(true);
 
@@ -242,7 +241,7 @@ class Viewer {
         this.showAxes = observer.get('show.axes');
         this.normalLength = observer.get('show.normals');
         this.setTonemapping(observer.get('lighting.tonemapping'));
-        this.setClearColor(observer.get('lighting.env.clearColor'));
+        this.setBackgroundColor(observer.get('lighting.env.backgroundColor'));
 
         this.dirtyWireframe = false;
         this.dirtyBounds = false;
@@ -443,7 +442,7 @@ class Viewer {
             },
             'lighting.env.skyboxMip': this.setSkyboxMip.bind(this),
             'lighting.env.exposure': this.setEnvExposure.bind(this),
-            'lighting.env.clearColor': this.setClearColor.bind(this),
+            'lighting.env.backgroundColor': this.setBackgroundColor.bind(this),
             'lighting.rotation': this.setLightingRotation.bind(this),
             'lighting.tonemapping': this.setTonemapping.bind(this),
 
@@ -1196,8 +1195,9 @@ class Viewer {
         this.renderNextFrame();
     }
 
-    setClearColor(color: { r: number, g: number, b: number, a: number }) {
-        this.camera.camera.clearColor.set(color.r, color.g, color.b, color.a);
+    setBackgroundColor(color: { r: number, g: number, b: number }) {
+        const cnv = (value: number) => Math.max(0, Math.min(255, Math.floor(value * 255)));
+        document.getElementById('canvas-wrapper').style.backgroundColor = `rgb(${cnv(color.r)}, ${cnv(color.g)}, ${cnv(color.b)})`;
     }
 
     setSkyboxMip(mip: number) {

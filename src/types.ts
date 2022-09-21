@@ -48,11 +48,10 @@ export interface ObserverData {
             default: null,
             skyboxMip: string,
             exposure: number,
-            clearColor: {
+            backgroundColor: {
                 r: number,
                 g: number,
-                b: number,
-                a: number
+                b: number
             }
         },
         rotation: number,

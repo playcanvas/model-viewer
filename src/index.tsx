@@ -3,6 +3,7 @@ import { Observer } from '@playcanvas/observer';
 
 import { getAssetPath } from './helpers';
 import { Option, ObserverData } from './types';
+import { initMaterials } from './material';
 import initializeUI from './ui';
 import Viewer from './viewer';
 
@@ -48,7 +49,7 @@ const observerData: ObserverData = {
             default: null,
             skyboxMip: '3',
             exposure: 0,
-            clearColor: { r: 0.4, g: 0.45, b: 0.5, a: 1.0 }
+            backgroundColor: { r: 0.4, g: 0.45, b: 0.5 }
         },
         rotation: 0,
         tonemapping: 'Linear'
@@ -140,6 +141,7 @@ const loadOptions = (name: string) => {
     }
 };
 
+initMaterials();
 initializeUI(observer);
 
 window.pc = pc;
