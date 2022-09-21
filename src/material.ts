@@ -31,10 +31,13 @@ const initMaterials = () => {
     Object.defineProperty(pc.Material.prototype, 'blendType', {
         set(type) {
             setBlendType.call(this, type);
+        },
+        get() {
+            return blendTypeDescriptor.get.call(this);
         }
     });
 };
 
 export {
     initMaterials
-}
+};
