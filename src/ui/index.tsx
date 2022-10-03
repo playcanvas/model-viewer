@@ -2,10 +2,9 @@
 import { Observer } from '@playcanvas/observer';
 import React from 'react';
 import ReactDOM from 'react-dom';
+import { Container, Spinner } from '@playcanvas/pcui/react/unstyled';
 
-import { Container, Spinner } from '@playcanvas/pcui/react';
-
-import { getAssetPath, getRootPath } from '../helpers';
+import { getAssetPath } from '../helpers';
 import { ObserverData } from '../types';
 import LeftPanel from './left-panel';
 import SelectedNode from './selected-node';
@@ -40,19 +39,21 @@ class App extends React.Component<{ observer: Observer }> {
 
     render() {
         return <div id="application-container">
-            <Container id="panel-left" flex resizable='right' resizeMin={220} resizeMax={800} onResize={() => this.props.observer.emit('canvasResized')}>
+            <Container id="panel-left" class={this.state.scene.nodes === '[]' ? 'empty' : null} flex resizable='right' resizeMin={220} resizeMax={800} onResize={() => this.props.observer.emit('canvasResized')}>
                 <div className="header" style={{ display: 'none' }}>
-                    <a href={getRootPath()}>
+                    <div id="title">
                         <img src={getAssetPath('playcanvas-logo.png')}/>
-                        <div><b>PLAY</b>CANVAS <span>viewer</span></div>
-                    </a>
+                        <div>PLAYCANVAS MODEL VIEWER</div>
+                    </div>
                 </div>
-                <div id="panel-toggle"></div>
+                <div id="panel-toggle">
+                    <img src={getAssetPath('playcanvas-logo.png')}/>
+                </div>
                 <LeftPanel observerData={this.state} setProperty={this._setStateProperty} />
             </Container>
             <div id='canvas-wrapper'>
                 <canvas id="application-canvas" />
-                <LoadControls />
+                <LoadControls setProperty={this._setStateProperty}/>
                 <SelectedNode sceneData={this.state.scene} />
                 <PopupPanel observerData={this.state} setProperty={this._setStateProperty} />
                 <ErrorBox observerData={this.state} />

@@ -8,4 +8,31 @@ function getRootPath(): string {
     return (__PUBLIC_PATH__ ? './model-viewer' : '.');
 }
 
-export { getAssetPath, getRootPath };
+const addEventListenerOnClickOnly = (element: any, callback: any, delta = 2) => {
+    let startX: number;
+    let startY: number;
+
+    const mouseDownEvt = (event: any) => {
+        startX = event.pageX;
+        startY = event.pageY;
+    };
+    element.addEventListener('mousedown', mouseDownEvt);
+
+    const mouseUpEvt = (event: any) => {
+        const diffX = Math.abs(event.pageX - startX);
+        const diffY = Math.abs(event.pageY - startY);
+
+        if (diffX < delta && diffY < delta) {
+            callback(event);
+        }
+    };
+    element.addEventListener('mouseup', mouseUpEvt);
+
+    return () => {
+        element.removeEventListener('mousedown', mouseDownEvt);
+        element.removeEventListener('mouseup', mouseUpEvt);
+    };
+
+};
+
+export { getAssetPath, getRootPath, addEventListenerOnClickOnly };

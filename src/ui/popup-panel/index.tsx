@@ -1,22 +1,44 @@
 import React from 'react';
 import { Observer } from '@playcanvas/observer';
-import { Button } from '@playcanvas/pcui/react';
+import { Button } from '@playcanvas/pcui/react/unstyled';
 import { SetProperty, ObserverData } from '../../types';
 import AnimationControls from './animation-controls';
-import { CameraPanel, LightingPanel, ShowPanel } from './panels';
+import { CameraPanel, LightingPanel, ShowPanel, ViewPanel } from './panels';
+// @ts-ignore no type defs included
+import * as pcx from 'playcanvas/build/playcanvas-extras.js';
+import { addEventListenerOnClickOnly } from '../../helpers';
 
 const PopupPanelControls = (props: { observerData: ObserverData, setProperty: SetProperty }) => {
     return (<>
         <CameraPanel setProperty={props.setProperty} observerData={props.observerData} />
         <ShowPanel setProperty={props.setProperty} showData={props.observerData.show} uiData={props.observerData.ui} />
         <LightingPanel setProperty={props.setProperty} lightingData={props.observerData.lighting} uiData={props.observerData.ui} />
+        <ViewPanel setProperty={props.setProperty} glbUrl={props.observerData.glbUrl} uiData={props.observerData.ui} />
     </>);
 };
 
 class PopupButtonControls extends React.Component <{ observerData: ObserverData, setProperty: SetProperty }> {
+    popupPanelElement: any;
     render() {
+        let removeDeselectEvents: any;
         const handleClick = (value: string) => {
             this.props.setProperty('ui.active', this.props.observerData.ui.active === value ? null : value);
+
+            // after a popup button is set active, listen for another click outside the panel to deactive it
+            if (!this.popupPanelElement) this.popupPanelElement = document.getElementById('popup');
+            // add the event listener after the current click is complete
+            setTimeout(() => {
+                if (removeDeselectEvents) removeDeselectEvents();
+                const deactivateUi = (e: any) => {
+                    if (this.popupPanelElement.contains(e.target)) {
+                        return;
+                    }
+                    this.props.setProperty('ui.active', null);
+                    removeDeselectEvents();
+                    removeDeselectEvents = null;
+                };
+                removeDeselectEvents = addEventListenerOnClickOnly(document.body, deactivateUi, 4);
+            });
         };
 
         const buildClass = (value: string) => {
@@ -29,6 +51,7 @@ class PopupButtonControls extends React.Component <{ observerData: ObserverData,
                 <Button class={buildClass('camera')} icon='E212' width={40} height={40} onClick={() => handleClick('camera')} />
                 <Button class={buildClass('show')} icon='E188' width={40} height={40} onClick={() => handleClick('show')} />
                 <Button class={buildClass('lighting')} icon='E192' width={40} height={40} onClick={() => handleClick('lighting')} />
+                <Button class={buildClass('view')} icon='E301' width={40} height={40} onClick={() => handleClick('view')} />
             </div>
         );
     }
@@ -41,23 +64,43 @@ const toggleCollapsed = () => {
 };
 
 class PopupPanel extends React.Component <{ observerData: ObserverData, setProperty: SetProperty }> {
+    link: HTMLAnchorElement;
+    usdzExporter: any;
+    hasArSupport: boolean;
+
+    constructor(props: any) {
+        super(props);
+        this.link = (document.getElementById('ar-link') as HTMLAnchorElement);
+        if (this.link.relList.supports("ar")) {
+            this.usdzExporter = new (pcx as any).UsdzExporter();
+        }
+        this.hasArSupport = this.props.observerData.xrSupported || this.usdzExporter;
+    }
+
     render() {
-        return (<>
+        return (<div id='popup' className={this.props.observerData.scene.nodes === '[]' ? 'empty' : null}>
             <PopupPanelControls observerData={this.props.observerData} setProperty={this.props.setProperty} />
             <PopupButtonControls observerData={this.props.observerData} setProperty={this.props.setProperty} />
             <div id='floating-buttons-parent'>
-                <Button class='popup-button' icon='E274' hidden={!this.props.observerData.xrSupported} width={40} height={40} onClick={() => {
-                    if (window.viewer) window.viewer.startXr();
+                <Button class='popup-button' icon='E189' hidden={!this.hasArSupport || this.props.observerData.scene.nodes === '[]'} width={40} height={40} onClick={() => {
+                    if (this.usdzExporter) {
+                        const sceneRoot = (window as any).pc.app.root.findByName('sceneRoot');
+                        // convert the loaded entity into asdz file
+                        this.usdzExporter.build(sceneRoot).then((arrayBuffer: any) => {
+                            const blob = new Blob([arrayBuffer], { type: 'application/octet-stream' });
+                            this.link.href = URL.createObjectURL(blob);
+                            this.link.click();
+                        }).catch(console.error);
+                    } else {
+                        if (window.viewer) window.viewer.startXr();
+                    }
                 } } />
-                <Button class='popup-button' icon='E228' width={40} height={40} onClick={() => {
-                    if (window.viewer) window.viewer.downloadPngScreenshot();
-                } } />
-                <Button class='popup-button' icon='E127' width={40} height={40} onClick={() => {
+                <Button class='popup-button' id='fullscreen-button' icon='E127' width={40} height={40} onClick={() => {
                     toggleCollapsed();
                 } } />
             </div>
-        </>);
+        </div>);
     }
-};
+}
 
 export default PopupPanel;

@@ -6,6 +6,7 @@ import { Option, ObserverData } from './types';
 import { initMaterials } from './material';
 import initializeUI from './ui';
 import Viewer from './viewer';
+import './style.scss';
 
 // Permit some additional properties to be set on the window
 declare global {
@@ -101,7 +102,8 @@ const observerData: ObserverData = {
     spinner: false,
     error: null,
     xrSupported: false,
-    xrActive: false
+    xrActive: false,
+    glbUrl: null
 };
 
 // initialize the apps state

@@ -152,6 +152,9 @@ class Viewer {
         // create drop handler
         this.dropHandler = new DropHandler((files: Array<File>, resetScene: boolean) => {
             this.loadFiles(files, resetScene);
+            if (resetScene) {
+                this.observer.set('glbUrl', '');
+            }
         });
 
         // Set the canvas to fill the window and automatically change resolution to be the same as the canvas size
@@ -320,6 +323,9 @@ class Viewer {
                     return { url, filename: url };
                 })
             );
+        }
+        if (loadUrls.length === 1) {
+            this.observer.set('glbUrl', loadUrls[0]);
         }
 
         // set camera position
@@ -1321,6 +1327,7 @@ class Viewer {
             // make a list of all the morph instance target names
             const morphs: Array<Morph> = this.morphs;
             morphInstances.forEach((morphInstance: pc.MorphInstance, morphIndex: number) => {
+                // @ts-ignore - Property 'meshInstance' does not exist on type 'MorphInstance'.
                 const meshInstance = morphInstance.meshInstance;
 
                 // mesh name line
