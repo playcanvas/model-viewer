@@ -82,7 +82,7 @@ class ViewPanel extends React.Component <{ uiData: ObserverData['ui'], glbUrl: s
     isMobile: boolean;
 
     get shareUrl() {
-        return `${location.href}/?load=${this.props.glbUrl}`;
+        return `${location.origin}${location.pathname}/?load=${this.props.glbUrl}`;
     }
 
     constructor(props: any) {
