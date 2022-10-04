@@ -12,10 +12,6 @@ import PopupPanel from './popup-panel';
 import LoadControls from './load-controls';
 import ErrorBox from './errors';
 
-// const t = () => { viewer.observer.emit('canvasResized'); }
-// undefined
-// new ResizeObserver(t).observe(temp1)
-
 class App extends React.Component<{ observer: Observer }> {
     state: ObserverData;
     canvasRef: any;
