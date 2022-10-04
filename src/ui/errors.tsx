@@ -1,5 +1,5 @@
 import React from 'react';
-import { InfoBox } from '@playcanvas/pcui/react';
+import { InfoBox } from '@playcanvas/pcui/react/unstyled';
 import { ObserverData } from '../types';
 
 // InfoBox that shows an error

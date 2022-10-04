@@ -4,6 +4,7 @@ import replace from '@rollup/plugin-replace';
 import alias from '@rollup/plugin-alias';
 import typescript from 'rollup-plugin-typescript2';
 import { terser } from 'rollup-plugin-terser';
+import sass from 'rollup-plugin-sass';
 import sourcemaps from 'rollup-plugin-sourcemaps';
 import Handlebars from 'handlebars';
 import path from 'path';
@@ -58,6 +59,11 @@ const compileMustache = (content, srcFilename) => {
     });
 };
 
+const replaceValues = {
+    'process.env.NODE_ENV': JSON.stringify(PROD_BUILD ? 'production' : 'development'),
+    '__PUBLIC_PATH__': JSON.stringify(process.env.PUBLIC_PATH)
+};
+
 export default {
     cache: false,
     input: 'src/index.tsx',
@@ -67,23 +73,24 @@ export default {
         sourcemap: true
     },
     plugins: [
+        replace({
+            values: replaceValues,
+            preventAssignment: true
+        }),
+        sass({
+            insert: false,
+            output: 'dist/style.css',
+            outputStyle: 'compressed'
+        }),
         copyAndWatch({
             targets: [
                 { src: 'src/index.mustache', destFilename: 'index.html', transform: compileMustache },
-                { src: 'src/style.css' },
                 { src: 'src/fonts.css' },
                 { src: 'static/' }
             ]
         }),
         alias({ entries: aliasEntries }),
         resolve(),
-        replace({
-            values: {
-                'process.env.NODE_ENV': JSON.stringify(PROD_BUILD ? 'production' : 'development'),
-                '__PUBLIC_PATH__': JSON.stringify(process.env.PUBLIC_PATH)
-            },
-            preventAssignment: true
-        }),
         sourcemaps(),
         commonjs(),
         typescript({

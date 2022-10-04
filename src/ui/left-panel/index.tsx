@@ -1,17 +1,24 @@
 import React from 'react';
-import { Panel, Container, TreeViewItem, TreeView } from '@playcanvas/pcui/react';
+import { Panel, Container, TreeViewItem, TreeView } from '@playcanvas/pcui/react/unstyled';
 import { Morph, HierarchyNode, SetProperty, ObserverData } from '../../types';
 
 import { Vector, Detail, Select, MorphSlider } from '../components';
+import { addEventListenerOnClickOnly } from '../../helpers';
 
 const toggleCollapsed = () => {
     const leftPanel = document.getElementById('panel-left');
     if (leftPanel) {
         leftPanel.classList.toggle('collapsed');
+    }
+};
 
-        if (window.observer as any) {
-            (window.observer as any).emit('canvasResized');
-        }
+let leftPanel: any;
+const openPanel = () => {
+    if (!leftPanel) {
+        leftPanel = document.getElementById('panel-left');
+    }
+    if (leftPanel && leftPanel.classList.contains('collapsed')) {
+        leftPanel.classList.remove('collapsed');
     }
 };
 
@@ -32,7 +39,7 @@ class ScenePanel extends React.Component <{ sceneData: ObserverData['scene'], se
         const scene = this.props.sceneData;
         const variantListOptions: Array<{ v:string, t:string }> = JSON.parse(scene.variants.list).map((variant: string) => ({ v: variant, t: variant }));
         return (
-            <Panel headerText='SCENE' id='scene-panel' flexShrink={0} flexGrow={0} collapsible >
+            <Panel headerText='SCENE' id='scene-panel' flexShrink={0} flexGrow={0} collapsible={false} >
                 <Detail label='Load time' value={scene.loadTime} />
                 <Detail label='Meshes' value={scene.meshCount} />
                 <Detail label='Verts' value={scene.vertexCount} />
@@ -61,14 +68,20 @@ class HierarchyPanel extends React.Component <{ sceneData: ObserverData['scene']
         const modelHierarchy: Array<HierarchyNode> = JSON.parse(scene.nodes);
         const mapNodes = (nodes: Array<HierarchyNode>) => {
             return nodes.map((node:HierarchyNode) => <TreeViewItem text={`${node.name}`} key={node.path}
-                onSelect={() => this.props.setProperty('scene.selectedNode.path', node.path)}
+                onSelect={(TreeViewItem: any) => {
+                    this.props.setProperty('scene.selectedNode.path', node.path);
+                    const removeEventListener = addEventListenerOnClickOnly(document.body, () => {
+                        TreeViewItem.selected = false;
+                        removeEventListener();
+                    }, 4);
+                }}
                 onDeselect={() => this.props.setProperty('scene.selectedNode.path', '')}
             >
                 { mapNodes(node.children) }
             </TreeViewItem>);
         };
         return (
-            <Panel headerText='HIERARCHY' class='scene-hierarchy-panel' enabled={modelHierarchy.length > 0} collapsible>
+            <Panel headerText='HIERARCHY' class='scene-hierarchy-panel' enabled={modelHierarchy.length > 0} collapsible={false}>
                 { modelHierarchy.length > 0 &&
                     <TreeView allowReordering={false} allowDrag={false}>
                         { mapNodes(modelHierarchy) }
@@ -89,7 +102,7 @@ class MorphTargetPanel extends React.Component <{ morphTargetData: ObserverData[
     render() {
         const morphTargets: Record<string, {name: string, morphs: Record<string, Morph>}> = this.props.morphTargetData;
         return morphTargets ? (
-            <Panel headerText='MORPH TARGETS' class='scene-morph-panel' collapsible>
+            <Panel headerText='MORPH TARGETS' class='scene-morph-panel' collapsible={false}>
                 {Object.keys(morphTargets).map((key) => {
                     const panel = morphTargets[key];
                     return (
@@ -110,20 +123,32 @@ class MorphTargetPanel extends React.Component <{ morphTargetData: ObserverData[
 }
 
 class LeftPanel extends React.Component <{ observerData: ObserverData, setProperty: SetProperty }> {
+    isMobile: boolean;
+    constructor(props: any) {
+        super(props);
+        this.isMobile = (/Android|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+    }
+
     shouldComponentUpdate(nextProps: Readonly<{ observerData: ObserverData; setProperty: SetProperty; }>): boolean {
         return JSON.stringify(nextProps.observerData.scene) !== JSON.stringify(this.props.observerData.scene);
     }
 
     componentDidMount(): void {
         // set up the control panel toggle button
-        const panelToggleDiv = document.getElementById('panel-toggle');
-        panelToggleDiv.addEventListener('click', function () {
+        document.getElementById('panel-toggle').addEventListener('click', function () {
             toggleCollapsed();
         });
-        if (document.body.clientWidth <= 600) {
-            // we require this setTimeout because panel isn't yet created and so fails
-            // otherwise.
-            setTimeout(() => toggleCollapsed());
+        document.getElementById('title').addEventListener('click', function () {
+            toggleCollapsed();
+        });
+        // we require this setTimeout because panel isn't yet created and so fails
+        // otherwise.
+        setTimeout(() => toggleCollapsed());
+    }
+
+    componentDidUpdate(prevProps: Readonly<{ observerData: ObserverData; setProperty: SetProperty; }>): void {
+        if (!this.isMobile && prevProps.observerData.scene.nodes === '[]' && this.props.observerData.scene.nodes !== '[]') {
+            openPanel();
         }
     }
 

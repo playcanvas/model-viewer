@@ -104,7 +104,8 @@ export interface ObserverData {
     spinner: boolean,
     error?: string,
     xrSupported: boolean,
-    xrActive: boolean
+    xrActive: boolean,
+    glbUrl?: string
 }
 
 export type SetProperty = (path: string, value: any) => void;
