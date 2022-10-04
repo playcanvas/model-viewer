@@ -818,3 +818,7 @@ input {
 .pcui-text-input[placeholder]:after {
     color: #aaaaaa !important;
 }
+
+.pcui-select-input:not(.pcui-disabled):not(.pcui-readonly) .pcui-select-input-list > *:hover, .pcui-select-input:not(.pcui-disabled):not(.pcui-readonly) .pcui-select-input-list > .pcui-select-input-label-highlighted {
+    background-color: $bcg-primary;
+}
