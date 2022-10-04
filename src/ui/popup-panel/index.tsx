@@ -66,7 +66,10 @@ const toggleCollapsed = () => {
 class PopupPanel extends React.Component <{ observerData: ObserverData, setProperty: SetProperty }> {
     link: HTMLAnchorElement;
     usdzExporter: any;
-    hasArSupport: boolean;
+
+    get hasArSupport() {
+        return this.props.observerData.xrSupported || this.usdzExporter;
+    }
 
     constructor(props: any) {
         super(props);
@@ -74,7 +77,6 @@ class PopupPanel extends React.Component <{ observerData: ObserverData, setPrope
         if (this.link.relList.supports("ar")) {
             this.usdzExporter = new (pcx as any).UsdzExporter();
         }
-        this.hasArSupport = this.props.observerData.xrSupported || this.usdzExporter;
     }
 
     render() {
