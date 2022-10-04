@@ -12,17 +12,30 @@ import PopupPanel from './popup-panel';
 import LoadControls from './load-controls';
 import ErrorBox from './errors';
 
+// const t = () => { viewer.observer.emit('canvasResized'); }
+// undefined
+// new ResizeObserver(t).observe(temp1)
+
 class App extends React.Component<{ observer: Observer }> {
     state: ObserverData;
+    canvasRef: any;
 
     constructor(props: any) {
         super(props);
 
+        this.canvasRef = React.createRef();
         this.state = this._retrieveState();
 
         props.observer.on('*:set', () => {
             this.setState(this._retrieveState());
         });
+    }
+
+    componentDidMount(): void {
+        const resizeCanvas = () => {
+            window.viewer?.observer.emit('canvasResized');
+        };
+        new ResizeObserver(resizeCanvas).observe(this.canvasRef.current);
     }
 
     _retrieveState = () => {
@@ -52,7 +65,7 @@ class App extends React.Component<{ observer: Observer }> {
                 <LeftPanel observerData={this.state} setProperty={this._setStateProperty} />
             </Container>
             <div id='canvas-wrapper'>
-                <canvas id="application-canvas" />
+                <canvas id="application-canvas" ref={this.canvasRef} />
                 <LoadControls setProperty={this._setStateProperty}/>
                 <SelectedNode sceneData={this.state.scene} />
                 <PopupPanel observerData={this.state} setProperty={this._setStateProperty} />

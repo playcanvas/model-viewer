@@ -9,10 +9,6 @@ const toggleCollapsed = () => {
     const leftPanel = document.getElementById('panel-left');
     if (leftPanel) {
         leftPanel.classList.toggle('collapsed');
-
-        if (window.observer as any) {
-            (window.observer as any).emit('canvasResized');
-        }
     }
 };
 
@@ -23,11 +19,6 @@ const openPanel = () => {
     }
     if (leftPanel && leftPanel.classList.contains('collapsed')) {
         leftPanel.classList.remove('collapsed');
-        setTimeout(() => {
-            if (window.observer as any) {
-                (window.observer as any).emit('canvasResized');
-            }
-        });
     }
 };
 
