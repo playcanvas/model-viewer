@@ -24,7 +24,7 @@ class PopupButtonControls extends React.Component <{ observerData: ObserverData,
         const handleClick = (value: string) => {
             this.props.setProperty('ui.active', this.props.observerData.ui.active === value ? null : value);
 
-            // after a popup button is set active, listen for another click outside the panel to deactive it
+            // after a popup button is set active, listen for another click outside the panel to deactivate it
             if (!this.popupPanelElement) this.popupPanelElement = document.getElementById('popup');
             // add the event listener after the current click is complete
             setTimeout(() => {
