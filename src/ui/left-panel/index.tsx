@@ -1,8 +1,5 @@
 import React from 'react';
-<<<<<<< HEAD
 import VisibilitySensor from 'react-visibility-sensor';
-=======
->>>>>>> main
 import { Panel, Container, TreeViewItem, TreeView } from '@playcanvas/pcui/react/unstyled';
 import { Morph, HierarchyNode, SetProperty, ObserverData } from '../../types';
 
