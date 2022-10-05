@@ -1,5 +1,8 @@
 import React from 'react';
+<<<<<<< HEAD
 import VisibilitySensor from 'react-visibility-sensor';
+=======
+>>>>>>> main
 import { Panel, Container, TreeViewItem, TreeView } from '@playcanvas/pcui/react/unstyled';
 import { Morph, HierarchyNode, SetProperty, ObserverData } from '../../types';
 
@@ -99,26 +102,6 @@ class MorphTargetPanel extends React.Component <{ morphTargetData: ObserverData[
             JSON.stringify(nextProps.morphTargetData) !== JSON.stringify(this.props.morphTargetData) || nextProps.progress !== this.props.progress
         );
     }
-
-
-                                // return <div key={`${morphKey}`}>
-                                //     <VisibilitySensor offset={{ top: -750, bottom: -750 }}>
-                                //         {({ isVisible }: any) => {
-                                //             return <div>{
-                                //                 isVisible ?
-                                //                     <MorphSlider name={`${morph.name}`} precision={2} min={0} max={1}
-                                //                         value={morphTargets[key].morphs[morph.targetIndex].weight}
-                                //                         setProperty={(value: number) => this.props.setProperty(`morphTargets.${key}.morphs.${morph.targetIndex}.weight`, value)}
-                                //                     /> :
-                                //                     <div style={{ width: 30, height: 30 }}></div>
-                                //             }</div>;
-                                //         }}
-                                //     </VisibilitySensor>
-                                // </div>;
-                                // return <MorphSlider key={`${key}.${morphKey}`} name={`${morph.name}`} precision={2} min={0} max={1}
-                                //     value={morphTargets[key].morphs[morph.targetIndex].weight}
-                                //     setProperty={(value: number) => this.props.setProperty(`morphTargets.${key}.morphs.${morph.targetIndex}.weight`, value)}
-                                // />;
 
     render() {
         const morphTargets: Record<string, {name: string, morphs: Record<string, Morph>}> = this.props.morphTargetData;
