@@ -1,4 +1,5 @@
 import React from 'react';
+import VisibilitySensor from 'react-visibility-sensor';
 import { Panel, Container, TreeViewItem, TreeView } from '@playcanvas/pcui/react/unstyled';
 import { Morph, HierarchyNode, SetProperty, ObserverData } from '../../types';
 
@@ -109,10 +110,20 @@ class MorphTargetPanel extends React.Component <{ morphTargetData: ObserverData[
                         <Panel key={`${key}.${panel.name}`} headerText={panel.name} collapsible class='morph-target-panel'>
                             {Object.keys(panel.morphs).map((morphKey) => {
                                 const morph: Morph = panel.morphs[morphKey];
-                                return <MorphSlider key={`${key}.${morphKey}`} name={`${morph.name}`} precision={2} min={0} max={1}
-                                    value={morphTargets[key].morphs[morph.targetIndex].weight}
-                                    setProperty={(value: number) => this.props.setProperty(`morphTargets.${key}.morphs.${morph.targetIndex}.weight`, value)}
-                                />;
+                                return <div key={`${morphKey}`}>
+                                    <VisibilitySensor offset={{ top: -750, bottom: -750 }}>
+                                        {({ isVisible }: any) => {
+                                            return <div>{
+                                                isVisible ?
+                                                    <MorphSlider name={`${morph.name}`} precision={2} min={0} max={1}
+                                                        value={morphTargets[key].morphs[morph.targetIndex].weight}
+                                                        setProperty={(value: number) => this.props.setProperty(`morphTargets.${key}.morphs.${morph.targetIndex}.weight`, value)}
+                                                    /> :
+                                                    <div style={{ width: 30, height: 30 }}></div>
+                                            }</div>;
+                                        }}
+                                    </VisibilitySensor>
+                                </div>;
                             })}
                         </Panel>
                     );

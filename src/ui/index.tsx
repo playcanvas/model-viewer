@@ -22,7 +22,10 @@ class App extends React.Component<{ observer: Observer }> {
         this.canvasRef = React.createRef();
         this.state = this._retrieveState();
 
-        props.observer.on('*:set', () => {
+        props.observer.on('*:set', (path: string) => {
+            // ignore any observer updates to specific morph targets
+            if (path.includes('morphTargets.')) return;
+            // update the state
             this.setState(this._retrieveState());
         });
     }
