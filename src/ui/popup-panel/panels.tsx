@@ -1,6 +1,8 @@
 import React from 'react';
-import { Container } from '@playcanvas/pcui/react';
+import { Container, Button, Label, TextInput } from '@playcanvas/pcui/react/unstyled';
 import { SetProperty, ObserverData } from '../../types';
+// @ts-ignore no type defs included
+import QRious from 'qrious';
 
 import { Slider, Toggle, Select } from '../components';
 
@@ -76,8 +78,76 @@ class LightingPanel extends React.Component <{ lightingData: ObserverData['light
     }
 }
 
+class ViewPanel extends React.Component <{ uiData: ObserverData['ui'], glbUrl: string, setProperty: SetProperty }> {
+    isMobile: boolean;
+
+    get shareUrl() {
+        return `${location.origin}${location.pathname}/?load=${this.props.glbUrl}`;
+    }
+
+    constructor(props: any) {
+        super(props);
+        this.isMobile = (/Android|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+    }
+
+    shouldComponentUpdate(nextProps: Readonly<{ uiData: ObserverData['ui']; glbUrl: string, setProperty: SetProperty; }>): boolean {
+        return JSON.stringify(nextProps.uiData) !== JSON.stringify(this.props.uiData) ||
+        nextProps.glbUrl !== this.props.glbUrl;
+    }
+
+    updateQRCode() {
+        const canvas = document.getElementById('share-qr');
+        const qr = new QRious({
+            element: canvas,
+            value: this.shareUrl
+        });
+    }
+
+    componentDidMount() {
+        if (this.props.glbUrl) {
+            this.updateQRCode();
+        }
+    }
+
+    componentDidUpdate(): void {
+        if (this.props.glbUrl) {
+            this.updateQRCode();
+        }
+    }
+
+    render() {
+        const props = this.props;
+        return (
+            <div className='popup-panel-parent'>
+                <Container id='view-panel' class='popup-panel' flex hidden={props.uiData.active !== 'view'}>
+                    { this.props.glbUrl && !this.isMobile ?
+                        <>
+                            <Label text='View and share on mobile with QR code' />
+                            <div id='qr-wrapper'>
+                                <canvas id='share-qr' />
+                            </div>
+                            <Label text='View and share on mobile with URL' />
+                            <div id='share-url-wrapper'>
+                                <TextInput class='secondary' value={this.shareUrl} enabled={false} />
+                                <Button id='copy-button' icon='E126' onClick={() => {
+                                    if (navigator.clipboard && window.isSecureContext) {
+                                        navigator.clipboard.writeText(this.shareUrl);
+                                    }
+                                }}/>
+                            </div>
+                        </> : null }
+                    <Button class='secondary' text='TAKE A SNAPSHOT AS PNG' onClick={() => {
+                        if (window.viewer) window.viewer.downloadPngScreenshot();
+                    }}/>
+                </Container>
+            </div>
+        );
+    }
+}
+
 export {
     CameraPanel,
     LightingPanel,
-    ShowPanel
+    ShowPanel,
+    ViewPanel
 };

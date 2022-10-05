@@ -3,8 +3,10 @@ import { Observer } from '@playcanvas/observer';
 
 import { getAssetPath } from './helpers';
 import { Option, ObserverData } from './types';
+import { initMaterials } from './material';
 import initializeUI from './ui';
 import Viewer from './viewer';
+import './style.scss';
 
 // Permit some additional properties to be set on the window
 declare global {
@@ -47,7 +49,8 @@ const observerData: ObserverData = {
             options: null,
             default: null,
             skyboxMip: '3',
-            exposure: 0
+            exposure: 0,
+            backgroundColor: { r: 0.4, g: 0.45, b: 0.5 }
         },
         rotation: 0,
         tonemapping: 'Linear'
@@ -97,7 +100,10 @@ const observerData: ObserverData = {
     },
     morphTargets: null,
     spinner: false,
-    error: null
+    error: null,
+    xrSupported: false,
+    xrActive: false,
+    glbUrl: null
 };
 
 // initialize the apps state
@@ -137,6 +143,7 @@ const loadOptions = (name: string) => {
     }
 };
 
+initMaterials();
 initializeUI(observer);
 
 window.pc = pc;

@@ -17,7 +17,7 @@ uniform sampler2D multiframeTex;
 uniform float power;
 void main(void) {
     vec4 t = texture2D(multiframeTex, texcoord);
-    gl_FragColor = vec4(pow(t.xyz, vec3(power)), 1.0);
+    gl_FragColor = pow(t, vec4(power));
 }
 `;
 
@@ -238,19 +238,14 @@ class Multiframe {
             const blendDst = device.blendDst;
             const blendSrcAlpha = device.blendSrcAlpha;
             const blendDstAlpha = device.blendDstAlpha;
-
             const sampleWeight = this.samples[this.sampleId].z;
 
-            if (this.sampleId === 0) {
-                device.setBlendFunction(pc.BLENDMODE_ONE, pc.BLENDMODE_ZERO);
-            } else {
-                device.setBlendFunction(pc.BLENDMODE_CONSTANT_ALPHA, pc.BLENDMODE_ONE_MINUS_CONSTANT_ALPHA);
-                device.setBlendColor(0, 0, 0, sampleWeight / (this.totalWeight + sampleWeight));
-            }
+            device.setBlending(true);
+            device.setBlendFunction(pc.BLENDMODE_CONSTANT_ALPHA, pc.BLENDMODE_ONE_MINUS_CONSTANT_ALPHA);
+            device.setBlendColor(0, 0, 0, sampleWeight / (this.totalWeight + sampleWeight));
 
             this.multiframeTexUniform.setValue(sourceTex);
             this.powerUniform.setValue(gamma);
-            device.setBlending(true);
             pc.drawQuadWithShader(device, this.accumRenderTarget, this.shader, null, null, true);
 
             // restore states
@@ -263,12 +258,12 @@ class Multiframe {
             // first frame - copy the camera render target directly to the back buffer
             this.multiframeTexUniform.setValue(sourceTex);
             this.powerUniform.setValue(1.0);
-            pc.drawQuadWithShader(device, null, this.shader);
         } else {
             this.multiframeTexUniform.setValue(this.accumTexture);
             this.powerUniform.setValue(1.0 / gamma);
-            pc.drawQuadWithShader(device, null, this.shader);
         }
+
+        pc.drawQuadWithShader(device, null, this.shader);
 
         if (this.sampleId < sampleCnt) {
             this.sampleId++;

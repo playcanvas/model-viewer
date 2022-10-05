@@ -1,9 +1,11 @@
-import React, { useRef } from 'react';
-import { Container, Label, Button } from '@playcanvas/pcui/react';
+import React, { useRef, useState } from 'react';
+import { Container, Label, Button, TextInput } from '@playcanvas/pcui/react/unstyled';
+import { getAssetPath } from '../helpers';
 
-import { File } from '../types';
+import { File, SetProperty } from '../types';
 
-const LoadButton = () => {
+const LoadControls = (props: { setProperty: SetProperty }) => {
+    const [urlInputValid, setUrlInputValid] = useState(false);
     const inputFile = useRef(null);
 
     const onLoadButtonClick = () => {
@@ -28,21 +30,59 @@ const LoadButton = () => {
         }
     };
 
-    return (
-        <>
-            <input type='file' id='file' multiple onChange={onFileSelected} ref={inputFile} style={{ display: 'none' }} />
-            <Button onClick={onLoadButtonClick} text='Choose a file' width="calc(100% - 15px)" font-size="14px" />
-        </>
-    );
-};
+    const onUrlSelected = () => {
+        const viewer = (window as any).viewer;
+        // @ts-ignore
+        const url = document.getElementById('glb-url-input').ui.value;
+        const loadList: Array<File> = [];
+        let filename = url.split('/').pop();
+        if (filename.indexOf('.glb') === -1) {
+            if (filename.indexOf('?') === -1) {
+                filename += '.glb';
+            } else {
+                filename = filename.split('?')[0] + '.glb';
+            }
+        }
+        loadList.push({
+            url,
+            filename
+        });
+        viewer.loadFiles(loadList);
+        props.setProperty('glbUrl', url);
 
-const LoadControls = () => {
+    };
+
     return (
         <div id='load-controls'>
             <Container class="load-button-panel" enabled flex>
-                <Label text="Drag glTF or GLB files here to view" />
-                <Label text="or" class="centered-label" />
-                <LoadButton />
+                <div className='header'>
+                    <img src={getAssetPath('playcanvas-logo.png')}/>
+                    <div>
+                        <Label text='PLAYCANVAS MODEL VIEWER' />
+                    </div>
+                    <Button onClick={() => {
+                        window.open('https://github.com/playcanvas/model-viewer', '_blank').focus();
+                    }} icon='E259'/>
+                </div>
+                <input type='file' id='file' multiple onChange={onFileSelected} ref={inputFile} style={{ display: 'none' }} />
+                <div id="drag-drop" onClick={onLoadButtonClick}>
+                    <Button id="drag-drop-search-icon" icon='E129' />
+                    <Label class='desktop' text="Drag & drop your files or click to open files" />
+                    <Label class='mobile' text="Click to open files" />
+                </div>
+                <Label id='or-text' text="OR" class="centered-label" />
+                <TextInput class='secondary' id='glb-url-input' placeholder='enter url' keyChange onValidate={(value: string) => {
+                    const urlPattern = new RegExp('^(https?:\\/\\/)?' + // validate protocol
+                    '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|' + // validate domain name
+                    '((\\d{1,3}\\.){3}\\d{1,3}))' + // validate OR ip (v4) address
+                    '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*' + // validate port and path
+                    '(\\?[;&a-z\\d%_.~+=-]*)?' + // validate query string
+                    '(\\#[-a-z\\d_]*)?$', 'i'); // validate fragment locator
+                    const isValid = !!urlPattern.test(value);
+                    setUrlInputValid(isValid);
+                    return isValid;
+                }}/>
+                <Button class='secondary' id='glb-url-button' text='LOAD MODEL FROM URL' onClick={onUrlSelected} enabled={urlInputValid}></Button>
             </Container>
         </div>
     );

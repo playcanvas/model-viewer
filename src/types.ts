@@ -47,7 +47,12 @@ export interface ObserverData {
             options: null,
             default: null,
             skyboxMip: string,
-            exposure: number
+            exposure: number,
+            backgroundColor: {
+                r: number,
+                g: number,
+                b: number
+            }
         },
         rotation: number,
         tonemapping: string
@@ -97,7 +102,10 @@ export interface ObserverData {
     },
     morphTargets?: any,
     spinner: boolean,
-    error?: string
+    error?: string,
+    xrSupported: boolean,
+    xrActive: boolean,
+    glbUrl?: string
 }
 
 export type SetProperty = (path: string, value: any) => void;
