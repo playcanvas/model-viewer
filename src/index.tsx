@@ -102,7 +102,7 @@ const observerData: ObserverData = {
         },
         loadTime: null
     },
-    morphTargets: null,
+    morphs: null,
     spinner: false,
     error: null,
     xrSupported: false,
