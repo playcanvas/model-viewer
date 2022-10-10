@@ -9,6 +9,7 @@ import sourcemaps from 'rollup-plugin-sourcemaps';
 import Handlebars from 'handlebars';
 import path from 'path';
 import copyAndWatch from "./copy-and-watch";
+import { visualizer } from 'rollup-plugin-visualizer';
 
 const PROD_BUILD = process.env.BUILD_TYPE === 'prod';
 
@@ -36,7 +37,7 @@ if (paths.PCUI_PATH) {
 if (paths.ENGINE_PATH) {
     aliasEntries.push({
         find: /^playcanvas$/,
-        replacement: `${paths.ENGINE_PATH}/build/playcanvas.dbg.mjs`
+        replacement: `${paths.ENGINE_PATH}/build/playcanvas.mjs`
     });
 
     aliasEntries.push({
@@ -44,7 +45,7 @@ if (paths.ENGINE_PATH) {
         replacement: `${paths.ENGINE_PATH}$1`
     });
 
-    tsCompilerOptions.paths['playcanvas'] = [paths.ENGINE_PATH];
+    tsCompilerOptions.paths['playcanvas'] = [`${paths.ENGINE_PATH}/build/playcanvas.d.ts`];
 }
 
 // compile mustache template
@@ -65,7 +66,6 @@ const replaceValues = {
 };
 
 export default {
-    cache: false,
     input: 'src/index.tsx',
     output: {
         dir: 'dist',
@@ -73,6 +73,13 @@ export default {
         sourcemap: true
     },
     plugins: [
+        copyAndWatch({
+            targets: [
+                { src: 'src/index.mustache', destFilename: 'index.html', transform: compileMustache },
+                { src: 'src/fonts.css' },
+                { src: 'static/' }
+            ]
+        }),
         replace({
             values: replaceValues,
             preventAssignment: true
@@ -82,22 +89,20 @@ export default {
             output: 'dist/style.css',
             outputStyle: 'compressed'
         }),
-        copyAndWatch({
-            targets: [
-                { src: 'src/index.mustache', destFilename: 'index.html', transform: compileMustache },
-                { src: 'src/fonts.css' },
-                { src: 'static/' }
-            ]
-        }),
         alias({ entries: aliasEntries }),
-        resolve(),
-        sourcemaps(),
         commonjs(),
+        resolve({ browser: true }),
+        sourcemaps(),
         typescript({
             tsconfig: 'tsconfig.json',
-            clean: true,
-            tsconfigDefaults: { compilerOptions: tsCompilerOptions }
+            tsconfigDefaults: { compilerOptions: tsCompilerOptions },
+            clean: true
         }),
-        (PROD_BUILD && terser())
-    ]
+        // (PROD_BUILD && terser())
+        visualizer({
+            template: 'sunburst'
+        })
+    ],
+    treeshake: 'smallest',
+    cache: false
 };

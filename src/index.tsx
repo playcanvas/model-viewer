@@ -1,4 +1,8 @@
-import * as pc from 'playcanvas';
+import {
+    basisInitialize,
+    Http,
+    WasmModule
+} from 'playcanvas';
 import { Observer } from '@playcanvas/observer';
 
 import { getAssetPath } from './helpers';
@@ -146,9 +150,7 @@ const loadOptions = (name: string) => {
 initMaterials();
 initializeUI(observer);
 
-window.pc = pc;
-
-pc.basisInitialize({
+basisInitialize({
     glueUrl: getAssetPath('lib/basis/basis.wasm.js'),
     wasmUrl: getAssetPath('lib/basis/basis.wasm.wasm'),
     fallbackUrl: getAssetPath('lib/basis/basis.js'),
@@ -156,7 +158,7 @@ pc.basisInitialize({
 });
 
 // @ts-ignore
-pc.WasmModule.setConfig('DracoDecoderModule', {
+WasmModule.setConfig('DracoDecoderModule', {
     glueUrl: getAssetPath('lib/draco/draco.wasm.js'),
     wasmUrl: getAssetPath('lib/draco/draco.wasm.wasm'),
     fallbackUrl: getAssetPath('lib/draco/draco.js')
@@ -173,7 +175,7 @@ observer.on('spinner:set', (value: boolean) => {
 });
 
 const url = getAssetPath("asset_manifest.json");
-new pc.Http().get(url, {
+new Http().get(url, {
     cache: true,
     responseType: "text",
     retry: false

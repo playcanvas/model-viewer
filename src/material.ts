@@ -1,4 +1,9 @@
-import * as pc from 'playcanvas';
+import {
+    BLEND_NONE,
+    BLENDMODE_ONE,
+    BLENDMODE_ONE_MINUS_SRC_ALPHA,
+    Material
+} from 'playcanvas';
 
 let setBlendTypeOrig: any;
 
@@ -8,12 +13,12 @@ function setBlendType(type: number) {
 
     // tweak alpha blending
     switch (type) {
-        case pc.BLEND_NONE:
+        case BLEND_NONE:
             break;
         default:
             this.separateAlphaBlend = true;
-            this.blendSrcAlpha = pc.BLENDMODE_ONE;
-            this.blendDstAlpha = pc.BLENDMODE_ONE_MINUS_SRC_ALPHA;
+            this.blendSrcAlpha = BLENDMODE_ONE;
+            this.blendDstAlpha = BLENDMODE_ONE_MINUS_SRC_ALPHA;
             break;
     }
 }
@@ -22,13 +27,13 @@ function setBlendType(type: number) {
 // alpha correctly
 
 const initMaterials = () => {
-    const blendTypeDescriptor = Object.getOwnPropertyDescriptor(pc.Material.prototype, 'blendType');
+    const blendTypeDescriptor = Object.getOwnPropertyDescriptor(Material.prototype, 'blendType');
 
     // store the original setter
     setBlendTypeOrig = blendTypeDescriptor.set;
 
     // update the setter function
-    Object.defineProperty(pc.Material.prototype, 'blendType', {
+    Object.defineProperty(Material.prototype, 'blendType', {
         set(type) {
             setBlendType.call(this, type);
         },

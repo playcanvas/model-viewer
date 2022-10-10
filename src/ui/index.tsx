@@ -1,4 +1,3 @@
-// import * as pc from 'playcanvas';
 import { Observer } from '@playcanvas/observer';
 import React from 'react';
 import ReactDOM from 'react-dom';

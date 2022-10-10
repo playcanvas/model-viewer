@@ -1,13 +1,40 @@
-import * as pc from 'playcanvas';
+import {
+    BLEND_NORMAL,
+    BUFFER_DYNAMIC,
+    FUNC_GREATER,
+    PRIMITIVE_LINES,
+    SEMANTIC_BLENDINDICES,
+    SEMANTIC_BLENDWEIGHT,
+    SEMANTIC_NORMAL,
+    SEMANTIC_POSITION,
+    SEMANTIC_COLOR,
+    SORTMODE_NONE,
+    TYPE_FLOAT32,
+    TYPE_UINT8,
+    Entity,
+    GraphNode,
+    Layer,
+    Material,
+    Mesh,
+    MeshInstance,
+    Mat4,
+    Shader,
+    Vec3,
+    VertexBuffer,
+    VertexFormat,
+    VertexIterator,
+    WebglGraphicsDevice
+} from 'playcanvas';
+import { App } from './app';
 
-let debugLayerFront: pc.Layer = null;
-let debugLayerBack: pc.Layer = null;
+let debugLayerFront: Layer = null;
+let debugLayerBack: Layer = null;
 
-const v0 = new pc.Vec3();
-const v1 = new pc.Vec3();
-const v2 = new pc.Vec3();
-const up = new pc.Vec3(0, 1, 0);
-const mat = new pc.Mat4();
+const v0 = new Vec3();
+const v1 = new Vec3();
+const v2 = new Vec3();
+const up = new Vec3(0, 1, 0);
+const mat = new Mat4();
 const unitBone = [
     [[0,    0,   0], [-0.5, 0, 0.3]],
     [[0,    0,   0], [0.5,  0, 0.3]],
@@ -50,44 +77,44 @@ void main(void) {
 
 const linesShaderDefinition = {
     attributes: {
-        vertex_position: pc.SEMANTIC_POSITION,
-        vertex_color: pc.SEMANTIC_COLOR
+        vertex_position: SEMANTIC_POSITION,
+        vertex_color: SEMANTIC_COLOR
     },
     vshader: vshader,
     fshader: fshader
 };
 
 class DebugLines {
-    app: pc.Application;
-    mesh: pc.Mesh;
-    meshInstances: pc.MeshInstance[];
-    vertexFormat: pc.VertexFormat;
+    app: App;
+    mesh: Mesh;
+    meshInstances: MeshInstance[];
+    vertexFormat: VertexFormat;
     vertexCursor: number;
     vertexData: Float32Array;
     colorData: Uint32Array;
 
-    constructor(app: pc.Application, camera: pc.Entity, backLayer = true) {
-        const device = app.graphicsDevice as pc.WebglGraphicsDevice;
+    constructor(app: App, camera: Entity, backLayer = true) {
+        const device = app.graphicsDevice as WebglGraphicsDevice;
 
         if (!debugLayerFront) {
             // construct the debug layer
-            debugLayerBack = new pc.Layer({
+            debugLayerBack = new Layer({
                 enabled: true,
                 name: 'Debug Layer Behind',
-                opaqueSortMode: pc.SORTMODE_NONE,
-                transparentSortMode: pc.SORTMODE_NONE,
+                opaqueSortMode: SORTMODE_NONE,
+                transparentSortMode: SORTMODE_NONE,
                 passThrough: true,
                 overrideClear: true,
                 onDrawCall: (drawCall: any, index: number) => {
-                    device.setDepthFunc(pc.FUNC_GREATER);
+                    device.setDepthFunc(FUNC_GREATER);
                 }
             });
 
-            debugLayerFront = new pc.Layer({
+            debugLayerFront = new Layer({
                 enabled: true,
                 name: 'Debug Layer',
-                opaqueSortMode: pc.SORTMODE_NONE,
-                transparentSortMode: pc.SORTMODE_NONE,
+                opaqueSortMode: SORTMODE_NONE,
+                transparentSortMode: SORTMODE_NONE,
                 passThrough: true,
                 overrideClear: true
             });
@@ -97,26 +124,26 @@ class DebugLines {
             camera.camera.layers = camera.camera.layers.concat([debugLayerBack.id, debugLayerFront.id]);
         }
 
-        const vertexFormat = new pc.VertexFormat(device, [
-            { semantic: pc.SEMANTIC_POSITION, components: 3, type: pc.TYPE_FLOAT32 },
-            { semantic: pc.SEMANTIC_COLOR, components: 4, type: pc.TYPE_UINT8, normalize: true }
+        const vertexFormat = new VertexFormat(device, [
+            { semantic: SEMANTIC_POSITION, components: 3, type: TYPE_FLOAT32 },
+            { semantic: SEMANTIC_COLOR, components: 4, type: TYPE_UINT8, normalize: true }
         ]);
 
         // construct the mesh
-        const mesh = new pc.Mesh();
-        mesh.vertexBuffer = new pc.VertexBuffer(device, vertexFormat, 8192, pc.BUFFER_DYNAMIC);
-        mesh.primitive[0].type = pc.PRIMITIVE_LINES;
+        const mesh = new Mesh();
+        mesh.vertexBuffer = new VertexBuffer(device, vertexFormat, 8192, BUFFER_DYNAMIC);
+        mesh.primitive[0].type = PRIMITIVE_LINES;
         mesh.primitive[0].base = 0;
         mesh.primitive[0].indexed = false;
         mesh.primitive[0].count = 0;
 
-        const frontMaterial = new pc.Material();
-        frontMaterial.shader = new pc.Shader(device, linesShaderDefinition);
+        const frontMaterial = new Material();
+        frontMaterial.shader = new Shader(device, linesShaderDefinition);
         frontMaterial.setParameter('uColor', [1, 1, 1, 0.7]);
-        frontMaterial.blendType = pc.BLEND_NORMAL;
+        frontMaterial.blendType = BLEND_NORMAL;
         frontMaterial.update();
 
-        const frontInstance = new pc.MeshInstance(mesh, frontMaterial, new pc.GraphNode());
+        const frontInstance = new MeshInstance(mesh, frontMaterial, new GraphNode());
         frontInstance.cull = false;
         frontInstance.visible = false;
 
@@ -126,15 +153,15 @@ class DebugLines {
 
         // construct back
         if (backLayer) {
-            const backMaterial = new pc.Material();
-            backMaterial.shader = new pc.Shader(device, linesShaderDefinition);
+            const backMaterial = new Material();
+            backMaterial.shader = new Shader(device, linesShaderDefinition);
             backMaterial.setParameter('uColor', [0.5, 0.5, 0.5, 0.5]);
-            backMaterial.blendType = pc.BLEND_NORMAL;
+            backMaterial.blendType = BLEND_NORMAL;
             backMaterial.depthTest = true;
             backMaterial.depthWrite = false;
             backMaterial.update();
 
-            const backInstance = new pc.MeshInstance(mesh, backMaterial, new pc.GraphNode());
+            const backInstance = new MeshInstance(mesh, backMaterial, new GraphNode());
             backInstance.cull = false;
             backInstance.visible = false;
 
@@ -152,7 +179,7 @@ class DebugLines {
         this.colorData = new Uint32Array(this.mesh.vertexBuffer.lock());
     }
 
-    private static matrixMad(result: pc.Mat4, mat: pc.Mat4, factor: number) {
+    private static matrixMad(result: Mat4, mat: Mat4, factor: number) {
         if (factor > 0) {
             for (let i = 0; i < 16; ++i) {
                 result.data[i] += mat.data[i] * factor;
@@ -164,34 +191,34 @@ class DebugLines {
         this.vertexCursor = 0;
     }
 
-    box(min: pc.Vec3, max: pc.Vec3): void {
-        this.line(new pc.Vec3(min.x, min.y, min.z), new pc.Vec3(max.x, min.y, min.z));
-        this.line(new pc.Vec3(max.x, min.y, min.z), new pc.Vec3(max.x, min.y, max.z));
-        this.line(new pc.Vec3(max.x, min.y, max.z), new pc.Vec3(min.x, min.y, max.z));
-        this.line(new pc.Vec3(min.x, min.y, max.z), new pc.Vec3(min.x, min.y, min.z));
+    box(min: Vec3, max: Vec3): void {
+        this.line(new Vec3(min.x, min.y, min.z), new Vec3(max.x, min.y, min.z));
+        this.line(new Vec3(max.x, min.y, min.z), new Vec3(max.x, min.y, max.z));
+        this.line(new Vec3(max.x, min.y, max.z), new Vec3(min.x, min.y, max.z));
+        this.line(new Vec3(min.x, min.y, max.z), new Vec3(min.x, min.y, min.z));
 
-        this.line(new pc.Vec3(min.x, max.y, min.z), new pc.Vec3(max.x, max.y, min.z));
-        this.line(new pc.Vec3(max.x, max.y, min.z), new pc.Vec3(max.x, max.y, max.z));
-        this.line(new pc.Vec3(max.x, max.y, max.z), new pc.Vec3(min.x, max.y, max.z));
-        this.line(new pc.Vec3(min.x, max.y, max.z), new pc.Vec3(min.x, max.y, min.z));
+        this.line(new Vec3(min.x, max.y, min.z), new Vec3(max.x, max.y, min.z));
+        this.line(new Vec3(max.x, max.y, min.z), new Vec3(max.x, max.y, max.z));
+        this.line(new Vec3(max.x, max.y, max.z), new Vec3(min.x, max.y, max.z));
+        this.line(new Vec3(min.x, max.y, max.z), new Vec3(min.x, max.y, min.z));
 
-        this.line(new pc.Vec3(min.x, min.y, min.z), new pc.Vec3(min.x, max.y, min.z));
-        this.line(new pc.Vec3(max.x, min.y, min.z), new pc.Vec3(max.x, max.y, min.z));
-        this.line(new pc.Vec3(max.x, min.y, max.z), new pc.Vec3(max.x, max.y, max.z));
-        this.line(new pc.Vec3(min.x, min.y, max.z), new pc.Vec3(min.x, max.y, max.z));
+        this.line(new Vec3(min.x, min.y, min.z), new Vec3(min.x, max.y, min.z));
+        this.line(new Vec3(max.x, min.y, min.z), new Vec3(max.x, max.y, min.z));
+        this.line(new Vec3(max.x, min.y, max.z), new Vec3(max.x, max.y, max.z));
+        this.line(new Vec3(min.x, min.y, max.z), new Vec3(min.x, max.y, max.z));
     }
 
-    line(v0: pc.Vec3, v1: pc.Vec3, clr = 0xffffffff): void {
+    line(v0: Vec3, v1: Vec3, clr = 0xffffffff): void {
         if (this.vertexCursor >= this.vertexData.length / 8) {
             const oldVBuffer = this.mesh.vertexBuffer;
             const byteSize = oldVBuffer.lock().byteLength * 2;
             const arrayBuffer = new ArrayBuffer(byteSize);
 
-            this.mesh.vertexBuffer = new pc.VertexBuffer(
+            this.mesh.vertexBuffer = new VertexBuffer(
                 this.app.graphicsDevice,
                 oldVBuffer.getFormat(),
                 oldVBuffer.getNumVertices() * 2,
-                pc.BUFFER_DYNAMIC,
+                BUFFER_DYNAMIC,
                 arrayBuffer
             );
             this.vertexData = new Float32Array(arrayBuffer);
@@ -214,17 +241,17 @@ class DebugLines {
         this.vertexCursor++;
     }
 
-    generateNormals(vertexBuffer: pc.VertexBuffer, worldMat: pc.Mat4, length: number, skinMatrices: Array<pc.Mat4>) {
-        const it = new pc.VertexIterator(vertexBuffer);
-        const positions = it.element[pc.SEMANTIC_POSITION];
-        const normals = it.element[pc.SEMANTIC_NORMAL];
-        const blendIndices = it.element[pc.SEMANTIC_BLENDINDICES];
-        const blendWeights = it.element[pc.SEMANTIC_BLENDWEIGHT];
+    generateNormals(vertexBuffer: VertexBuffer, worldMat: Mat4, length: number, skinMatrices: Array<Mat4>) {
+        const it = new VertexIterator(vertexBuffer);
+        const positions = it.element[SEMANTIC_POSITION];
+        const normals = it.element[SEMANTIC_NORMAL];
+        const blendIndices = it.element[SEMANTIC_BLENDINDICES];
+        const blendWeights = it.element[SEMANTIC_BLENDWEIGHT];
 
         const numVertices = vertexBuffer.getNumVertices();
-        const p0 = new pc.Vec3();
-        const p1 = new pc.Vec3();
-        const skinMat = new pc.Mat4();
+        const p0 = new Vec3();
+        const p1 = new Vec3();
+        const skinMat = new Mat4();
 
         for (let i = 0; i < numVertices; ++i) {
             // get local/morphed positions and normals
@@ -233,7 +260,7 @@ class DebugLines {
 
             if (blendIndices && blendWeights && skinMatrices) {
                 // transform by skinning matrices
-                skinMat.copy(pc.Mat4.ZERO);
+                skinMat.copy(Mat4.ZERO);
                 for (let j = 0; j < 4; ++j) {
                     DebugLines.matrixMad(
                         skinMat,
@@ -258,12 +285,12 @@ class DebugLines {
     }
 
     // render a bone originating at p0 and ending at p1
-    bone(p0: pc.Vec3, p1: pc.Vec3, clr = 0xffffffff) {
+    bone(p0: Vec3, p1: Vec3, clr = 0xffffffff) {
         mat.setLookAt(p0, p1, up);
 
         v0.sub2(p1, p0);
         const len = v0.length();
-        const transform = (v: pc.Vec3, va: number[]) => {
+        const transform = (v: Vec3, va: number[]) => {
             v0.set(va[0] * len * 0.3, va[1] * len * 0.3, va[2] * -len);
             mat.transformPoint(v0, v);
         };
@@ -276,7 +303,7 @@ class DebugLines {
     }
 
     // render a colored axis at the given matrix orientation and size
-    axis(m: pc.Mat4, size = 1) {
+    axis(m: Mat4, size = 1) {
         m.getTranslation(v0);
         m.getScale(v2);
 
@@ -294,8 +321,8 @@ class DebugLines {
     }
 
     // generate skeleton
-    generateSkeleton(node: pc.GraphNode, showBones: boolean, showAxes: boolean, selectedNode: pc.GraphNode) {
-        const recurse = (curr: pc.GraphNode, selected: boolean) => {
+    generateSkeleton(node: GraphNode, showBones: boolean, showAxes: boolean, selectedNode: GraphNode) {
+        const recurse = (curr: GraphNode, selected: boolean) => {
             if (curr.enabled) {
                 selected ||= (curr === selectedNode);
 
