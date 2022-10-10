@@ -1,10 +1,10 @@
 import React from 'react';
-import VisibilitySensor from 'react-visibility-sensor';
 import { Panel, Container, TreeViewItem, TreeView } from '@playcanvas/pcui/react/unstyled';
-import { Morph, HierarchyNode, SetProperty, ObserverData } from '../../types';
+import { HierarchyNode, SetProperty, ObserverData } from '../../types';
 
-import { Vector, Detail, Select, MorphSlider } from '../components';
+import { Vector, Detail, Select } from '../components';
 import { addEventListenerOnClickOnly } from '../../helpers';
+import MorphTargetPanel from './morph-target-panel';
 
 const toggleCollapsed = () => {
     const leftPanel = document.getElementById('panel-left');
@@ -93,46 +93,6 @@ class HierarchyPanel extends React.Component <{ sceneData: ObserverData['scene']
     }
 }
 
-class MorphTargetPanel extends React.Component <{ morphTargetData: ObserverData['morphTargets'], progress: number, setProperty: SetProperty }> {
-    shouldComponentUpdate(nextProps: Readonly<{ morphTargetData: ObserverData['morphTargets']; progress: number; setProperty: SetProperty; }>): boolean {
-        return (
-            JSON.stringify(nextProps.morphTargetData) !== JSON.stringify(this.props.morphTargetData) || nextProps.progress !== this.props.progress
-        );
-    }
-
-    render() {
-        const morphTargets: Record<string, {name: string, morphs: Record<string, Morph>}> = this.props.morphTargetData;
-        return morphTargets ? (
-            <Panel headerText='MORPH TARGETS' class='scene-morph-panel' collapsible={false}>
-                {Object.keys(morphTargets).map((key) => {
-                    const panel = morphTargets[key];
-                    return (
-                        <Panel key={`${key}.${panel.name}`} headerText={panel.name} collapsible class='morph-target-panel'>
-                            {Object.keys(panel.morphs).map((morphKey) => {
-                                const morph: Morph = panel.morphs[morphKey];
-                                return <div key={`${morphKey}`}>
-                                    <VisibilitySensor offset={{ top: -750, bottom: -750 }}>
-                                        {({ isVisible }: any) => {
-                                            return <div>{
-                                                isVisible ?
-                                                    <MorphSlider name={`${morph.name}`} precision={2} min={0} max={1}
-                                                        value={morphTargets[key].morphs[morph.targetIndex].weight}
-                                                        setProperty={(value: number) => this.props.setProperty(`morphTargets.${key}.morphs.${morph.targetIndex}.weight`, value)}
-                                                    /> :
-                                                    <div style={{ width: 30, height: 30 }}></div>
-                                            }</div>;
-                                        }}
-                                    </VisibilitySensor>
-                                </div>;
-                            })}
-                        </Panel>
-                    );
-                })}
-            </Panel>
-        ) : null;
-    }
-}
-
 class LeftPanel extends React.Component <{ observerData: ObserverData, setProperty: SetProperty }> {
     isMobile: boolean;
     constructor(props: any) {
@@ -165,13 +125,13 @@ class LeftPanel extends React.Component <{ observerData: ObserverData, setProper
 
     render() {
         const scene = this.props.observerData.scene;
-        const morphTargets = this.props.observerData.morphTargets;
+        const morphs = this.props.observerData.morphs;
         return (
             <Container id='scene-container' flex>
                 <ScenePanel sceneData={scene} setProperty={this.props.setProperty} />
                 <div id='scene-scrolly-bits'>
                     <HierarchyPanel sceneData={scene} setProperty={this.props.setProperty} />
-                    <MorphTargetPanel progress={this.props.observerData.animation.progress} morphTargetData={morphTargets} setProperty={this.props.setProperty} />
+                    <MorphTargetPanel progress={this.props.observerData.animation.progress} morphs={morphs} setProperty={this.props.setProperty} />
                 </div>
             </Container>
         );
