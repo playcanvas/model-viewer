@@ -9,7 +9,7 @@ import * as MeshoptDecoder from '../lib/meshopt_decoder.js';
 
 import { getAssetPath } from './helpers';
 import { DropHandler } from './drop-handler';
-import { Morph, File, HierarchyNode } from './types';
+import { MorphTarget, File, HierarchyNode } from './types';
 import { DebugLines } from './debug';
 import { Multiframe } from './multiframe';
 import { ReadDepth } from './read-depth';
@@ -41,7 +41,6 @@ class Viewer {
     meshInstances: Array<pc.MeshInstance>;
     animTracks: Array<pc.AnimTrack>;
     animationMap: Record<string, string>;
-    morphs: Array<Morph>;
     firstFrame: boolean;
     skyboxLoaded: boolean;
     animSpeed: number;
@@ -231,7 +230,6 @@ class Viewer {
         this.meshInstances = [];
         this.animTracks = [];
         this.animationMap = { };
-        this.morphs = [];
         this.firstFrame = false;
         this.skyboxLoaded = false;
 
@@ -733,8 +731,7 @@ class Viewer {
         this.observer.set('animation.list', '[]');
         this.observer.set('scene.variants.list', '[]');
 
-        this.morphs = [];
-        this.observer.set('morphTargets', null);
+        this.observer.set('morphs', null);
 
         this.updateSceneInfo();
 
@@ -1313,77 +1310,53 @@ class Viewer {
             this.rebuildAnimTracks();
         }
 
-        // get all morph targets
-        const morphInstances: Array<pc.MorphInstance> = [];
-        const meshInstances = this.collectMeshInstances(entity);
-        for (let i = 0; i < meshInstances.length; i++) {
-            if (meshInstances[i].morphInstance) {
-                morphInstances.push(meshInstances[i].morphInstance);
-            }
-        }
+        // make a list of all the morph instance target names
+        const morphs: Record<string, { name: string, targets: Record<string, MorphTarget> }> = {};
 
-        // initialize morph targets
-        if (morphInstances.length > 0) {
-            // make a list of all the morph instance target names
-            const morphs: Array<Morph> = this.morphs;
-            morphInstances.forEach((morphInstance: pc.MorphInstance, morphIndex: number) => {
-                // @ts-ignore - Property 'meshInstance' does not exist on type 'MorphInstance'.
-                const meshInstance = morphInstance.meshInstance;
+        const morphInstances: Record<string, pc.MorphInstance> = {};
+        // get all morph targets
+        const meshInstances = this.collectMeshInstances(entity);
+        meshInstances.forEach((meshInstance, i) => {
+            if (meshInstance.morphInstance) {
+                const morphInstance = meshInstance.morphInstance;
+                morphInstances[i] = morphInstance;
 
                 // mesh name line
-                morphs.push(<Morph> {
-                    name: (meshInstance && meshInstance.node && meshInstance.node.name) || "Mesh " + morphIndex
-                });
+                const meshName = (meshInstance && meshInstance.node && meshInstance.node.name) || "Mesh " + i;
+                morphs[i] = {
+                    name: meshName,
+                    targets: {}
+                };
 
                 // morph targets
                 morphInstance.morph.targets.forEach((target: pc.MorphTarget, targetIndex: number) => {
-                    morphs.push({
+                    morphs[i].targets[targetIndex] = {
                         name: target.name,
                         targetIndex: targetIndex
-                    });
-                });
-            });
-
-            const morphTargets: Record<number, { name: string, morphs: Record<number, Morph> }> = {};
-            let panelCount = 0;
-            let morphCount = 0;
-            morphs.forEach((morph: Morph) => {
-                if (!morph.hasOwnProperty('targetIndex')) {
-                    morphTargets[panelCount] = { name: morph.name, morphs: {} };
-                    panelCount++;
-                    morphCount = 0;
-                } else {
-                    morphTargets[panelCount - 1].morphs[morphCount] = {
-                        // prepend morph index to morph target diplay name
-                        name: (morph.name === `${morph.targetIndex}`) ? `${morph.name}.` : `${morph.targetIndex}. ${morph.name}`,
-                        targetIndex: morph.targetIndex
                     };
-                    const morphInstance = morphInstances[panelCount - 1];
-                    this.observer.on(`morphTargets.${panelCount - 1}.morphs.${morphCount}.weight:set`, (weight: number) => {
-                        if (!morphInstance) return;
-                        morphInstance.setWeight(morph.targetIndex, weight);
+                    this.observer.on(`morphs.${i}.targets.${targetIndex}.weight:set`, (weight: number) => {
+                        morphInstances[i].setWeight(targetIndex, weight);
                         this.dirtyNormals = true;
                         this.renderNextFrame();
                     });
-                    morphCount++;
-                }
-            });
-            this.observer.set('morphTargets', morphTargets);
-        }
+                });
+            }
+        });
+
+        this.observer.set('morphs', morphs);
 
         // handle animation update
         const observer = this.observer;
         observer.on('animationUpdate', () => {
-            const morphTargets = observer.get('morphTargets');
-            morphInstances.forEach((morphInstance: any, i: number) => {
-                if (morphTargets && morphTargets[i]) {
-                    Object.keys(morphTargets[i].morphs).forEach((morphKey) => {
-                        const newWeight = morphInstance.getWeight(Number(morphKey));
-                        if (morphTargets[i].morphs[morphKey].weight !== newWeight) {
-                            observer.set(`morphTargets.${i}.morphs.${morphKey}.weight`, newWeight);
-                        }
-                    });
-                }
+            Object.keys(morphs).forEach((morphIndex: string) => {
+                const morph = morphs[morphIndex];
+                Object.keys(morph.targets).forEach((targetIndex: string) => {
+                    const morphTarget: MorphTarget = morph.targets[targetIndex];
+                    const newWeight = morphInstances[morphIndex].getWeight(morphTarget.targetIndex);
+                    if (morphTarget.weight !== newWeight) {
+                        observer.set(`morphs.${morphIndex}.targets.${morphTarget.targetIndex}.weight`, newWeight);
+                    }
+                });
             });
 
             // set progress

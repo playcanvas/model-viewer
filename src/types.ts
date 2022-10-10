@@ -1,6 +1,6 @@
-export interface Morph {
+export interface MorphTarget {
     name: string,
-    targetIndex?: number,
+    targetIndex: number,
     weight?: number
 }
 
@@ -100,7 +100,10 @@ export interface ObserverData {
         },
         loadTime?: number
     },
-    morphTargets?: any,
+    morphs?: Record<string, {
+        name: string,
+        targets: Record<string, MorphTarget>
+    }>,
     spinner: boolean,
     error?: string,
     xrSupported: boolean,
