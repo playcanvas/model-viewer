@@ -1,5 +1,5 @@
 import React from 'react';
-import { Container } from '@playcanvas/pcui/react/unstyled';
+import { Container } from 'pcui';
 import { SetProperty, ObserverData } from '../types';
 
 import { Vector, Detail } from './components';

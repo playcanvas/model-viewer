@@ -51,14 +51,13 @@ import {
 import { App } from './app';
 
 import { Observer } from '@playcanvas/observer';
-// @ts-ignore: No extras declarations
-import { MiniStats } from 'playcanvas/build/playcanvas-extras.mjs';
+import { MiniStats } from 'playcanvas-extras';
 // @ts-ignore: library file import
 // import * as VoxParser from 'playcanvas/scripts/parsers/vox-parser.js';
 import { MeshoptDecoder } from '../lib/meshopt_decoder.module.js';
 import { getAssetPath } from './helpers';
 import { DropHandler } from './drop-handler';
-import { MorphTarget, File, HierarchyNode } from './types';
+import { MorphTargetData, File, HierarchyNode } from './types';
 import { DebugLines } from './debug';
 import { Multiframe } from './multiframe';
 import { ReadDepth } from './read-depth';
@@ -1368,7 +1367,7 @@ class Viewer {
         }
 
         // make a list of all the morph instance target names
-        const morphs: Record<string, { name: string, targets: Record<string, MorphTarget> }> = {};
+        const morphs: Record<string, { name: string, targets: Record<string, MorphTargetData> }> = {};
 
         const morphInstances: Record<string, MorphInstance> = {};
         // get all morph targets
@@ -1408,7 +1407,7 @@ class Viewer {
             Object.keys(morphs).forEach((morphIndex: string) => {
                 const morph = morphs[morphIndex];
                 Object.keys(morph.targets).forEach((targetIndex: string) => {
-                    const morphTarget: MorphTarget = morph.targets[targetIndex];
+                    const morphTarget: MorphTargetData = morph.targets[targetIndex];
                     const newWeight = morphInstances[morphIndex].getWeight(morphTarget.targetIndex);
                     if (morphTarget.weight !== newWeight) {
                         observer.set(`morphs.${morphIndex}.targets.${morphTarget.targetIndex}.weight`, newWeight);

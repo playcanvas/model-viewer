@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button } from '@playcanvas/pcui/react/unstyled';
+import { Button } from 'pcui';
 import { SetProperty, ObserverData } from '../../types';
 
 import { NakedSelect, NakedSlider } from '../components';

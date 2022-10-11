@@ -1,5 +1,5 @@
 import React from 'react';
-import { Container, Button, Label, TextInput } from '@playcanvas/pcui/react/unstyled';
+import { Container, Button, Label, TextInput } from 'pcui';
 import { SetProperty, ObserverData } from '../../types';
 // @ts-ignore no type defs included
 import QRious from 'qrious';

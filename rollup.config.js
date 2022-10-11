@@ -1,52 +1,39 @@
-import resolve from "@rollup/plugin-node-resolve";
-import commonjs from "@rollup/plugin-commonjs";
-import replace from '@rollup/plugin-replace';
-import alias from '@rollup/plugin-alias';
-import typescript from 'rollup-plugin-typescript2';
-import { terser } from 'rollup-plugin-terser';
-import sass from 'rollup-plugin-sass';
-import sourcemaps from 'rollup-plugin-sourcemaps';
-import Handlebars from 'handlebars';
 import path from 'path';
 import copyAndWatch from "./copy-and-watch";
-import { visualizer } from 'rollup-plugin-visualizer';
+import Handlebars from 'handlebars';
+import alias from '@rollup/plugin-alias';
+import commonjs from "@rollup/plugin-commonjs";
+import resolve from "@rollup/plugin-node-resolve";
+import replace from '@rollup/plugin-replace';
+import sass from 'rollup-plugin-sass';
+import sourcemaps from 'rollup-plugin-sourcemaps';
+import typescript from 'rollup-plugin-typescript2';
+import { terser } from 'rollup-plugin-terser';
 
 const PROD_BUILD = process.env.BUILD_TYPE === 'prod';
+const ENGINE_DIR = process.env.ENGINE_PATH || 'node_modules/playcanvas';
+const PCUI_DIR = process.env.PCUI_PATH || 'node_modules/@playcanvas/pcui';
 
-const paths = {
-    PCUI_PATH: process.env.PCUI_PATH && path.resolve(process.env.PCUI_PATH),
-    ENGINE_PATH: process.env.ENGINE_PATH && path.resolve(process.env.ENGINE_PATH)
-};
+const ENGINE_NAME = PROD_BUILD ? 'playcanvas.min.mjs' : 'playcanvas.dbg.mjs';
+const ENGINE_PATH = path.resolve(ENGINE_DIR, 'build', ENGINE_NAME);
+const EXTRAS_PATH = path.resolve(ENGINE_DIR, 'build', 'playcanvas-extras.mjs');
+const PCUI_PATH = path.resolve(PCUI_DIR, 'react/unstyled');
 
 // define supported module overrides
-const aliasEntries = [];
-const tsCompilerOptions = {
-    baseUrl: '.',
-    paths: { }
+const aliasEntries = {
+    'playcanvas': ENGINE_PATH,
+    'playcanvas-extras': EXTRAS_PATH,
+    'pcui': PCUI_PATH
 };
 
-if (paths.PCUI_PATH) {
-    aliasEntries.push({
-        find: /^@playcanvas\/pcui(.*)/,
-        replacement: `${paths.PCUI_PATH}$1`
-    });
-
-    tsCompilerOptions.paths['@playcanvas/pcui/react'] = [`${paths.PCUI_PATH}/react`];
-}
-
-if (paths.ENGINE_PATH) {
-    aliasEntries.push({
-        find: /^playcanvas$/,
-        replacement: `${paths.ENGINE_PATH}/build/playcanvas.mjs`
-    });
-
-    aliasEntries.push({
-        find: /^playcanvas(.*)/,
-        replacement: `${paths.ENGINE_PATH}$1`
-    });
-
-    tsCompilerOptions.paths['playcanvas'] = [`${paths.ENGINE_PATH}/build/playcanvas.d.ts`];
-}
+const tsCompilerOptions = {
+    baseUrl: '.',
+    paths: {
+        'playcanvas': [ENGINE_PATH],
+        'playcanvas-extras': [EXTRAS_PATH],
+        'pcui': [PCUI_PATH]
+    }
+};
 
 // compile mustache template
 const compileMustache = (content, srcFilename) => {
@@ -91,17 +78,14 @@ export default {
         }),
         alias({ entries: aliasEntries }),
         commonjs(),
-        resolve({ browser: true }),
+        resolve(),
         sourcemaps(),
         typescript({
             tsconfig: 'tsconfig.json',
             tsconfigDefaults: { compilerOptions: tsCompilerOptions },
             clean: true
         }),
-        // (PROD_BUILD && terser())
-        visualizer({
-            template: 'sunburst'
-        })
+        (PROD_BUILD && terser()),
     ],
     treeshake: 'smallest',
     cache: false

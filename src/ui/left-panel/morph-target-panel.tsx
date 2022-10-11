@@ -1,7 +1,7 @@
 import React from 'react';
 import VisibilitySensor from 'react-visibility-sensor';
-import { MorphTarget, SetProperty, ObserverData } from '../../types';
-import { Panel } from '@playcanvas/pcui/react/unstyled';
+import { MorphTargetData, SetProperty, ObserverData } from '../../types';
+import { Panel } from 'pcui';
 import { MorphSlider } from '../components';
 
 class MorphTargetPanel extends React.Component <{ morphs: ObserverData['morphs'], progress: number, setProperty: SetProperty }> {
@@ -21,7 +21,7 @@ class MorphTargetPanel extends React.Component <{ morphs: ObserverData['morphs']
                         <div key={`${morphIndex}.${morph.name}`}>
                             <Panel headerText={morph.name} collapsible class='morph-target-panel'>
                                 {Object.keys(morph.targets).map((targetIndex: string) => {
-                                    const morphTarget: MorphTarget = morph.targets[targetIndex];
+                                    const morphTarget: MorphTargetData = morph.targets[targetIndex];
                                     return <div key={targetIndex}>
                                         <VisibilitySensor offset={{ top: -750, bottom: -750 }}>
                                             {({ isVisible }: any) => {

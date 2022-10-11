@@ -1,11 +1,11 @@
 import React from 'react';
 import { Observer } from '@playcanvas/observer';
-import { Button } from '@playcanvas/pcui/react/unstyled';
+import { Button } from 'pcui';
 import { SetProperty, ObserverData } from '../../types';
 import AnimationControls from './animation-controls';
 import { CameraPanel, LightingPanel, ShowPanel, ViewPanel } from './panels';
 // @ts-ignore no type defs included
-import * as pcx from 'playcanvas/build/playcanvas-extras.js';
+import { UsdzExporter } from 'playcanvas-extras';
 import { addEventListenerOnClickOnly } from '../../helpers';
 
 const PopupPanelControls = (props: { observerData: ObserverData, setProperty: SetProperty }) => {
@@ -75,7 +75,7 @@ class PopupPanel extends React.Component <{ observerData: ObserverData, setPrope
         super(props);
         this.link = (document.getElementById('ar-link') as HTMLAnchorElement);
         if (this.link.relList.supports("ar")) {
-            this.usdzExporter = new (pcx as any).UsdzExporter();
+            this.usdzExporter = new UsdzExporter();
         }
     }
 
