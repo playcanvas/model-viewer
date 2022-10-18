@@ -1343,10 +1343,8 @@ class Viewer {
             }
         });
 
-        // @ts-ignore not exposed on Event class
         this.observer.suspendEvents = true;
         this.observer.set('morphs', morphs);
-        // @ts-ignore not exposed on Event class
         this.observer.suspendEvents = false;
 
         // handle animation update
