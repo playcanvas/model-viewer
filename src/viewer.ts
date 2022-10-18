@@ -1343,22 +1343,15 @@ class Viewer {
             }
         });
 
+        // @ts-ignore not exposed on Event class
+        this.observer.suspendEvents = true;
         this.observer.set('morphs', morphs);
+        // @ts-ignore not exposed on Event class
+        this.observer.suspendEvents = false;
 
         // handle animation update
         const observer = this.observer;
         observer.on('animationUpdate', () => {
-            Object.keys(morphs).forEach((morphIndex: string) => {
-                const morph = morphs[morphIndex];
-                Object.keys(morph.targets).forEach((targetIndex: string) => {
-                    const morphTarget: MorphTarget = morph.targets[targetIndex];
-                    const newWeight = morphInstances[morphIndex].getWeight(morphTarget.targetIndex);
-                    if (morphTarget.weight !== newWeight) {
-                        observer.set(`morphs.${morphIndex}.targets.${morphTarget.targetIndex}.weight`, newWeight);
-                    }
-                });
-            });
-
             // set progress
             for (let i = 0; i < this.entities.length; ++i) {
                 const entity = this.entities[i];
