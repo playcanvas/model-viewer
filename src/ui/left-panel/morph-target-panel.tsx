@@ -7,7 +7,7 @@ import { MorphSlider } from '../components';
 class MorphTargetPanel extends React.Component <{ morphs: ObserverData['morphs'], progress: number, setProperty: SetProperty }> {
     shouldComponentUpdate(nextProps: Readonly<{ morphs: ObserverData['morphs']; progress: number; setProperty: SetProperty; }>): boolean {
         return (
-            JSON.stringify(nextProps.morphs) !== JSON.stringify(this.props.morphs) || nextProps.progress !== this.props.progress
+            JSON.stringify(nextProps.morphs) !== JSON.stringify(this.props.morphs)
         );
     }
 
