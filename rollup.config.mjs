@@ -1,5 +1,5 @@
 import path from 'path';
-import copyAndWatch from "./copy-and-watch";
+import copyAndWatch from "./copy-and-watch.mjs";
 import Handlebars from 'handlebars';
 import alias from '@rollup/plugin-alias';
 import commonjs from "@rollup/plugin-commonjs";
@@ -16,8 +16,12 @@ const PCUI_DIR = process.env.PCUI_PATH || 'node_modules/@playcanvas/pcui';
 
 const ENGINE_NAME = PROD_BUILD ? 'playcanvas.min.mjs' : 'playcanvas.dbg.mjs';
 const ENGINE_PATH = path.resolve(ENGINE_DIR, 'build', ENGINE_NAME);
-const EXTRAS_PATH = path.resolve(ENGINE_DIR, 'build', 'playcanvas-extras.mjs');
+const EXTRAS_PATH = path.resolve(ENGINE_DIR, 'build', 'playcanvas-extras.js');
 const PCUI_PATH = path.resolve(PCUI_DIR, 'react/unstyled');
+
+console.log(ENGINE_PATH);
+console.log(EXTRAS_PATH);
+console.log(PCUI_DIR);
 
 // define supported module overrides
 const aliasEntries = {
@@ -29,7 +33,7 @@ const aliasEntries = {
 const tsCompilerOptions = {
     baseUrl: '.',
     paths: {
-        'playcanvas': [ENGINE_PATH],
+        'playcanvas': [ENGINE_DIR],
         'playcanvas-extras': [EXTRAS_PATH],
         'pcui': [PCUI_PATH]
     }

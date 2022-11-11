@@ -51,6 +51,7 @@ import {
 import { App } from './app';
 
 import { Observer } from '@playcanvas/observer';
+// @ts-ignore: library file import
 import { MiniStats } from 'playcanvas-extras';
 // @ts-ignore: library file import
 // import * as VoxParser from 'playcanvas/scripts/parsers/vox-parser.js';

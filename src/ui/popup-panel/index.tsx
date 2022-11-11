@@ -75,6 +75,7 @@ class PopupPanel extends React.Component <{ observerData: ObserverData, setPrope
         super(props);
         this.link = (document.getElementById('ar-link') as HTMLAnchorElement);
         if (this.link.relList.supports("ar")) {
+            // @ts-ignore
             this.usdzExporter = new UsdzExporter();
         }
     }
