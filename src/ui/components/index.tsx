@@ -9,7 +9,7 @@ export const Detail = (props: { label: string, value:string|number}) => {
     </Container>;
 };
 
-export const Vector = (props: { label: string, value:any, dimensions: number, enabled?: boolean}) => {
+export const Vector = (props: { label: string, value:any, dimensions: 2 | 3 | 4, enabled?: boolean}) => {
     return <Container class='panel-option'>
         <Label class='panel-label' text={props.label} />
         <VectorInput class='panel-value' dimensions={props.dimensions} enabled={props.enabled} value={props.value} />

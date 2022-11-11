@@ -21,9 +21,7 @@ class App extends React.Component<{ observer: Observer }> {
         this.canvasRef = React.createRef();
         this.state = this._retrieveState();
 
-        props.observer.on('*:set', (path: string) => {
-            // ignore any observer updates to specific morph targets that aren't their weight
-            if (path.includes('morphs.')) return;
+        props.observer.on('*:set', () => {
             // update the state
             this.setState(this._retrieveState());
         });
