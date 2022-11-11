@@ -2,7 +2,7 @@ import {
     BLENDMODE_CONSTANT_ALPHA,
     BLENDMODE_ONE_MINUS_CONSTANT_ALPHA,
     FILTER_NEAREST,
-    PIXELFORMAT_R8_G8_B8_A8,
+    PIXELFORMAT_RGBA8,
     PIXELFORMAT_RGBA16F,
     PIXELFORMAT_RGBA32F,
     SEMANTIC_POSITION,
@@ -61,7 +61,7 @@ const supportsFloat32 = (device: WebglGraphicsDevice): boolean => {
 const choosePixelFormat = (device: WebglGraphicsDevice): number => {
     return supportsFloat16(device) ? PIXELFORMAT_RGBA16F :
         supportsFloat32(device) ? PIXELFORMAT_RGBA32F :
-            PIXELFORMAT_R8_G8_B8_A8;
+            PIXELFORMAT_RGBA8;
 };
 
 // calculate 1d gauss

@@ -8,7 +8,7 @@ import {
     LAYERID_DEPTH,
     LAYERID_SKYBOX,
     PIXELFORMAT_DEPTH,
-    PIXELFORMAT_R8_G8_B8_A8,
+    PIXELFORMAT_RGBA8,
     RENDERSTYLE_SOLID,
     RENDERSTYLE_WIREFRAME,
     RESOLUTION_AUTO,
@@ -112,6 +112,7 @@ class Viewer {
     debugSkeleton: DebugLines;
     debugGrid: DebugLines;
     debugNormals: DebugLines;
+    // @ts-ignore
     miniStats: MiniStats;
     observer: Observer;
     suppressAnimationProgressUpdate: boolean;
@@ -629,7 +630,7 @@ class Viewer {
             });
             textureAsset.ready(() => {
                 const texture = textureAsset.resource;
-                if (texture.type === TEXTURETYPE_DEFAULT && texture.format === PIXELFORMAT_R8_G8_B8_A8) {
+                if (texture.type === TEXTURETYPE_DEFAULT && texture.format === PIXELFORMAT_RGBA8) {
                     // assume RGBA data (pngs) are RGBM
                     texture.type = TEXTURETYPE_RGBM;
                 }
@@ -753,7 +754,7 @@ class Viewer {
         const pixelScale = observer.get('render.pixelScale');
         const w = Math.floor(canvasSize.width * window.devicePixelRatio / pixelScale);
         const h = Math.floor(canvasSize.height * window.devicePixelRatio / pixelScale);
-        const colorBuffer = createTexture(w, h, PIXELFORMAT_R8_G8_B8_A8);
+        const colorBuffer = createTexture(w, h, PIXELFORMAT_RGBA8);
         const depthBuffer = createTexture(w, h, PIXELFORMAT_DEPTH);
         const renderTarget = new RenderTarget({
             colorBuffer: colorBuffer,

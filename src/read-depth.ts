@@ -1,6 +1,6 @@
 import {
     FILTER_NEAREST,
-    PIXELFORMAT_R8_G8_B8_A8,
+    PIXELFORMAT_RGBA8,
     SEMANTIC_POSITION,
     drawQuadWithShader,
     shaderChunks,
@@ -93,7 +93,7 @@ class ReadDepth {
         this.texture = new Texture(this.device, {
             width: 1,
             height: 1,
-            format: PIXELFORMAT_R8_G8_B8_A8,
+            format: PIXELFORMAT_RGBA8,
             mipmaps: false,
             minFilter: FILTER_NEAREST,
             magFilter: FILTER_NEAREST

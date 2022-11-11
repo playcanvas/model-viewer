@@ -5,10 +5,11 @@ import alias from '@rollup/plugin-alias';
 import commonjs from "@rollup/plugin-commonjs";
 import resolve from "@rollup/plugin-node-resolve";
 import replace from '@rollup/plugin-replace';
+import terser from '@rollup/plugin-terser';
 import sass from 'rollup-plugin-sass';
 import sourcemaps from 'rollup-plugin-sourcemaps';
 import typescript from 'rollup-plugin-typescript2';
-import { terser } from 'rollup-plugin-terser';
+import { visualizer } from 'rollup-plugin-visualizer';
 
 const PROD_BUILD = process.env.BUILD_TYPE === 'prod';
 const ENGINE_DIR = process.env.ENGINE_PATH || 'node_modules/playcanvas';
@@ -18,10 +19,6 @@ const ENGINE_NAME = PROD_BUILD ? 'playcanvas.min.mjs' : 'playcanvas.dbg.mjs';
 const ENGINE_PATH = path.resolve(ENGINE_DIR, 'build', ENGINE_NAME);
 const EXTRAS_PATH = path.resolve(ENGINE_DIR, 'build', 'playcanvas-extras.js');
 const PCUI_PATH = path.resolve(PCUI_DIR, 'react/unstyled');
-
-console.log(ENGINE_PATH);
-console.log(EXTRAS_PATH);
-console.log(PCUI_DIR);
 
 // define supported module overrides
 const aliasEntries = {
@@ -90,6 +87,7 @@ export default {
             clean: true
         }),
         (PROD_BUILD && terser()),
+        visualizer()
     ],
     treeshake: 'smallest',
     cache: false
