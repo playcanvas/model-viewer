@@ -546,16 +546,6 @@ class Viewer {
         this.app.scene.envAtlas = envAtlas;
         this.app.scene.skybox = skybox;
 
-        // const envAtlas = env;
-        // envAtlas.type = TEXTURETYPE_RGBP;
-        // envAtlas.addressU = ADDRESS_REPEAT;
-        // envAtlas.addressV = ADDRESS_CLAMP_TO_EDGE;
-        // envAtlas.minFilter = FILTER_LINEAR;
-        // envAtlas.magFilter = FILTER_LINEAR;
-        // this.app.scene.envAtlas = envAtlas;
-        // this.app.scene.setSkybox(null);
-        // this.app.scene._resetSky();
-
         this.renderNextFrame();
     }
 
