@@ -1,8 +1,7 @@
-// import * as pc from 'playcanvas';
 import { Observer } from '@playcanvas/observer';
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { Container, Spinner } from '@playcanvas/pcui/react/unstyled';
+import { Container, Spinner } from 'pcui';
 
 import { getAssetPath } from '../helpers';
 import { ObserverData } from '../types';

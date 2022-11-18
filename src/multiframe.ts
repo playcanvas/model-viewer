@@ -1,4 +1,21 @@
-import * as pc from 'playcanvas';
+import {
+    BLENDMODE_CONSTANT_ALPHA,
+    BLENDMODE_ONE_MINUS_CONSTANT_ALPHA,
+    FILTER_NEAREST,
+    PIXELFORMAT_R8_G8_B8_A8 as PIXELFORMAT_RGBA8,
+    PIXELFORMAT_RGBA16F,
+    PIXELFORMAT_RGBA32F,
+    SEMANTIC_POSITION,
+    drawQuadWithShader,
+    shaderChunks,
+    CameraComponent,
+    RenderTarget,
+    ScopeId,
+    Shader,
+    Texture,
+    Vec3,
+    WebglGraphicsDevice
+} from 'playcanvas';
 
 const gamma = 2.2;
 
@@ -21,30 +38,30 @@ void main(void) {
 }
 `;
 
-const vertexShaderHeader = (device: pc.WebglGraphicsDevice) => {
+const vertexShaderHeader = (device: WebglGraphicsDevice) => {
     // @ts-ignore
-    return device.webgl2 ? `#version 300 es\n\n${pc.shaderChunks.gles3VS}\n` : '';
+    return device.webgl2 ? `#version 300 es\n\n${shaderChunks.gles3VS}\n` : '';
 };
 
-const fragmentShaderHeader = (device: pc.WebglGraphicsDevice) => {
+const fragmentShaderHeader = (device: WebglGraphicsDevice) => {
     // @ts-ignore
-    return (device.webgl2 ? `#version 300 es\n\n${pc.shaderChunks.gles3PS}\n` : '') +
+    return (device.webgl2 ? `#version 300 es\n\n${shaderChunks.gles3PS}\n` : '') +
             `precision ${device.precision} float;\n\n`;
 };
 
-const supportsFloat16 = (device: pc.WebglGraphicsDevice): boolean => {
+const supportsFloat16 = (device: WebglGraphicsDevice): boolean => {
     return device.extTextureHalfFloat && device.textureHalfFloatRenderable;
 };
 
-const supportsFloat32 = (device: pc.WebglGraphicsDevice): boolean => {
+const supportsFloat32 = (device: WebglGraphicsDevice): boolean => {
     return device.extTextureFloat && device.textureFloatRenderable;
 };
 
 // lighting source should be stored HDR
-const choosePixelFormat = (device: pc.WebglGraphicsDevice): number => {
-    return supportsFloat16(device) ? pc.PIXELFORMAT_RGBA16F :
-        supportsFloat32(device) ? pc.PIXELFORMAT_RGBA32F :
-            pc.PIXELFORMAT_R8_G8_B8_A8;
+const choosePixelFormat = (device: WebglGraphicsDevice): number => {
+    return supportsFloat16(device) ? PIXELFORMAT_RGBA16F :
+        supportsFloat32(device) ? PIXELFORMAT_RGBA32F :
+            PIXELFORMAT_RGBA8;
 };
 
 // calculate 1d gauss
@@ -54,22 +71,22 @@ const gauss = (x: number, sigma: number): number => {
 
 // generate multiframe, supersampled AA
 class Multiframe {
-    device: pc.WebglGraphicsDevice;
-    camera: pc.CameraComponent;
+    device: WebglGraphicsDevice;
+    camera: CameraComponent;
     textureBias: number;
-    shader: pc.Shader = null;
+    shader: Shader = null;
     pixelFormat: number;
-    multiframeTexUniform: pc.ScopeId = null;
-    powerUniform: pc.ScopeId = null;
-    textureBiasUniform: pc.ScopeId = null;
-    accumTexture: pc.Texture = null;
-    accumRenderTarget: pc.RenderTarget = null;
+    multiframeTexUniform: ScopeId = null;
+    powerUniform: ScopeId = null;
+    textureBiasUniform: ScopeId = null;
+    accumTexture: Texture = null;
+    accumRenderTarget: RenderTarget = null;
     sampleId = 0;
-    samples: pc.Vec3[] = [];
+    samples: Vec3[] = [];
     enabled = true;
     totalWeight = 0;
 
-    constructor(device: pc.WebglGraphicsDevice, camera: pc.CameraComponent, numSamples: number) {
+    constructor(device: WebglGraphicsDevice, camera: CameraComponent, numSamples: number) {
         this.device = device;
         this.camera = camera;
         this.textureBias = -Math.log2(numSamples);
@@ -96,9 +113,9 @@ class Multiframe {
             camera._viewProjMatDirty = true;
         };
 
-        this.shader = new pc.Shader(device, {
+        this.shader = new Shader(device, {
             attributes: {
-                vertex_position: pc.SEMANTIC_POSITION
+                vertex_position: SEMANTIC_POSITION
             },
             vshader: vertexShaderHeader(device) + vshader,
             fshader: fragmentShaderHeader(device) + fshader
@@ -128,8 +145,8 @@ class Multiframe {
         this.sampleId = 0;
     }
 
-    generateSamples(numSamples: number, jitter = false, size = 1, sigma = 0): pc.Vec3[] {
-        const samples: pc.Vec3[] = [];
+    generateSamples(numSamples: number, jitter = false, size = 1, sigma = 0): Vec3[] {
+        const samples: Vec3[] = [];
         const kernelSize = Math.ceil(3 * sigma) + 1;
         const halfSize = size * 0.5;
         let sx, sy, weight;
@@ -147,7 +164,7 @@ class Multiframe {
                 }
                 // calculate sample weight
                 weight = (sigma <= 0.0) ? 1.0 : gauss(sx * kernelSize, sigma) * gauss(sy * kernelSize, sigma);
-                samples.push(new pc.Vec3(sx * halfSize, sy * halfSize, weight));
+                samples.push(new Vec3(sx * halfSize, sy * halfSize, weight));
             }
         }
 
@@ -185,16 +202,16 @@ class Multiframe {
     create() {
         const source = this.camera.renderTarget.colorBuffer;
 
-        this.accumTexture = new pc.Texture(this.device, {
+        this.accumTexture = new Texture(this.device, {
             width: source.width,
             height: source.height,
             format: this.pixelFormat,
             mipmaps: false,
-            minFilter: pc.FILTER_NEAREST,
-            magFilter: pc.FILTER_NEAREST
+            minFilter: FILTER_NEAREST,
+            magFilter: FILTER_NEAREST
         });
 
-        this.accumRenderTarget = new pc.RenderTarget({
+        this.accumRenderTarget = new RenderTarget({
             colorBuffer: this.accumTexture,
             depth: false
         });
@@ -218,7 +235,7 @@ class Multiframe {
         if (!this.enabled) {
             this.multiframeTexUniform.setValue(sourceTex);
             this.powerUniform.setValue(1.0);
-            pc.drawQuadWithShader(device, null, this.shader);
+            drawQuadWithShader(device, null, this.shader);
             this.activateBackbuffer();
             return false;
         }
@@ -241,12 +258,12 @@ class Multiframe {
             const sampleWeight = this.samples[this.sampleId].z;
 
             device.setBlending(true);
-            device.setBlendFunction(pc.BLENDMODE_CONSTANT_ALPHA, pc.BLENDMODE_ONE_MINUS_CONSTANT_ALPHA);
+            device.setBlendFunction(BLENDMODE_CONSTANT_ALPHA, BLENDMODE_ONE_MINUS_CONSTANT_ALPHA);
             device.setBlendColor(0, 0, 0, sampleWeight / (this.totalWeight + sampleWeight));
 
             this.multiframeTexUniform.setValue(sourceTex);
             this.powerUniform.setValue(gamma);
-            pc.drawQuadWithShader(device, this.accumRenderTarget, this.shader, null, null, true);
+            drawQuadWithShader(device, this.accumRenderTarget, this.shader, null, null, true);
 
             // restore states
             device.setBlendFunctionSeparate(blendSrc, blendDst, blendSrcAlpha, blendDstAlpha);
@@ -263,7 +280,7 @@ class Multiframe {
             this.powerUniform.setValue(1.0 / gamma);
         }
 
-        pc.drawQuadWithShader(device, null, this.shader);
+        drawQuadWithShader(device, null, this.shader);
 
         if (this.sampleId < sampleCnt) {
             this.sampleId++;
@@ -283,11 +300,11 @@ class Multiframe {
         device.setScissor(0, 0, device.width, device.height);
     }
 
-    copy(target: pc.RenderTarget) {
+    copy(target: RenderTarget) {
         const device = this.device;
         this.multiframeTexUniform.setValue(this.accumTexture);
         this.powerUniform.setValue(1.0 / gamma);
-        pc.drawQuadWithShader(device, target, this.shader);
+        drawQuadWithShader(device, target, this.shader);
     }
 }
 

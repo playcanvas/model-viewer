@@ -1,5 +1,5 @@
 import React from 'react';
-import { Container, BooleanInput, Label, SliderInput, VectorInput, SelectInput } from '@playcanvas/pcui/react/unstyled';
+import { Container, BooleanInput, Label, SliderInput, VectorInput, SelectInput } from 'pcui';
 import { Option } from '../../types';
 
 export const Detail = (props: { label: string, value:string|number}) => {

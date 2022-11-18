@@ -1,7 +1,18 @@
-import * as pc from 'playcanvas';
+import {
+    FILTER_NEAREST,
+    PIXELFORMAT_R8_G8_B8_A8 as PIXELFORMAT_RGBA8,
+    SEMANTIC_POSITION,
+    drawQuadWithShader,
+    shaderChunks,
+    RenderTarget,
+    ScopeId,
+    Shader,
+    Texture,
+    WebglGraphicsDevice
+} from 'playcanvas';
 
 // @ts-ignore
-const packDepthPS = pc.shaderChunks.packDepthPS;
+const packDepthPS = shaderChunks.packDepthPS;
 
 const vshader = `
 attribute vec2 vertex_position;
@@ -23,33 +34,33 @@ void main(void) {
 }
 `;
 
-const vertexShaderHeader = (device: pc.WebglGraphicsDevice) => {
+const vertexShaderHeader = (device: WebglGraphicsDevice) => {
     // @ts-ignore
-    return device.webgl2 ? `#version 300 es\n\n${pc.shaderChunks.gles3VS}\n` : '';
+    return device.webgl2 ? `#version 300 es\n\n${shaderChunks.gles3VS}\n` : '';
 };
 
-const fragmentShaderHeader = (device: pc.WebglGraphicsDevice) => {
+const fragmentShaderHeader = (device: WebglGraphicsDevice) => {
     // @ts-ignore
-    return (device.webgl2 ? `#version 300 es\n\n${pc.shaderChunks.gles3PS}\n` : '') +
+    return (device.webgl2 ? `#version 300 es\n\n${shaderChunks.gles3PS}\n` : '') +
             `precision ${device.precision} float;\n\n`;
 };
 
 // helper class for reading out the depth values from depth render targets.
 class ReadDepth {
-    device: pc.WebglGraphicsDevice;
-    shader: pc.Shader;
-    depthTexUniform: pc.ScopeId;
-    texcoordRangeUniform: pc.ScopeId;
+    device: WebglGraphicsDevice;
+    shader: Shader;
+    depthTexUniform: ScopeId;
+    texcoordRangeUniform: ScopeId;
     pixels = new Uint8Array(4);
-    texture: pc.Texture = null;
-    renderTarget: pc.RenderTarget = null;
+    texture: Texture = null;
+    renderTarget: RenderTarget = null;
 
-    constructor(device: pc.WebglGraphicsDevice) {
+    constructor(device: WebglGraphicsDevice) {
         this.device = device;
 
-        this.shader = new pc.Shader(device, {
+        this.shader = new Shader(device, {
             attributes: {
-                vertex_position: pc.SEMANTIC_POSITION
+                vertex_position: SEMANTIC_POSITION
             },
             vshader: vertexShaderHeader(device) + vshader,
             fshader: fragmentShaderHeader(device) + fshader
@@ -79,22 +90,22 @@ class ReadDepth {
     }
 
     create() {
-        this.texture = new pc.Texture(this.device, {
+        this.texture = new Texture(this.device, {
             width: 1,
             height: 1,
-            format: pc.PIXELFORMAT_R8_G8_B8_A8,
+            format: PIXELFORMAT_RGBA8,
             mipmaps: false,
-            minFilter: pc.FILTER_NEAREST,
-            magFilter: pc.FILTER_NEAREST
+            minFilter: FILTER_NEAREST,
+            magFilter: FILTER_NEAREST
         });
 
-        this.renderTarget = new pc.RenderTarget({
+        this.renderTarget = new RenderTarget({
             colorBuffer: this.texture,
             depth: false
         });
     }
 
-    read(depthTexture: pc.Texture, x: number, y: number) {
+    read(depthTexture: Texture, x: number, y: number) {
         if (!this.texture) {
             this.create();
         }
@@ -105,7 +116,7 @@ class ReadDepth {
 
         this.depthTexUniform.setValue(depthTexture);
         this.texcoordRangeUniform.setValue([tx, ty, tx, ty]);
-        pc.drawQuadWithShader(this.device, this.renderTarget, this.shader);
+        drawQuadWithShader(this.device, this.renderTarget, this.shader);
 
         const gl = device.gl;
         const oldRt = device.renderTarget;

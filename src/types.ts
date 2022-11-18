@@ -1,4 +1,4 @@
-export interface MorphTarget {
+export interface MorphTargetData {
     name: string,
     targetIndex: number,
     weight?: number
@@ -102,7 +102,7 @@ export interface ObserverData {
     },
     morphs?: Record<string, {
         name: string,
-        targets: Record<string, MorphTarget>
+        targets: Record<string, MorphTargetData>
     }>,
     spinner: boolean,
     error?: string,

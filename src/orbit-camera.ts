@@ -1,4 +1,25 @@
-import * as pc from 'playcanvas';
+import {
+    EVENT_MOUSEDOWN,
+    EVENT_MOUSEUP,
+    EVENT_MOUSEMOVE,
+    EVENT_MOUSEWHEEL,
+    MOUSEBUTTON_LEFT,
+    MOUSEBUTTON_MIDDLE,
+    MOUSEBUTTON_RIGHT,
+    EVENT_TOUCHSTART,
+    EVENT_TOUCHEND,
+    EVENT_TOUCHCANCEL,
+    EVENT_TOUCHMOVE,
+    math,
+    Entity,
+    MouseEvent,
+    Touch,
+    TouchEvent,
+    Vec2,
+    Vec3
+} from 'playcanvas';
+
+import { App } from './app';
 
 class SmoothedValue {
     value: any;
@@ -41,33 +62,33 @@ class SmoothedValue {
     }
 }
 
-const vec = new pc.Vec3();
-const fromWorldPoint = new pc.Vec3();
-const toWorldPoint = new pc.Vec3();
-const worldDiff = new pc.Vec3();
+const vec = new Vec3();
+const fromWorldPoint = new Vec3();
+const toWorldPoint = new Vec3();
+const worldDiff = new Vec3();
 
 class OrbitCamera {
-    cameraNode: pc.Entity;
+    cameraNode: Entity;
     focalPoint: SmoothedValue;
     azimElevDistance: SmoothedValue;
 
-    constructor(cameraNode: pc.Entity, transitionTime: number) {
+    constructor(cameraNode: Entity, transitionTime: number) {
         this.cameraNode = cameraNode;
-        this.focalPoint = new SmoothedValue(new pc.Vec3(0, 0, 0), transitionTime);
-        this.azimElevDistance = new SmoothedValue(new pc.Vec3(0, 0, 1), transitionTime);
+        this.focalPoint = new SmoothedValue(new Vec3(0, 0, 0), transitionTime);
+        this.azimElevDistance = new SmoothedValue(new Vec3(0, 0, 1), transitionTime);
     }
 
-    vecToAzimElevDistance(vec: pc.Vec3, azimElevDistance: pc.Vec3) {
+    vecToAzimElevDistance(vec: Vec3, azimElevDistance: Vec3) {
         const distance = vec.length();
-        const azim = Math.atan2(-vec.x / distance, -vec.z / distance) * pc.math.RAD_TO_DEG;
-        const elev = Math.asin(vec.y / distance) * pc.math.RAD_TO_DEG;
+        const azim = Math.atan2(-vec.x / distance, -vec.z / distance) * math.RAD_TO_DEG;
+        const elev = Math.asin(vec.y / distance) * math.RAD_TO_DEG;
         azimElevDistance.set(azim, elev, distance);
     }
 
     // calculate the current forward vector
-    calcForwardVec(result: pc.Vec3) {
-        const ex = this.azimElevDistance.value.y * pc.math.DEG_TO_RAD;
-        const ey = this.azimElevDistance.value.x * pc.math.DEG_TO_RAD;
+    calcForwardVec(result: Vec3) {
+        const ex = this.azimElevDistance.value.y * math.DEG_TO_RAD;
+        const ey = this.azimElevDistance.value.x * math.DEG_TO_RAD;
         const s1 = Math.sin(-ex);
         const c1 = Math.cos(-ex);
         const s2 = Math.sin(-ey);
@@ -93,26 +114,26 @@ class OrbitCamera {
 // OrbitCameraInputMouse
 
 class OrbitCameraInputMouse {
-    app: pc.Application;
+    app: App;
     orbitCamera: OrbitCamera;
     orbitSensitivity = 0.3;
     distanceSensitivity = 0.4;
     lookButtonDown = false;
     panButtonDown = false;
-    lastPoint = new pc.Vec2();
+    lastPoint = new Vec2();
 
     onMouseOutFunc = () => {
         this.onMouseOut();
     };
 
-    constructor(app: pc.Application, orbitCamera: OrbitCamera) {
+    constructor(app: App, orbitCamera: OrbitCamera) {
         this.app = app;
         this.orbitCamera = orbitCamera;
 
-        this.app.mouse.on(pc.EVENT_MOUSEDOWN, this.onMouseDown, this);
-        this.app.mouse.on(pc.EVENT_MOUSEUP, this.onMouseUp, this);
-        this.app.mouse.on(pc.EVENT_MOUSEMOVE, this.onMouseMove, this);
-        this.app.mouse.on(pc.EVENT_MOUSEWHEEL, this.onMouseWheel, this);
+        this.app.mouse.on(EVENT_MOUSEDOWN, this.onMouseDown, this);
+        this.app.mouse.on(EVENT_MOUSEUP, this.onMouseUp, this);
+        this.app.mouse.on(EVENT_MOUSEMOVE, this.onMouseMove, this);
+        this.app.mouse.on(EVENT_MOUSEWHEEL, this.onMouseWheel, this);
 
         // Listen to when the mouse travels out of the window
         window.addEventListener('mouseout', this.onMouseOutFunc, false);
@@ -123,15 +144,15 @@ class OrbitCameraInputMouse {
     }
 
     destroy() {
-        this.app.mouse.off(pc.EVENT_MOUSEDOWN, this.onMouseDown, this);
-        this.app.mouse.off(pc.EVENT_MOUSEUP, this.onMouseUp, this);
-        this.app.mouse.off(pc.EVENT_MOUSEMOVE, this.onMouseMove, this);
-        this.app.mouse.off(pc.EVENT_MOUSEWHEEL, this.onMouseWheel, this);
+        this.app.mouse.off(EVENT_MOUSEDOWN, this.onMouseDown, this);
+        this.app.mouse.off(EVENT_MOUSEUP, this.onMouseUp, this);
+        this.app.mouse.off(EVENT_MOUSEMOVE, this.onMouseMove, this);
+        this.app.mouse.off(EVENT_MOUSEWHEEL, this.onMouseWheel, this);
 
         window.removeEventListener('mouseout', this.onMouseOutFunc, false);
     }
 
-    pan(screenPoint: pc.MouseEvent) {
+    pan(screenPoint: MouseEvent) {
         // For panning to work at any zoom level, we use screen point to world projection
         // to work out how far we need to pan the pivotEntity in world space
         const camera = this.orbitCamera.cameraNode.camera;
@@ -149,11 +170,11 @@ class OrbitCameraInputMouse {
 
     onMouseDown(event: MouseEvent) {
         switch (event.button) {
-            case pc.MOUSEBUTTON_LEFT:
+            case MOUSEBUTTON_LEFT:
                 this.lookButtonDown = true;
                 break;
-            case pc.MOUSEBUTTON_MIDDLE:
-            case pc.MOUSEBUTTON_RIGHT:
+            case MOUSEBUTTON_MIDDLE:
+            case MOUSEBUTTON_RIGHT:
                 this.panButtonDown = true;
                 break;
         }
@@ -161,17 +182,17 @@ class OrbitCameraInputMouse {
 
     onMouseUp(event: MouseEvent) {
         switch (event.button) {
-            case pc.MOUSEBUTTON_LEFT:
+            case MOUSEBUTTON_LEFT:
                 this.lookButtonDown = false;
                 break;
-            case pc.MOUSEBUTTON_MIDDLE:
-            case pc.MOUSEBUTTON_RIGHT:
+            case MOUSEBUTTON_MIDDLE:
+            case MOUSEBUTTON_RIGHT:
                 this.panButtonDown = false;
                 break;
         }
     }
 
-    onMouseMove(event: pc.MouseEvent) {
+    onMouseMove(event: MouseEvent) {
         if (this.lookButtonDown) {
             vec.copy(this.orbitCamera.azimElevDistance.target);
             vec.y -= event.dy * this.orbitSensitivity;
@@ -184,7 +205,7 @@ class OrbitCameraInputMouse {
         this.lastPoint.set(event.x, event.y);
     }
 
-    onMouseWheel(event: pc.MouseEvent) {
+    onMouseWheel(event: MouseEvent) {
         vec.copy(this.orbitCamera.azimElevDistance.target);
         vec.z -= event.wheelDelta * -2 * this.distanceSensitivity * (vec.z * 0.1);
         this.orbitCamera.azimElevDistance.goto(vec);
@@ -200,52 +221,52 @@ class OrbitCameraInputMouse {
 // OrbitCameraInputTouch
 
 class OrbitCameraInputTouch {
-    app: pc.Application;
+    app: App;
     orbitCamera: OrbitCamera;
     orbitSensitivity = 0.3;
     distanceSensitivity = 0.4;
-    lastTouchPoint = new pc.Vec2();
-    lastPinchMidPoint = new pc.Vec2();
+    lastTouchPoint = new Vec2();
+    lastPinchMidPoint = new Vec2();
     lastPinchDistance = 0;
-    pinchMidPoint = new pc.Vec2();
+    pinchMidPoint = new Vec2();
 
-    constructor(app: pc.Application, orbitCamera: OrbitCamera) {
+    constructor(app: App, orbitCamera: OrbitCamera) {
         this.app = app;
         this.orbitCamera = orbitCamera;
 
         if (this.app.touch) {
             // Use the same callback for the touchStart, touchEnd and touchCancel events as they
             // all do the same thing which is to deal the possible multiple touches to the screen
-            this.app.touch.on(pc.EVENT_TOUCHSTART, this.onTouchStartEndCancel, this);
-            this.app.touch.on(pc.EVENT_TOUCHEND, this.onTouchStartEndCancel, this);
-            this.app.touch.on(pc.EVENT_TOUCHCANCEL, this.onTouchStartEndCancel, this);
+            this.app.touch.on(EVENT_TOUCHSTART, this.onTouchStartEndCancel, this);
+            this.app.touch.on(EVENT_TOUCHEND, this.onTouchStartEndCancel, this);
+            this.app.touch.on(EVENT_TOUCHCANCEL, this.onTouchStartEndCancel, this);
 
-            this.app.touch.on(pc.EVENT_TOUCHMOVE, this.onTouchMove, this);
+            this.app.touch.on(EVENT_TOUCHMOVE, this.onTouchMove, this);
         }
     }
 
     destroy() {
-        this.app.touch.off(pc.EVENT_TOUCHSTART, this.onTouchStartEndCancel, this);
-        this.app.touch.off(pc.EVENT_TOUCHEND, this.onTouchStartEndCancel, this);
-        this.app.touch.off(pc.EVENT_TOUCHCANCEL, this.onTouchStartEndCancel, this);
-        this.app.touch.off(pc.EVENT_TOUCHMOVE, this.onTouchMove, this);
+        this.app.touch.off(EVENT_TOUCHSTART, this.onTouchStartEndCancel, this);
+        this.app.touch.off(EVENT_TOUCHEND, this.onTouchStartEndCancel, this);
+        this.app.touch.off(EVENT_TOUCHCANCEL, this.onTouchStartEndCancel, this);
+        this.app.touch.off(EVENT_TOUCHMOVE, this.onTouchMove, this);
     }
 
-    getPinchDistance(pointA: pc.Touch, pointB: pc.Touch) {
+    getPinchDistance(pointA: Touch, pointB: Touch) {
         // Return the distance between the two points
         const dx = pointA.x - pointB.x;
         const dy = pointA.y - pointB.y;
         return Math.sqrt((dx * dx) + (dy * dy));
     }
 
-    calcMidPoint(pointA: pc.Touch, pointB: pc.Touch, result: pc.Vec2) {
+    calcMidPoint(pointA: Touch, pointB: Touch, result: Vec2) {
         result.set(pointB.x - pointA.x, pointB.y - pointA.y);
         result.mulScalar(0.5);
         result.x += pointA.x;
         result.y += pointA.y;
     }
 
-    onTouchStartEndCancel(event: pc.TouchEvent) {
+    onTouchStartEndCancel(event: TouchEvent) {
         // We only care about the first touch for camera rotation. As the user touches the screen,
         // we stored the current touch position
         const touches = event.touches;
@@ -258,7 +279,7 @@ class OrbitCameraInputTouch {
         }
     }
 
-    pan(midPoint: pc.Vec2) {
+    pan(midPoint: Vec2) {
         // For panning to work at any zoom level, we use screen point to world projection
         // to work out how far we need to pan the pivotEntity in world space
         const camera = this.orbitCamera.cameraNode.camera;
@@ -273,7 +294,7 @@ class OrbitCameraInputTouch {
         this.orbitCamera.focalPoint.goto(worldDiff);
     }
 
-    onTouchMove(event: pc.TouchEvent) {
+    onTouchMove(event: TouchEvent) {
         const pinchMidPoint = this.pinchMidPoint;
 
         const aed = this.orbitCamera.azimElevDistance.target.clone();

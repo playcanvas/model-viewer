@@ -1,4 +1,4 @@
-import * as pc from 'playcanvas';
+import { RenderTarget } from 'playcanvas';
 
 function PngExportWorker(href) {
     const initLodepng = () => {
@@ -70,7 +70,7 @@ const readPixels = (renderTarget) => {
 };
 
 const readTexturePixels = (texture, face) => {
-    const renderTarget = new pc.RenderTarget({ colorBuffer: texture, depth: false, face: face });
+    const renderTarget = new RenderTarget({ colorBuffer: texture, depth: false, face: face });
     device.initRenderTarget(renderTarget);
     const result = readPixels(renderTarget);
     renderTarget.destroy();

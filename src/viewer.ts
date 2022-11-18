@@ -1,15 +1,62 @@
-import * as pc from 'playcanvas';
+import {
+    ADDRESS_CLAMP_TO_EDGE,
+    FILLMODE_NONE,
+    FILTER_LINEAR,
+    FILTER_LINEAR_MIPMAP_LINEAR,
+    FILTER_NEAREST,
+    LAYERID_DEPTH,
+    LAYERID_SKYBOX,
+    PIXELFORMAT_DEPTH,
+    PIXELFORMAT_R8_G8_B8_A8 as PIXELFORMAT_RGBA8,
+    RENDERSTYLE_SOLID,
+    RENDERSTYLE_WIREFRAME,
+    RESOLUTION_AUTO,
+    TEXTURETYPE_DEFAULT,
+    TEXTURETYPE_RGBM,
+    TONEMAP_LINEAR,
+    TONEMAP_FILMIC,
+    TONEMAP_HEJL,
+    TONEMAP_ACES,
+    XRSPACE_LOCALFLOOR,
+    XRTYPE_AR,
+    math,
+    path,
+    reprojectTexture,
+    AnimEvents,
+    AnimTrack,
+    Asset,
+    BoundingBox,
+    Color,
+    Entity,
+    EnvLighting,
+    GraphNode,
+    Mat4,
+    Mesh,
+    MeshInstance,
+    MorphInstance,
+    MorphTarget,
+    Mouse,
+    Quat,
+    RenderComponent,
+    RenderTarget,
+    Texture,
+    TouchDevice,
+    Vec3,
+    Vec4,
+    WebglGraphicsDevice
+} from 'playcanvas';
+
+import { App } from './app';
+
 import { Observer } from '@playcanvas/observer';
-// @ts-ignore: No extras declarations
-import * as pcx from 'playcanvas/build/playcanvas-extras.js';
 // @ts-ignore: library file import
-import * as VoxParser from 'playcanvas/scripts/parsers/vox-parser.js';
-
-import * as MeshoptDecoder from '../lib/meshopt_decoder.js';
-
+import { MiniStats } from 'playcanvas-extras';
+// @ts-ignore: library file import
+// import * as VoxParser from 'playcanvas/scripts/parsers/vox-parser.js';
+import { MeshoptDecoder } from '../lib/meshopt_decoder.module.js';
 import { getAssetPath } from './helpers';
 import { DropHandler } from './drop-handler';
-import { MorphTarget, File, HierarchyNode } from './types';
+import { MorphTargetData, File, HierarchyNode } from './types';
 import { DebugLines } from './debug';
 import { Multiframe } from './multiframe';
 import { ReadDepth } from './read-depth';
@@ -19,27 +66,27 @@ import { PngExporter } from './png-exporter.js';
 // model filename extensions
 const modelExtensions = ['.gltf', '.glb', '.vox'];
 
-const defaultSceneBounds = new pc.BoundingBox(new pc.Vec3(0, 1, 0), new pc.Vec3(1, 1, 1));
+const defaultSceneBounds = new BoundingBox(new Vec3(0, 1, 0), new Vec3(1, 1, 1));
 
 class Viewer {
-    app: pc.Application;
+    app: App;
     dropHandler: DropHandler;
     pngExporter: PngExporter = null;
-    prevCameraMat: pc.Mat4;
-    camera: pc.Entity;
+    prevCameraMat: Mat4;
+    camera: Entity;
     orbitCamera: OrbitCamera;
     orbitCameraInputMouse: OrbitCameraInputMouse;
     orbitCameraInputTouch: OrbitCameraInputTouch;
-    cameraFocusBBox: pc.BoundingBox | null;
-    cameraPosition: pc.Vec3 | null;
-    light: pc.Entity;
-    sceneRoot: pc.Entity;
-    debugRoot: pc.Entity;
-    entities: Array<pc.Entity>;
-    entityAssets: Array<{entity: pc.Entity, asset: pc.Asset }>;
-    assets: Array<pc.Asset>;
-    meshInstances: Array<pc.MeshInstance>;
-    animTracks: Array<pc.AnimTrack>;
+    cameraFocusBBox: BoundingBox | null;
+    cameraPosition: Vec3 | null;
+    light: Entity;
+    sceneRoot: Entity;
+    debugRoot: Entity;
+    entities: Array<Entity>;
+    entityAssets: Array<{entity: Entity, asset: Asset }>;
+    assets: Array<Asset>;
+    meshInstances: Array<MeshInstance>;
+    animTracks: Array<AnimTrack>;
     animationMap: Record<string, string>;
     firstFrame: boolean;
     skyboxLoaded: boolean;
@@ -58,29 +105,30 @@ class Viewer {
     dirtySkeleton: boolean;
     dirtyGrid: boolean;
     dirtyNormals: boolean;
-    sceneBounds: pc.BoundingBox;
+    sceneBounds: BoundingBox;
     debugBounds: DebugLines;
     debugSkeleton: DebugLines;
     debugGrid: DebugLines;
     debugNormals: DebugLines;
-    miniStats: any;
+    // @ts-ignore
+    miniStats: MiniStats;
     observer: Observer;
     suppressAnimationProgressUpdate: boolean;
 
-    selectedNode: pc.GraphNode | null;
+    selectedNode: GraphNode | null;
 
     multiframe: Multiframe | null;
     multiframeBusy = false;
     readDepth: ReadDepth = null;
-    cursorWorld = new pc.Vec3();
+    cursorWorld = new Vec3();
 
     loadTimestamp?: number = null;
 
     constructor(canvas: HTMLCanvasElement, observer: Observer) {
         // create the application
-        const app = new pc.Application(canvas, {
-            mouse: new pc.Mouse(canvas),
-            touch: new pc.TouchDevice(canvas),
+        const app = new App(canvas, {
+            mouse: new Mouse(canvas),
+            touch: new TouchDevice(canvas),
             graphicsDeviceOptions: {
                 preferWebGl2: true,
                 alpha: true,
@@ -99,7 +147,7 @@ class Viewer {
 
         // xr is supported
         if (this.app.xr.supported) {
-            app.xr.on("available:" + pc.XRTYPE_AR, (available) => {
+            app.xr.on("available:" + XRTYPE_AR, (available) => {
                 observer.set('xrSupported', !!available);
             });
 
@@ -107,7 +155,7 @@ class Viewer {
                 console.log("Immersive AR session has started");
                 observer.set('xrActive', true);
 
-                this.app.scene.layers.getLayerById(pc.LAYERID_SKYBOX).enabled = false;
+                this.app.scene.layers.getLayerById(LAYERID_SKYBOX).enabled = false;
             });
 
             app.xr.on("end", () => {
@@ -143,7 +191,7 @@ class Viewer {
         observer.set('render.multisample', multisampleSupported && observer.get('render.multisample'));
 
         // register vox support
-        VoxParser.registerVoxParser(app);
+        // VoxParser.registerVoxParser(app);
 
         // create the exporter
         this.pngExporter = new PngExporter();
@@ -158,24 +206,24 @@ class Viewer {
 
         // Set the canvas to fill the window and automatically change resolution to be the same as the canvas size
         const canvasSize = this.getCanvasSize();
-        app.setCanvasFillMode(pc.FILLMODE_NONE, canvasSize.width, canvasSize.height);
-        app.setCanvasResolution(pc.RESOLUTION_AUTO);
+        app.setCanvasFillMode(FILLMODE_NONE, canvasSize.width, canvasSize.height);
+        app.setCanvasResolution(RESOLUTION_AUTO);
         window.addEventListener("resize", () => {
             this.resizeCanvas();
         });
 
         // Depth layer is where the framebuffer is copied to a texture to be used in the following layers.
         // Move the depth layer to take place after World and Skydome layers, to capture both of them.
-        const depthLayer = app.scene.layers.getLayerById(pc.LAYERID_DEPTH);
+        const depthLayer = app.scene.layers.getLayerById(LAYERID_DEPTH);
         app.scene.layers.remove(depthLayer);
         app.scene.layers.insertOpaque(depthLayer, 2);
 
         // create the orbit camera
-        const camera = new pc.Entity("Camera");
+        const camera = new Entity("Camera");
         camera.addComponent("camera", {
             fov: 75,
             frustumCulling: true,
-            clearColor: new pc.Color(0, 0, 0, 0)
+            clearColor: new Color(0, 0, 0, 0)
         });
         camera.camera.requestSceneColorMap(true);
 
@@ -183,15 +231,15 @@ class Viewer {
         this.orbitCameraInputMouse = new OrbitCameraInputMouse(this.app, this.orbitCamera);
         this.orbitCameraInputTouch = new OrbitCameraInputTouch(this.app, this.orbitCamera);
 
-        this.orbitCamera.focalPoint.snapto(new pc.Vec3(0, 1, 0));
+        this.orbitCamera.focalPoint.snapto(new Vec3(0, 1, 0));
 
         app.root.addChild(camera);
 
         // create the light
-        const light = new pc.Entity();
+        const light = new Entity();
         light.addComponent("light", {
             type: "directional",
-            color: new pc.Color(1, 1, 1),
+            color: new Color(1, 1, 1),
             castShadows: true,
             intensity: 1,
             shadowBias: 0.2,
@@ -204,17 +252,17 @@ class Viewer {
 
         // disable autorender
         app.autoRender = false;
-        this.prevCameraMat = new pc.Mat4();
+        this.prevCameraMat = new Mat4();
         app.on('update', this.update, this);
         app.on('prerender', this.onPrerender, this);
         app.on('postrender', this.onPostrender, this);
         app.on('frameend', this.onFrameend, this);
 
         // create the scene and debug root nodes
-        const sceneRoot = new pc.Entity("sceneRoot", app);
+        const sceneRoot = new Entity("sceneRoot", app);
         app.root.addChild(sceneRoot);
 
-        const debugRoot = new pc.Entity("debugRoot", app);
+        const debugRoot = new Entity("debugRoot", app);
         app.root.addChild(debugRoot);
 
         // store app things
@@ -258,11 +306,11 @@ class Viewer {
         this.debugNormals = new DebugLines(app, camera, false);
 
         // construct ministats, default off
-        this.miniStats = new pcx.MiniStats(app);
+        this.miniStats = new MiniStats(app);
         this.miniStats.enabled = observer.get('show.stats');
         this.observer = observer;
 
-        const device = this.app.graphicsDevice as pc.WebglGraphicsDevice;
+        const device = this.app.graphicsDevice as WebglGraphicsDevice;
 
         // multiframe
         this.multiframe = new Multiframe(device, this.camera.camera, 5);
@@ -274,7 +322,7 @@ class Viewer {
 
         // construct the depth reader
         this.readDepth = new ReadDepth(device);
-        this.cursorWorld = new pc.Vec3();
+        this.cursorWorld = new Vec3();
 
         // double click handler
         canvas.addEventListener('dblclick', (event) => {
@@ -286,7 +334,7 @@ class Viewer {
             const depth = this.readDepth.read(camera.renderTarget.depthBuffer, x, y);
 
             if (depth < 1) {
-                const pos = new pc.Vec4(x, y, depth, 1.0).mulScalar(2.0).subScalar(1.0);            // clip space
+                const pos = new Vec4(x, y, depth, 1.0).mulScalar(2.0).subScalar(1.0);            // clip space
                 camera.projectionMatrix.clone().invert().transformVec4(pos, pos);                   // homogeneous view space
                 pos.mulScalar(1.0 / pos.w);                                                         // perform perspective divide
                 this.cursorWorld.set(pos.x, pos.y, pos.z);
@@ -330,18 +378,18 @@ class Viewer {
         if (urlParams.hasOwnProperty('cameraPosition')) {
             const pos = urlParams.cameraPosition[0].split(',').map(Number);
             if (pos.length === 3) {
-                this.cameraPosition = new pc.Vec3(pos);
+                this.cameraPosition = new Vec3(pos);
             }
         }
     }
 
     // collects all mesh instances from entity hierarchy
-    private collectMeshInstances(entity: pc.Entity) {
-        const meshInstances: Array<pc.MeshInstance> = [];
+    private collectMeshInstances(entity: Entity) {
+        const meshInstances: Array<MeshInstance> = [];
         if (entity) {
             const components = entity.findComponents("render");
             for (let i = 0; i < components.length; i++) {
-                const render = components[i] as pc.RenderComponent;
+                const render = components[i] as RenderComponent;
                 if (render.meshInstances) {
                     for (let m = 0; m < render.meshInstances.length; m++) {
                         const meshInstance = render.meshInstances[m];
@@ -363,8 +411,8 @@ class Viewer {
     }
 
     // calculate the bounding box of the given mesh
-    private static calcMeshBoundingBox(meshInstances: Array<pc.MeshInstance>) {
-        const bbox = new pc.BoundingBox();
+    private static calcMeshBoundingBox(meshInstances: Array<MeshInstance>) {
+        const bbox = new BoundingBox();
         for (let i = 0; i < meshInstances.length; ++i) {
             if (i === 0) {
                 bbox.copy(meshInstances[i].aabb);
@@ -376,7 +424,7 @@ class Viewer {
     }
 
     // calculate the bounding box of the graph-node hierarchy
-    private static calcHierBoundingBox(rootNode: pc.Entity) {
+    private static calcHierBoundingBox(rootNode: Entity) {
         const position = rootNode.getPosition();
         let min_x = position.x;
         let min_y = position.y;
@@ -385,7 +433,7 @@ class Viewer {
         let max_y = position.y;
         let max_z = position.z;
 
-        const recurse = (node: pc.GraphNode) => {
+        const recurse = (node: GraphNode) => {
             const p = node.getPosition();
             if (p.x < min_x) min_x = p.x; else if (p.x > max_x) max_x = p.x;
             if (p.y < min_y) min_y = p.y; else if (p.y > max_y) max_y = p.y;
@@ -396,13 +444,13 @@ class Viewer {
         };
         recurse(rootNode);
 
-        const result = new pc.BoundingBox();
-        result.setMinMax(new pc.Vec3(min_x, min_y, min_z), new pc.Vec3(max_x, max_y, max_z));
+        const result = new BoundingBox();
+        result.setMinMax(new Vec3(min_x, min_y, min_z), new Vec3(max_x, max_y, max_z));
         return result;
     }
 
     // calculate the intersection of the two bounding boxes
-    private static calcBoundingBoxIntersection(bbox1: pc.BoundingBox, bbox2: pc.BoundingBox) {
+    private static calcBoundingBoxIntersection(bbox1: BoundingBox, bbox2: BoundingBox) {
         // bounds don't intersect
         if (!bbox1.intersects(bbox2)) {
             return null;
@@ -411,9 +459,9 @@ class Viewer {
         const max1 = bbox1.getMax();
         const min2 = bbox2.getMin();
         const max2 = bbox2.getMax();
-        const result = new pc.BoundingBox();
-        result.setMinMax(new pc.Vec3(Math.max(min1.x, min2.x), Math.max(min1.y, min2.y), Math.max(min1.z, min2.z)),
-                         new pc.Vec3(Math.min(max1.x, max2.x), Math.min(max1.y, max2.y), Math.min(max1.z, max2.z)));
+        const result = new BoundingBox();
+        result.setMinMax(new Vec3(Math.max(min1.x, min2.x), Math.max(min1.y, min2.y), Math.max(min1.z, min2.z)),
+                         new Vec3(Math.min(max1.x, max2.x), Math.min(max1.y, max2.y), Math.min(max1.z, max2.z)));
         return result;
     }
 
@@ -487,22 +535,22 @@ class Viewer {
 
     // initialize the faces and prefiltered lighting data from the given
     // skybox texture, which is either a cubemap or equirect texture.
-    private initSkyboxFromTextureNew(env: pc.Texture) {
-        const skybox = pc.EnvLighting.generateSkyboxCubemap(env);
-        const lighting = pc.EnvLighting.generateLightingSource(env);
+    private initSkyboxFromTextureNew(env: Texture) {
+        const skybox = EnvLighting.generateSkyboxCubemap(env);
+        const lighting = EnvLighting.generateLightingSource(env);
         // The second options parameter should not be necessary but the TS declarations require it for now
-        const envAtlas = pc.EnvLighting.generateAtlas(lighting, {});
+        const envAtlas = EnvLighting.generateAtlas(lighting, {});
         lighting.destroy();
-
         this.app.scene.envAtlas = envAtlas;
         this.app.scene.skybox = skybox;
+
         this.renderNextFrame();
     }
 
     // initialize the faces and prefiltered lighting data from the given
     // skybox texture, which is either a cubemap or equirect texture.
-    private initSkyboxFromTexture(skybox: pc.Texture) {
-        if (pc.EnvLighting) {
+    private initSkyboxFromTexture(skybox: Texture) {
+        if (EnvLighting) {
             return this.initSkyboxFromTextureNew(skybox);
         }
 
@@ -510,14 +558,14 @@ class Viewer {
         const device = app.graphicsDevice;
 
         const createCubemap = (size: number) => {
-            return new pc.Texture(device, {
+            return new Texture(device, {
                 name: `skyboxFaces-${size}`,
                 cubemap: true,
                 width: size,
                 height: size,
-                type: pc.TEXTURETYPE_RGBM,
-                addressU: pc.ADDRESS_CLAMP_TO_EDGE,
-                addressV: pc.ADDRESS_CLAMP_TO_EDGE,
+                type: TEXTURETYPE_RGBM,
+                addressU: ADDRESS_CLAMP_TO_EDGE,
+                addressV: ADDRESS_CLAMP_TO_EDGE,
                 fixCubemapSeams: true,
                 mipmaps: false
             });
@@ -525,13 +573,13 @@ class Viewer {
 
         const cubemaps = [];
 
-        cubemaps.push(pc.EnvLighting.generateSkyboxCubemap(skybox));
+        cubemaps.push(EnvLighting.generateSkyboxCubemap(skybox));
 
-        const lightingSource = pc.EnvLighting.generateLightingSource(skybox);
+        const lightingSource = EnvLighting.generateLightingSource(skybox);
 
         // create top level
         const top = createCubemap(128);
-        pc.reprojectTexture(lightingSource, top, {
+        reprojectTexture(lightingSource, top, {
             numSamples: 1
         });
         cubemaps.push(top);
@@ -541,7 +589,7 @@ class Viewer {
         const specPower = [1, 512, 128, 32, 8, 2];
         for (let i = 1; i < sizes.length; ++i) {
             const level = createCubemap(sizes[i]);
-            pc.reprojectTexture(lightingSource, level, {
+            reprojectTexture(lightingSource, level, {
                 numSamples: 1024,
                 specularPower: specPower[i],
                 distribution: 'ggx'
@@ -564,15 +612,15 @@ class Viewer {
 
         if (files.length !== 6) {
             // load equirectangular skybox
-            const textureAsset = new pc.Asset('skybox_equi', 'texture', {
+            const textureAsset = new Asset('skybox_equi', 'texture', {
                 url: files[0].url,
                 filename: files[0].filename
             });
             textureAsset.ready(() => {
                 const texture = textureAsset.resource;
-                if (texture.type === pc.TEXTURETYPE_DEFAULT && texture.format === pc.PIXELFORMAT_R8_G8_B8_A8) {
+                if (texture.type === TEXTURETYPE_DEFAULT && texture.format === PIXELFORMAT_RGBA8) {
                     // assume RGBA data (pngs) are RGBM
-                    texture.type = pc.TEXTURETYPE_RGBM;
+                    texture.type = TEXTURETYPE_RGBM;
                 }
                 this.initSkyboxFromTexture(texture);
             });
@@ -611,14 +659,14 @@ class Viewer {
 
             // construct an asset for each cubemap face
             const faceAssets = files.map((file, index) => {
-                const faceAsset = new pc.Asset('skybox_face' + index, 'texture', file);
+                const faceAsset = new Asset('skybox_face' + index, 'texture', file);
                 app.assets.add(faceAsset);
                 app.assets.load(faceAsset);
                 return faceAsset;
             });
 
             // construct the cubemap asset
-            const cubemapAsset = new pc.Asset('skybox_cubemap', 'cubemap', null, {
+            const cubemapAsset = new Asset('skybox_cubemap', 'cubemap', null, {
                 textures: faceAssets.map(faceAsset => faceAsset.id)
             });
             cubemapAsset.loadFaces = true;
@@ -635,13 +683,13 @@ class Viewer {
     private loadHeliSkybox() {
         const app = this.app;
 
-        const cubemap = new pc.Asset('helipad', 'cubemap', {
+        const cubemap = new Asset('helipad', 'cubemap', {
             url: getAssetPath("cubemaps/Helipad.dds")
         }, {
-            magFilter: pc.FILTER_LINEAR,
-            minFilter: pc.FILTER_LINEAR_MIPMAP_LINEAR,
+            magFilter: FILTER_LINEAR,
+            minFilter: FILTER_LINEAR_MIPMAP_LINEAR,
             anisotropy: 1,
-            type: pc.TEXTURETYPE_RGBM
+            type: TEXTURETYPE_RGBM
         });
         cubemap.on('load', () => {
             app.scene.setSkybox(cubemap.resources);
@@ -662,7 +710,7 @@ class Viewer {
     resizeCanvas() {
         const observer = this.observer;
 
-        const device = this.app.graphicsDevice as pc.WebglGraphicsDevice;
+        const device = this.app.graphicsDevice as WebglGraphicsDevice;
         const canvasSize = this.getCanvasSize();
 
         device.maxPixelRatio = window.devicePixelRatio;
@@ -670,15 +718,15 @@ class Viewer {
         this.renderNextFrame();
 
         const createTexture = (width: number, height: number, format: number) => {
-            return new pc.Texture(device, {
+            return new Texture(device, {
                 width: width,
                 height: height,
                 format: format,
                 mipmaps: false,
-                minFilter: pc.FILTER_NEAREST,
-                magFilter: pc.FILTER_NEAREST,
-                addressU: pc.ADDRESS_CLAMP_TO_EDGE,
-                addressV: pc.ADDRESS_CLAMP_TO_EDGE
+                minFilter: FILTER_NEAREST,
+                magFilter: FILTER_NEAREST,
+                addressU: ADDRESS_CLAMP_TO_EDGE,
+                addressV: ADDRESS_CLAMP_TO_EDGE
             });
         };
 
@@ -694,9 +742,9 @@ class Viewer {
         const pixelScale = observer.get('render.pixelScale');
         const w = Math.floor(canvasSize.width * window.devicePixelRatio / pixelScale);
         const h = Math.floor(canvasSize.height * window.devicePixelRatio / pixelScale);
-        const colorBuffer = createTexture(w, h, pc.PIXELFORMAT_R8_G8_B8_A8);
-        const depthBuffer = createTexture(w, h, pc.PIXELFORMAT_DEPTH);
-        const renderTarget = new pc.RenderTarget({
+        const colorBuffer = createTexture(w, h, PIXELFORMAT_RGBA8);
+        const depthBuffer = createTexture(w, h, PIXELFORMAT_DEPTH);
+        const renderTarget = new RenderTarget({
             colorBuffer: colorBuffer,
             depthBuffer: depthBuffer,
             flipY: false,
@@ -748,8 +796,8 @@ class Viewer {
         // update mesh stats
         this.assets.forEach((asset) => {
             variants = variants.concat(asset.resource.getMaterialVariants());
-            asset.resource.renders.forEach((renderAsset: pc.Asset) => {
-                renderAsset.resource.meshes.forEach((mesh: pc.Mesh) => {
+            asset.resource.renders.forEach((renderAsset: Asset) => {
+                renderAsset.resource.meshes.forEach((mesh: Mesh) => {
                     meshCount++;
                     vertexCount += mesh.vertexBuffer.getNumVertices();
                     primitiveCount += mesh.primitive[0].count;
@@ -757,8 +805,8 @@ class Viewer {
             });
         });
 
-        const mapChildren = function (node: pc.GraphNode): Array<HierarchyNode> {
-            return node.children.map((child: pc.GraphNode) => ({
+        const mapChildren = function (node: GraphNode): Array<HierarchyNode> {
+            return node.children.map((child: GraphNode) => ({
                 name: child.name,
                 path: child.path,
                 children: mapChildren(child)
@@ -787,7 +835,7 @@ class Viewer {
     }
 
     downloadPngScreenshot() {
-        const device = this.app.graphicsDevice as pc.WebglGraphicsDevice;
+        const device = this.app.graphicsDevice as WebglGraphicsDevice;
 
         // save the backbuffer
         const w = device.width;
@@ -799,8 +847,8 @@ class Viewer {
     }
 
     startXr() {
-        if (this.app.xr.isAvailable(pc.XRTYPE_AR)) {
-            this.camera.camera.startXr(pc.XRTYPE_AR, pc.XRSPACE_LOCALFLOOR, {
+        if (this.app.xr.isAvailable(XRTYPE_AR)) {
+            this.camera.camera.startXr(XRTYPE_AR, XRSPACE_LOCALFLOOR, {
                 callback: (err) => {
                     console.log(err);
                 }
@@ -829,7 +877,7 @@ class Viewer {
 
         // calculate scene bounding box
         const radius = bbox.halfExtents.length();
-        const distance = (radius * 1.4) / Math.sin(0.5 * camera.fov * camera.aspectRatio * pc.math.DEG_TO_RAD);
+        const distance = (radius * 1.4) / Math.sin(0.5 * camera.fov * camera.aspectRatio * math.DEG_TO_RAD);
 
         if (this.cameraPosition) {
             const vec = bbox.center.clone().sub(this.cameraPosition);
@@ -852,7 +900,7 @@ class Viewer {
     }
 
     // load gltf model given its url and list of external urls
-    private loadGltf(gltfUrl: File, externalUrls: Array<File>, finishedCallback: (err: string | null, asset: pc.Asset) => void) {
+    private loadGltf(gltfUrl: File, externalUrls: Array<File>, finishedCallback: (err: string | null, asset: Asset) => void) {
 
         // provide buffer view callback so we can handle models compressed with MeshOptimizer
         // https://github.com/zeux/meshoptimizer
@@ -860,9 +908,7 @@ class Viewer {
             if (gltfBuffer.extensions && gltfBuffer.extensions.EXT_meshopt_compression) {
                 const extensionDef = gltfBuffer.extensions.EXT_meshopt_compression;
 
-                const decoder = MeshoptDecoder;
-
-                decoder.ready.then(() => {
+                MeshoptDecoder.ready.then(() => {
                     const byteOffset = extensionDef.byteOffset || 0;
                     const byteLength = extensionDef.byteLength || 0;
 
@@ -874,7 +920,7 @@ class Viewer {
                                                   buffers[extensionDef.buffer].byteOffset + byteOffset,
                                                   byteLength);
 
-                    decoder.decodeGltfBuffer(result, count, stride, source, extensionDef.mode, extensionDef.filter);
+                    MeshoptDecoder.decodeGltfBuffer(result, count, stride, source, extensionDef.mode, extensionDef.filter);
 
                     continuation(null, result);
                 });
@@ -885,10 +931,10 @@ class Viewer {
 
         const processImage = function (gltfImage: any, continuation: (err: string, result: any) => void) {
             const u: File = externalUrls.find((url) => {
-                return url.filename === pc.path.normalize(gltfImage.uri || "");
+                return url.filename === path.normalize(gltfImage.uri || "");
             });
             if (u) {
-                const textureAsset = new pc.Asset(u.filename, 'texture', {
+                const textureAsset = new Asset(u.filename, 'texture', {
                     url: u.url,
                     filename: u.filename
                 });
@@ -902,17 +948,17 @@ class Viewer {
             }
         };
 
-        const postProcessImage = (gltfImage: any, textureAsset: pc.Asset) => {
+        const postProcessImage = (gltfImage: any, textureAsset: Asset) => {
             // max anisotropy on all textures
             textureAsset.resource.anisotropy = this.app.graphicsDevice.maxAnisotropy;
         };
 
         const processBuffer = function (gltfBuffer: any, continuation: (err: string, result: any) => void) {
             const u = externalUrls.find((url) => {
-                return url.filename === pc.path.normalize(gltfBuffer.uri || "");
+                return url.filename === path.normalize(gltfBuffer.uri || "");
             });
             if (u) {
-                const bufferAsset = new pc.Asset(u.filename, 'binary', {
+                const bufferAsset = new Asset(u.filename, 'binary', {
                     url: u.url,
                     filename: u.filename
                 });
@@ -926,7 +972,7 @@ class Viewer {
             }
         };
 
-        const containerAsset = new pc.Asset(gltfUrl.filename, 'container', gltfUrl, null, {
+        const containerAsset = new Asset(gltfUrl.filename, 'container', gltfUrl, null, {
             // @ts-ignore TODO no definition in pc
             bufferView: {
                 processAsync: processBufferView.bind(this)
@@ -956,7 +1002,7 @@ class Viewer {
 
     // returns true if the filename has one of the recognized model extensions
     isModelFilename(filename: string) {
-        const filenameExt = pc.path.getExtension(filename).toLowerCase();
+        const filenameExt = path.getExtension(filename).toLowerCase();
         return modelExtensions.indexOf(filenameExt) !== -1;
     }
 
@@ -981,7 +1027,7 @@ class Viewer {
 
             // kick off simultaneous asset load
             let awaiting = 0;
-            const assets: { err: string, asset: pc.Asset }[] = [];
+            const assets: { err: string, asset: Asset }[] = [];
             files.forEach((file, index) => {
                 if (this.isModelFilename(file.filename)) {
                     awaiting++;
@@ -1171,7 +1217,7 @@ class Viewer {
 
     setLightingRotation(factor: number) {
         // update skybox
-        const rot = new pc.Quat();
+        const rot = new Quat();
         rot.setFromEulerAngles(0, factor, 0);
         this.app.scene.skyboxRotation = rot;
 
@@ -1188,13 +1234,13 @@ class Viewer {
 
     setTonemapping(tonemapping: string) {
         const mapping: Record<string, number> = {
-            Linear: pc.TONEMAP_LINEAR,
-            Filmic: pc.TONEMAP_FILMIC,
-            Hejl: pc.TONEMAP_HEJL,
-            ACES: pc.TONEMAP_ACES
+            Linear: TONEMAP_LINEAR,
+            Filmic: TONEMAP_FILMIC,
+            Hejl: TONEMAP_HEJL,
+            ACES: TONEMAP_ACES
         };
 
-        this.app.scene.toneMapping = mapping.hasOwnProperty(tonemapping) ? mapping[tonemapping] : pc.TONEMAP_ACES;
+        this.app.scene.toneMapping = mapping.hasOwnProperty(tonemapping) ? mapping[tonemapping] : TONEMAP_ACES;
         this.renderNextFrame();
     }
 
@@ -1204,7 +1250,7 @@ class Viewer {
     }
 
     setSkyboxMip(mip: number) {
-        this.app.scene.layers.getLayerById(pc.LAYERID_SKYBOX).enabled = (mip !== 0);
+        this.app.scene.layers.getLayerById(LAYERID_SKYBOX).enabled = (mip !== 0);
         this.app.scene.skyboxMip = mip - 1;
         this.renderNextFrame();
     }
@@ -1213,7 +1259,7 @@ class Viewer {
         // update the orbit camera
         this.orbitCamera.update(deltaTime);
 
-        const maxdiff = (a: pc.Mat4, b: pc.Mat4) => {
+        const maxdiff = (a: Mat4, b: Mat4) => {
             let result = 0;
             for (let i = 0; i < 16; ++i) {
                 result = Math.max(result, Math.abs(a.data[i] - b.data[i]));
@@ -1272,7 +1318,7 @@ class Viewer {
 
     // add a loaded asset to the scene
     // asset is a container asset with renders and/or animations
-    private addToScene(err: string, asset: pc.Asset) {
+    private addToScene(err: string, asset: Asset) {
         this.observer.set('spinner', false);
 
         if (err) {
@@ -1283,9 +1329,9 @@ class Viewer {
         const resource = asset.resource;
         const meshesLoaded = resource.renders && resource.renders.length > 0;
         const animsLoaded = resource.animations && resource.animations.length > 0;
-        const prevEntity : pc.Entity = this.entities.length === 0 ? null : this.entities[this.entities.length - 1];
+        const prevEntity : Entity = this.entities.length === 0 ? null : this.entities[this.entities.length - 1];
 
-        let entity: pc.Entity;
+        let entity: Entity;
 
         // create entity
         if (!meshesLoaded && prevEntity && prevEntity.findComponent("render")) {
@@ -1311,9 +1357,9 @@ class Viewer {
         }
 
         // make a list of all the morph instance target names
-        const morphs: Record<string, { name: string, targets: Record<string, MorphTarget> }> = {};
+        const morphs: Record<string, { name: string, targets: Record<string, MorphTargetData> }> = {};
 
-        const morphInstances: Record<string, pc.MorphInstance> = {};
+        const morphInstances: Record<string, MorphInstance> = {};
         // get all morph targets
         const meshInstances = this.collectMeshInstances(entity);
         meshInstances.forEach((meshInstance, i) => {
@@ -1329,7 +1375,7 @@ class Viewer {
                 };
 
                 // morph targets
-                morphInstance.morph.targets.forEach((target: pc.MorphTarget, targetIndex: number) => {
+                morphInstance.morph.targets.forEach((target: MorphTarget, targetIndex: number) => {
                     morphs[i].targets[targetIndex] = {
                         name: target.name,
                         targetIndex: targetIndex
@@ -1405,7 +1451,7 @@ class Viewer {
 
             this.animTracks.forEach((t: any, i: number) => {
                 // add an event to each track which transitions to the next track when it ends
-                t.events = new pc.AnimEvents([
+                t.events = new AnimEvents([
                     {
                         name: "transition",
                         time: t.duration,
@@ -1450,7 +1496,7 @@ class Viewer {
             if (this.dirtyWireframe) {
                 this.dirtyWireframe = false;
                 for (let i = 0; i < this.meshInstances.length; ++i) {
-                    this.meshInstances[i].renderStyle = this.showWireframe ? pc.RENDERSTYLE_WIREFRAME : pc.RENDERSTYLE_SOLID;
+                    this.meshInstances[i].renderStyle = this.showWireframe ? RENDERSTYLE_WIREFRAME : RENDERSTYLE_SOLID;
                 }
             }
 
@@ -1467,7 +1513,7 @@ class Viewer {
                 }
                 this.debugBounds.update();
 
-                const v = new pc.Vec3(
+                const v = new Vec3(
                     this.sceneBounds.halfExtents.x * 2,
                     this.sceneBounds.halfExtents.y * 2,
                     this.sceneBounds.halfExtents.z * 2
@@ -1533,8 +1579,8 @@ class Viewer {
                     // calculate primary spacing
                     const spacing = Math.pow(10, Math.floor(Math.log10(this.sceneBounds.halfExtents.length())));
 
-                    const v0 = new pc.Vec3(0, 0, 0);
-                    const v1 = new pc.Vec3(0, 0, 0);
+                    const v0 = new Vec3(0, 0, 0);
+                    const v1 = new Vec3(0, 0, 0);
 
                     const numGrids = 10;
                     const a = numGrids * spacing;

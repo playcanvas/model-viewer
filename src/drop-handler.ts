@@ -1,4 +1,4 @@
-import * as pc from 'playcanvas';
+import { path } from 'playcanvas';
 import { File } from './types';
 
 type DropHandlerFunc = (files: Array<File>, resetScene: boolean) => void;
@@ -28,9 +28,9 @@ class DropHandler {
 
         const removeCommonPrefix = (urls: Array<File>) => {
             const split = (pathname: string) => {
-                const parts = pathname.split(pc.path.delimiter);
+                const parts = pathname.split(path.delimiter);
                 const base = parts[0];
-                const rest = parts.slice(1).join(pc.path.delimiter);
+                const rest = parts.slice(1).join(path.delimiter);
                 return [base, rest];
             };
             while (true) {
