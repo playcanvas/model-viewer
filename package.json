@@ -29,8 +29,8 @@
     ],
     "extends": [
       "@playcanvas/eslint-config",
-      "plugin:@typescript-eslint/eslint-recommended",
-      "plugin:@typescript-eslint/recommended"
+      "plugin:@typescript-eslint/recommended",
+      "plugin:import/typescript"
     ],
     "rules": {
       "@typescript-eslint/ban-ts-comment": 0,
@@ -42,7 +42,8 @@
         {
           "exceptAfterSingleLine": true
         }
-      ]
+      ],
+      "import/no-unresolved": "off"
     }
   },
   "devDependencies": {
