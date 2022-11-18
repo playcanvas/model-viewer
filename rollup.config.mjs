@@ -7,9 +7,8 @@ import resolve from "@rollup/plugin-node-resolve";
 import replace from '@rollup/plugin-replace';
 import terser from '@rollup/plugin-terser';
 import sass from 'rollup-plugin-sass';
-import sourcemaps from 'rollup-plugin-sourcemaps';
 import typescript from 'rollup-plugin-typescript2';
-import { visualizer } from 'rollup-plugin-visualizer';
+// import { visualizer } from 'rollup-plugin-visualizer';
 
 const PROD_BUILD = process.env.BUILD_TYPE === 'prod';
 const ENGINE_DIR = process.env.ENGINE_PATH || 'node_modules/playcanvas';
@@ -80,14 +79,13 @@ export default {
         alias({ entries: aliasEntries }),
         commonjs(),
         resolve(),
-        sourcemaps(),
         typescript({
             tsconfig: 'tsconfig.json',
             tsconfigDefaults: { compilerOptions: tsCompilerOptions },
             clean: true
         }),
         (PROD_BUILD && terser()),
-        visualizer()
+        // visualizer()
     ],
     treeshake: 'smallest',
     cache: false

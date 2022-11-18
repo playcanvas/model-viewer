@@ -14,7 +14,7 @@ import {
     Shader,
     Texture,
     Vec3,
-    WebglGraphicsDevice,
+    WebglGraphicsDevice
 } from 'playcanvas';
 
 const gamma = 2.2;
