@@ -50,7 +50,7 @@ export const MorphSlider = (props: { value: number, setProperty: (value: number)
 };
 MorphSlider.defaultProps = { enabled: true };
 
-export const Select = (props: { label: string, value:any, setProperty: (value: any) => void, type: string, options: Array<Option>, enabled?: boolean }) => {
+export const Select = (props: { label: string, value:any, setProperty: (value: any) => void, type: 'string' | 'number' | 'boolean', options: Array<Option>, enabled?: boolean }) => {
     return <Container class='panel-option'>
         <Label class='panel-label' text={props.label} />
         <SelectInput class='panel-value' type={props.type} options={props.options} enabled={props.enabled} value={props.value}
@@ -63,7 +63,7 @@ export const Select = (props: { label: string, value:any, setProperty: (value: a
 Select.defaultProps = { enabled: true };
 
 // naked versions
-export const NakedSelect = (props: { value: any, setProperty: any, width: number, type: string, options: Array<Option>, enabled?: boolean, id?: string, class?: string }) => {
+export const NakedSelect = (props: { value: any, setProperty: any, width: number, type: 'string' | 'number' | 'boolean', options: Array<Option>, enabled?: boolean, id?: string, class?: string }) => {
     return <SelectInput id={props.id} class={props.class} width={props.width} type={props.type} options={props.options} enabled={props.enabled} value={props.value}
         onChange={(value: any) => {
             props.setProperty(value);
