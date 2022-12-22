@@ -14,7 +14,7 @@
         "moduleResolution": "node",
         "baseUrl": ".",
         "paths": {
-            "pcui": ["node_modules/@playcanvas/pcui/react/unstyled"]
+            "pcui": ["node_modules/@playcanvas/pcui/react"]
         }
     },
     "include": ["src"],
