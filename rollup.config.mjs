@@ -17,7 +17,7 @@ const PCUI_DIR = process.env.PCUI_PATH || 'node_modules/@playcanvas/pcui';
 const ENGINE_NAME = PROD_BUILD ? 'playcanvas.min.mjs' : 'playcanvas.dbg.mjs';
 const ENGINE_PATH = path.resolve(ENGINE_DIR, 'build', ENGINE_NAME);
 const EXTRAS_PATH = path.resolve(ENGINE_DIR, 'build', 'playcanvas-extras.js');
-const PCUI_PATH = path.resolve(PCUI_DIR, 'react/unstyled');
+const PCUI_PATH = path.resolve(PCUI_DIR, 'react');
 
 // define supported module overrides
 const aliasEntries = {
