@@ -36,7 +36,7 @@ import {
     AnimClipHandler,
     AnimStateGraphHandler,
     // AudioHandler,
-    // BinaryHandler,
+    BinaryHandler,
     ContainerHandler,
     // CssHandler,
     CubemapHandler,
@@ -159,7 +159,8 @@ class App extends AppBase {
             // HierarchyHandler,
             // FolderHandler,
             // FontHandler,
-            // BinaryHandler,
+            // @ts-ignore
+            BinaryHandler,
             // TextureAtlasHandler,
             // SpriteHandler,
             // TemplateHandler,
