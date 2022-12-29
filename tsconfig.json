@@ -11,11 +11,7 @@
         "allowSyntheticDefaultImports" : true,
         "esModuleInterop" : true,
         "sourceMap": true,
-        "moduleResolution": "node",
-        "baseUrl": ".",
-        "paths": {
-            "pcui": ["node_modules/@playcanvas/pcui/react"]
-        }
+        "moduleResolution": "node"
     },
     "include": ["src"],
     "exclude": ["node_modules"]
