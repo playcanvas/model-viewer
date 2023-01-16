@@ -105,7 +105,7 @@ class DebugLines {
                 transparentSortMode: SORTMODE_NONE,
                 passThrough: true,
                 overrideClear: true,
-                onDrawCall: (drawCall: any, index: number) => {
+                onDrawCall: (/* drawCall: any, index: number */) => {
                     device.setDepthFunc(FUNC_GREATER);
                 }
             });
