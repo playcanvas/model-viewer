@@ -65,7 +65,7 @@ const extract = (obj: any, paths: string[]) => {
                 parent[p] = value;
             }
         }
-    };
+    }
 
     return result;
 };
