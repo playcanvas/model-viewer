@@ -141,6 +141,9 @@ class Viewer {
         });
         this.app = app;
 
+        // clustered not needed and has faster startup on windows
+        this.app.scene.clusteredLightingEnabled = false;
+
         // set xr supported
         observer.set('xrSupported', false);
         observer.set('xrActive', false);
