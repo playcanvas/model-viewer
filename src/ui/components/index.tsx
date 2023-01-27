@@ -5,7 +5,7 @@ import { Option } from '../../types';
 export const Detail = (props: { label: string, value:string|number}) => {
     return <Container class='panel-option'>
         <Label class='panel-label' text={props.label} />
-        <Label class='panel-value' text={props.value}/>
+        <Label class='panel-value' text={String(props.value)}/>
     </Container>;
 };
 
