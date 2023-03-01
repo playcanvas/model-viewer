@@ -33,19 +33,14 @@ const LoadControls = (props: { setProperty: SetProperty }) => {
     const onUrlSelected = () => {
         const viewer = (window as any).viewer;
         // @ts-ignore
-        const url = document.getElementById('glb-url-input').ui.value;
+        const url = new URL(document.getElementById('glb-url-input').ui.value);
         const loadList: Array<File> = [];
-        let filename = url.split('/').pop();
-        const extension = filename.endsWith('.gltf') ? '.gltf' : '.glb';
-        if (filename.indexOf(extension) === -1) {
-            if (filename.indexOf('?') === -1) {
-                filename += extension;
-            } else {
-                filename = filename.split('?')[0] + extension;
-            }
+        let filename = url.pathname.split('/').pop();
+        if (!filename.endsWith('.glb') && !filename.endsWith('.gltf')) {
+            filename += '.glb';
         }
         loadList.push({
-            url,
+            url: url.toString(),
             filename
         });
         viewer.loadFiles(loadList);
