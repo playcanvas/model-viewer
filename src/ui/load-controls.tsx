@@ -36,11 +36,12 @@ const LoadControls = (props: { setProperty: SetProperty }) => {
         const url = document.getElementById('glb-url-input').ui.value;
         const loadList: Array<File> = [];
         let filename = url.split('/').pop();
-        if (filename.indexOf('.glb') === -1) {
+        const extension = filename.endsWith('.gltf') ? '.gltf' : '.glb';
+        if (filename.indexOf(extension) === -1) {
             if (filename.indexOf('?') === -1) {
-                filename += '.glb';
+                filename += extension;
             } else {
-                filename = filename.split('?')[0] + '.glb';
+                filename = filename.split('?')[0] + extension;
             }
         }
         loadList.push({
