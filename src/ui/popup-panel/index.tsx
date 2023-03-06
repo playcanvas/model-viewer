@@ -74,7 +74,7 @@ class PopupPanel extends React.Component <{ observerData: ObserverData, setPrope
     constructor(props: any) {
         super(props);
         this.link = (document.getElementById('ar-link') as HTMLAnchorElement);
-        if (this.link.relList.supports("ar")) {
+        if (this.link.relList.supports("ar") || (Boolean(window.webkit?.messageHandlers) && Boolean(/CriOS\/|EdgiOS\/|FxiOS\/|GSA\/|DuckDuckGo\//.test(navigator.userAgent)))) {
             // @ts-ignore
             this.usdzExporter = new UsdzExporter();
         }
@@ -87,7 +87,7 @@ class PopupPanel extends React.Component <{ observerData: ObserverData, setPrope
             <div id='floating-buttons-parent'>
                 <Button class='popup-button' icon='E189' hidden={!this.hasArSupport || this.props.observerData.scene.nodes === '[]'} width={40} height={40} onClick={() => {
                     if (this.usdzExporter) {
-                        const sceneRoot = (window as any).pc.app.root.findByName('sceneRoot');
+                        const sceneRoot = (window as any).viewer.app.root.findByName('sceneRoot');
                         // convert the loaded entity into asdz file
                         this.usdzExporter.build(sceneRoot).then((arrayBuffer: any) => {
                             const blob = new Blob([arrayBuffer], { type: 'application/octet-stream' });

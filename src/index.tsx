@@ -17,6 +17,7 @@ declare global {
     interface Window {
         pc: any;
         viewer: Viewer;
+        webkit?: any;
     }
 }
 
