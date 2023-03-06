@@ -4,6 +4,15 @@ import { getAssetPath } from '../helpers';
 
 import { File, SetProperty } from '../types';
 
+const validUrl = (url: string) => {
+    try {
+        new URL(url);
+        return true;
+    } catch {
+        return false;
+    }
+};
+
 const LoadControls = (props: { setProperty: SetProperty }) => {
     const [urlInputValid, setUrlInputValid] = useState(false);
     const inputFile = useRef(null);
@@ -33,17 +42,14 @@ const LoadControls = (props: { setProperty: SetProperty }) => {
     const onUrlSelected = () => {
         const viewer = (window as any).viewer;
         // @ts-ignore
-        const url = new URL(document.getElementById('glb-url-input').ui.value);
-        const loadList: Array<File> = [];
-        let filename = url.pathname.split('/').pop();
-        if (!filename.endsWith('.glb') && !filename.endsWith('.gltf')) {
-            filename += '.glb';
-        }
-        loadList.push({
-            url: url.toString(),
-            filename
-        });
-        viewer.loadFiles(loadList);
+        const value = document.getElementById('glb-url-input').ui.value;
+        const url = new URL(value);
+        const filename = url.pathname.split('/').pop();
+        const hasExtension = !!filename.split('.').splice(1).pop();
+        viewer.loadFiles([{
+            url: value,
+            filename: filename + (hasExtension ? '' : '.glb')
+        }]);
         props.setProperty('glbUrl', url);
 
     };
@@ -68,13 +74,7 @@ const LoadControls = (props: { setProperty: SetProperty }) => {
                 </div>
                 <Label id='or-text' text="OR" class="centered-label" />
                 <TextInput class='secondary' id='glb-url-input' placeholder='enter url' keyChange onValidate={(value: string) => {
-                    const urlPattern = new RegExp('^(https?:\\/\\/)?' + // validate protocol
-                    '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|' + // validate domain name
-                    '((\\d{1,3}\\.){3}\\d{1,3}))' + // validate OR ip (v4) address
-                    '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*' + // validate port and path
-                    '(\\?[;&a-z\\d%_.~+=-]*)?' + // validate query string
-                    '(\\#[-a-z\\d_]*)?$', 'i'); // validate fragment locator
-                    const isValid = !!urlPattern.test(value);
+                    const isValid = validUrl(value);
                     setUrlInputValid(isValid);
                     return isValid;
                 }}/>
