@@ -1,6 +1,7 @@
 import React from 'react';
 import { Container, Button, Label, TextInput } from 'pcui';
 import { SetProperty, ObserverData } from '../../types';
+import { extract } from '../../helpers';
 // @ts-ignore no type defs included
 import QRious from 'qrious';
 
@@ -8,7 +9,10 @@ import { Slider, Toggle, Select } from '../components';
 
 class CameraPanel extends React.Component <{ observerData: ObserverData, setProperty: SetProperty }> {
     shouldComponentUpdate(nextProps: Readonly<{ observerData: ObserverData; setProperty: SetProperty; }>): boolean {
-        return JSON.stringify(nextProps.observerData) !== JSON.stringify(this.props.observerData);
+        const keys = [ 'ui', 'show', 'render', 'lighting', 'animation.playing' ];
+        const a = extract(nextProps.observerData, keys);
+        const b = extract(this.props.observerData, keys);
+        return JSON.stringify(a) !== JSON.stringify(b);
     }
 
     render() {

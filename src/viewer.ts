@@ -7,7 +7,7 @@ import {
     LAYERID_DEPTH,
     LAYERID_SKYBOX,
     PIXELFORMAT_DEPTH,
-    PIXELFORMAT_R8_G8_B8_A8 as PIXELFORMAT_RGBA8,
+    PIXELFORMAT_RGBA8,
     RENDERSTYLE_SOLID,
     RENDERSTYLE_WIREFRAME,
     RESOLUTION_AUTO,
@@ -140,6 +140,9 @@ class Viewer {
             }
         });
         this.app = app;
+
+        // clustered not needed and has faster startup on windows
+        this.app.scene.clusteredLightingEnabled = false;
 
         // set xr supported
         observer.set('xrSupported', false);

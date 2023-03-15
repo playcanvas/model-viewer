@@ -1,6 +1,6 @@
 import {
     FILTER_NEAREST,
-    PIXELFORMAT_R8_G8_B8_A8 as PIXELFORMAT_RGBA8,
+    PIXELFORMAT_RGBA8,
     SEMANTIC_POSITION,
     drawQuadWithShader,
     shaderChunks,
