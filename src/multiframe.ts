@@ -1,6 +1,7 @@
 import {
-    BLENDMODE_CONSTANT_ALPHA,
-    BLENDMODE_ONE_MINUS_CONSTANT_ALPHA,
+    BLENDEQUATION_ADD,
+    BLENDMODE_CONSTANT,
+    BLENDMODE_ONE_MINUS_CONSTANT,
     FILTER_NEAREST,
     PIXELFORMAT_RGBA8,
     PIXELFORMAT_RGBA16F,
@@ -8,6 +9,7 @@ import {
     SEMANTIC_POSITION,
     drawQuadWithShader,
     shaderChunks,
+    BlendState,
     CameraComponent,
     RenderTarget,
     ScopeId,
@@ -68,6 +70,10 @@ const choosePixelFormat = (device: WebglGraphicsDevice): number => {
 const gauss = (x: number, sigma: number): number => {
     return (1.0 / (Math.sqrt(2.0 * Math.PI) * sigma)) * Math.exp(-(x * x) / (2.0 * sigma * sigma));
 };
+
+const tempBlend = new BlendState();
+const accumBlend = new BlendState(true, BLENDEQUATION_ADD, BLENDMODE_CONSTANT, BLENDMODE_ONE_MINUS_CONSTANT);
+const noBlend = new BlendState(false);
 
 // generate multiframe, supersampled AA
 class Multiframe {
@@ -231,6 +237,10 @@ class Multiframe {
         const sampleCnt = this.samples.length;
         const sourceTex = this.camera.renderTarget.colorBuffer;
 
+        // store device blend state
+        tempBlend.copy(device.blendState);
+        device.setBlendState(noBlend);
+
         // in disabled state we resolve directly from source to backbuffer
         if (!this.enabled) {
             this.multiframeTexUniform.setValue(sourceTex);
@@ -250,25 +260,18 @@ class Multiframe {
         }
 
         if (this.sampleId < sampleCnt) {
-            // blend grabpass with accumulation buffer
-            const blendSrc = device.blendSrc;
-            const blendDst = device.blendDst;
-            const blendSrcAlpha = device.blendSrcAlpha;
-            const blendDstAlpha = device.blendDstAlpha;
             const sampleWeight = this.samples[this.sampleId].z;
-
-            device.setBlending(true);
-            device.setBlendFunction(BLENDMODE_CONSTANT_ALPHA, BLENDMODE_ONE_MINUS_CONSTANT_ALPHA);
-            device.setBlendColor(0, 0, 0, sampleWeight / (this.totalWeight + sampleWeight));
-
+            const blend = sampleWeight / (this.totalWeight + sampleWeight);
+            device.setBlendState(accumBlend);
+            device.setBlendColor(blend, blend, blend, blend);
+            
             this.multiframeTexUniform.setValue(sourceTex);
             this.powerUniform.setValue(gamma);
-            drawQuadWithShader(device, this.accumRenderTarget, this.shader, null, null, true);
-
-            // restore states
-            device.setBlendFunctionSeparate(blendSrc, blendDst, blendSrcAlpha, blendDstAlpha);
+            drawQuadWithShader(device, this.accumRenderTarget, this.shader, null, null);
 
             this.totalWeight += sampleWeight;
+
+            device.setBlendState(noBlend);
         }
 
         if (this.sampleId === 0) {
@@ -281,6 +284,9 @@ class Multiframe {
         }
 
         drawQuadWithShader(device, null, this.shader);
+
+        // restore blend state
+        device.setBlendState(tempBlend);
 
         if (this.sampleId < sampleCnt) {
             this.sampleId++;

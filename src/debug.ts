@@ -11,6 +11,7 @@ import {
     SORTMODE_NONE,
     TYPE_FLOAT32,
     TYPE_UINT8,
+    DepthState,
     Entity,
     GraphNode,
     Layer,
@@ -92,6 +93,7 @@ class DebugLines {
     vertexCursor: number;
     vertexData: Float32Array;
     colorData: Uint32Array;
+    depthState = new DepthState();
 
     constructor(app: App, camera: Entity, backLayer = true) {
         const device = app.graphicsDevice as WebglGraphicsDevice;
@@ -106,7 +108,10 @@ class DebugLines {
                 passThrough: true,
                 overrideClear: true,
                 onDrawCall: (/* drawCall: any, index: number */) => {
-                    device.setDepthFunc(FUNC_GREATER);
+                    // device.setDepthFunc(FUNC_GREATER);
+                    this.depthState.copy(device.depthState);
+                    this.depthState.func = FUNC_GREATER;
+                    device.setDepthState(this.depthState);
                 }
             });
 

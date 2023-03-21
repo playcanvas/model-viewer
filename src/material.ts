@@ -1,5 +1,6 @@
 import {
     BLEND_NONE,
+    BLENDEQUATION_ADD,
     BLENDMODE_ONE,
     BLENDMODE_ONE_MINUS_SRC_ALPHA,
     Material
@@ -16,9 +17,7 @@ function setBlendType(type: number) {
         case BLEND_NONE:
             break;
         default:
-            this.separateAlphaBlend = true;
-            this.blendSrcAlpha = BLENDMODE_ONE;
-            this.blendDstAlpha = BLENDMODE_ONE_MINUS_SRC_ALPHA;
+            this._blendState.setAlphaBlend(BLENDEQUATION_ADD, BLENDMODE_ONE, BLENDMODE_ONE_MINUS_SRC_ALPHA);
             break;
     }
 }
