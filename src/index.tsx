@@ -162,7 +162,8 @@ basisInitialize({
 WasmModule.setConfig('DracoDecoderModule', {
     glueUrl: getAssetPath('lib/draco/draco.wasm.js'),
     wasmUrl: getAssetPath('lib/draco/draco.wasm.wasm'),
-    fallbackUrl: getAssetPath('lib/draco/draco.js')
+    fallbackUrl: getAssetPath('lib/draco/draco.js'),
+    numWorkers: 4
 });
 
 // hide / show spinner when loading files
