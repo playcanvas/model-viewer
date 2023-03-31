@@ -17,6 +17,7 @@ import {
     TONEMAP_FILMIC,
     TONEMAP_HEJL,
     TONEMAP_ACES,
+    TONEMAP_ACES2,
     XRSPACE_LOCALFLOOR,
     XRTYPE_AR,
     math,
@@ -99,7 +100,6 @@ class Viewer {
     showAxes: boolean;
     showGrid: boolean;
     normalLength: number;
-    skyboxMip: number;
     dirtyWireframe: boolean;
     dirtyBounds: boolean;
     dirtySkeleton: boolean;
@@ -294,6 +294,7 @@ class Viewer {
         this.normalLength = observer.get('show.normals');
         this.setTonemapping(observer.get('lighting.tonemapping'));
         this.setBackgroundColor(observer.get('lighting.env.backgroundColor'));
+        this.setDirectColor(observer.get('lighting.directColor'));
 
         this.dirtyWireframe = false;
         this.dirtyBounds = false;
@@ -486,8 +487,10 @@ class Viewer {
             'show.normals': this.setNormalLength.bind(this),
             'show.fov': this.setFov.bind(this),
 
-            'lighting.shadow': this.setDirectShadow.bind(this),
             'lighting.direct': this.setDirectLighting.bind(this),
+            'lighting.directColor': this.setDirectColor.bind(this),
+            'lighting.follow': this.setDirectFollow.bind(this),
+            'lighting.shadow': this.setDirectShadow.bind(this),
             'lighting.env.value': (value: string) => {
                 if (value && value !== 'None') {
                     this.loadFiles([{ url: value, filename: value }]);
@@ -1213,6 +1216,21 @@ class Viewer {
         this.renderNextFrame();
     }
 
+    setDirectColor(color: { r: number, g: number, b: number }) {
+        this.light.light.color = new Color(color.r, color.g, color.b);
+        this.renderNextFrame();
+    }
+
+    setDirectFollow(enable: boolean) {
+        this.light.reparent(enable ? this.camera : this.app.root);
+        if (enable) {
+            this.light.setLocalEulerAngles(90, 0, 0);
+        } else {
+            this.light.setLocalEulerAngles(45, 30, 0);
+        }
+        this.renderNextFrame();
+    }
+
     setDirectShadow(enable: boolean) {
         this.light.light.castShadows = enable;
         this.renderNextFrame();
@@ -1223,9 +1241,6 @@ class Viewer {
         const rot = new Quat();
         rot.setFromEulerAngles(0, factor, 0);
         this.app.scene.skyboxRotation = rot;
-
-        // update directional light
-        this.light.setLocalEulerAngles(45, 30 + factor, 0);
 
         this.renderNextFrame();
     }
@@ -1240,7 +1255,8 @@ class Viewer {
             Linear: TONEMAP_LINEAR,
             Filmic: TONEMAP_FILMIC,
             Hejl: TONEMAP_HEJL,
-            ACES: TONEMAP_ACES
+            ACES: TONEMAP_ACES,
+            ACES2: TONEMAP_ACES2
         };
 
         this.app.scene.toneMapping = mapping.hasOwnProperty(tonemapping) ? mapping[tonemapping] : TONEMAP_ACES;
@@ -1252,9 +1268,10 @@ class Viewer {
         document.getElementById('canvas-wrapper').style.backgroundColor = `rgb(${cnv(color.r)}, ${cnv(color.g)}, ${cnv(color.b)})`;
     }
 
-    setSkyboxMip(mip: number) {
-        this.app.scene.layers.getLayerById(LAYERID_SKYBOX).enabled = (mip !== 0);
-        this.app.scene.skyboxMip = mip - 1;
+    setSkyboxMip(mip: string) {
+        const imip = parseInt(mip, 10);
+        this.app.scene.layers.getLayerById(LAYERID_SKYBOX).enabled = (imip !== 0);
+        this.app.scene.skyboxMip = imip - 1;
         this.renderNextFrame();
     }
 

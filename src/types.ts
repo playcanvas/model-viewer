@@ -41,6 +41,12 @@ export interface ObserverData {
     },
     lighting: {
         direct: number,
+        directColor: {
+            r: number,
+            g: number,
+            b: number
+        },
+        follow: boolean,
         shadow: boolean,
         env: {
             value: string,

@@ -1,5 +1,13 @@
 import React from 'react';
-import { Container, BooleanInput, Label, SliderInput, VectorInput, SelectInput } from 'pcui';
+import {
+    BooleanInput,
+    ColorPicker,
+    Container,
+    Label,
+    SelectInput,
+    SliderInput,
+    VectorInput
+} from 'pcui';
 import { Option } from '../../types';
 
 export const Detail = (props: { label: string, value:string|number}) => {
@@ -37,10 +45,18 @@ export const Slider = (props: { label: string, value: number, setProperty: (valu
 };
 Slider.defaultProps = { enabled: true };
 
+export const ColorPickerControl = (props: { label: string, value: any, setProperty: (value: any) => void, enabled?: boolean, hidden?: boolean }) => {
+    return <Container class='panel-option' hidden={props.hidden} >
+        <Label class='panel-label' text={props.label} />
+        <ColorPicker class='panel-value' enabled={props.enabled} value={props.value} onChange={(value: any) => props.setProperty(value)} />
+    </Container>;
+};
+ColorPickerControl.defaultProps = { enabled: true };
+
 export const MorphSlider = (props: { value: number, setProperty: (value: number) => void, name: string, precision: number, min: number, max: number, label?: string, enabled?: boolean }) => {
     return <Container class='panel-option'>
-        <Label class='morph-label' flexGrow={1} flexShrink={1} text={props.label ? props.label : props.name.substring(0, 1).toUpperCase() + props.name.substring(1, props.name.length)} flex />
-        <SliderInput class='morph-value' flexGrow={0} flexShrink={0} min={props.min} max={props.max} sliderMin={props.min} sliderMax={props.max} precision={props.precision} step={0.01} enabled={props.enabled}
+        <Label class='morph-label' flexGrow={'1'} flexShrink={'1'} text={props.label ? props.label : props.name.substring(0, 1).toUpperCase() + props.name.substring(1, props.name.length)} flex />
+        <SliderInput class='morph-value' flexGrow={'0'} flexShrink={'0'} min={props.min} max={props.max} sliderMin={props.min} sliderMax={props.max} precision={props.precision} step={0.01} enabled={props.enabled}
             onChange={(value: any) => {
                 props.setProperty(value);
             }}
@@ -63,6 +79,7 @@ export const Select = (props: { label: string, value:any, setProperty: (value: a
 Select.defaultProps = { enabled: true };
 
 // naked versions
+
 export const NakedSelect = (props: { value: any, setProperty: any, width: number, type: 'string' | 'number' | 'boolean', options: Array<Option>, enabled?: boolean, id?: string, class?: string }) => {
     return <SelectInput id={props.id} class={props.class} width={props.width} type={props.type} options={props.options} enabled={props.enabled} value={props.value}
         onChange={(value: any) => {

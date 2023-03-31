@@ -42,7 +42,7 @@ class PopupButtonControls extends React.Component <{ observerData: ObserverData,
         };
 
         const buildClass = (value: string) => {
-            return (this.props.observerData.ui.active === value) ? ['popup-button', 'selected'] : 'popup-button';
+            return (this.props.observerData.ui.active === value) ? ['popup-button', 'selected'] : ['popup-button'];
         };
 
         return (
