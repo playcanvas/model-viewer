@@ -135,7 +135,7 @@ class DebugLines {
         ]);
 
         // construct the mesh
-        const mesh = new Mesh();
+        const mesh = new Mesh(device);
         mesh.vertexBuffer = new VertexBuffer(device, vertexFormat, 8192, BUFFER_DYNAMIC);
         mesh.primitive[0].type = PRIMITIVE_LINES;
         mesh.primitive[0].base = 0;
