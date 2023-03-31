@@ -71,7 +71,6 @@ const gauss = (x: number, sigma: number): number => {
     return (1.0 / (Math.sqrt(2.0 * Math.PI) * sigma)) * Math.exp(-(x * x) / (2.0 * sigma * sigma));
 };
 
-const tempBlend = new BlendState();
 const accumBlend = new BlendState(true, BLENDEQUATION_ADD, BLENDMODE_CONSTANT, BLENDMODE_ONE_MINUS_CONSTANT);
 const noBlend = new BlendState(false);
 
@@ -238,7 +237,6 @@ class Multiframe {
         const sourceTex = this.camera.renderTarget.colorBuffer;
 
         // store device blend state
-        tempBlend.copy(device.blendState);
         device.setBlendState(noBlend);
 
         // in disabled state we resolve directly from source to backbuffer
@@ -284,9 +282,6 @@ class Multiframe {
         }
 
         drawQuadWithShader(device, null, this.shader);
-
-        // restore blend state
-        device.setBlendState(tempBlend);
 
         if (this.sampleId < sampleCnt) {
             this.sampleId++;
