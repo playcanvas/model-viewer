@@ -1,7 +1,7 @@
 import React from 'react';
 import {
     BooleanInput,
-    ColorPicker as PCUIColorPicker,
+    ColorPicker,
     Container,
     Label,
     SelectInput,
@@ -45,13 +45,13 @@ export const Slider = (props: { label: string, value: number, setProperty: (valu
 };
 Slider.defaultProps = { enabled: true };
 
-export const ColorPicker = (props: { label: string, value: any, setProperty: (value: any) => void, enabled?: boolean, hidden?: boolean }) => {
+export const ColorPickerControl = (props: { label: string, value: any, setProperty: (value: any) => void, enabled?: boolean, hidden?: boolean }) => {
     return <Container class='panel-option' hidden={props.hidden} >
         <Label class='panel-label' text={props.label} />
-        <PCUIColorPicker class='panel-value' enabled={props.enabled} value={props.value} onChange={(value: any) => props.setProperty(value)} />
+        <ColorPicker class='panel-value' enabled={props.enabled} value={props.value} onChange={(value: any) => props.setProperty(value)} />
     </Container>;
 };
-ColorPicker.defaultProps = { enabled: true };
+ColorPickerControl.defaultProps = { enabled: true };
 
 export const MorphSlider = (props: { value: number, setProperty: (value: number) => void, name: string, precision: number, min: number, max: number, label?: string, enabled?: boolean }) => {
     return <Container class='panel-option'>

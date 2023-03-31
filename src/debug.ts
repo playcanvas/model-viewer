@@ -108,7 +108,6 @@ class DebugLines {
                 passThrough: true,
                 overrideClear: true,
                 onDrawCall: (/* drawCall: any, index: number */) => {
-                    // device.setDepthFunc(FUNC_GREATER);
                     this.depthState.copy(device.depthState);
                     this.depthState.func = FUNC_GREATER;
                     device.setDepthState(this.depthState);

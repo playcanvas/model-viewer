@@ -5,7 +5,7 @@ import { extract } from '../../helpers';
 // @ts-ignore no type defs included
 import QRious from 'qrious';
 
-import { Slider, Toggle, Select, ColorPicker } from '../components';
+import { Slider, Toggle, Select, ColorPickerControl } from '../components';
 
 const rgbToArr = (rgb: { r: number, g: number, b: number }) => [rgb.r, rgb.g, rgb.b, 1];
 const arrToRgb = (arr: number[]) => { return { r: arr[0], g: arr[1], b: arr[2] } };
@@ -37,7 +37,7 @@ class CameraPanel extends React.Component <{ observerData: ObserverData, setProp
                         options={[0, 1, 2, 3, 4, 5, 6].map(v => ({ v: v, t: v === 0 ? 'Bk Color' : `Env ${v - 1}` }))}
                         value={parseInt(props.observerData.lighting.env.skyboxMip, 10)}
                         setProperty={(value: number) => props.setProperty('lighting.env.skyboxMip', `${value}`)} />
-                    <ColorPicker
+                    <ColorPickerControl
                         label='Bk Color'
                         value={rgbToArr(props.observerData.lighting.env.backgroundColor)}
                         setProperty={(value: number[]) => props.setProperty('lighting.env.backgroundColor', arrToRgb(value))} />
@@ -100,7 +100,7 @@ class LightingPanel extends React.Component <{ lightingData: ObserverData['light
                         setProperty={(value: string) => props.setProperty('lighting.env.value', value)} />
                     <Slider label='Exposure' precision={2} min={-6} max={6} value={props.lightingData.env.exposure} setProperty={(value: number) => props.setProperty('lighting.env.exposure', value)} />
                     <Slider label='Rotation' precision={0} min={-180} max={180} value={props.lightingData.rotation} setProperty={(value: number) => props.setProperty('lighting.rotation', value)} />
-                    <ColorPicker
+                    <ColorPickerControl
                         label='Direct Light'
                         value={rgbToArr(props.lightingData.directColor)}
                         setProperty={(value: number[]) => props.setProperty('lighting.directColor', arrToRgb(value))} />

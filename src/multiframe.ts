@@ -264,7 +264,7 @@ class Multiframe {
             const blend = sampleWeight / (this.totalWeight + sampleWeight);
             device.setBlendState(accumBlend);
             device.setBlendColor(blend, blend, blend, blend);
-            
+
             this.multiframeTexUniform.setValue(sourceTex);
             this.powerUniform.setValue(gamma);
             drawQuadWithShader(device, this.accumRenderTarget, this.shader, null, null);
