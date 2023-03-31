@@ -1,6 +1,5 @@
 import {
     basisInitialize,
-    dracoInitialize,
     Http,
     WasmModule
 } from 'playcanvas';
@@ -49,6 +48,8 @@ const observerData: ObserverData = {
     },
     lighting: {
         direct: 0,
+        directColor: { r: 1, g: 1, b: 1 },
+        follow: false,
         shadow: false,
         env: {
             value: getAssetPath('./skybox/adams_place_bridge_2k.hdr'),
@@ -160,10 +161,10 @@ basisInitialize({
 });
 
 // @ts-ignore
-dracoInitialize({
-    jsUrl: getAssetPath('lib/draco/draco.wasm.js'),
+WasmModule.setConfig('DracoDecoderModule', {
+    glueUrl: getAssetPath('lib/draco/draco.wasm.js'),
     wasmUrl: getAssetPath('lib/draco/draco.wasm.wasm'),
-    numWorkers: 1
+    fallbackUrl: getAssetPath('lib/draco/draco.js')
 });
 
 // hide / show spinner when loading files

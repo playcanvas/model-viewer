@@ -40,7 +40,7 @@ class ScenePanel extends React.Component <{ sceneData: ObserverData['scene'], se
         const scene = this.props.sceneData;
         const variantListOptions: Array<{ v:string, t:string }> = JSON.parse(scene.variants.list).map((variant: string) => ({ v: variant, t: variant }));
         return (
-            <Panel headerText='SCENE' id='scene-panel' flexShrink={0} flexGrow={0} collapsible={false} >
+            <Panel headerText='SCENE' id='scene-panel' flexShrink={'0'} flexGrow={'0'} collapsible={false} >
                 <Detail label='Load time' value={scene.loadTime} />
                 <Detail label='Meshes' value={scene.meshCount} />
                 <Detail label='Verts' value={scene.vertexCount} />
