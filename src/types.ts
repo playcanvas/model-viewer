@@ -19,6 +19,7 @@ export interface HierarchyNode {
     path: string,
     children: Array<HierarchyNode>
 }
+
 export interface ObserverData {
     ui: {
         active?: string
