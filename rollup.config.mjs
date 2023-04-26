@@ -14,7 +14,7 @@ const PROD_BUILD = process.env.BUILD_TYPE === 'prod';
 const ENGINE_DIR = process.env.ENGINE_PATH || 'node_modules/playcanvas';
 const PCUI_DIR = process.env.PCUI_PATH || 'node_modules/@playcanvas/pcui';
 
-const ENGINE_NAME = PROD_BUILD ? 'playcanvas.min.mjs' : 'playcanvas.dbg.mjs';
+const ENGINE_NAME = PROD_BUILD ? 'playcanvas.mjs' : 'playcanvas.dbg.mjs';
 const ENGINE_PATH = path.resolve(ENGINE_DIR, 'build', ENGINE_NAME);
 const EXTRAS_PATH = path.resolve(ENGINE_DIR, 'build', 'playcanvas-extras.js');
 const PCUI_PATH = path.resolve(PCUI_DIR, 'react');
