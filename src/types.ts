@@ -20,20 +20,6 @@ export interface HierarchyNode {
     children: Array<HierarchyNode>
 }
 
-export enum RenderMode {
-    Normal,
-    Albedo,
-    Opacity,
-    WorldNormal,
-    Specularity,
-    Gloss,
-    Metalness,
-    Ao,
-    Emission,
-    Lighting,
-    Uv0
-}
-
 export interface ObserverData {
     ui: {
         active?: string
