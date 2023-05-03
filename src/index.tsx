@@ -52,7 +52,8 @@ const observerData: ObserverData = {
         axes: false,
         grid: true,
         normals: 0,
-        fov: 50
+        fov: 50,
+        renderMode: 'default'
     },
     lighting: {
         direct: 0,
@@ -144,7 +145,8 @@ const loadOptions = (name: string) => {
                 loadRec(path ? `${path}.${k}` : k, value[k]);
             });
         } else {
-            if (observer.has(path)) {
+            const notSticky = ['show.renderMode'];
+            if (observer.has(path) && notSticky.indexOf(path) === -1) {
                 observer.set(path, value);
             }
         }

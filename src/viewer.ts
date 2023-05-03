@@ -507,6 +507,7 @@ class Viewer {
             'show.grid': this.setShowGrid.bind(this),
             'show.normals': this.setNormalLength.bind(this),
             'show.fov': this.setFov.bind(this),
+            'show.renderMode': this.setRenderMode.bind(this),
 
             'lighting.direct': this.setDirectLighting.bind(this),
             'lighting.directColor': this.setDirectColor.bind(this),
@@ -1239,6 +1240,11 @@ class Viewer {
         this.renderNextFrame();
     }
 
+    setRenderMode(renderMode: string) {
+        this.camera.camera.setShaderPass(renderMode !== 'default' ? `debug_${renderMode}` : 'forward');
+        this.renderNextFrame();
+    }
+
     setDirectLighting(factor: number) {
         this.light.light.intensity = factor;
         this.renderNextFrame();
@@ -1544,10 +1550,6 @@ class Viewer {
 
     private buildWireframeMeshes() {
         this.wireframeMeshInstances = this.meshInstances.map((mi) => {
-            mi.material.depthBias = -1.0;
-            mi.material.slopeDepthBias = 1.0;
-            mi.material.update();
-
             const meshInstance = new MeshInstance(mi.mesh, this.wireframeMaterial, mi.node);
             meshInstance.renderStyle = PRIMITIVE_LINES;
             meshInstance.skinInstance = mi.skinInstance;
@@ -1572,6 +1574,11 @@ class Viewer {
                 if (this.showWireframe) {
                     this.buildWireframeMeshes();
                 }
+
+                this.meshInstances.forEach((mi) => {
+                    mi.material.depthBias = this.showWireframe ? -1.0 : 0.0;
+                    mi.material.slopeDepthBias = this.showWireframe ? 1.0 : 0.0;
+                });
             }
 
             // debug bounds

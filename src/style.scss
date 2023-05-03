@@ -233,7 +233,7 @@ input {
 
 .popup-panel {
     position: absolute;
-    width: 400px;
+    width: 360px;
     left: 50%;
     bottom: 120px;
     transform: translateX(-50%);
@@ -486,6 +486,23 @@ input {
     flex-grow: 1;
     font-size: 14px;
     margin: 2px !important;
+    display: flex;
+    width: 100%;
+}
+
+.panel-value-select {
+    margin-left: 0px;
+    flex-grow: 1;
+}
+
+.panel-value-color {
+    margin-right: 0px;
+    flex-grow: 0;
+}
+
+.panel-value-toggle-color {
+    margin: 3px;
+    flex-grow: 1;
 }
 
 .panel-value-boolean {

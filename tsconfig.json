@@ -12,8 +12,9 @@
         "esModuleInterop" : true,
         "sourceMap": true,
         "moduleResolution": "node",
-        "resolveJsonModule": true
+        "resolveJsonModule": true,
+        "inlineSources": true
     },
-    "include": ["src"],
-    "exclude": ["node_modules"]
+    "include": ["**/*.ts", "**/*.tsx"],
+    "exclude": ["node_modules", "**/*.js"]
 }
