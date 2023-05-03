@@ -32,7 +32,7 @@ export enum RenderMode {
     Emission,
     Lighting,
     Uv0
-};
+}
 
 export interface ObserverData {
     ui: {
