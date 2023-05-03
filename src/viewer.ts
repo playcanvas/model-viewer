@@ -1,5 +1,8 @@
 import {
     ADDRESS_CLAMP_TO_EDGE,
+    BLENDMODE_ONE,
+    BLENDMODE_ZERO,
+    BLENDEQUATION_ADD,
     FILLMODE_NONE,
     FILTER_LINEAR,
     FILTER_LINEAR_MIPMAP_LINEAR,
@@ -8,8 +11,7 @@ import {
     LAYERID_SKYBOX,
     PIXELFORMAT_DEPTH,
     PIXELFORMAT_RGBA8,
-    RENDERSTYLE_SOLID,
-    RENDERSTYLE_WIREFRAME,
+    PRIMITIVE_LINES,
     RESOLUTION_AUTO,
     TEXTURETYPE_DEFAULT,
     TEXTURETYPE_RGBM,
@@ -26,6 +28,7 @@ import {
     AnimEvents,
     AnimTrack,
     Asset,
+    BlendState,
     BoundingBox,
     Color,
     Entity,
@@ -40,6 +43,7 @@ import {
     Quat,
     RenderComponent,
     RenderTarget,
+    StandardMaterial,
     Texture,
     TouchDevice,
     Vec3,
@@ -87,6 +91,8 @@ class Viewer {
     entityAssets: Array<{entity: Entity, asset: Asset }>;
     assets: Array<Asset>;
     meshInstances: Array<MeshInstance>;
+    wireframeMeshInstances: Array<MeshInstance>;
+    wireframeMaterial: StandardMaterial;
     animTracks: Array<AnimTrack>;
     animationMap: Record<string, string>;
     firstFrame: boolean;
@@ -279,6 +285,19 @@ class Viewer {
         this.entityAssets = [];
         this.assets = [];
         this.meshInstances = [];
+        this.wireframeMeshInstances = [];
+
+        const material = new StandardMaterial();
+        material.blendState = new BlendState(true, BLENDEQUATION_ADD, BLENDMODE_ONE, BLENDMODE_ZERO, BLENDEQUATION_ADD, BLENDMODE_ZERO, BLENDMODE_ONE);
+        material.useLighting = false;
+        material.useSkybox = false;
+        material.ambient = new Color(0, 0, 0);
+        material.diffuse = new Color(0, 0, 0);
+        material.specular = new Color(0, 0, 0);
+        material.emissive = new Color(1, 1, 1);
+        material.update();
+        this.wireframeMaterial = material;
+
         this.animTracks = [];
         this.animationMap = { };
         this.firstFrame = false;
@@ -295,6 +314,7 @@ class Viewer {
         this.setTonemapping(observer.get('lighting.tonemapping'));
         this.setBackgroundColor(observer.get('lighting.env.backgroundColor'));
         this.setDirectColor(observer.get('lighting.directColor'));
+        this.setWireframeColor(observer.get('show.wireframeColor'));
 
         this.dirtyWireframe = false;
         this.dirtyBounds = false;
@@ -480,6 +500,7 @@ class Viewer {
             'render.pixelScale': this.resizeCanvas.bind(this),
             'show.stats': this.setStats.bind(this),
             'show.wireframe': this.setShowWireframe.bind(this),
+            'show.wireframeColor': this.setWireframeColor.bind(this),
             'show.bounds': this.setShowBounds.bind(this),
             'show.skeleton': this.setShowSkeleton.bind(this),
             'show.axes': this.setShowAxes.bind(this),
@@ -778,6 +799,7 @@ class Viewer {
         this.assets = [];
 
         this.meshInstances = [];
+        this.resetWireframeMeshes();
 
         // reset animation state
         this.animTracks = [];
@@ -1176,6 +1198,12 @@ class Viewer {
         this.renderNextFrame();
     }
 
+    setWireframeColor(color: { r: number, g: number, b: number }) {
+        this.wireframeMaterial.emissive = new Color(color.r, color.g, color.b);
+        this.wireframeMaterial.update();
+        this.renderNextFrame();
+    }
+
     setShowBounds(show: boolean) {
         this.showBounds = show;
         this.dirtyBounds = true;
@@ -1506,6 +1534,30 @@ class Viewer {
                 Viewer.calcHierBoundingBox(this.sceneRoot) : defaultSceneBounds);
     }
 
+    private resetWireframeMeshes() {
+        this.app.scene.layers.getLayerByName('World').removeMeshInstances(this.wireframeMeshInstances);
+        this.wireframeMeshInstances.forEach((mi) => {
+            mi.clearShaders();
+        });
+        this.wireframeMeshInstances = [];
+    }
+
+    private buildWireframeMeshes() {
+        this.wireframeMeshInstances = this.meshInstances.map((mi) => {
+            mi.material.depthBias = -1.0;
+            mi.material.slopeDepthBias = 1.0;
+            mi.material.update();
+
+            const meshInstance = new MeshInstance(mi.mesh, this.wireframeMaterial, mi.node);
+            meshInstance.renderStyle = PRIMITIVE_LINES;
+            meshInstance.skinInstance = mi.skinInstance;
+            meshInstance.morphInstance = mi.morphInstance;
+            return meshInstance;
+        });
+
+        this.app.scene.layers.getLayerByName('World').addMeshInstances(this.wireframeMeshInstances);
+    }
+
     // generate and render debug elements on prerender
     private onPrerender() {
         // don't update on the first frame
@@ -1515,8 +1567,10 @@ class Viewer {
             // wireframe
             if (this.dirtyWireframe) {
                 this.dirtyWireframe = false;
-                for (let i = 0; i < this.meshInstances.length; ++i) {
-                    this.meshInstances[i].renderStyle = this.showWireframe ? RENDERSTYLE_WIREFRAME : RENDERSTYLE_SOLID;
+
+                this.resetWireframeMeshes();
+                if (this.showWireframe) {
+                    this.buildWireframeMeshes();
                 }
             }
 

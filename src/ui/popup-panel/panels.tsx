@@ -67,6 +67,10 @@ class ShowPanel extends React.Component <{ showData: ObserverData['show'], uiDat
                     <Label text='Show' class='popup-panel-heading' />
                     <Toggle label='Grid' value={props.showData.grid} setProperty={(value: boolean) => props.setProperty('show.grid', value)}/>
                     <Toggle label='Wireframe' value={props.showData.wireframe} setProperty={(value: boolean) => props.setProperty('show.wireframe', value)} />
+                    <ColorPickerControl
+                        label='Wireframe Color'
+                        value={rgbToArr(props.showData.wireframeColor)}
+                        setProperty={(value: number[]) => props.setProperty('show.wireframeColor', arrToRgb(value))} />
                     <Toggle label='Axes' value={props.showData.axes} setProperty={(value: boolean) => props.setProperty('show.axes', value)} />
                     <Toggle label='Skeleton' value={props.showData.skeleton} setProperty={(value: boolean) => props.setProperty('show.skeleton', value)} />
                     <Toggle label='Bounds' value={props.showData.bounds} setProperty={(value: boolean) => props.setProperty('show.bounds', value)} />

@@ -46,6 +46,7 @@ const observerData: ObserverData = {
     show: {
         stats: false,
         wireframe: false,
+        wireframeColor: { r: 0, g: 0, b: 0 },
         bounds: false,
         skeleton: false,
         axes: false,

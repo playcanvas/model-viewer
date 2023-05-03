@@ -33,6 +33,11 @@ export interface ObserverData {
     show: {
         stats: boolean,
         wireframe: boolean,
+        wireframeColor: {
+            r: number,
+            g: number,
+            b: number
+        },
         bounds: boolean,
         skeleton: boolean,
         axes: boolean,
