@@ -24,8 +24,6 @@ const PCUI_DIR = path.resolve(process.env.PCUI_PATH || 'node_modules/@playcanvas
 const ENGINE_NAME = (BUILD_TYPE === 'debug') ? 'playcanvas.dbg.mjs' : 'playcanvas.mjs';
 const ENGINE_PATH = path.resolve(ENGINE_DIR, 'build', ENGINE_NAME);
 
-console.log(EXTRAS_DIR);
-
 // define supported module overrides
 const aliasEntries = {
     'playcanvas': ENGINE_PATH,
@@ -90,7 +88,7 @@ export default {
             compilerOptions: tsCompilerOptions
         }),
         json(),
-        (BUILD_TYPE !== 'debug') && terser(),
+        (BUILD_TYPE !== 'debug') && terser()
     ],
     treeshake: 'smallest',
     cache: false

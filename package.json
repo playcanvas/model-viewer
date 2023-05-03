@@ -64,6 +64,7 @@
     "concurrently": "^8.0.1",
     "cross-env": "^7.0.3",
     "eslint": "^8.39.0",
+    "fflate": "^0.7.4",
     "handlebars": "^4.7.7",
     "playcanvas": "^1.63.0",
     "prop-types": "^15.8.1",
@@ -87,8 +88,5 @@
     "build:local": "cross-env ENGINE_PATH=../engine npm run build",
     "watch:local": "cross-env ENGINE_PATH=../engine npm run watch",
     "lint": "eslint --ignore-pattern 'src/lib' --ext .ts src"
-  },
-  "dependencies": {
-    "fflate": "^0.7.4"
   }
 }
