@@ -23,7 +23,7 @@ class CameraPanel extends React.Component <{ observerData: ObserverData, setProp
             { t: 'Default', v: 'default' },
             { t: 'Lighting', v: 'lighting' },
             { t: 'Albedo', v: 'albedo' },
-            { t: 'Emission', v: 'emission' },
+            { t: 'Emissive', v: 'emission' },
             { t: 'WorldNormal', v: 'world_normal' },
             { t: 'Metalness', v: 'metalness' },
             { t: 'Gloss', v: 'gloss' },
