@@ -33,12 +33,18 @@ export interface ObserverData {
     show: {
         stats: boolean,
         wireframe: boolean,
+        wireframeColor: {
+            r: number,
+            g: number,
+            b: number
+        },
         bounds: boolean,
         skeleton: boolean,
         axes: boolean,
         grid: boolean,
         normals: number,
-        fov: number
+        fov: number,
+        renderMode: 'default' | 'albedo' | 'opacity' | 'worldNormal' | 'specularity' | 'gloss' | 'metalness' | 'ao' | 'emission' | 'lighting' | 'uv0'
     },
     lighting: {
         direct: number,

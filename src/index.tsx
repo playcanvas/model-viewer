@@ -1,5 +1,6 @@
 import {
     basisInitialize,
+    shaderChunks,
     Http,
     WasmModule
 } from 'playcanvas';
@@ -28,6 +29,44 @@ declare global {
     }
 }
 
+shaderChunks.debugOutputPS = `
+#ifdef DEBUG_ALBEDO_PASS
+gl_FragColor = vec4(gammaCorrectOutput(litShaderArgs.albedo), 1.0);
+#endif
+
+#ifdef DEBUG_UV0_PASS
+gl_FragColor = vec4(litShaderArgs.albedo, 1.0);
+#endif
+
+#ifdef DEBUG_WORLD_NORMAL_PASS
+gl_FragColor = vec4(litShaderArgs.worldNormal * 0.5 + 0.5, 1.0);
+#endif
+
+#ifdef DEBUG_OPACITY_PASS
+gl_FragColor = vec4(vec3(litShaderArgs.opacity) , 1.0);
+#endif
+
+#ifdef DEBUG_SPECULARITY_PASS
+gl_FragColor = vec4(litShaderArgs.specularity, 1.0);
+#endif
+
+#ifdef DEBUG_GLOSS_PASS
+gl_FragColor = vec4(vec3(litShaderArgs.gloss) , 1.0);
+#endif
+
+#ifdef DEBUG_METALNESS_PASS
+gl_FragColor = vec4(vec3(litShaderArgs.metalness) , 1.0);
+#endif
+
+#ifdef DEBUG_AO_PASS
+gl_FragColor = vec4(gammaCorrectOutput(vec3(litShaderArgs.ao)), 1.0);
+#endif
+
+#ifdef DEBUG_EMISSION_PASS
+gl_FragColor = vec4(litShaderArgs.emission, 1.0);
+#endif
+`;
+
 interface Skybox {
     url: string,
     label: string
@@ -46,12 +85,14 @@ const observerData: ObserverData = {
     show: {
         stats: false,
         wireframe: false,
+        wireframeColor: { r: 0, g: 0, b: 0 },
         bounds: false,
         skeleton: false,
         axes: false,
         grid: true,
         normals: 0,
-        fov: 50
+        fov: 50,
+        renderMode: 'default'
     },
     lighting: {
         direct: 0,
@@ -143,7 +184,8 @@ const loadOptions = (name: string) => {
                 loadRec(path ? `${path}.${k}` : k, value[k]);
             });
         } else {
-            if (observer.has(path)) {
+            const notSticky = ['show.renderMode'];
+            if (observer.has(path) && notSticky.indexOf(path) === -1) {
                 observer.set(path, value);
             }
         }

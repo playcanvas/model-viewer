@@ -32,6 +32,60 @@ export const Toggle = (props: { label: string, enabled?: boolean, setProperty: (
 };
 Toggle.defaultProps = { enabled: true };
 
+export const ToggleColor = (props: {
+        label: string,
+        booleanValue: boolean,
+        setBooleanProperty: (value: boolean) => void,
+        colorValue: any,
+        setColorProperty: (value: any) => void
+    }) => {
+    return <Container class='panel-option'>
+        <Label
+            class='panel-label'
+            text={props.label} />
+        <Container class='panel-value'>
+            <BooleanInput
+                type='toggle'
+                value={props.booleanValue}
+                onChange={(value: boolean) => props.setBooleanProperty(value)} />
+            <ColorPicker
+                class='panel-value-toggle-color'
+                value={props.colorValue}
+                onChange={(value: any) => props.setColorProperty(value)} />
+        </Container>
+    </Container>;
+};
+ToggleColor.defaultProps = { enabled: true };
+
+export const SelectColor = (props: {
+    label: string,
+    selectType: 'string' | 'number' | 'boolean',
+    selectOptions: Array<Option>,
+    selectValue: any,
+    setSelectProperty: (value: any) => void,
+    colorValue: any,
+    setColorProperty: (value: any) => void
+}) => {
+return <Container class='panel-option'>
+        <Label
+            class='panel-label'
+            text={props.label} />
+        <Container class='panel-value'>
+            <SelectInput
+                class='panel-value-select'
+                type={props.selectType}
+                options={props.selectOptions}
+                value={props.selectValue}
+                onChange={(value: any) => props.setSelectProperty(value)} />
+            <ColorPicker
+                class='panel-value-color'
+                value={props.colorValue}
+                onChange={(value: any) => props.setColorProperty(value)} />
+        </Container>
+    </Container>;
+};
+SelectColor.defaultProps = { enabled: true };
+
 export const Slider = (props: { label: string, value: number, setProperty: (value: number) => void, precision: number, min: number, max: number, enabled?: boolean }) => {
     return <Container class='panel-option'>
         <Label class='panel-label' text={props.label} />

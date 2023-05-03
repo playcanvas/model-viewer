@@ -8,31 +8,35 @@ import resolve from "@rollup/plugin-node-resolve";
 import replace from '@rollup/plugin-replace';
 import terser from '@rollup/plugin-terser';
 import sass from 'rollup-plugin-sass';
-import typescript from 'rollup-plugin-typescript2';
-// import { visualizer } from 'rollup-plugin-visualizer';
+import typescript from "@rollup/plugin-typescript";
 
-const PROD_BUILD = process.env.BUILD_TYPE === 'prod';
+// prod is release build
+if (process.env.BUILD_TYPE === 'prod') {
+    process.env.BUILD_TYPE = 'release';
+}
+
+// debug, profile, release
+const BUILD_TYPE = process.env.BUILD_TYPE || 'release';
 const ENGINE_DIR = process.env.ENGINE_PATH || 'node_modules/playcanvas';
-const PCUI_DIR = process.env.PCUI_PATH || 'node_modules/@playcanvas/pcui';
+const EXTRAS_DIR = path.resolve(ENGINE_DIR, 'build', 'playcanvas-extras.mjs');
+const PCUI_DIR = path.resolve(process.env.PCUI_PATH || 'node_modules/@playcanvas/pcui', 'react');
 
-const ENGINE_NAME = PROD_BUILD ? 'playcanvas.mjs' : 'playcanvas.dbg.mjs';
+const ENGINE_NAME = (BUILD_TYPE === 'debug') ? 'playcanvas.dbg.mjs' : 'playcanvas.mjs';
 const ENGINE_PATH = path.resolve(ENGINE_DIR, 'build', ENGINE_NAME);
-const EXTRAS_PATH = path.resolve(ENGINE_DIR, 'build', 'playcanvas-extras.js');
-const PCUI_PATH = path.resolve(PCUI_DIR, 'react');
 
 // define supported module overrides
 const aliasEntries = {
     'playcanvas': ENGINE_PATH,
-    'playcanvas-extras': EXTRAS_PATH,
-    'pcui': PCUI_PATH
+    'playcanvas-extras': EXTRAS_DIR,
+    'pcui': PCUI_DIR
 };
 
 const tsCompilerOptions = {
     baseUrl: '.',
     paths: {
         'playcanvas': [ENGINE_DIR],
-        'playcanvas-extras': [EXTRAS_PATH],
-        'pcui': [PCUI_PATH]
+        'playcanvas-extras': [EXTRAS_DIR],
+        'pcui': [PCUI_DIR]
     }
 };
 
@@ -49,7 +53,7 @@ const compileMustache = (content, srcFilename) => {
 };
 
 const replaceValues = {
-    'process.env.NODE_ENV': JSON.stringify(PROD_BUILD ? 'production' : 'development'),
+    'process.env.NODE_ENV': JSON.stringify(BUILD_TYPE === 'release' ? 'production' : 'development'),
     '__PUBLIC_PATH__': JSON.stringify(process.env.PUBLIC_PATH)
 };
 
@@ -57,7 +61,7 @@ export default {
     input: 'src/index.tsx',
     output: {
         dir: 'dist',
-        format: 'es',
+        format: 'esm',
         sourcemap: true
     },
     plugins: [
@@ -81,13 +85,10 @@ export default {
         commonjs(),
         resolve(),
         typescript({
-            tsconfig: 'tsconfig.json',
-            tsconfigDefaults: { compilerOptions: tsCompilerOptions },
-            clean: true
+            compilerOptions: tsCompilerOptions
         }),
         json(),
-        (PROD_BUILD && terser()),
-        // visualizer()
+        (BUILD_TYPE !== 'debug') && terser()
     ],
     treeshake: 'smallest',
     cache: false
