@@ -937,7 +937,10 @@ class Viewer {
             if (gltfBuffer.extensions && gltfBuffer.extensions.EXT_meshopt_compression) {
                 const extensionDef = gltfBuffer.extensions.EXT_meshopt_compression;
 
-                MeshoptDecoder.ready.then(() => {
+                Promise.all([ MeshoptDecoder.ready, buffers[extensionDef.buffer] ])
+                .then((promiseResult) => {
+                    const buffer = promiseResult[1];
+
                     const byteOffset = extensionDef.byteOffset || 0;
                     const byteLength = extensionDef.byteLength || 0;
 
@@ -945,9 +948,7 @@ class Viewer {
                     const stride = extensionDef.byteStride;
 
                     const result = new Uint8Array(count * stride);
-                    const source = new Uint8Array(buffers[extensionDef.buffer].buffer,
-                                                  buffers[extensionDef.buffer].byteOffset + byteOffset,
-                                                  byteLength);
+                    const source = new Uint8Array(buffer.buffer, buffer.byteOffset + byteOffset, byteLength);
 
                     MeshoptDecoder.decodeGltfBuffer(result, count, stride, source, extensionDef.mode, extensionDef.filter);
 
