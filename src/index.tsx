@@ -76,13 +76,38 @@ const observerData: ObserverData = {
     ui: {
         active: null
     },
-    render: {
+    camera: {
+        fov: 40,
+        tonemapping: 'Linear',
+        pixelScale: 1,
         multisampleSupported: true,
         multisample: true,
-        hq: true,
-        pixelScale: 1
+        hq: true
     },
-    show: {
+    skybox: {
+        value: getAssetPath('./skybox/adams_place_bridge_2k.hdr'),
+        options: null,
+        default: null,
+        exposure: 0,
+        rotation: 0,
+        background: 'Infinite Sphere',
+        backgroundColor: { r: 0.4, g: 0.45, b: 0.5 },
+        blur: 0,
+        domeProjection: {
+            domeRadius: 20,
+            domeOffset: 0.4,
+            tripodOffset: 0.1
+        },
+    },
+    light: {
+        enabled: false,
+        color: { r: 1, g: 1, b: 1 },
+        intensity: 1,
+        follow: false,
+        shadow: false
+    },
+    debug: {
+        renderMode: 'default',
         stats: false,
         wireframe: false,
         wireframeColor: { r: 0, g: 0, b: 0 },
@@ -90,25 +115,7 @@ const observerData: ObserverData = {
         skeleton: false,
         axes: false,
         grid: true,
-        normals: 0,
-        fov: 50,
-        renderMode: 'default'
-    },
-    lighting: {
-        direct: 0,
-        directColor: { r: 1, g: 1, b: 1 },
-        follow: false,
-        shadow: false,
-        env: {
-            value: getAssetPath('./skybox/adams_place_bridge_2k.hdr'),
-            options: null,
-            default: null,
-            skyboxMip: '3',
-            exposure: 0,
-            backgroundColor: { r: 0.4, g: 0.45, b: 0.5 }
-        },
-        rotation: 0,
-        tonemapping: 'Linear'
+        normals: 0
     },
     animation: {
         playing: false,
@@ -167,15 +174,16 @@ const observer: Observer = new Observer(observerData);
 const saveOptions = (name: string) => {
     const options = observer.json();
     window.localStorage.setItem(`model-viewer-${name}`, JSON.stringify({
-        render: options.render,
-        show: options.show,
-        lighting: options.lighting
+        camera: options.camera,
+        skybox: options.skybox,
+        light: options.light,
+        debug: options.debug
     }));
 };
 
 const loadOptions = (name: string) => {
     const loadRec = (path: string, value:any) => {
-        const filter = ['lighting.env.options'];
+        const filter = ['skybox.options'];
         if (filter.indexOf(path) !== -1) {
             return;
         }
@@ -184,7 +192,7 @@ const loadOptions = (name: string) => {
                 loadRec(path ? `${path}.${k}` : k, value[k]);
             });
         } else {
-            const notSticky = ['show.renderMode'];
+            const notSticky = ['debug.renderMode'];
             if (observer.has(path) && notSticky.indexOf(path) === -1) {
                 observer.set(path, value);
             }
@@ -242,10 +250,10 @@ new Http().get(url, {
         skyboxes.forEach((skybox: Skybox) => {
             skyboxOptions.push({ v: getAssetPath(skybox.url), t: skybox.label });
         });
-        const skyboxData = observer.get('lighting.env');
+        const skyboxData = observer.get('skybox');
         skyboxData.options = JSON.stringify(skyboxOptions);
         skyboxData.default = getAssetPath(result.defaultSkybox);
-        observer.set('lighting.env', skyboxData);
+        observer.set('skybox', skyboxData);
         loadOptions('uistate');
 
         observer.on('*:set', () => {

@@ -24,13 +24,46 @@ export interface ObserverData {
     ui: {
         active?: string
     },
-    render: {
+    camera: {
+        fov: number,
+        tonemapping: string,
+        pixelScale: number
         multisampleSupported: boolean,
         multisample: boolean,
         hq: boolean,
-        pixelScale: number
     },
-    show: {
+    skybox: {
+        value: string,
+        options: null,
+        default: null,
+        exposure: number,
+        rotation: number,
+        background: 'Solid Color' | 'Infinite Sphere' | 'Projective Dome',
+        backgroundColor: {
+            r: number,
+            g: number,
+            b: number
+        },
+        blur: number,
+        domeProjection: {
+            domeRadius: number,
+            domeOffset: number,
+            tripodOffset: number
+        }
+    },
+    light: {
+        enabled: boolean,
+        color: {
+            r: number,
+            g: number,
+            b: number
+        },
+        intensity: number,
+        follow: boolean,
+        shadow: boolean
+    },
+    debug: {
+        renderMode: 'default' | 'albedo' | 'opacity' | 'worldNormal' | 'specularity' | 'gloss' | 'metalness' | 'ao' | 'emission' | 'lighting' | 'uv0',
         stats: boolean,
         wireframe: boolean,
         wireframeColor: {
@@ -42,33 +75,7 @@ export interface ObserverData {
         skeleton: boolean,
         axes: boolean,
         grid: boolean,
-        normals: number,
-        fov: number,
-        renderMode: 'default' | 'albedo' | 'opacity' | 'worldNormal' | 'specularity' | 'gloss' | 'metalness' | 'ao' | 'emission' | 'lighting' | 'uv0'
-    },
-    lighting: {
-        direct: number,
-        directColor: {
-            r: number,
-            g: number,
-            b: number
-        },
-        follow: boolean,
-        shadow: boolean,
-        env: {
-            value: string,
-            options: null,
-            default: null,
-            skyboxMip: string,
-            exposure: number,
-            backgroundColor: {
-                r: number,
-                g: number,
-                b: number
-            }
-        },
-        rotation: number,
-        tonemapping: string
+        normals: number
     },
     animation: {
         playing: boolean,
