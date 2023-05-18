@@ -188,7 +188,7 @@ class LightPanel extends React.Component <{
                         value={props.lightData.enabled}
                         setProperty={(value: boolean) => props.setProperty('light.enabled', value)} />
                     <ColorPickerControl
-                        label='Direct Light'
+                        label='Color'
                         value={rgbToArr(props.lightData.color)}
                         setProperty={(value: number[]) => props.setProperty('light.color', arrToRgb(value))} />
                     <Slider label='Intensity'
