@@ -67,6 +67,7 @@ import { Multiframe } from './multiframe';
 import { ReadDepth } from './read-depth';
 import { OrbitCamera, OrbitCameraInputMouse, OrbitCameraInputTouch } from './orbit-camera';
 import { PngExporter } from './png-exporter.js';
+import { ProjectiveSkybox } from './projective-skybox';
 
 // model filename extensions
 const modelExtensions = ['.gltf', '.glb', '.vox'];
@@ -130,6 +131,8 @@ class Viewer {
 
     loadTimestamp?: number = null;
 
+    projectiveSkybox: ProjectiveSkybox = null;
+
     constructor(canvas: HTMLCanvasElement, observer: Observer) {
         // create the application
         const app = new App(canvas, {
@@ -170,7 +173,7 @@ class Viewer {
             app.xr.on("end", () => {
                 console.log("Immersive AR session has ended");
                 observer.set('xrActive', false);
-                this.setSkyboxMip(this.observer.get('lighting.env.skyboxMip'));
+                this.setSkyboxBlur(this.observer.get('skybox.blur'));
             });
         }
 
@@ -196,8 +199,8 @@ class Viewer {
 
         // @ts-ignore
         const multisampleSupported = app.graphicsDevice.maxSamples > 1;
-        observer.set('render.multisampleSupported', multisampleSupported);
-        observer.set('render.multisample', multisampleSupported && observer.get('render.multisample'));
+        observer.set('camera.multisampleSupported', multisampleSupported);
+        observer.set('camera.multisample', multisampleSupported && observer.get('camera.multisample'));
 
         // register vox support
         // VoxParser.registerVoxParser(app);
@@ -306,15 +309,15 @@ class Viewer {
         this.animSpeed = observer.get('animation.speed');
         this.animTransition = observer.get('animation.transition');
         this.animLoops = observer.get('animation.loops');
-        this.showWireframe = observer.get('show.wireframe');
-        this.showBounds = observer.get('show.bounds');
-        this.showSkeleton = observer.get('show.skeleton');
-        this.showAxes = observer.get('show.axes');
-        this.normalLength = observer.get('show.normals');
-        this.setTonemapping(observer.get('lighting.tonemapping'));
-        this.setBackgroundColor(observer.get('lighting.env.backgroundColor'));
-        this.setDirectColor(observer.get('lighting.directColor'));
-        this.setWireframeColor(observer.get('show.wireframeColor'));
+        this.showWireframe = observer.get('debug.wireframe');
+        this.showBounds = observer.get('debug.bounds');
+        this.showSkeleton = observer.get('debug.skeleton');
+        this.showAxes = observer.get('debug.axes');
+        this.normalLength = observer.get('debug.normals');
+        this.setTonemapping(observer.get('camera.tonemapping'));
+        this.setBackgroundColor(observer.get('skybox.backgroundColor'));
+        this.setLightColor(observer.get('light.color'));
+        this.setWireframeColor(observer.get('debug.wireframeColor'));
 
         this.dirtyWireframe = false;
         this.dirtyBounds = false;
@@ -331,13 +334,21 @@ class Viewer {
 
         // construct ministats, default off
         this.miniStats = new MiniStats(app);
-        this.miniStats.enabled = observer.get('show.stats');
+        this.miniStats.enabled = observer.get('debug.stats');
         this.observer = observer;
 
         const device = this.app.graphicsDevice as WebglGraphicsDevice;
 
+        // render frame after device restored
+        device.on('devicerestored', () => {
+            this.renderNextFrame();
+        });
+
         // multiframe
         this.multiframe = new Multiframe(device, this.camera.camera, 5);
+
+        // projective skybox
+        this.projectiveSkybox = new ProjectiveSkybox(app);
 
         // initialize control events
         this.bindControlEvents();
@@ -492,39 +503,50 @@ class Viewer {
     // construct the controls interface and initialize controls
     private bindControlEvents() {
         const controlEvents:any = {
-            'render.multisample': this.resizeCanvas.bind(this),
-            'render.hq': (enabled: boolean) => {
+            // camera
+            'camera.fov': this.setFov.bind(this),
+            'camera.tonemapping': this.setTonemapping.bind(this),
+            'camera.pixelScale': this.resizeCanvas.bind(this),
+            'camera.multisample': this.resizeCanvas.bind(this),
+            'camera.hq': (enabled: boolean) => {
                 this.multiframe.enabled = enabled;
                 this.renderNextFrame();
             },
-            'render.pixelScale': this.resizeCanvas.bind(this),
-            'show.stats': this.setStats.bind(this),
-            'show.wireframe': this.setShowWireframe.bind(this),
-            'show.wireframeColor': this.setWireframeColor.bind(this),
-            'show.bounds': this.setShowBounds.bind(this),
-            'show.skeleton': this.setShowSkeleton.bind(this),
-            'show.axes': this.setShowAxes.bind(this),
-            'show.grid': this.setShowGrid.bind(this),
-            'show.normals': this.setNormalLength.bind(this),
-            'show.fov': this.setFov.bind(this),
-            'show.renderMode': this.setRenderMode.bind(this),
 
-            'lighting.direct': this.setDirectLighting.bind(this),
-            'lighting.directColor': this.setDirectColor.bind(this),
-            'lighting.follow': this.setDirectFollow.bind(this),
-            'lighting.shadow': this.setDirectShadow.bind(this),
-            'lighting.env.value': (value: string) => {
+            // skybox
+            'skybox.value': (value: string) => {
                 if (value && value !== 'None') {
                     this.loadFiles([{ url: value, filename: value }]);
                 } else {
                     this.clearSkybox();
                 }
             },
-            'lighting.env.skyboxMip': this.setSkyboxMip.bind(this),
-            'lighting.env.exposure': this.setEnvExposure.bind(this),
-            'lighting.env.backgroundColor': this.setBackgroundColor.bind(this),
-            'lighting.rotation': this.setLightingRotation.bind(this),
-            'lighting.tonemapping': this.setTonemapping.bind(this),
+            'skybox.blur': this.setSkyboxBlur.bind(this),
+            'skybox.exposure': this.setSkyboxExposure.bind(this),
+            'skybox.rotation': this.setSkyboxRotation.bind(this),
+            'skybox.background': this.setSkyboxBackground.bind(this),
+            'skybox.backgroundColor': this.setBackgroundColor.bind(this),
+            'skybox.domeProjection.domeRadius': this.setSkyboxDomeRadius.bind(this),
+            'skybox.domeProjection.domeOffset': this.setSkyboxDomeOffset.bind(this),
+            'skybox.domeProjection.tripodOffset': this.setSkyboxTripodOffset.bind(this),
+
+            // light
+            'light.enabled': this.setLightEnabled.bind(this),
+            'light.intensity': this.setLightIntensity.bind(this),
+            'light.color': this.setLightColor.bind(this),
+            'light.follow': this.setLightFollow.bind(this),
+            'light.shadow': this.setLightShadow.bind(this),
+
+            // debug
+            'debug.stats': this.setDebugStats.bind(this),
+            'debug.wireframe': this.setDebugWireframe.bind(this),
+            'debug.wireframeColor': this.setWireframeColor.bind(this),
+            'debug.bounds': this.setDebugBounds.bind(this),
+            'debug.skeleton': this.setDebugSkeleton.bind(this),
+            'debug.axes': this.setDebugAxes.bind(this),
+            'debug.grid': this.setDebugGrid.bind(this),
+            'debug.normals': this.setNormalLength.bind(this),
+            'debug.renderMode': this.setRenderMode.bind(this),
 
             'animation.playing': (playing: boolean) => {
                 if (playing) {
@@ -767,7 +789,7 @@ class Viewer {
         }
 
         // in with the new
-        const pixelScale = observer.get('render.pixelScale');
+        const pixelScale = observer.get('camera.pixelScale');
         const w = Math.floor(canvasSize.width * window.devicePixelRatio / pixelScale);
         const h = Math.floor(canvasSize.height * window.devicePixelRatio / pixelScale);
         const colorBuffer = createTexture(w, h, PIXELFORMAT_RGBA8);
@@ -776,7 +798,7 @@ class Viewer {
             colorBuffer: colorBuffer,
             depthBuffer: depthBuffer,
             flipY: false,
-            samples: observer.get('render.multisample') ? device.maxSamples : 1,
+            samples: observer.get('camera.multisample') ? device.maxSamples : 1,
             autoResolve: false
         });
         this.camera.camera.renderTarget = renderTarget;
@@ -1189,12 +1211,12 @@ class Viewer {
         }
     }
 
-    setStats(show: boolean) {
+    setDebugStats(show: boolean) {
         this.miniStats.enabled = show;
         this.renderNextFrame();
     }
 
-    setShowWireframe(show: boolean) {
+    setDebugWireframe(show: boolean) {
         this.showWireframe = show;
         this.dirtyWireframe = true;
         this.renderNextFrame();
@@ -1206,25 +1228,25 @@ class Viewer {
         this.renderNextFrame();
     }
 
-    setShowBounds(show: boolean) {
+    setDebugBounds(show: boolean) {
         this.showBounds = show;
         this.dirtyBounds = true;
         this.renderNextFrame();
     }
 
-    setShowSkeleton(show: boolean) {
+    setDebugSkeleton(show: boolean) {
         this.showSkeleton = show;
         this.dirtySkeleton = true;
         this.renderNextFrame();
     }
 
-    setShowAxes(show: boolean) {
+    setDebugAxes(show: boolean) {
         this.showAxes = show;
         this.dirtySkeleton = true;
         this.renderNextFrame();
     }
 
-    setShowGrid(show: boolean) {
+    setDebugGrid(show: boolean) {
         this.showGrid = show;
         this.dirtyGrid = true;
         this.renderNextFrame();
@@ -1246,17 +1268,22 @@ class Viewer {
         this.renderNextFrame();
     }
 
-    setDirectLighting(factor: number) {
+    setLightIntensity(factor: number) {
         this.light.light.intensity = factor;
         this.renderNextFrame();
     }
 
-    setDirectColor(color: { r: number, g: number, b: number }) {
+    setLightEnabled(value: boolean) {
+        this.light.enabled = value;
+        this.renderNextFrame();
+    }
+
+    setLightColor(color: { r: number, g: number, b: number }) {
         this.light.light.color = new Color(color.r, color.g, color.b);
         this.renderNextFrame();
     }
 
-    setDirectFollow(enable: boolean) {
+    setLightFollow(enable: boolean) {
         this.light.reparent(enable ? this.camera : this.app.root);
         if (enable) {
             this.light.setLocalEulerAngles(90, 0, 0);
@@ -1266,13 +1293,17 @@ class Viewer {
         this.renderNextFrame();
     }
 
-    setDirectShadow(enable: boolean) {
+    setLightShadow(enable: boolean) {
         this.light.light.castShadows = enable;
         this.renderNextFrame();
     }
 
-    setLightingRotation(factor: number) {
-        // update skybox
+    setSkyboxExposure(factor: number) {
+        this.app.scene.skyboxIntensity = Math.pow(2, factor);
+        this.renderNextFrame();
+    }
+
+    setSkyboxRotation(factor: number) {
         const rot = new Quat();
         rot.setFromEulerAngles(0, factor, 0);
         this.app.scene.skyboxRotation = rot;
@@ -1280,8 +1311,30 @@ class Viewer {
         this.renderNextFrame();
     }
 
-    setEnvExposure(factor: number) {
-        this.app.scene.skyboxIntensity = Math.pow(2, factor);
+    setSkyboxBackground(background: string) {
+        this.app.scene.layers.getLayerById(LAYERID_SKYBOX).enabled = (background !== 'Solid Color');
+        this.app.scene.skyboxMip = background === 'Infinite Sphere' ? this.observer.get('skybox.blur') : 0;
+        this.projectiveSkybox.enabled = (background === 'Projective Dome');
+        this.renderNextFrame();
+    }
+
+    setSkyboxBlur(blur: number) {
+        this.app.scene.skyboxMip = this.observer.get('skybox.background') === 'Infinite Sphere' ? blur : 0;
+        this.renderNextFrame();
+    }
+
+    setSkyboxDomeRadius(radius: number) {
+        this.projectiveSkybox.domeRadius = radius;
+        this.renderNextFrame();
+    }
+
+    setSkyboxDomeOffset(offset: number) {
+        this.projectiveSkybox.domeOffset = offset;
+        this.renderNextFrame();
+    }
+
+    setSkyboxTripodOffset(offset: number) {
+        this.projectiveSkybox.tripodOffset = offset;
         this.renderNextFrame();
     }
 
@@ -1301,13 +1354,6 @@ class Viewer {
     setBackgroundColor(color: { r: number, g: number, b: number }) {
         const cnv = (value: number) => Math.max(0, Math.min(255, Math.floor(value * 255)));
         document.getElementById('canvas-wrapper').style.backgroundColor = `rgb(${cnv(color.r)}, ${cnv(color.g)}, ${cnv(color.b)})`;
-    }
-
-    setSkyboxMip(mip: string) {
-        const imip = parseInt(mip, 10);
-        this.app.scene.layers.getLayerById(LAYERID_SKYBOX).enabled = (imip !== 0);
-        this.app.scene.skyboxMip = imip - 1;
-        this.renderNextFrame();
     }
 
     update(deltaTime: number) {
@@ -1476,7 +1522,7 @@ class Viewer {
 
         // if no meshes are loaded then enable skeleton rendering so user can see something
         if (this.meshInstances.length === 0) {
-            this.observer.set('show.skeleton', true);
+            this.observer.set('debug.skeleton', true);
         }
 
         // dirty everything

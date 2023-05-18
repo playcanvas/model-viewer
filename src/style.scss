@@ -482,6 +482,10 @@ input {
     margin: 2px;
 }
 
+.panel-label.pcui-disabled {
+    color: gray !important;
+}
+
 .panel-value {
     flex-grow: 1;
     font-size: 14px;

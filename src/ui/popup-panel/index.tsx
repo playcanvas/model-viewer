@@ -3,7 +3,7 @@ import { Observer } from '@playcanvas/observer';
 import { Button } from 'pcui';
 import { SetProperty, ObserverData } from '../../types';
 import AnimationControls from './animation-controls';
-import { CameraPanel, LightingPanel, ShowPanel, ViewPanel } from './panels';
+import { CameraPanel, SkyboxPanel, LightPanel, DebugPanel, ViewPanel } from './panels';
 // @ts-ignore no type defs included
 import { UsdzExporter } from 'playcanvas-extras';
 import { addEventListenerOnClickOnly } from '../../helpers';
@@ -11,8 +11,9 @@ import { addEventListenerOnClickOnly } from '../../helpers';
 const PopupPanelControls = (props: { observerData: ObserverData, setProperty: SetProperty }) => {
     return (<>
         <CameraPanel setProperty={props.setProperty} observerData={props.observerData} />
-        <ShowPanel setProperty={props.setProperty} showData={props.observerData.show} uiData={props.observerData.ui} />
-        <LightingPanel setProperty={props.setProperty} lightingData={props.observerData.lighting} uiData={props.observerData.ui} />
+        <SkyboxPanel setProperty={props.setProperty} skyboxData={props.observerData.skybox} uiData={props.observerData.ui} />
+        <LightPanel setProperty={props.setProperty} lightData={props.observerData.light} uiData={props.observerData.ui} />
+        <DebugPanel setProperty={props.setProperty} debugData={props.observerData.debug} uiData={props.observerData.ui} />
         <ViewPanel setProperty={props.setProperty} glbUrl={props.observerData.glbUrl} uiData={props.observerData.ui} />
     </>);
 };
@@ -49,8 +50,9 @@ class PopupButtonControls extends React.Component <{ observerData: ObserverData,
             <div id='popup-buttons-parent'>
                 <AnimationControls animationData={this.props.observerData.animation} setProperty={this.props.setProperty} />
                 <Button class={buildClass('camera')} icon='E212' width={40} height={40} onClick={() => handleClick('camera')} />
-                <Button class={buildClass('show')} icon='E188' width={40} height={40} onClick={() => handleClick('show')} />
-                <Button class={buildClass('lighting')} icon='E192' width={40} height={40} onClick={() => handleClick('lighting')} />
+                <Button class={buildClass('skybox')} icon='E200' width={40} height={40} onClick={() => handleClick('skybox')} />
+                <Button class={buildClass('light')} icon='E194' width={40} height={40} onClick={() => handleClick('light')} />
+                <Button class={buildClass('debug')} icon='E134' width={40} height={40} onClick={() => handleClick('debug')} />
                 <Button class={buildClass('view')} icon='E301' width={40} height={40} onClick={() => handleClick('view')} />
             </div>
         );

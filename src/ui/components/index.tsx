@@ -6,31 +6,56 @@ import {
     Label,
     SelectInput,
     SliderInput,
-    VectorInput
+    VectorInput,
+    NumericInput
 } from 'pcui';
 import { Option } from '../../types';
 
 export const Detail = (props: { label: string, value:string|number}) => {
     return <Container class='panel-option'>
-        <Label class='panel-label' text={props.label} />
-        <Label class='panel-value' text={String(props.value)}/>
+        <Label
+            class='panel-label'
+            text={props.label} />
+        <Label
+            class='panel-value'
+            text={String(props.value)}/>
     </Container>;
 };
 
-export const Vector = (props: { label: string, value:any, dimensions: 2 | 3 | 4, enabled?: boolean}) => {
-    return <Container class='panel-option'>
-        <Label class='panel-label' text={props.label} />
-        <VectorInput class='panel-value' dimensions={props.dimensions} enabled={props.enabled} value={props.value} precision={7} />
+export const Vector = (props: {
+    label: string,
+    value:any,
+    dimensions: 2 | 3 | 4,
+    enabled?: boolean}) => {
+
+    return <Container class='panel-option' enabled={props.enabled ?? true}>
+        <Label
+            class='panel-label'
+            text={props.label} />
+        <VectorInput class='panel-value'
+            dimensions={props.dimensions}
+            value={props.value}
+            precision={7} />
     </Container>;
 };
 
-export const Toggle = (props: { label: string, enabled?: boolean, setProperty: (value: boolean) => void, value: boolean }) => {
-    return <Container class='panel-option'>
-        <Label class='panel-label' text={props.label} />
-        <BooleanInput class='panel-value-boolean' type='toggle' enabled={props.enabled} value={props.value} onChange={(value: boolean) => props.setProperty(value)} />
+export const Toggle = (props: {
+    label: string,
+    enabled?: boolean,
+    setProperty: (value: boolean) => void,
+    value: boolean }) => {
+
+    return <Container class='panel-option' enabled={props.enabled ?? true}>
+        <Label
+            class='panel-label'
+            text={props.label} />
+        <BooleanInput
+            class='panel-value-boolean'
+            type='toggle'
+            value={props.value}
+            onChange={(value: boolean) => props.setProperty(value)} />
     </Container>;
 };
-Toggle.defaultProps = { enabled: true };
 
 export const ToggleColor = (props: {
         label: string,
@@ -55,7 +80,6 @@ export const ToggleColor = (props: {
         </Container>
     </Container>;
 };
-ToggleColor.defaultProps = { enabled: true };
 
 export const SelectColor = (props: {
     label: string,
@@ -64,9 +88,9 @@ export const SelectColor = (props: {
     selectValue: any,
     setSelectProperty: (value: any) => void,
     colorValue: any,
-    setColorProperty: (value: any) => void
-}) => {
-return <Container class='panel-option'>
+    setColorProperty: (value: any) => void }) => {
+
+    return <Container class='panel-option'>
         <Label
             class='panel-label'
             text={props.label} />
@@ -84,12 +108,30 @@ return <Container class='panel-option'>
         </Container>
     </Container>;
 };
-SelectColor.defaultProps = { enabled: true };
 
-export const Slider = (props: { label: string, value: number, setProperty: (value: number) => void, precision: number, min: number, max: number, enabled?: boolean }) => {
-    return <Container class='panel-option'>
-        <Label class='panel-label' text={props.label} />
-        <SliderInput class='panel-value' min={props.min} max={props.max} sliderMin={props.min} sliderMax={props.max} precision={props.precision} step={0.01} enabled={props.enabled}
+export const Slider = (props: {
+    label: string,
+    value: number,
+    setProperty: (value: number) => void,
+    precision: number,
+    min: number,
+    max: number,
+    enabled?: boolean
+    step?: number }) => {
+
+    return <Container class='panel-option' enabled={props.enabled ?? true}>
+        <Label
+            class='panel-label'
+            text={props.label}
+            />
+        <SliderInput
+            class='panel-value'
+            min={props.min}
+            max={props.max}
+            sliderMin={props.min}
+            sliderMax={props.max}
+            precision={props.precision}
+            step={props.step ?? 0.01}
             onChange={(value: any) => {
                 props.setProperty(value);
             }}
@@ -97,20 +139,23 @@ export const Slider = (props: { label: string, value: number, setProperty: (valu
         />
     </Container>;
 };
-Slider.defaultProps = { enabled: true };
 
-export const ColorPickerControl = (props: { label: string, value: any, setProperty: (value: any) => void, enabled?: boolean, hidden?: boolean }) => {
-    return <Container class='panel-option' hidden={props.hidden} >
-        <Label class='panel-label' text={props.label} />
-        <ColorPicker class='panel-value' enabled={props.enabled} value={props.value} onChange={(value: any) => props.setProperty(value)} />
-    </Container>;
-};
-ColorPickerControl.defaultProps = { enabled: true };
+export const Numeric = (props: {
+    label: string,
+    value: number,
+    setProperty: (value: number) => void,
+    min: number,
+    max: number,
+    enabled?: boolean }) => {
 
-export const MorphSlider = (props: { value: number, setProperty: (value: number) => void, name: string, precision: number, min: number, max: number, label?: string, enabled?: boolean }) => {
-    return <Container class='panel-option'>
-        <Label class='morph-label' flexGrow={'1'} flexShrink={'1'} text={props.label ? props.label : props.name.substring(0, 1).toUpperCase() + props.name.substring(1, props.name.length)} flex />
-        <SliderInput class='morph-value' flexGrow={'0'} flexShrink={'0'} min={props.min} max={props.max} sliderMin={props.min} sliderMax={props.max} precision={props.precision} step={0.01} enabled={props.enabled}
+    return <Container class='panel-option' enabled={props.enabled ?? true}>
+        <Label
+            class='panel-label'
+            text={props.label} />
+        <NumericInput
+            class='panel-value'
+            min={props.min}
+            max={props.max}
             onChange={(value: any) => {
                 props.setProperty(value);
             }}
@@ -118,36 +163,136 @@ export const MorphSlider = (props: { value: number, setProperty: (value: number)
         />
     </Container>;
 };
-MorphSlider.defaultProps = { enabled: true };
 
-export const Select = (props: { label: string, value:any, setProperty: (value: any) => void, type: 'string' | 'number' | 'boolean', options: Array<Option>, enabled?: boolean }) => {
-    return <Container class='panel-option'>
-        <Label class='panel-label' text={props.label} />
-        <SelectInput class='panel-value' type={props.type} options={props.options} enabled={props.enabled} value={props.value}
+export const ColorPickerControl = (props: {
+    label: string,
+    value: any,
+    setProperty: (value: any) => void,
+    enabled?: boolean,
+    hidden?: boolean }) => {
+
+    return <Container class='panel-option' hidden={props.hidden} enabled={props.enabled ?? true}>
+        <Label
+            class='panel-label'
+            text={props.label} />
+        <ColorPicker
+            class='panel-value'
+            value={props.value}
+            onChange={(value: any) => props.setProperty(value)} />
+    </Container>;
+};
+
+export const MorphSlider = (props: {
+    value: number,
+    setProperty: (value: number) => void,
+    name: string,
+    precision: number,
+    min: number,
+    max: number,
+    label?: string,
+    enabled?: boolean }) => {
+
+    return <Container class='panel-option' enabled={props.enabled ?? true}>
+        <Label
+            class='morph-label'
+            flexGrow={'1'}
+            flexShrink={'1'}
+            text={props.label ? props.label : props.name.substring(0, 1).toUpperCase() + props.name.substring(1, props.name.length)}
+            flex />
+        <SliderInput
+            class='morph-value'
+            flexGrow={'0'}
+            flexShrink={'0'}
+            min={props.min}
+            max={props.max}
+            sliderMin={props.min}
+            sliderMax={props.max}
+            precision={props.precision}
+            step={0.01}
+            onChange={(value: any) => {
+                props.setProperty(value);
+            }}
+            value={props.value}
+        />
+    </Container>;
+};
+
+export const Select = (props: {
+    label: string,
+    value:any,
+    setProperty: (value: any) => void,
+    type: 'string' | 'number' | 'boolean',
+    options: Array<Option>,
+    enabled?: boolean }) => {
+
+    return <Container class='panel-option' enabled={props.enabled ?? true}>
+        <Label
+            class='panel-label'
+            text={props.label} />
+        <SelectInput
+            class='panel-value'
+            type={props.type}
+            options={props.options}
+            value={props.value}
             onChange={(value: any) => {
                 props.setProperty(value);
             }}
         />
     </Container>;
 };
-Select.defaultProps = { enabled: true };
 
 // naked versions
 
-export const NakedSelect = (props: { value: any, setProperty: any, width: number, type: 'string' | 'number' | 'boolean', options: Array<Option>, enabled?: boolean, id?: string, class?: string }) => {
-    return <SelectInput id={props.id} class={props.class} width={props.width} type={props.type} options={props.options} enabled={props.enabled} value={props.value}
-        onChange={(value: any) => {
-            props.setProperty(value);
-        }}
-    />;
-};
-NakedSelect.defaultProps = { enabled: true };
+export const NakedSelect = (props: {
+    value: any,
+    setProperty: any,
+    width: number,
+    type: 'string' | 'number' | 'boolean',
+    options: Array<Option>,
+    enabled?: boolean,
+    id?: string,
+    class?: string }) => {
 
-export const NakedSlider = (props: { value: any, setProperty: any, width: number, precision: number, min: number, max: number, enabled?: boolean, id?: string, class?: string }) => {
-    return <SliderInput id={props.id} class={props.class} width={props.width} min={props.min} max={props.max} sliderMin={props.min} sliderMax={props.max} precision={props.precision} step={0.01} enabled={props.enabled} value={props.value}
+    return <SelectInput
+        id={props.id}
+        class={props.class}
+        width={props.width}
+        type={props.type}
+        options={props.options}
+        enabled={props.enabled ?? true}
+        value={props.value}
         onChange={(value: any) => {
             props.setProperty(value);
         }}
     />;
 };
-NakedSlider.defaultProps = { enabled: true };
+
+export const NakedSlider = (props: {
+    value: any,
+    setProperty: any,
+    width: number,
+    precision: number,
+    min: number,
+    max: number,
+    enabled?: boolean,
+    id?: string,
+    class?: string }) => {
+
+    return <SliderInput
+        id={props.id}
+        class={props.class}
+        width={props.width}
+        min={props.min}
+        max={props.max}
+        sliderMin={props.min}
+        sliderMax={props.max}
+        precision={props.precision}
+        step={0.01}
+        enabled={props.enabled ?? true}
+        value={props.value}
+        onChange={(value: any) => {
+            props.setProperty(value);
+        }}
+    />;
+};
+
