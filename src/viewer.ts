@@ -71,8 +71,6 @@ import { OrbitCamera, OrbitCameraInputMouse, OrbitCameraInputTouch } from './orb
 import { PngExporter } from './png-exporter.js';
 import { ProjectiveSkybox } from './projective-skybox';
 
-import { Gem } from './gem';
-
 // model filename extensions
 const modelExtensions = ['.gltf', '.glb', '.vox'];
 
@@ -136,8 +134,6 @@ class Viewer {
     loadTimestamp?: number = null;
 
     projectiveSkybox: ProjectiveSkybox = null;
-
-    gem: Gem = null;
 
     constructor(canvas: HTMLCanvasElement, observer: Observer) {
         // create the application
@@ -1506,12 +1502,6 @@ class Viewer {
                 });
             }
         });
-
-        // create gem
-        const gem = Gem.createFromMesh(meshInstances[0].mesh);
-        this.sceneRoot.addChild(gem.instantiate(this.app.graphicsDevice));
-
-        meshInstances[0].node.setLocalPosition(3, 0, 0);
 
         this.observer.suspendEvents = true;
         this.observer.set('morphs', morphs);
