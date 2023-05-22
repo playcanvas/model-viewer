@@ -1647,6 +1647,9 @@ class Viewer {
                     this.sceneBounds.halfExtents.z * 2
                 );
                 this.observer.set('scene.bounds', v.toString());
+
+                // place projective skybox origin bottom center of scene
+                this.projectiveSkybox.origin.set(this.sceneBounds.center.x, this.sceneBounds.getMin().y, this.sceneBounds.center.z);
             }
 
             // debug normals
