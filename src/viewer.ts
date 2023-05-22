@@ -20,7 +20,9 @@ import {
     TONEMAP_HEJL,
     TONEMAP_ACES,
     TONEMAP_ACES2,
+    XRSPACE_LOCAL,
     XRSPACE_LOCALFLOOR,
+    XRSPACE_VIEWER,
     XRTYPE_AR,
     math,
     path,
@@ -68,6 +70,8 @@ import { ReadDepth } from './read-depth';
 import { OrbitCamera, OrbitCameraInputMouse, OrbitCameraInputTouch } from './orbit-camera';
 import { PngExporter } from './png-exporter.js';
 import { ProjectiveSkybox } from './projective-skybox';
+
+import { Gem } from './gem';
 
 // model filename extensions
 const modelExtensions = ['.gltf', '.glb', '.vox'];
@@ -133,6 +137,8 @@ class Viewer {
 
     projectiveSkybox: ProjectiveSkybox = null;
 
+    gem: Gem = null;
+
     constructor(canvas: HTMLCanvasElement, observer: Observer) {
         // create the application
         const app = new App(canvas, {
@@ -166,14 +172,24 @@ class Viewer {
             app.xr.on("start", () => {
                 console.log("Immersive AR session has started");
                 observer.set('xrActive', true);
+                // this.app.scene.layers.getLayerById(LAYERID_SKYBOX).enabled = false;
+                this.setSkyboxBackground('Solid Color');
+            });
 
-                this.app.scene.layers.getLayerById(LAYERID_SKYBOX).enabled = false;
+            app.xr.planeDetection.on('add', (plane) => {
+                // plane detected
+                this.sceneRoot.setLocalPosition(plane.getPosition());
+                this.sceneRoot.setLocalRotation(plane.getRotation());
             });
 
             app.xr.on("end", () => {
                 console.log("Immersive AR session has ended");
                 observer.set('xrActive', false);
-                this.setSkyboxBlur(this.observer.get('skybox.blur'));
+
+                // reset
+                this.sceneRoot.setLocalPosition(Vec3.ZERO);
+                this.sceneRoot.setLocalRotation(Quat.IDENTITY);
+                this.setSkyboxBackground(this.observer.get('skybox.background'));
             });
         }
 
@@ -900,6 +916,7 @@ class Viewer {
     startXr() {
         if (this.app.xr.isAvailable(XRTYPE_AR)) {
             this.camera.camera.startXr(XRTYPE_AR, XRSPACE_LOCALFLOOR, {
+                planeDetection: true,
                 callback: (err) => {
                     console.log(err);
                 }
@@ -1490,6 +1507,12 @@ class Viewer {
             }
         });
 
+        // create gem
+        const gem = Gem.createFromMesh(meshInstances[0].mesh);
+        this.sceneRoot.addChild(gem.instantiate(this.app.graphicsDevice));
+
+        meshInstances[0].node.setLocalPosition(3, 0, 0);
+
         this.observer.suspendEvents = true;
         this.observer.set('morphs', morphs);
         this.observer.suspendEvents = false;
@@ -1647,6 +1670,9 @@ class Viewer {
                     this.sceneBounds.halfExtents.z * 2
                 );
                 this.observer.set('scene.bounds', v.toString());
+
+                // place projective skybox origin bottom center of scene
+                this.projectiveSkybox.origin.set(this.sceneBounds.center.x, this.sceneBounds.getMin().y, this.sceneBounds.center.z);
             }
 
             // debug normals

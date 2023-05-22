@@ -1,6 +1,7 @@
 import {
     shaderChunks,
-    AppBase
+    AppBase,
+    Vec3
 } from "playcanvas";
 
 const projectiveSkyboxVS = shaderChunks.skyboxVS.replace(' * cubeMapRotationMatrix', '');
@@ -20,12 +21,10 @@ void intersectSphere(inout float t, vec3 pos, vec3 dir, vec4 sphere) {
     vec3 L = sphere.xyz - pos;
     float tca = dot(L, dir);
 
-    if (tca >= 0.0) {
-        float d2 = sphere.w - (dot(L, L) - tca * tca);
-        if (d2 >= 0.0) {
-            float thc = tca + sqrt(d2);
-            if (thc >= 0.0 && thc < t) t = thc;
-        }
+    float d2 = sphere.w - (dot(L, L) - tca * tca);
+    if (d2 >= 0.0) {
+        float thc = tca + sqrt(d2);
+        if (thc >= 0.0 && thc < t) t = thc;
     }
 }
 
@@ -34,8 +33,9 @@ varying vec3 vViewDir;
 uniform samplerCube texture_cubeMap;
 uniform mat3 cubeMapRotationMatrix;
 uniform vec3 view_position;             // camera world position
-uniform vec4 domeParams;                // x, y, z: dome center, w: dome radius
-uniform vec4 groundParams;              // x: plane height, y: tripod height, z: blend factor, w: unused
+uniform vec4 tripodParams;              // x, y, z: world space origin of the tripod, w: blend factor
+uniform vec4 domeParams;                // x, y, z: world space dome center, w: (dome radius)^2
+uniform vec4 groundPlane;               // x, y, z, w: world space ground plane
 
 void main(void) {
     // get world space ray
@@ -43,15 +43,17 @@ void main(void) {
     vec3 view_dir = normalize(vViewDir);
 
     // intersect ray with world geometry
-    float t = 1000.0;
-    if (view_dir.y < 0.0) intersectPlane(t, view_pos, view_dir, vec4(0.0, 1.0, 0.0, -groundParams.x));
-    intersectSphere(t, view_pos, view_dir, vec4(domeParams.xyz, domeParams.w * domeParams.w));
+    float t = 100.0;
+    if (view_dir.y < 0.0) intersectPlane(t, view_pos, view_dir, groundPlane);
+    intersectSphere(t, view_pos, view_dir, domeParams);
+
+    // calculate world space intersection
     vec3 world_pos = view_pos + view_dir * t;
 
-    // calculate env sample vector based on world intersection and projection center
-    vec3 env_dir = normalize(world_pos - vec3(0.0, groundParams.y, 0.0));
+    // get vector from world space pos to tripod origin
+    vec3 env_dir = normalize(world_pos - tripodParams.xyz);
 
-    vec3 final_dir = mix(view_dir, env_dir, groundParams.z) * cubeMapRotationMatrix;
+    vec3 final_dir = mix(view_dir, env_dir, tripodParams.w) * cubeMapRotationMatrix;
 
     vec3 linear = $DECODE(textureCube(texture_cubeMap, fixSeamsStatic(final_dir * vec3(-1.0, 1.0, 1.0), $FIXCONST)));
 
@@ -65,18 +67,34 @@ shaderChunks.skyboxVS = projectiveSkyboxVS;
 class ProjectiveSkybox {
     app: AppBase;
     _enabled = false;
-    groundPosition = 0;         // in world units
+    origin = new Vec3(0);
+    tripodOffset = 0.1;         // tripod offset in Y-axis above the origin
     domeRadius = 1;             // in world units
-    domeOffset = 0.5;           // dome offset in Y-axis above the ground
-    tripodOffset = 0.1;         // tripod offset in Y-axis above the ground
+    domeOffset = 0.5;           // dome offset in Y-axis above the origin
 
     constructor(app: AppBase) {
         this.app = app;
 
         app.on('prerender', () => {
             const scope = app.graphicsDevice.scope;
-            scope.resolve('domeParams').setValue([0, this.groundPosition + this.domeRadius * this.domeOffset, 0, this.domeRadius]);
-            scope.resolve('groundParams').setValue([this.groundPosition, this.groundPosition + this.tripodOffset, this.enabled ? 1.0 : 0.0, 0]);
+            scope.resolve('tripodParams').setValue([
+                this.origin.x,
+                this.origin.y + this.domeRadius * this.tripodOffset,
+                this.origin.z,
+                this.enabled ? 1.0 : 0.0
+            ]);
+            scope.resolve('domeParams').setValue([
+                this.origin.x,
+                this.origin.y + this.domeRadius * this.domeOffset,
+                this.origin.z,
+                this.domeRadius * this.domeRadius
+            ]);
+            scope.resolve('groundPlane').setValue([
+                0,
+                1,
+                0,
+                -this.origin.y
+            ]);
         });
     }
 
