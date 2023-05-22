@@ -20,9 +20,7 @@ import {
     TONEMAP_HEJL,
     TONEMAP_ACES,
     TONEMAP_ACES2,
-    XRSPACE_LOCAL,
     XRSPACE_LOCALFLOOR,
-    XRSPACE_VIEWER,
     XRTYPE_AR,
     math,
     path,
@@ -168,24 +166,14 @@ class Viewer {
             app.xr.on("start", () => {
                 console.log("Immersive AR session has started");
                 observer.set('xrActive', true);
-                // this.app.scene.layers.getLayerById(LAYERID_SKYBOX).enabled = false;
-                this.setSkyboxBackground('Solid Color');
-            });
 
-            app.xr.planeDetection.on('add', (plane) => {
-                // plane detected
-                this.sceneRoot.setLocalPosition(plane.getPosition());
-                this.sceneRoot.setLocalRotation(plane.getRotation());
+                this.app.scene.layers.getLayerById(LAYERID_SKYBOX).enabled = false;
             });
 
             app.xr.on("end", () => {
                 console.log("Immersive AR session has ended");
                 observer.set('xrActive', false);
-
-                // reset
-                this.sceneRoot.setLocalPosition(Vec3.ZERO);
-                this.sceneRoot.setLocalRotation(Quat.IDENTITY);
-                this.setSkyboxBackground(this.observer.get('skybox.background'));
+                this.setSkyboxBlur(this.observer.get('skybox.blur'));
             });
         }
 
@@ -912,7 +900,6 @@ class Viewer {
     startXr() {
         if (this.app.xr.isAvailable(XRTYPE_AR)) {
             this.camera.camera.startXr(XRTYPE_AR, XRSPACE_LOCALFLOOR, {
-                planeDetection: true,
                 callback: (err) => {
                     console.log(err);
                 }
