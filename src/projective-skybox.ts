@@ -48,7 +48,7 @@ void main(void) {
     vec3 view_dir = normalize(vViewDir);
 
     // intersect ray with world geometry
-    float t = 8000.0;
+    float t = 8000.0;   // max intersection distance
     if (intersectSphere(t, view_pos, view_dir, domeParams) && view_dir.y < 0.0) {
         intersectPlane(t, view_pos, view_dir, groundPlane);
     }
