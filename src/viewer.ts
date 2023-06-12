@@ -828,7 +828,7 @@ class Viewer {
         this.assets.forEach((asset) => {
             variants = variants.concat(asset.resource.getMaterialVariants());
             asset.resource.renders.forEach((renderAsset: Asset) => {
-                meshCount += renderAsset.resource.meshes;
+                meshCount += renderAsset.resource.meshes.length;
                 renderAsset.resource.meshes.forEach((mesh: Mesh) => {
                     vertexCount += mesh.vertexBuffer.getNumVertices();
                     primitiveCount += mesh.primitive[0].count;
