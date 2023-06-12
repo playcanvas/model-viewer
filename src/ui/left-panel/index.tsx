@@ -23,14 +23,11 @@ const openPanel = () => {
     }
 };
 
-const toSizeString = (value: number) => {
-    if (value < 1024 * 1024) {
-        const str = `${(value / 1024).toFixed(2)}`;
-        return `${str.endsWith('.00') ? str.slice(0, str.length - 3) : str} KB`;
-    } else {
-        const str = `${(value / 1024 / 1024).toFixed(2)}`;
-        return `${str.endsWith('.00') ? str.slice(0, str.length - 3) : str} MB`;
-    }
+const bytesToSizeString = (bytes: number): string => {
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    if (bytes === 0) return 'n/a';
+    const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), sizes.length - 1);
+    return (i === 0) ? `${bytes} ${sizes[i]}` : `${(bytes / (1024 ** i)).toFixed(1)} ${sizes[i]}`;
 };
 
 class ScenePanel extends React.Component <{ sceneData: ObserverData['scene'], setProperty: SetProperty }> {
@@ -61,8 +58,8 @@ class ScenePanel extends React.Component <{ sceneData: ObserverData['scene'], se
                 <Detail label='Textures' value={scene.textureCount} />
                 <Detail label='Primitives' value={scene.primitiveCount} />
                 <Detail label='Verts' value={scene.vertexCount} />
-                <Detail label='Mesh VRAM' value={toSizeString(scene.meshVRAM)} />
-                <Detail label='Texture VRAM' value={toSizeString(scene.textureVRAM)} />
+                <Detail label='Mesh VRAM' value={bytesToSizeString(scene.meshVRAM)} />
+                <Detail label='Texture VRAM' value={bytesToSizeString(scene.textureVRAM)} />
                 <Detail label='Load time' value={scene.loadTime} />
                 <Vector label='Bounds' dimensions={3} value={scene.bounds} enabled={false}/>
                 <Select label='Variant' type='string' options={variantListOptions} value={scene.variant.selected}
