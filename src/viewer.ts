@@ -1673,9 +1673,9 @@ class Viewer {
                         }
 
                         this.debugNormals.generateNormals(vertexBuffer,
-                                                            meshInstance.node.getWorldTransform(),
-                                                            this.normalLength,
-                                                            skinMatrices);
+                                                          meshInstance.node.getWorldTransform(),
+                                                          this.normalLength,
+                                                          skinMatrices);
                     }
                 }
             }
