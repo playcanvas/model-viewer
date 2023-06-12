@@ -127,6 +127,8 @@ const observerData: ObserverData = {
         selectedTrack: 'ALL_TRACKS'
     },
     scene: {
+        urls: [],
+        filenames: [],
         nodes: '[]',
         selectedNode: {
             path: '',
@@ -149,8 +151,12 @@ const observerData: ObserverData = {
             }
         },
         meshCount: null,
+        materialCount: null,
+        textureCount: null,
         vertexCount: null,
         primitiveCount: null,
+        textureVRAM: null,
+        meshVRAM: null,
         bounds: null,
         variant: {
             selected: 0
@@ -164,8 +170,7 @@ const observerData: ObserverData = {
     spinner: false,
     error: null,
     xrSupported: false,
-    xrActive: false,
-    glbUrl: null
+    xrActive: false
 };
 
 // initialize the apps state

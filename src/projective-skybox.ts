@@ -17,15 +17,20 @@ void intersectPlane(inout float t, vec3 pos, vec3 dir, vec4 plane) {
     }
 }
 
-void intersectSphere(inout float t, vec3 pos, vec3 dir, vec4 sphere) {
+bool intersectSphere(inout float t, vec3 pos, vec3 dir, vec4 sphere) {
     vec3 L = sphere.xyz - pos;
     float tca = dot(L, dir);
 
     float d2 = sphere.w - (dot(L, L) - tca * tca);
     if (d2 >= 0.0) {
         float thc = tca + sqrt(d2);
-        if (thc >= 0.0 && thc < t) t = thc;
+        if (thc >= 0.0 && thc < t) {
+            t = thc;
+            return true;
+        }
     }
+
+    return false;
 }
 
 varying vec3 vViewDir;
@@ -43,9 +48,10 @@ void main(void) {
     vec3 view_dir = normalize(vViewDir);
 
     // intersect ray with world geometry
-    float t = 100.0;
-    if (view_dir.y < 0.0) intersectPlane(t, view_pos, view_dir, groundPlane);
-    intersectSphere(t, view_pos, view_dir, domeParams);
+    float t = 8000.0;
+    if (intersectSphere(t, view_pos, view_dir, domeParams) && view_dir.y < 0.0) {
+        intersectPlane(t, view_pos, view_dir, groundPlane);
+    }
 
     // calculate world space intersection
     vec3 world_pos = view_pos + view_dir * t;

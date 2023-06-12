@@ -211,9 +211,6 @@ class Viewer {
         // create drop handler
         this.dropHandler = new DropHandler((files: Array<File>, resetScene: boolean) => {
             this.loadFiles(files, resetScene);
-            if (resetScene) {
-                this.observer.set('glbUrl', '');
-            }
         });
 
         // Set the canvas to fill the window and automatically change resolution to be the same as the canvas size
@@ -405,9 +402,6 @@ class Viewer {
                 })
             );
         }
-        if (loadUrls.length === 1) {
-            this.observer.set('glbUrl', loadUrls[0]);
-        }
 
         // set camera position
         if (urlParams.hasOwnProperty('cameraPosition')) {
@@ -434,15 +428,6 @@ class Viewer {
             }
         }
         return meshInstances;
-    }
-
-    private updateMeshInstanceList() {
-
-        this.meshInstances = [];
-        for (let e = 0; e < this.entities.length; e++) {
-            const meshInstances = this.collectMeshInstances(this.entities[e]);
-            this.meshInstances = this.meshInstances.concat(meshInstances);
-        }
     }
 
     // calculate the bounding box of the given mesh
@@ -827,32 +812,35 @@ class Viewer {
         // reset animation state
         this.animTracks = [];
         this.animationMap = { };
-        this.observer.set('animation.list', '[]');
-        this.observer.set('scene.variants.list', '[]');
-
-        this.observer.set('morphs', null);
-
-        this.updateSceneInfo();
-
-        this.dirtyWireframe = this.dirtyBounds = this.dirtySkeleton = this.dirtyGrid = this.dirtyNormals = true;
-        this.renderNextFrame();
     }
 
     updateSceneInfo() {
         let meshCount = 0;
+        let meshVRAM = 0;
         let vertexCount = 0;
         let primitiveCount = 0;
+        let materialCount = 0;
+        let textureCount = 0;
+        let textureVRAM = 0;
         let variants: string[] = [];
 
         // update mesh stats
         this.assets.forEach((asset) => {
             variants = variants.concat(asset.resource.getMaterialVariants());
             asset.resource.renders.forEach((renderAsset: Asset) => {
+                meshCount += renderAsset.resource.meshes;
                 renderAsset.resource.meshes.forEach((mesh: Mesh) => {
-                    meshCount++;
                     vertexCount += mesh.vertexBuffer.getNumVertices();
                     primitiveCount += mesh.primitive[0].count;
+                    meshVRAM += mesh.vertexBuffer.numBytes + (mesh.indexBuffer?.numBytes ?? 0);
                 });
+            });
+
+            materialCount += asset.resource.materials.length;
+
+            textureCount += asset.resource.textures.length;
+            asset.resource.textures.forEach((texture: Asset) => {
+                textureVRAM += texture.resource.gpuSize;
             });
         });
 
@@ -877,8 +865,12 @@ class Viewer {
 
         // mesh stats
         this.observer.set('scene.meshCount', meshCount);
+        this.observer.set('scene.materialCount', materialCount);
+        this.observer.set('scene.textureCount', textureCount);
         this.observer.set('scene.vertexCount', vertexCount);
         this.observer.set('scene.primitiveCount', primitiveCount);
+        this.observer.set('scene.textureVRAM', textureVRAM);
+        this.observer.set('scene.meshVRAM', meshVRAM);
 
         // variant stats
         this.observer.set('scene.variants.list', JSON.stringify(variants));
@@ -951,105 +943,97 @@ class Viewer {
     }
 
     // load gltf model given its url and list of external urls
-    private loadGltf(gltfUrl: File, externalUrls: Array<File>, finishedCallback: (err: string | null, asset: Asset) => void) {
+    private loadGltf(gltfUrl: File, externalUrls: Array<File>) {
+        return new Promise((resolve, reject) => {
+            // provide buffer view callback so we can handle models compressed with MeshOptimizer
+            // https://github.com/zeux/meshoptimizer
+            const processBufferView = function (gltfBuffer: any, buffers: Array<any>, continuation: (err: string, result: any) => void) {
+                if (gltfBuffer.extensions && gltfBuffer.extensions.EXT_meshopt_compression) {
+                    const extensionDef = gltfBuffer.extensions.EXT_meshopt_compression;
 
-        // provide buffer view callback so we can handle models compressed with MeshOptimizer
-        // https://github.com/zeux/meshoptimizer
-        const processBufferView = function (gltfBuffer: any, buffers: Array<any>, continuation: (err: string, result: any) => void) {
-            if (gltfBuffer.extensions && gltfBuffer.extensions.EXT_meshopt_compression) {
-                const extensionDef = gltfBuffer.extensions.EXT_meshopt_compression;
+                    Promise.all([MeshoptDecoder.ready, buffers[extensionDef.buffer]])
+                        .then((promiseResult) => {
+                            const buffer = promiseResult[1];
 
-                Promise.all([MeshoptDecoder.ready, buffers[extensionDef.buffer]])
-                    .then((promiseResult) => {
-                        const buffer = promiseResult[1];
+                            const byteOffset = extensionDef.byteOffset || 0;
+                            const byteLength = extensionDef.byteLength || 0;
 
-                        const byteOffset = extensionDef.byteOffset || 0;
-                        const byteLength = extensionDef.byteLength || 0;
+                            const count = extensionDef.count;
+                            const stride = extensionDef.byteStride;
 
-                        const count = extensionDef.count;
-                        const stride = extensionDef.byteStride;
+                            const result = new Uint8Array(count * stride);
+                            const source = new Uint8Array(buffer.buffer, buffer.byteOffset + byteOffset, byteLength);
 
-                        const result = new Uint8Array(count * stride);
-                        const source = new Uint8Array(buffer.buffer, buffer.byteOffset + byteOffset, byteLength);
+                            MeshoptDecoder.decodeGltfBuffer(result, count, stride, source, extensionDef.mode, extensionDef.filter);
 
-                        MeshoptDecoder.decodeGltfBuffer(result, count, stride, source, extensionDef.mode, extensionDef.filter);
+                            continuation(null, result);
+                        });
+                } else {
+                    continuation(null, null);
+                }
+            };
 
-                        continuation(null, result);
+            const processImage = function (gltfImage: any, continuation: (err: string, result: any) => void) {
+                const u: File = externalUrls.find((url) => {
+                    return url.filename === path.normalize(gltfImage.uri || "");
+                });
+                if (u) {
+                    const textureAsset = new Asset(u.filename, 'texture', {
+                        url: u.url,
+                        filename: u.filename
                     });
-            } else {
-                continuation(null, null);
-            }
-        };
+                    textureAsset.on('load', () => {
+                        continuation(null, textureAsset);
+                    });
+                    this.app.assets.add(textureAsset);
+                    this.app.assets.load(textureAsset);
+                } else {
+                    continuation(null, null);
+                }
+            };
 
-        const processImage = function (gltfImage: any, continuation: (err: string, result: any) => void) {
-            const u: File = externalUrls.find((url) => {
-                return url.filename === path.normalize(gltfImage.uri || "");
+            const postProcessImage = (gltfImage: any, textureAsset: Asset) => {
+                // max anisotropy on all textures
+                textureAsset.resource.anisotropy = this.app.graphicsDevice.maxAnisotropy;
+            };
+
+            const processBuffer = function (gltfBuffer: any, continuation: (err: string, result: any) => void) {
+                const u = externalUrls.find((url) => {
+                    return url.filename === path.normalize(gltfBuffer.uri || "");
+                });
+                if (u) {
+                    const bufferAsset = new Asset(u.filename, 'binary', {
+                        url: u.url,
+                        filename: u.filename
+                    });
+                    bufferAsset.on('load', () => {
+                        continuation(null, new Uint8Array(bufferAsset.resource));
+                    });
+                    this.app.assets.add(bufferAsset);
+                    this.app.assets.load(bufferAsset);
+                } else {
+                    continuation(null, null);
+                }
+            };
+
+            const containerAsset = new Asset(gltfUrl.filename, 'container', gltfUrl, null, {
+                // @ts-ignore TODO no definition in pc
+                bufferView: {
+                    processAsync: processBufferView.bind(this)
+                },
+                image: {
+                    processAsync: processImage.bind(this),
+                    postprocess: postProcessImage
+                },
+                buffer: {
+                    processAsync: processBuffer.bind(this)
+                }
             });
-            if (u) {
-                const textureAsset = new Asset(u.filename, 'texture', {
-                    url: u.url,
-                    filename: u.filename
-                });
-                textureAsset.on('load', () => {
-                    continuation(null, textureAsset);
-                });
-                this.app.assets.add(textureAsset);
-                this.app.assets.load(textureAsset);
-            } else {
-                continuation(null, null);
-            }
-        };
-
-        const postProcessImage = (gltfImage: any, textureAsset: Asset) => {
-            // max anisotropy on all textures
-            textureAsset.resource.anisotropy = this.app.graphicsDevice.maxAnisotropy;
-        };
-
-        const processBuffer = function (gltfBuffer: any, continuation: (err: string, result: any) => void) {
-            const u = externalUrls.find((url) => {
-                return url.filename === path.normalize(gltfBuffer.uri || "");
-            });
-            if (u) {
-                const bufferAsset = new Asset(u.filename, 'binary', {
-                    url: u.url,
-                    filename: u.filename
-                });
-                bufferAsset.on('load', () => {
-                    continuation(null, new Uint8Array(bufferAsset.resource));
-                });
-                this.app.assets.add(bufferAsset);
-                this.app.assets.load(bufferAsset);
-            } else {
-                continuation(null, null);
-            }
-        };
-
-        const containerAsset = new Asset(gltfUrl.filename, 'container', gltfUrl, null, {
-            // @ts-ignore TODO no definition in pc
-            bufferView: {
-                processAsync: processBufferView.bind(this)
-            },
-            image: {
-                processAsync: processImage.bind(this),
-                postprocess: postProcessImage
-            },
-            buffer: {
-                processAsync: processBuffer.bind(this)
-            }
+            containerAsset.on('load', () => resolve(containerAsset));
+            containerAsset.on('error', (err : string) => reject(err));
+            this.app.assets.add(containerAsset);
+            this.app.assets.load(containerAsset);
         });
-        containerAsset.on('load', () => {
-            finishedCallback(null, containerAsset);
-        });
-        containerAsset.on('error', (err : string) => {
-            finishedCallback(err, containerAsset);
-        });
-
-        this.observer.set('spinner', true);
-        this.observer.set('error', null);
-        this.clearCta();
-
-        this.app.assets.add(containerAsset);
-        this.app.assets.load(containerAsset);
     }
 
     // returns true if the filename has one of the recognized model extensions
@@ -1077,27 +1061,46 @@ class Viewer {
 
             const loadTimestamp = Date.now();
 
-            // kick off simultaneous asset load
-            let awaiting = 0;
-            const assets: { err: string, asset: Asset }[] = [];
-            files.forEach((file, index) => {
-                if (this.isModelFilename(file.filename)) {
-                    awaiting++;
-                    this.loadGltf(file, files, (err, asset) => {
-                        assets[index] = { err: err, asset: asset };
-                        if (--awaiting === 0) {
-                            this.loadTimestamp = loadTimestamp;
+            this.observer.set('spinner', true);
+            this.observer.set('error', null);
+            this.clearCta();
 
-                            // done loading assets, add them to the scene
-                            assets.forEach((asset) => {
-                                if (asset) {
-                                    this.addToScene(asset.err, asset.asset);
-                                }
-                            });
+            // load asset files
+            const promises = files.map((file) => {
+                return this.isModelFilename(file.filename) ? this.loadGltf(file, files) : null;
+            });
+
+            Promise.all(promises)
+                .then((assets: Asset[]) => {
+                    this.loadTimestamp = loadTimestamp;
+
+                    // add assets to the scene
+                    assets.forEach((asset) => {
+                        if (asset) {
+                            this.addToScene(asset);
                         }
                     });
-                }
-            });
+
+                    // prepare scene post load
+                    this.postSceneLoad();
+
+                    // update scene urls
+                    const urls = files.map(f => f.url);
+                    const filenames = files.map(f => f.filename.split('/').pop());
+                    if (resetScene) {
+                        this.observer.set('scene.urls', urls);
+                        this.observer.set('scene.filenames', filenames);
+                    } else {
+                        this.observer.set('scene.urls', this.observer.get('scene.urls').concat(urls));
+                        this.observer.set('scene.filenames', this.observer.get('scene.filenames').concat(filenames));
+                    }
+                })
+                .catch((err) => {
+                    this.observer.set('error', err);
+                })
+                .finally(() => {
+                    this.observer.set('spinner', false);
+                });
         } else {
             // load skybox
             this.loadSkybox(files);
@@ -1324,7 +1327,7 @@ class Viewer {
     }
 
     setSkyboxDomeRadius(radius: number) {
-        this.projectiveSkybox.domeRadius = radius;
+        this.projectiveSkybox.domeRadius = (this.sceneBounds?.halfExtents.length() ?? 1) * radius;
         this.renderNextFrame();
     }
 
@@ -1419,14 +1422,7 @@ class Viewer {
 
     // add a loaded asset to the scene
     // asset is a container asset with renders and/or animations
-    private addToScene(err: string, asset: Asset) {
-        this.observer.set('spinner', false);
-
-        if (err) {
-            this.observer.set('error', err);
-            return;
-        }
-
+    private addToScene(asset: Asset) {
         const resource = asset.resource;
         const meshesLoaded = resource.renders && resource.renders.length > 0;
         const animsLoaded = resource.animations && resource.animations.length > 0;
@@ -1452,6 +1448,25 @@ class Viewer {
             });
         }
 
+        // store the loaded asset
+        this.assets.push(asset);
+    }
+
+    // perform post-load operations on the scene
+    private postSceneLoad() {
+        // construct a list of meshInstances so we can quickly access them when configuring wireframe rendering etc.
+        this.meshInstances = this.entities.map((entity) => {
+            return this.collectMeshInstances(entity);
+        }).flat();
+
+        // if no meshes are currently loaded, then enable skeleton rendering so user can see something
+        if (this.meshInstances.length === 0) {
+            this.observer.set('debug.skeleton', true);
+        }
+
+        // update
+        this.updateSceneInfo();
+
         // rebuild the anim state graph
         if (this.animTracks.length > 0) {
             this.rebuildAnimTracks();
@@ -1459,11 +1474,10 @@ class Viewer {
 
         // make a list of all the morph instance target names
         const morphs: Record<string, { name: string, targets: Record<string, MorphTargetData> }> = {};
-
         const morphInstances: Record<string, MorphInstance> = {};
+
         // get all morph targets
-        const meshInstances = this.collectMeshInstances(entity);
-        meshInstances.forEach((meshInstance, i) => {
+        this.meshInstances.forEach((meshInstance, i) => {
             if (meshInstance.morphInstance) {
                 const morphInstance = meshInstance.morphInstance;
                 morphInstances[i] = morphInstance;
@@ -1510,20 +1524,6 @@ class Viewer {
                 }
             }
         });
-
-        // store the loaded asset
-        this.assets.push(asset);
-
-        // update
-        this.updateSceneInfo();
-
-        // construct a list of meshInstances so we can quickly access them when configuring wireframe rendering etc.
-        this.updateMeshInstanceList();
-
-        // if no meshes are loaded then enable skeleton rendering so user can see something
-        if (this.meshInstances.length === 0) {
-            this.observer.set('debug.skeleton', true);
-        }
 
         // dirty everything
         this.dirtyWireframe = this.dirtyBounds = this.dirtySkeleton = this.dirtyGrid = this.dirtyNormals = true;
@@ -1609,134 +1609,128 @@ class Viewer {
 
     // generate and render debug elements on prerender
     private onPrerender() {
-        // don't update on the first frame
-        if (!this.firstFrame) {
-            let meshInstance;
+        if (this.firstFrame) {
+            return;
+        }
 
-            // wireframe
-            if (this.dirtyWireframe) {
-                this.dirtyWireframe = false;
+        // wireframe
+        if (this.dirtyWireframe) {
+            this.dirtyWireframe = false;
 
-                this.resetWireframeMeshes();
-                if (this.showWireframe) {
-                    this.buildWireframeMeshes();
+            this.resetWireframeMeshes();
+            if (this.showWireframe) {
+                this.buildWireframeMeshes();
+            }
+
+            this.meshInstances.forEach((mi) => {
+                mi.material.depthBias = this.showWireframe ? -1.0 : 0.0;
+                mi.material.slopeDepthBias = this.showWireframe ? 1.0 : 0.0;
+            });
+        }
+
+        // debug bounds
+        if (this.dirtyBounds) {
+            this.dirtyBounds = false;
+
+            // calculate bounds
+            this.sceneBounds = this.calcSceneBounds();
+
+            this.debugBounds.clear();
+            if (this.showBounds) {
+                this.debugBounds.box(this.sceneBounds.getMin(), this.sceneBounds.getMax());
+            }
+            this.debugBounds.update();
+
+            const v = new Vec3(
+                this.sceneBounds.halfExtents.x * 2,
+                this.sceneBounds.halfExtents.y * 2,
+                this.sceneBounds.halfExtents.z * 2
+            );
+            this.observer.set('scene.bounds', v.toString());
+        }
+
+        // debug normals
+        if (this.dirtyNormals) {
+            this.dirtyNormals = false;
+            this.debugNormals.clear();
+
+            if (this.normalLength > 0) {
+                for (let i = 0; i < this.meshInstances.length; ++i) {
+                    const meshInstance = this.meshInstances[i];
+
+                    const vertexBuffer = meshInstance.morphInstance ?
+                        // @ts-ignore TODO not defined in pc
+                        meshInstance.morphInstance._vertexBuffer : meshInstance.mesh.vertexBuffer;
+
+                    if (vertexBuffer) {
+                        const skinMatrices = meshInstance.skinInstance ? meshInstance.skinInstance.matrices : null;
+
+                        // if there is skinning we need to manually update matrices here otherwise
+                        // our normals are always a frame behind
+                        if (skinMatrices) {
+                            // @ts-ignore TODO not defined in pc
+                            meshInstance.skinInstance.updateMatrices(meshInstance.node);
+                        }
+
+                        this.debugNormals.generateNormals(vertexBuffer,
+                                                            meshInstance.node.getWorldTransform(),
+                                                            this.normalLength,
+                                                            skinMatrices);
+                    }
                 }
+            }
+            this.debugNormals.update();
+        }
 
-                this.meshInstances.forEach((mi) => {
-                    mi.material.depthBias = this.showWireframe ? -1.0 : 0.0;
-                    mi.material.slopeDepthBias = this.showWireframe ? 1.0 : 0.0;
+        // debug skeleton
+        if (this.dirtySkeleton) {
+            this.dirtySkeleton = false;
+            this.debugSkeleton.clear();
+
+            if (this.showSkeleton || this.showAxes) {
+                this.entities.forEach((entity) => {
+                    if (this.meshInstances.length === 0 || entity.findComponent("render")) {
+                        this.debugSkeleton.generateSkeleton(entity, this.showSkeleton, this.showAxes, this.selectedNode);
+                    }
                 });
             }
 
-            // debug bounds
-            if (this.dirtyBounds) {
-                this.dirtyBounds = false;
-
-                // calculate bounds
-                this.sceneBounds = this.calcSceneBounds();
-
-                this.debugBounds.clear();
-                if (this.showBounds) {
-                    this.debugBounds.box(this.sceneBounds.getMin(), this.sceneBounds.getMax());
-                }
-                this.debugBounds.update();
-
-                const v = new Vec3(
-                    this.sceneBounds.halfExtents.x * 2,
-                    this.sceneBounds.halfExtents.y * 2,
-                    this.sceneBounds.halfExtents.z * 2
-                );
-                this.observer.set('scene.bounds', v.toString());
-
-                // place projective skybox origin bottom center of scene
-                this.projectiveSkybox.origin.set(this.sceneBounds.center.x, this.sceneBounds.getMin().y, this.sceneBounds.center.z);
-            }
-
-            // debug normals
-            if (this.dirtyNormals) {
-                this.dirtyNormals = false;
-                this.debugNormals.clear();
-
-                if (this.normalLength > 0) {
-                    for (let i = 0; i < this.meshInstances.length; ++i) {
-                        meshInstance = this.meshInstances[i];
-
-                        const vertexBuffer = meshInstance.morphInstance ?
-                            // @ts-ignore TODO not defined in pc
-                            meshInstance.morphInstance._vertexBuffer : meshInstance.mesh.vertexBuffer;
-
-                        if (vertexBuffer) {
-                            const skinMatrices = meshInstance.skinInstance ? meshInstance.skinInstance.matrices : null;
-
-                            // if there is skinning we need to manually update matrices here otherwise
-                            // our normals are always a frame behind
-                            if (skinMatrices) {
-                                // @ts-ignore TODO not defined in pc
-                                meshInstance.skinInstance.updateMatrices(meshInstance.node);
-                            }
-
-                            this.debugNormals.generateNormals(vertexBuffer,
-                                                              meshInstance.node.getWorldTransform(),
-                                                              this.normalLength,
-                                                              skinMatrices);
-                        }
-                    }
-                }
-                this.debugNormals.update();
-            }
-
-            // debug skeleton
-            if (this.dirtySkeleton) {
-                this.dirtySkeleton = false;
-                this.debugSkeleton.clear();
-
-                if (this.showSkeleton || this.showAxes) {
-                    this.entities.forEach((entity) => {
-                        if (this.meshInstances.length === 0 || entity.findComponent("render")) {
-                            this.debugSkeleton.generateSkeleton(entity, this.showSkeleton, this.showAxes, this.selectedNode);
-                        }
-                    });
-                }
-
-                this.debugSkeleton.update();
-            }
-
-            // debug grid
-            if (this.sceneBounds && this.dirtyGrid) {
-                this.dirtyGrid = false;
-
-                this.debugGrid.clear();
-                if (this.showGrid) {
-                    // calculate primary spacing
-                    const spacing = Math.pow(10, Math.floor(Math.log10(this.sceneBounds.halfExtents.length())));
-
-                    const v0 = new Vec3(0, 0, 0);
-                    const v1 = new Vec3(0, 0, 0);
-
-                    const numGrids = 10;
-                    const a = numGrids * spacing;
-                    for (let x = -numGrids; x < numGrids + 1; ++x) {
-                        const b = x * spacing;
-
-                        v0.set(-a, 0, b);
-                        v1.set(a, 0, b);
-                        this.debugGrid.line(v0, v1, b === 0 ? (0x80000000 >>> 0) : (0x80ffffff >>> 0));
-
-                        v0.set(b, 0, -a);
-                        v1.set(b, 0, a);
-                        this.debugGrid.line(v0, v1, b === 0 ? (0x80000000 >>> 0) : (0x80ffffff >>> 0));
-                    }
-                }
-                this.debugGrid.update();
-            }
+            this.debugSkeleton.update();
         }
 
-        // this.app.drawWireSphere(this.cursorWorld, 0.01);
+        // debug grid
+        if (this.sceneBounds && this.dirtyGrid) {
+            this.dirtyGrid = false;
+
+            this.debugGrid.clear();
+            if (this.showGrid) {
+                // calculate primary spacing
+                const spacing = Math.pow(10, Math.floor(Math.log10(this.sceneBounds.halfExtents.length())));
+
+                const v0 = new Vec3(0, 0, 0);
+                const v1 = new Vec3(0, 0, 0);
+
+                const numGrids = 10;
+                const a = numGrids * spacing;
+                for (let x = -numGrids; x < numGrids + 1; ++x) {
+                    const b = x * spacing;
+
+                    v0.set(-a, 0, b);
+                    v1.set(a, 0, b);
+                    this.debugGrid.line(v0, v1, b === 0 ? (0x80000000 >>> 0) : (0x80ffffff >>> 0));
+
+                    v0.set(b, 0, -a);
+                    v1.set(b, 0, a);
+                    this.debugGrid.line(v0, v1, b === 0 ? (0x80000000 >>> 0) : (0x80ffffff >>> 0));
+                }
+            }
+            this.debugGrid.update();
+        }
     }
 
     private onPostrender() {
         // resolve the (possibly multisampled) render target
-        if (this.camera.camera.renderTarget._samples > 1) {
+        if (!this.firstFrame && this.camera.camera.renderTarget._samples > 1) {
             this.camera.camera.renderTarget.resolve();
         }
 
@@ -1749,12 +1743,18 @@ class Viewer {
         if (this.firstFrame) {
             this.firstFrame = false;
 
-            // focus camera after first frame otherwise skinned model bounding
-            // boxes are incorrect
             this.focusCamera();
             this.renderNextFrame();
-        } else if (this.loadTimestamp !== null) {
-            this.observer.set('scene.loadTime', `${Date.now() - this.loadTimestamp} ms`);
+
+            const sceneBounds = this.calcSceneBounds();
+
+            // place projective skybox origin bottom center of scene
+            this.projectiveSkybox.origin.set(sceneBounds.center.x, sceneBounds.getMin().y, sceneBounds.center.z);
+            this.projectiveSkybox.domeRadius = sceneBounds.halfExtents.length() * this.observer.get('skybox.domeProjection.domeRadius');
+        }
+
+        if (this.loadTimestamp !== null) {
+            this.observer.set('scene.loadTime', `${Date.now() - this.loadTimestamp}ms`);
             this.loadTimestamp = null;
         }
 

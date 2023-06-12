@@ -87,6 +87,8 @@ export interface ObserverData {
         selectedTrack: string
     },
     scene: {
+        urls: string[],
+        filenames: string[],
         nodes: string,
         selectedNode: {
             path: string,
@@ -109,8 +111,12 @@ export interface ObserverData {
             }
         },
         meshCount?: number,
+        materialCount?: number,
+        textureCount?: number,
         vertexCount?: number,
         primitiveCount?: number,
+        textureVRAM?: number,
+        meshVRAM?: number,
         bounds?: any,
         variant: {
             selected: number
@@ -127,8 +133,7 @@ export interface ObserverData {
     spinner: boolean,
     error?: string,
     xrSupported: boolean,
-    xrActive: boolean,
-    glbUrl?: string
+    xrActive: boolean
 }
 
 export type SetProperty = (path: string, value: any) => void;
