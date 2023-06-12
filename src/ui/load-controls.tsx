@@ -50,8 +50,6 @@ const LoadControls = (props: { setProperty: SetProperty }) => {
             url: value,
             filename: filename + (hasExtension ? '' : '.glb')
         }]);
-        props.setProperty('glbUrl', url);
-
     };
 
     return (

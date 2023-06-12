@@ -14,7 +14,7 @@ const PopupPanelControls = (props: { observerData: ObserverData, setProperty: Se
         <SkyboxPanel setProperty={props.setProperty} skyboxData={props.observerData.skybox} uiData={props.observerData.ui} />
         <LightPanel setProperty={props.setProperty} lightData={props.observerData.light} uiData={props.observerData.ui} />
         <DebugPanel setProperty={props.setProperty} debugData={props.observerData.debug} uiData={props.observerData.ui} />
-        <ViewPanel setProperty={props.setProperty} glbUrl={props.observerData.glbUrl} uiData={props.observerData.ui} />
+        <ViewPanel setProperty={props.setProperty} sceneData={props.observerData.scene} uiData={props.observerData.ui} />
     </>);
 };
 

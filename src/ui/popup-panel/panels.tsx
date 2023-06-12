@@ -291,14 +291,14 @@ class DebugPanel extends React.Component <{
 }
 
 class ViewPanel extends React.Component <{
+    sceneData: ObserverData['scene'],
     uiData: ObserverData['ui'],
-    glbUrl: string,
     setProperty: SetProperty }> {
 
     isMobile: boolean;
 
     get shareUrl() {
-        return `${location.origin}${location.pathname}/?load=${this.props.glbUrl}`;
+        return `${location.origin}${location.pathname}?${this.props.sceneData.urls.map((url: string) => `load=${url}`).join('&')}`;
     }
 
     constructor(props: any) {
@@ -307,29 +307,30 @@ class ViewPanel extends React.Component <{
     }
 
     shouldComponentUpdate(nextProps: Readonly<{
+        sceneData: ObserverData['scene'];
         uiData: ObserverData['ui'];
-        glbUrl: string,
         setProperty: SetProperty; }>): boolean {
-        return JSON.stringify(nextProps.uiData) !== JSON.stringify(this.props.uiData) ||
-        nextProps.glbUrl !== this.props.glbUrl;
+        return JSON.stringify(nextProps.sceneData) !== JSON.stringify(this.props.sceneData) ||
+               JSON.stringify(nextProps.uiData) !== JSON.stringify(this.props.uiData);
     }
 
     updateQRCode() {
-        const canvas = document.getElementById('share-qr');
+        const canvas = document.getElementById('share-qr') as HTMLCanvasElement;
         const qr = new QRious({
             element: canvas,
-            value: this.shareUrl
+            value: this.shareUrl,
+            size: canvas.getBoundingClientRect().width * window.devicePixelRatio
         });
     }
 
     componentDidMount() {
-        if (this.props.glbUrl) {
+        if (this.props.sceneData.urls.length > 0) {
             this.updateQRCode();
         }
     }
 
     componentDidUpdate(): void {
-        if (this.props.glbUrl) {
+        if (this.props.sceneData.urls.length > 0) {
             this.updateQRCode();
         }
     }
@@ -339,7 +340,7 @@ class ViewPanel extends React.Component <{
         return (
             <div className='popup-panel-parent'>
                 <Container id='view-panel' class='popup-panel' flex hidden={props.uiData.active !== 'view'}>
-                    { this.props.glbUrl && !this.isMobile ?
+                    { this.props.sceneData.urls.length > 0 && !this.isMobile ?
                         <>
                             <Label text='View and share on mobile with QR code' />
                             <div id='qr-wrapper'>

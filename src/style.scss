@@ -35,10 +35,6 @@ body {
     position: relative;
 }
 
-#panel-left.empty {
-    display: none;
-}
-
 #panel-left.collapsed {
     width: 32px !important;
     overflow: hidden;

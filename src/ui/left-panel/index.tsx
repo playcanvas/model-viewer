@@ -23,13 +23,24 @@ const openPanel = () => {
     }
 };
 
+const bytesToSizeString = (bytes: number): string => {
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    if (bytes === 0) return 'n/a';
+    const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), sizes.length - 1);
+    return (i === 0) ? `${bytes} ${sizes[i]}` : `${(bytes / (1024 ** i)).toFixed(1)} ${sizes[i]}`;
+};
+
 class ScenePanel extends React.Component <{ sceneData: ObserverData['scene'], setProperty: SetProperty }> {
     shouldComponentUpdate(nextProps: Readonly<{ sceneData: ObserverData['scene']; setProperty: SetProperty; }>): boolean {
         return (
+            JSON.stringify(nextProps.sceneData.filenames) !== JSON.stringify(this.props.sceneData.filenames) ||
             nextProps.sceneData.loadTime !== this.props.sceneData.loadTime ||
             nextProps.sceneData.meshCount !== this.props.sceneData.meshCount ||
             nextProps.sceneData.vertexCount !== this.props.sceneData.vertexCount ||
             nextProps.sceneData.primitiveCount !== this.props.sceneData.primitiveCount ||
+            nextProps.sceneData.materialCount !== this.props.sceneData.materialCount ||
+            nextProps.sceneData.textureVRAM !== this.props.sceneData.textureVRAM ||
+            nextProps.sceneData.meshVRAM !== this.props.sceneData.meshVRAM ||
             nextProps.sceneData.bounds !== this.props.sceneData.bounds ||
             nextProps.sceneData.variant.selected !== this.props.sceneData.variant.selected ||
             nextProps.sceneData.variants.list !== this.props.sceneData.variants.list
@@ -41,10 +52,15 @@ class ScenePanel extends React.Component <{ sceneData: ObserverData['scene'], se
         const variantListOptions: Array<{ v:string, t:string }> = JSON.parse(scene.variants.list).map((variant: string) => ({ v: variant, t: variant }));
         return (
             <Panel headerText='SCENE' id='scene-panel' flexShrink={'0'} flexGrow={'0'} collapsible={false} >
-                <Detail label='Load time' value={scene.loadTime} />
+                <Detail label='Filename' value={scene.filenames.join(', ')} />
                 <Detail label='Meshes' value={scene.meshCount} />
-                <Detail label='Verts' value={scene.vertexCount} />
+                <Detail label='Materials' value={scene.materialCount} />
+                <Detail label='Textures' value={scene.textureCount} />
                 <Detail label='Primitives' value={scene.primitiveCount} />
+                <Detail label='Verts' value={scene.vertexCount} />
+                <Detail label='Mesh VRAM' value={bytesToSizeString(scene.meshVRAM)} />
+                <Detail label='Texture VRAM' value={bytesToSizeString(scene.textureVRAM)} />
+                <Detail label='Load time' value={scene.loadTime} />
                 <Vector label='Bounds' dimensions={3} value={scene.bounds} enabled={false}/>
                 <Select label='Variant' type='string' options={variantListOptions} value={scene.variant.selected}
                     setProperty={(value: string) => {
