@@ -1038,8 +1038,9 @@ class Viewer {
 
     // returns true if the filename has one of the recognized model extensions
     isModelFilename(filename: string) {
-        const filenameExt = path.getExtension(filename).toLowerCase();
-        return modelExtensions.indexOf(filenameExt) !== -1;
+        const parts = filename.split('?')[0].split('/').pop().split('.');
+        const result = parts.length === 1 || modelExtensions.includes(parts.pop().toLowerCase());
+        return result;
     }
 
     // load the list of urls.
