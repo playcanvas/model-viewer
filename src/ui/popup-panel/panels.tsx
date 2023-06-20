@@ -314,6 +314,10 @@ class ViewPanel extends React.Component <{
                JSON.stringify(nextProps.uiData) !== JSON.stringify(this.props.uiData);
     }
 
+    get hasQRCode() {
+        return this.props.sceneData.urls.length > 0 && !this.isMobile;
+    }
+
     updateQRCode() {
         const canvas = document.getElementById('share-qr') as HTMLCanvasElement;
         const qr = new QRious({
@@ -324,13 +328,13 @@ class ViewPanel extends React.Component <{
     }
 
     componentDidMount() {
-        if (this.props.sceneData.urls.length > 0) {
+        if (this.hasQRCode) {
             this.updateQRCode();
         }
     }
 
     componentDidUpdate(): void {
-        if (this.props.sceneData.urls.length > 0) {
+        if (this.hasQRCode) {
             this.updateQRCode();
         }
     }
@@ -340,7 +344,7 @@ class ViewPanel extends React.Component <{
         return (
             <div className='popup-panel-parent'>
                 <Container id='view-panel' class='popup-panel' flex hidden={props.uiData.active !== 'view'}>
-                    { this.props.sceneData.urls.length > 0 && !this.isMobile ?
+                    { this.hasQRCode ?
                         <>
                             <Label text='View and share on mobile with QR code' />
                             <div id='qr-wrapper'>
