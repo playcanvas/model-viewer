@@ -70,7 +70,7 @@ import { PngExporter } from './png-exporter.js';
 import { ProjectiveSkybox } from './projective-skybox';
 
 // model filename extensions
-const modelExtensions = ['.gltf', '.glb', '.vox'];
+const modelExtensions = ['gltf', 'glb', 'vox'];
 
 const defaultSceneBounds = new BoundingBox(new Vec3(0, 1, 0), new Vec3(1, 1, 1));
 
