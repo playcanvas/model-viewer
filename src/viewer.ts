@@ -20,7 +20,8 @@ import {
     TONEMAP_HEJL,
     TONEMAP_ACES,
     TONEMAP_ACES2,
-    XRSPACE_LOCALFLOOR,
+    XRSPACE_LOCAL,
+    XRSPACE_VIEWER,
     XRTYPE_AR,
     math,
     path,
@@ -62,17 +63,18 @@ import { MeshoptDecoder } from '../lib/meshopt_decoder.module.js';
 import { getAssetPath } from './helpers';
 import { DropHandler } from './drop-handler';
 import { MorphTargetData, File, HierarchyNode } from './types';
-import { DebugLines } from './debug';
+import { DebugLines } from './debug-lines';
 import { Multiframe } from './multiframe';
 import { ReadDepth } from './read-depth';
 import { OrbitCamera, OrbitCameraInputMouse, OrbitCameraInputTouch } from './orbit-camera';
 import { PngExporter } from './png-exporter.js';
 import { ProjectiveSkybox } from './projective-skybox';
+import { Shadow } from './shadow';
 
 // model filename extensions
 const modelExtensions = ['gltf', 'glb', 'vox'];
-
 const defaultSceneBounds = new BoundingBox(new Vec3(0, 1, 0), new Vec3(1, 1, 1));
+const vec = new Vec3();
 
 class Viewer {
     app: App;
@@ -83,7 +85,6 @@ class Viewer {
     orbitCamera: OrbitCamera;
     orbitCameraInputMouse: OrbitCameraInputMouse;
     orbitCameraInputTouch: OrbitCameraInputTouch;
-    cameraFocusBBox: BoundingBox | null;
     cameraPosition: Vec3 | null;
     light: Entity;
     sceneRoot: Entity;
@@ -113,6 +114,7 @@ class Viewer {
     dirtyGrid: boolean;
     dirtyNormals: boolean;
     sceneBounds: BoundingBox;
+    dynamicSceneBounds: BoundingBox;
     debugBounds: DebugLines;
     debugSkeleton: DebugLines;
     debugGrid: DebugLines;
@@ -132,6 +134,9 @@ class Viewer {
     loadTimestamp?: number = null;
 
     projectiveSkybox: ProjectiveSkybox = null;
+    shadow: Shadow = null;
+
+    xrBackupPosition: Vec3 = null;
 
     constructor(canvas: HTMLCanvasElement, observer: Observer) {
         // create the application
@@ -164,16 +169,13 @@ class Viewer {
             });
 
             app.xr.on("start", () => {
-                console.log("Immersive AR session has started");
                 observer.set('xrActive', true);
-
-                this.app.scene.layers.getLayerById(LAYERID_SKYBOX).enabled = false;
+                this.onXrStart();
             });
 
             app.xr.on("end", () => {
-                console.log("Immersive AR session has ended");
                 observer.set('xrActive', false);
-                this.setSkyboxBlur(this.observer.get('skybox.blur'));
+                this.onXrEnd();
             });
         }
 
@@ -276,7 +278,6 @@ class Viewer {
 
         // store app things
         this.camera = camera;
-        this.cameraFocusBBox = null;
         this.cameraPosition = null;
         this.light = light;
         this.sceneRoot = sceneRoot;
@@ -323,6 +324,7 @@ class Viewer {
         this.dirtyNormals = false;
 
         this.sceneBounds = null;
+        this.dynamicSceneBounds = null;
 
         this.debugBounds = new DebugLines(app, camera);
         this.debugSkeleton = new DebugLines(app, camera);
@@ -346,6 +348,9 @@ class Viewer {
 
         // projective skybox
         this.projectiveSkybox = new ProjectiveSkybox(app);
+
+        // dynamic shadow
+        this.shadow = new Shadow(app, this.camera.camera.camera, this.debugRoot, this.sceneRoot);
 
         // initialize control events
         this.bindControlEvents();
@@ -795,6 +800,7 @@ class Viewer {
 
         this.entities.forEach((entity) => {
             this.sceneRoot.removeChild(entity);
+            this.shadow.onEntityRemoved(entity);
             entity.destroy();
         });
         this.entities = [];
@@ -889,57 +895,56 @@ class Viewer {
         this.pngExporter.export('model-viewer.png', new Uint32Array(data.buffer), w, h);
     }
 
-    startXr() {
-        if (this.app.xr.isAvailable(XRTYPE_AR)) {
-            this.camera.camera.startXr(XRTYPE_AR, XRSPACE_LOCALFLOOR, {
-                callback: (err) => {
-                    console.log(err);
-                }
-            });
-        }
-    }
-
     // move the camera to view the loaded object
     focusCamera() {
         const camera = this.camera.camera;
 
-        const bbox = this.calcSceneBounds();
-
-        if (this.cameraFocusBBox) {
-            const intersection = Viewer.calcBoundingBoxIntersection(this.cameraFocusBBox, bbox);
-            if (intersection) {
-                const len1 = bbox.halfExtents.length();
-                const len2 = this.cameraFocusBBox.halfExtents.length();
-                const len3 = intersection.halfExtents.length();
-                if ((Math.abs(len3 - len1) / len1 < 0.1) &&
-                    (Math.abs(len3 - len2) / len2 < 0.1)) {
-                    return;
-                }
-            }
-        }
-
         // calculate scene bounding box
+        const bbox = this.calcSceneBounds();
         const radius = bbox.halfExtents.length();
         const distance = (radius * 1.4) / Math.sin(0.5 * camera.fov * camera.aspectRatio * math.DEG_TO_RAD);
 
         if (this.cameraPosition) {
+            // user-specified camera position
             const vec = bbox.center.clone().sub(this.cameraPosition);
             this.orbitCamera.vecToAzimElevDistance(vec, vec);
             this.orbitCamera.azimElevDistance.snapto(vec);
             this.cameraPosition = null;
         } else {
+            // automatically placed camera position
             const aed = this.orbitCamera.azimElevDistance.target.clone();
             aed.z = distance;
             this.orbitCamera.azimElevDistance.snapto(aed);
         }
         this.orbitCamera.focalPoint.snapto(bbox.center);
-        camera.nearClip = distance / 100;
-        camera.farClip = distance * 10;
+    }
 
-        const light = this.light;
-        light.light.shadowDistance = distance * 2;
+    // adjust camera clipping planes to fit the scene
+    fitCameraToScene() {
+        const mat = this.observer.get('xrActive') ? this.app.xr.views[0].viewInvOffMat : this.camera.getWorldTransform();
 
-        this.cameraFocusBBox = bbox;
+        const cameraPosition = mat.getTranslation();
+        const cameraForward = mat.getZ();
+
+        const bound = this.dynamicSceneBounds;
+        const boundCenter = bound.center;
+        const boundRadius = bound.halfExtents.length();
+
+        vec.sub2(boundCenter, cameraPosition);
+        const dist = -vec.dot(cameraForward);
+
+        const near = (dist < boundRadius) ? boundRadius / 1024 : dist - boundRadius;
+        const far = dist + boundRadius;
+
+        this.camera.camera.nearClip = near;
+        this.camera.camera.farClip = far;
+        this.light.light.shadowDistance = far;
+
+        if (this.observer.get('xrActive')) {
+            this.app.xr._setClipPlanes(near, far);
+
+            // console.log(`near=${near}, far=${far}`);
+        }
     }
 
     // load gltf model given its url and list of external urls
@@ -1362,7 +1367,9 @@ class Viewer {
 
     update(deltaTime: number) {
         // update the orbit camera
-        this.orbitCamera.update(deltaTime);
+        if (!this.observer.get('xrActive')) {
+            this.orbitCamera.update(deltaTime);
+        }
 
         const maxdiff = (a: Mat4, b: Mat4) => {
             let result = 0;
@@ -1439,6 +1446,7 @@ class Viewer {
             this.entities.push(entity);
             this.entityAssets.push({ entity: entity, asset: asset });
             this.sceneRoot.addChild(entity);
+            this.shadow.onEntityAdded(entity);
         }
 
         // create animation component
@@ -1528,6 +1536,9 @@ class Viewer {
 
         // dirty everything
         this.dirtyWireframe = this.dirtyBounds = this.dirtySkeleton = this.dirtyGrid = this.dirtyNormals = true;
+
+        // reset scene offset
+        this.sceneRoot.setLocalPosition(0, 0, 0);
 
         // we can't refocus the camera here because the scene hierarchy only gets updated
         // during render. we must instead set a flag, wait for a render to take place and
@@ -1634,18 +1645,18 @@ class Viewer {
             this.dirtyBounds = false;
 
             // calculate bounds
-            this.sceneBounds = this.calcSceneBounds();
+            this.dynamicSceneBounds = this.calcSceneBounds();
 
             this.debugBounds.clear();
             if (this.showBounds) {
-                this.debugBounds.box(this.sceneBounds.getMin(), this.sceneBounds.getMax());
+                this.debugBounds.box(this.dynamicSceneBounds.getMin(), this.dynamicSceneBounds.getMax());
             }
             this.debugBounds.update();
 
             const v = new Vec3(
-                this.sceneBounds.halfExtents.x * 2,
-                this.sceneBounds.halfExtents.y * 2,
-                this.sceneBounds.halfExtents.z * 2
+                this.dynamicSceneBounds.halfExtents.x * 2,
+                this.dynamicSceneBounds.halfExtents.y * 2,
+                this.dynamicSceneBounds.halfExtents.z * 2
             );
             this.observer.set('scene.bounds', v.toString());
         }
@@ -1711,21 +1722,32 @@ class Viewer {
                 const v0 = new Vec3(0, 0, 0);
                 const v1 = new Vec3(0, 0, 0);
 
+                const y = this.sceneBounds.getMin().y;
+
                 const numGrids = 10;
                 const a = numGrids * spacing;
                 for (let x = -numGrids; x < numGrids + 1; ++x) {
                     const b = x * spacing;
 
-                    v0.set(-a, 0, b);
-                    v1.set(a, 0, b);
+                    v0.set(-a, y, b);
+                    v1.set(a, y, b);
                     this.debugGrid.line(v0, v1, b === 0 ? (0x80000000 >>> 0) : (0x80ffffff >>> 0));
 
-                    v0.set(b, 0, -a);
-                    v1.set(b, 0, a);
+                    v0.set(b, y, -a);
+                    v1.set(b, y, a);
                     this.debugGrid.line(v0, v1, b === 0 ? (0x80000000 >>> 0) : (0x80ffffff >>> 0));
                 }
             }
             this.debugGrid.update();
+        }
+
+        // fit camera planes to the scene
+        this.fitCameraToScene();
+
+        this.shadow.onUpdate(this.dynamicSceneBounds);
+
+        if (this.observer.get('xrActive')) {
+            this.onXrUpdate();
         }
     }
 
@@ -1744,14 +1766,17 @@ class Viewer {
         if (this.firstFrame) {
             this.firstFrame = false;
 
+            // calculate scene bounds after first render in order to get accurate morph target and skinned bounds
+            this.sceneBounds = this.calcSceneBounds();
+
+            // offset scene geometry to place it at the origin
+            this.sceneRoot.setLocalPosition(-this.sceneBounds.center.x, -this.sceneBounds.getMin().y, -this.sceneBounds.center.z);
+
+            // set projective skybox radius
+            this.projectiveSkybox.domeRadius = this.sceneBounds.halfExtents.length() * this.observer.get('skybox.domeProjection.domeRadius');
+
             this.focusCamera();
             this.renderNextFrame();
-
-            const sceneBounds = this.calcSceneBounds();
-
-            // place projective skybox origin bottom center of scene
-            this.projectiveSkybox.origin.set(sceneBounds.center.x, sceneBounds.getMin().y, sceneBounds.center.z);
-            this.projectiveSkybox.domeRadius = sceneBounds.halfExtents.length() * this.observer.get('skybox.domeProjection.domeRadius');
         }
 
         if (this.loadTimestamp !== null) {
@@ -1768,6 +1793,88 @@ class Viewer {
     setSamples(numSamples: number, jitter = false, size = 1, sigma = 0) {
         this.multiframe.setSamples(numSamples, jitter, size, sigma);
         this.renderNextFrame();
+    }
+
+    // start the XR session
+    startXr() {
+        if (this.app.xr.isAvailable(XRTYPE_AR)) {
+            this.camera.setLocalPosition(0, 0, 0);
+            this.camera.setLocalEulerAngles(0, 0, 0);
+            this.app.xr.start(this.camera.camera, XRTYPE_AR, XRSPACE_LOCAL, {
+                callback: (err) => {
+                    if (err) {
+                        console.log(err);
+                    }
+                }
+            });
+        }
+    }
+
+    // callback when xr session starts
+    onXrStart() {
+        console.log("Immersive AR session has started");
+
+        // hide skybox
+        this.app.scene.layers.getLayerById(LAYERID_SKYBOX).enabled = false;
+
+        // wait for hittest
+        this.app.xr.hitTest.start({
+            spaceType: XRSPACE_VIEWER,
+            callback: (err, hitTestSource) => {
+                if (!err) {
+                    hitTestSource.on('result', (position, rotation) => {
+                        if (!this.xrBackupPosition) {
+                            this.xrBackupPosition = this.sceneRoot.getLocalPosition().clone();
+
+                            // console.log(`x=${position.x}, y=${position.y}, z=${position.z}`);
+
+                            this.sceneRoot.setLocalPosition(
+                                this.xrBackupPosition.x + position.x,
+                                this.xrBackupPosition.y + position.y,
+                                this.xrBackupPosition.z + position.z
+                            );
+                            // this.sceneRoot.syncHierarchy();
+
+                            this.sceneBounds = this.calcSceneBounds();
+
+                            this.dirtyBounds = true;
+                            this.dirtyGrid = true;
+                        }
+                    });
+                }
+            }
+        })
+    }
+
+    // callback when xr mode is active
+    onXrUpdate() {
+        // this.app.xr._setClipPlanes(this.camera.camera.nearClip, this.camera.camera.farClip);
+
+        // this.app.xr.session.updateRenderState({
+        //     depthNear: this.camera.camera.nearClip,
+        //     depthFar: this.camera.camera.farClip
+        // });
+    }
+
+    // callback when xr session ends
+    onXrEnd() {
+        console.log("Immersive AR session has ended");
+
+        // restore skybox
+        this.setSkyboxBackground(this.observer.get('skybox.background'));
+
+        // restore object placement
+        if (this.xrBackupPosition) {
+            this.sceneRoot.setLocalPosition(this.xrBackupPosition.x, this.xrBackupPosition.y, this.xrBackupPosition.z);
+            // this.sceneRoot.syncHierarchy();
+
+            this.sceneBounds = this.calcSceneBounds();
+
+            this.dirtyBounds = true;
+            this.dirtyGrid = true;
+
+            this.xrBackupPosition = null;
+        }
     }
 }
 
