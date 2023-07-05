@@ -308,24 +308,41 @@ const main = (skyboxUrls: Map<string, string>) => {
     }
 };
 
-// fetch the skybox manifest
-fetch(getAssetPath("asset_manifest.json"))
-    .then(response => response.json())
-    .then((assetManifest) => {
-        const skyboxUrls = new Map<string, string>();
-        const skyboxOptions: Array<Option> = [{
-            v: 'None', t: 'None'
-        }];
+const skyboxes = [
+    { label: "Abandoned Tank Farm", url: "./skybox/abandoned_tank_farm_01_2k.hdr" },
+    { label: "Adam's Place Bridge", url: "./skybox/adams_place_bridge_2k.hdr" },
+    { label: "Artist Workshop", url: "./skybox/artist_workshop_2k.hdr" },
+    { label: "Ballroom", url: "./skybox/ballroom_2k.hdr" },
+    { label: "Circus Arena", url: "./skybox/circus_arena_2k.hdr" },
+    { label: "Colorful Studio", url: "./skybox/colorful_studio.hdr" },
+    { label: "Golf Course Sunrise", url: "./skybox/golf_course_sunrise_2k.hdr" },
+    { label: "Helipad", url: "./skybox/Helipad_equi.png" },
+    { label: "Kloppenheim", url: "./skybox/kloppenheim_02_2k.hdr" },
+    { label: "Lebombo", url: "./skybox/lebombo_2k.hdr" },
+    { label: "Outdoor Umbrellas", url: "./skybox/outdoor_umbrellas_2k.hdr" },
+    { label: "Paul Lobe Haus", url: "./skybox/paul_lobe_haus_2k.hdr" },
+    { label: "Reinforced Concrete", url: "./skybox/reinforced_concrete_01_2k.hdr" },
+    { label: "Rural Asphalt Road", url: "./skybox/rural_asphalt_road_2k.hdr" },
+    { label: "Spruit Sunrise", url: "./skybox/spruit_sunrise_2k.hdr" },
+    { label: "Studio Small", url: "./skybox/studio_small_03_2k.hdr" },
+    { label: "Venice Sunset", url: "./skybox/venice_sunset_1k.hdr" },
+    { label: "Vignaioli Night", url: "./skybox/vignaioli_night_2k.hdr" },
+    { label: "Wooden Motel", url: "./skybox/wooden_motel_2k.hdr" }
+];
 
-        assetManifest.skyboxes.forEach((skybox: Skybox) => {
-            skyboxUrls.set(skybox.label, getAssetPath(skybox.url));
-            skyboxOptions.push({ v: skybox.label, t: skybox.label });
-        });
+const skyboxUrls = new Map<string, string>();
+const skyboxOptions: Array<Option> = [{
+    v: 'None', t: 'None'
+}];
 
-        const skyboxData = observer.get('skybox');
-        skyboxData.options = JSON.stringify(skyboxOptions);
-        observer.set('skybox', skyboxData);
+skyboxes.forEach((skybox: Skybox) => {
+    skyboxUrls.set(skybox.label, getAssetPath(skybox.url));
+    skyboxOptions.push({ v: skybox.label, t: skybox.label });
+});
 
-        // start main
-        main(skyboxUrls);
-    });
+const skyboxData = observer.get('skybox');
+skyboxData.options = JSON.stringify(skyboxOptions);
+observer.set('skybox', skyboxData);
+
+// start main
+main(skyboxUrls);
