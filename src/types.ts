@@ -35,7 +35,6 @@ export interface ObserverData {
     skybox: {
         value: string,
         options: null,
-        default: null,
         exposure: number,
         rotation: number,
         background: 'Solid Color' | 'Infinite Sphere' | 'Projective Dome',
@@ -61,6 +60,10 @@ export interface ObserverData {
         intensity: number,
         follow: boolean,
         shadow: boolean
+    },
+    shadowCatcher: {
+        enabled: boolean,
+        intensity: number
     },
     debug: {
         renderMode: 'default' | 'albedo' | 'opacity' | 'worldNormal' | 'specularity' | 'gloss' | 'metalness' | 'ao' | 'emission' | 'lighting' | 'uv0',
