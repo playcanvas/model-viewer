@@ -1,4 +1,3 @@
-
 import { App } from './app';
 import { Observer } from '@playcanvas/observer';
 
@@ -24,7 +23,7 @@ interface XrHandlers {
     place: (position: Vec3, rotation: Quat) => void;
     updateLighting: (intensity: number, color: Color, rotation: Quat) => void;
     ended: () => void;
-};
+}
 
 class XrMode {
     app: App;
@@ -97,7 +96,7 @@ class XrMode {
             this.performXrHitTest(new Ray(inputSource.getOrigin(), direction), (position: Vec3) => {
                 this.handlers.place(position, Quat.IDENTITY);
             });
-        }); 
+        });
     }
 
     // callback when xr session ends
@@ -172,7 +171,7 @@ class XrMode {
                     this.rotation.copy(le.rotation);
                 }
                 this.handlers.updateLighting(this.intensity, this.color, this.rotation);
-            }    
+            }
         }
     }
 

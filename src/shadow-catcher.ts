@@ -110,20 +110,20 @@ class ShadowCatcher {
         this.light.light.shadowDistance = this.camera.camera._farClip;
     }
 
-    get enabled() {
-        return this.layer.enabled;
-    }
-
     set enabled(enabled: boolean) {
         this.layer.enabled = enabled;
     }
 
-    get intensity() {
-        return this.light.light.shadowIntensity;
+    get enabled() {
+        return this.layer.enabled;
     }
 
     set intensity(value: number) {
         this.light.light.shadowIntensity = value;
+    }
+
+    get intensity() {
+        return this.light.light.shadowIntensity;
     }
 }
 
