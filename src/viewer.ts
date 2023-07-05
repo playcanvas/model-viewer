@@ -20,9 +20,6 @@ import {
     TONEMAP_HEJL,
     TONEMAP_ACES,
     TONEMAP_ACES2,
-    XRSPACE_LOCAL,
-    XRSPACE_VIEWER,
-    XRTYPE_AR,
     math,
     path,
     reprojectTexture,
@@ -69,7 +66,8 @@ import { ReadDepth } from './read-depth';
 import { OrbitCamera, OrbitCameraInputMouse, OrbitCameraInputTouch } from './orbit-camera';
 import { PngExporter } from './png-exporter.js';
 import { ProjectiveSkybox } from './projective-skybox';
-import { Shadow } from './shadow';
+import { ShadowCatcher } from './shadow-catcher';
+import { XrMode } from './xr-mode';
 
 // model filename extensions
 const modelExtensions = ['gltf', 'glb', 'vox'];
@@ -134,9 +132,8 @@ class Viewer {
     loadTimestamp?: number = null;
 
     projectiveSkybox: ProjectiveSkybox = null;
-    shadow: Shadow = null;
-
-    xrBackupPosition: Vec3 = null;
+    shadowCatcher: ShadowCatcher = null;
+    xrMode: XrMode;
 
     constructor(canvas: HTMLCanvasElement, observer: Observer) {
         // create the application
@@ -157,27 +154,6 @@ class Viewer {
 
         // clustered not needed and has faster startup on windows
         this.app.scene.clusteredLightingEnabled = false;
-
-        // set xr supported
-        observer.set('xrSupported', false);
-        observer.set('xrActive', false);
-
-        // xr is supported
-        if (this.app.xr.supported) {
-            app.xr.on("available:" + XRTYPE_AR, (available) => {
-                observer.set('xrSupported', !!available);
-            });
-
-            app.xr.on("start", () => {
-                observer.set('xrActive', true);
-                this.onXrStart();
-            });
-
-            app.xr.on("end", () => {
-                observer.set('xrActive', false);
-                this.onXrEnd();
-            });
-        }
 
         // monkeypatch the mouse and touch input devices to ignore touch events
         // when they don't originate from the canvas.
@@ -349,8 +325,11 @@ class Viewer {
         // projective skybox
         this.projectiveSkybox = new ProjectiveSkybox(app);
 
-        // dynamic shadow
-        this.shadow = new Shadow(app, this.camera.camera.camera, this.debugRoot, this.sceneRoot);
+        // dynamic shadow catcher
+        this.shadowCatcher = new ShadowCatcher(app, this.camera.camera, this.debugRoot, this.sceneRoot);
+
+        // xr support
+        this.initXrMode();
 
         // initialize control events
         this.bindControlEvents();
@@ -415,6 +394,75 @@ class Viewer {
                 this.cameraPosition = new Vec3(pos);
             }
         }
+    }
+
+    private initXrMode() {
+        const backup = {
+            position: new Vec3(),
+            shadowEnabled: false,
+            gridEnabled: false
+        };
+
+        const handlers = {
+            starting: () => {
+                // store object position so we can restore it when exiting AR
+                backup.position.copy(this.sceneRoot.getLocalPosition());
+
+                // hide model and shadow till model is placed in AR scene
+                this.sceneRoot.enabled = false;
+                this.shadowCatcher.enabled = false;
+                this.shadowCatcher.intensity = 0.4;
+                this.setDebugGrid(false);
+                this.setDebugBounds(false);
+                this.setLightEnabled(true);
+                this.setLightFollow(false);
+            },
+
+            started: () => {
+                // hide skybox
+                this.app.scene.layers.getLayerById(LAYERID_SKYBOX).enabled = false;
+                this.app.scene.skyboxIntensity  = 0;
+            },
+
+            place: (position: Vec3, rotation: Quat) => {
+                this.sceneRoot.enabled = true;
+                this.shadowCatcher.enabled = true;
+
+                this.sceneRoot.setLocalPosition(position);
+                this.sceneBounds = this.calcSceneBounds();
+                this.dirtyBounds = true;
+                this.dirtyGrid = true;
+            },
+
+            updateLighting: (intensity: number, color: Color, rotation: Quat) => {
+                this.light.light.intensity = intensity;
+                this.light.light.color = color;
+                this.light.setLocalRotation(rotation);
+            },
+
+            ended: () => {
+                // restore settings
+                this.setSkyboxBackground(this.observer.get('skybox.background'));
+                this.setSkyboxExposure(this.observer.get('skybox.exposure'));
+                this.setShadowCatcherEnabled(this.observer.get('shadowCatcher.enabled'));
+                this.setShadowCatcherIntensity(this.observer.get('shadowCatcher.intensity'));
+                this.setDebugGrid(this.observer.get('debug.grid'));
+                this.setDebugBounds(this.observer.get('debug.bounds'));
+                this.setLightEnabled(this.observer.get('light.enabled'));
+                this.setLightFollow(this.observer.get('light.follow'));
+                this.setLightIntensity(this.observer.get('light.intensity'));
+                this.setLightColor(this.observer.get('light.color'));
+
+                // restore object placement
+                this.sceneRoot.enabled = true;
+                this.sceneRoot.setLocalPosition(backup.position);
+                this.sceneBounds = this.calcSceneBounds();
+                this.dirtyBounds = true;
+                this.dirtyGrid = true;
+            }
+        };
+
+        this.xrMode = new XrMode(this.app, this.camera, this.observer, handlers);
     }
 
     // collects all mesh instances from entity hierarchy
@@ -527,6 +575,10 @@ class Viewer {
             'light.follow': this.setLightFollow.bind(this),
             'light.shadow': this.setLightShadow.bind(this),
 
+            // shadow catcher
+            'shadowCatcher.enabled': this.setShadowCatcherEnabled.bind(this),
+            'shadowCatcher.intensity': this.setShadowCatcherIntensity.bind(this),
+
             // debug
             'debug.stats': this.setDebugStats.bind(this),
             'debug.wireframe': this.setDebugWireframe.bind(this),
@@ -538,6 +590,7 @@ class Viewer {
             'debug.normals': this.setNormalLength.bind(this),
             'debug.renderMode': this.setRenderMode.bind(this),
 
+            // animation
             'animation.playing': (playing: boolean) => {
                 if (playing) {
                     this.play();
@@ -800,7 +853,7 @@ class Viewer {
 
         this.entities.forEach((entity) => {
             this.sceneRoot.removeChild(entity);
-            this.shadow.onEntityRemoved(entity);
+            this.shadowCatcher.onEntityRemoved(entity);
             entity.destroy();
         });
         this.entities = [];
@@ -928,7 +981,7 @@ class Viewer {
 
         const bound = this.dynamicSceneBounds;
         const boundCenter = bound.center;
-        const boundRadius = bound.halfExtents.length();
+        const boundRadius = bound.halfExtents.length() * 4;
 
         vec.sub2(boundCenter, cameraPosition);
         const dist = -vec.dot(cameraForward);
@@ -1277,13 +1330,13 @@ class Viewer {
         this.renderNextFrame();
     }
 
-    setLightIntensity(factor: number) {
-        this.light.light.intensity = factor;
+    setLightEnabled(value: boolean) {
+        this.light.enabled = value;
         this.renderNextFrame();
     }
 
-    setLightEnabled(value: boolean) {
-        this.light.enabled = value;
+    setLightIntensity(factor: number) {
+        this.light.light.intensity = factor;
         this.renderNextFrame();
     }
 
@@ -1304,6 +1357,16 @@ class Viewer {
 
     setLightShadow(enable: boolean) {
         this.light.light.castShadows = enable;
+        this.renderNextFrame();
+    }
+
+    setShadowCatcherEnabled(value: boolean) {
+        this.shadowCatcher.enabled = value;
+        this.renderNextFrame();
+    }
+
+    setShadowCatcherIntensity(value: number) {
+        this.shadowCatcher.intensity = value;
         this.renderNextFrame();
     }
 
@@ -1446,7 +1509,7 @@ class Viewer {
             this.entities.push(entity);
             this.entityAssets.push({ entity: entity, asset: asset });
             this.sceneRoot.addChild(entity);
-            this.shadow.onEntityAdded(entity);
+            this.shadowCatcher.onEntityAdded(entity);
         }
 
         // create animation component
@@ -1744,11 +1807,9 @@ class Viewer {
         // fit camera planes to the scene
         this.fitCameraToScene();
 
-        this.shadow.onUpdate(this.dynamicSceneBounds);
+        this.shadowCatcher.onUpdate(this.dynamicSceneBounds);
 
-        if (this.observer.get('xrActive')) {
-            this.onXrUpdate();
-        }
+        this.xrMode.onPrerender();
     }
 
     private onPostrender() {
@@ -1793,88 +1854,6 @@ class Viewer {
     setSamples(numSamples: number, jitter = false, size = 1, sigma = 0) {
         this.multiframe.setSamples(numSamples, jitter, size, sigma);
         this.renderNextFrame();
-    }
-
-    // start the XR session
-    startXr() {
-        if (this.app.xr.isAvailable(XRTYPE_AR)) {
-            this.camera.setLocalPosition(0, 0, 0);
-            this.camera.setLocalEulerAngles(0, 0, 0);
-            this.app.xr.start(this.camera.camera, XRTYPE_AR, XRSPACE_LOCAL, {
-                callback: (err) => {
-                    if (err) {
-                        console.log(err);
-                    }
-                }
-            });
-        }
-    }
-
-    // callback when xr session starts
-    onXrStart() {
-        console.log("Immersive AR session has started");
-
-        // hide skybox
-        this.app.scene.layers.getLayerById(LAYERID_SKYBOX).enabled = false;
-
-        // wait for hittest
-        this.app.xr.hitTest.start({
-            spaceType: XRSPACE_VIEWER,
-            callback: (err, hitTestSource) => {
-                if (!err) {
-                    hitTestSource.on('result', (position, rotation) => {
-                        if (!this.xrBackupPosition) {
-                            this.xrBackupPosition = this.sceneRoot.getLocalPosition().clone();
-
-                            // console.log(`x=${position.x}, y=${position.y}, z=${position.z}`);
-
-                            this.sceneRoot.setLocalPosition(
-                                this.xrBackupPosition.x + position.x,
-                                this.xrBackupPosition.y + position.y,
-                                this.xrBackupPosition.z + position.z
-                            );
-                            // this.sceneRoot.syncHierarchy();
-
-                            this.sceneBounds = this.calcSceneBounds();
-
-                            this.dirtyBounds = true;
-                            this.dirtyGrid = true;
-                        }
-                    });
-                }
-            }
-        })
-    }
-
-    // callback when xr mode is active
-    onXrUpdate() {
-        // this.app.xr._setClipPlanes(this.camera.camera.nearClip, this.camera.camera.farClip);
-
-        // this.app.xr.session.updateRenderState({
-        //     depthNear: this.camera.camera.nearClip,
-        //     depthFar: this.camera.camera.farClip
-        // });
-    }
-
-    // callback when xr session ends
-    onXrEnd() {
-        console.log("Immersive AR session has ended");
-
-        // restore skybox
-        this.setSkyboxBackground(this.observer.get('skybox.background'));
-
-        // restore object placement
-        if (this.xrBackupPosition) {
-            this.sceneRoot.setLocalPosition(this.xrBackupPosition.x, this.xrBackupPosition.y, this.xrBackupPosition.z);
-            // this.sceneRoot.syncHierarchy();
-
-            this.sceneBounds = this.calcSceneBounds();
-
-            this.dirtyBounds = true;
-            this.dirtyGrid = true;
-
-            this.xrBackupPosition = null;
-        }
     }
 }
 

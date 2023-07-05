@@ -106,6 +106,10 @@ const observerData: ObserverData = {
         follow: false,
         shadow: false
     },
+    shadowCatcher: {
+        enabled: false,
+        intensity: 0.4,
+    },
     debug: {
         renderMode: 'default',
         stats: false,

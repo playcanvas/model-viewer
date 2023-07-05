@@ -19,7 +19,7 @@ const endPS = `
     // gl_FragColor.rgb = vec3(mix(light0_shadowIntensity, 0.0, shadow0));
 `;
 
-class Shadow {
+class ShadowCatcher {
     layer: Layer;
     material: StandardMaterial;
     plane: Entity;
@@ -35,11 +35,8 @@ class Shadow {
 
         const layers = app.scene.layers;
         const worldLayer = layers.getLayerByName('World');
-        const idx = layers.getOpaqueIndex(worldLayer);
+        const idx = layers.getTransparentIndex(worldLayer);
         layers.insert(this.layer, idx + 1);
-
-        // add the shadow layer to the camera
-        camera.layers = camera.layers.concat([this.layer.id]);
 
         // create shadow catcher material
         this.material = new StandardMaterial();
@@ -79,6 +76,9 @@ class Shadow {
         this.plane.render.layers = [this.layer.id];
         this.light.light.layers = [this.layer.id];
 
+        // add the shadow layer to the camera
+        camera.layers = camera.layers.concat([this.layer.id]);
+
         this.sceneRoot = sceneRoot;
         this.camera = camera;
     }
@@ -87,7 +87,6 @@ class Shadow {
         entity.findComponents('render').forEach((component: RenderComponent) => {
             this.layer.shadowCasters = this.layer.shadowCasters.concat(component.meshInstances);
         });
-        console.log(this.layer.shadowCasters);
     }
 
     onEntityRemoved(entity: Entity) {
@@ -108,10 +107,26 @@ class Shadow {
         this.plane.setLocalScale(len * 4, 1, len * 4);
         this.plane.setPosition(center.x, bound.getMin().y, center.z);
 
-        this.light.light.shadowDistance = this.camera._farClip;
+        this.light.light.shadowDistance = this.camera.camera._farClip;
+    }
+
+    get enabled() {
+        return this.layer.enabled;
+    }
+
+    set enabled(enabled: boolean) {
+        this.layer.enabled = enabled;
+    }
+
+    get intensity() {
+        return this.light.light.shadowIntensity;
+    }
+
+    set intensity(value: number) {
+        this.light.light.shadowIntensity = value;
     }
 }
 
 export {
-    Shadow
+    ShadowCatcher
 };

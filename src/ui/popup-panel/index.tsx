@@ -12,7 +12,7 @@ const PopupPanelControls = (props: { observerData: ObserverData, setProperty: Se
     return (<>
         <CameraPanel setProperty={props.setProperty} observerData={props.observerData} />
         <SkyboxPanel setProperty={props.setProperty} skyboxData={props.observerData.skybox} uiData={props.observerData.ui} />
-        <LightPanel setProperty={props.setProperty} lightData={props.observerData.light} uiData={props.observerData.ui} />
+        <LightPanel setProperty={props.setProperty} lightData={props.observerData.light} uiData={props.observerData.ui} shadowCatcherData={props.observerData.shadowCatcher}/>
         <DebugPanel setProperty={props.setProperty} debugData={props.observerData.debug} uiData={props.observerData.ui} />
         <ViewPanel setProperty={props.setProperty} sceneData={props.observerData.scene} uiData={props.observerData.ui} />
     </>);
@@ -97,7 +97,7 @@ class PopupPanel extends React.Component <{ observerData: ObserverData, setPrope
                             this.link.click();
                         }).catch(console.error);
                     } else {
-                        if (window.viewer) window.viewer.startXr();
+                        if (window.viewer) window.viewer.xrMode.start();
                     }
                 } } />
                 <Button class='popup-button' id='fullscreen-button' icon='E127' width={40} height={40} onClick={() => {

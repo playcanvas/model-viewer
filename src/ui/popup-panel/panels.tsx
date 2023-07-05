@@ -165,6 +165,7 @@ class SkyboxPanel extends React.Component <{
 class LightPanel extends React.Component <{
     lightData: ObserverData['light'],
     uiData: ObserverData['ui'],
+    shadowCatcherData: ObserverData['shadowCatcher'],
     setProperty: SetProperty }> {
 
     shouldComponentUpdate(nextProps: Readonly<{
@@ -191,10 +192,9 @@ class LightPanel extends React.Component <{
                         label='Color'
                         value={rgbToArr(props.lightData.color)}
                         setProperty={(value: number[]) => props.setProperty('light.color', arrToRgb(value))} />
-                    <Slider label='Intensity'
-                        precision={2}
-                        min={0}
-                        max={6}
+                    <Slider
+                        label='Intensity'
+                        precision={2} min={0} max={6}
                         value={props.lightData.intensity}
                         setProperty={(value: number) => props.setProperty('light.intensity', value)} />
                     <Toggle label='Follow Camera'
@@ -204,6 +204,15 @@ class LightPanel extends React.Component <{
                         label='Cast Shadow'
                         value={props.lightData.shadow}
                         setProperty={(value: boolean) => props.setProperty('light.shadow', value)} />
+                    <Toggle
+                        label='Shadow Catcher'
+                        value={props.shadowCatcherData.enabled}
+                        setProperty={(value: boolean) => props.setProperty('shadowCatcher.enabled', value)} />
+                    <Slider
+                        label='Catcher Intensity'
+                        precision={2} min={0} max={1}
+                        value={props.shadowCatcherData.intensity}
+                        setProperty={(value: number) => props.setProperty('shadowCatcher.intensity', value)} />
                 </Container>
             </div>
         );

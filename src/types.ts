@@ -62,6 +62,10 @@ export interface ObserverData {
         follow: boolean,
         shadow: boolean
     },
+    shadowCatcher: {
+        enabled: boolean,
+        intensity: number
+    },
     debug: {
         renderMode: 'default' | 'albedo' | 'opacity' | 'worldNormal' | 'specularity' | 'gloss' | 'metalness' | 'ao' | 'emission' | 'lighting' | 'uv0',
         stats: boolean,
