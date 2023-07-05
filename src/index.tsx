@@ -247,7 +247,7 @@ observer.on('spinner:set', (value: boolean) => {
 });
 
 const main = (skyboxUrls: Map<string, string>) => {
-    if (!url.searchParams.has('defaultOptions')) {
+    if (!url.searchParams.has('default')) {
         // handle options
         loadOptions('uistate', skyboxUrls);
 
