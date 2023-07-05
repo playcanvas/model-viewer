@@ -85,7 +85,7 @@ const observerData: ObserverData = {
         hq: true
     },
     skybox: {
-        value: getAssetPath('Golf Course Sunrise'),
+        value: 'Golf Course Sunrise',
         options: null,
         exposure: 0,
         rotation: 0,
