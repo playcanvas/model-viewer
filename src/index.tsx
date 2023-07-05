@@ -1,7 +1,7 @@
 import {
     basisInitialize,
     shaderChunks,
-    Http,
+    Vec3,
     WasmModule
 } from 'playcanvas';
 import { Observer } from '@playcanvas/observer';
@@ -87,7 +87,6 @@ const observerData: ObserverData = {
     skybox: {
         value: getAssetPath('./skybox/adams_place_bridge_2k.hdr'),
         options: null,
-        default: null,
         exposure: 0,
         rotation: 0,
         background: 'Infinite Sphere',
@@ -177,6 +176,9 @@ const observerData: ObserverData = {
     xrActive: false
 };
 
+// global url
+const url = new URL(window.location.href);
+
 // initialize the apps state
 const observer: Observer = new Observer(observerData);
 
@@ -243,35 +245,86 @@ observer.on('spinner:set', (value: boolean) => {
     }
 });
 
-const url = getAssetPath("asset_manifest.json");
-new Http().get(url, {
-    cache: true,
-    responseType: "text",
-    retry: false
-}, function (err: string, result: { skyboxes: Array<Skybox>, defaultSkybox: string }) {
-    if (err) {
-        console.warn(err);
-    } else {
-        const skyboxes = result.skyboxes;
-        const skyboxOptions: Array<Option> = [{
-            v: 'None', t: 'None'
-        }];
-        skyboxes.forEach((skybox: Skybox) => {
-            skyboxOptions.push({ v: getAssetPath(skybox.url), t: skybox.label });
-        });
-        const skyboxData = observer.get('skybox');
-        skyboxData.options = JSON.stringify(skyboxOptions);
-        skyboxData.default = getAssetPath(result.defaultSkybox);
-        observer.set('skybox', skyboxData);
+const main = (skyboxUrls: Map<string, string>) => {
+    if (!url.searchParams.has('defaultOptions')) {
+        // handle options
         loadOptions('uistate');
 
         observer.on('*:set', () => {
             saveOptions('uistate');
         });
-
-        const canvas = document.getElementById("application-canvas") as HTMLCanvasElement;
-        window.viewer = new Viewer(canvas, observer);
-        window.viewer.handleUrlParams();
     }
-}
-);
+
+    // create the canvas
+    const canvas = document.getElementById("application-canvas") as HTMLCanvasElement;
+
+    // create viewer instance
+    const viewer = new Viewer(canvas, observer, skyboxUrls);
+
+    // make available globally
+    window.viewer = viewer;
+
+    // get list of files, decode them
+    const files = [];
+
+    // handle search params
+    for (const [key, value] of url.searchParams) {
+        switch (key) {
+            case 'load':
+            case 'assetUrl': {
+                const url = decodeURIComponent(value);
+                files.push({ url, filename: url });
+                break;
+            };
+            case 'cameraPosition': {
+                const pos = value.split(',').map(Number);
+                if (pos.length === 3) {
+                    viewer.initialCameraPosition = new Vec3(pos);
+                }
+                break;
+            }
+            default: {
+                if (observer.has(key)) {
+                    switch (typeof observer.get(key)) {
+                        case 'boolean':
+                            observer.set(key, value.toLowerCase() === 'true');
+                            break;
+                        case 'number':
+                            observer.set(key, Number(value));
+                            break;
+                        default:
+                            observer.set(key, decodeURIComponent(value));
+                            break;
+                    }
+                }
+                break;
+            }
+        }
+    }
+
+    if (files.length > 0) {
+        viewer.loadFiles(files);
+    }
+};
+
+// fetch the skybox manifest
+fetch(getAssetPath("asset_manifest.json"))
+    .then(response => response.json())
+    .then((assetManifest) => {
+        const skyboxUrls = new Map<string, string>();
+        const skyboxOptions: Array<Option> = [{
+            v: 'None', t: 'None'
+        }];
+
+        assetManifest.skyboxes.forEach((skybox: Skybox) => {
+            skyboxUrls.set(skybox.label, getAssetPath(skybox.url));
+            skyboxOptions.push({ v: skybox.label, t: skybox.label });
+        });
+
+        const skyboxData = observer.get('skybox');
+        skyboxData.options = JSON.stringify(skyboxOptions);
+        observer.set('skybox', skyboxData);
+
+        // start main
+        main(skyboxUrls);
+    });

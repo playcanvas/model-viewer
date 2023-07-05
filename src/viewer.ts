@@ -76,6 +76,7 @@ const vec = new Vec3();
 
 class Viewer {
     app: App;
+    skyboxUrls: Map<string, string>;
     dropHandler: DropHandler;
     pngExporter: PngExporter = null;
     prevCameraMat: Mat4;
@@ -83,7 +84,7 @@ class Viewer {
     orbitCamera: OrbitCamera;
     orbitCameraInputMouse: OrbitCameraInputMouse;
     orbitCameraInputTouch: OrbitCameraInputTouch;
-    cameraPosition: Vec3 | null;
+    initialCameraPosition: Vec3 | null;
     light: Entity;
     sceneRoot: Entity;
     debugRoot: Entity;
@@ -135,7 +136,7 @@ class Viewer {
     shadowCatcher: ShadowCatcher = null;
     xrMode: XrMode;
 
-    constructor(canvas: HTMLCanvasElement, observer: Observer) {
+    constructor(canvas: HTMLCanvasElement, observer: Observer, skyboxUrls: Map<string, string>) {
         // create the application
         const app = new App(canvas, {
             mouse: new Mouse(canvas),
@@ -151,6 +152,7 @@ class Viewer {
             }
         });
         this.app = app;
+        this.skyboxUrls = skyboxUrls;
 
         // clustered not needed and has faster startup on windows
         this.app.scene.clusteredLightingEnabled = false;
@@ -254,7 +256,7 @@ class Viewer {
 
         // store app things
         this.camera = camera;
-        this.cameraPosition = null;
+        this.initialCameraPosition = null;
         this.light = light;
         this.sceneRoot = sceneRoot;
         this.debugRoot = debugRoot;
@@ -363,37 +365,6 @@ class Viewer {
 
         // start the application
         app.start();
-    }
-
-    // extract query params. taken from https://stackoverflow.com/a/21152762
-    handleUrlParams() {
-        const urlParams: any = {};
-        if (location.search) {
-            location.search.substring(1).split("&").forEach((item) => {
-                const s = item.split("="),
-                    k = s[0],
-                    v = s[1] && decodeURIComponent(s[1]);
-                (urlParams[k] = urlParams[k] || []).push(v);
-            });
-        }
-
-        // handle load url param
-        const loadUrls = (urlParams.load || []).concat(urlParams.assetUrl || []);
-        if (loadUrls.length > 0) {
-            this.loadFiles(
-                loadUrls.map((url: string) => {
-                    return { url, filename: url };
-                })
-            );
-        }
-
-        // set camera position
-        if (urlParams.hasOwnProperty('cameraPosition')) {
-            const pos = urlParams.cameraPosition[0].split(',').map(Number);
-            if (pos.length === 3) {
-                this.cameraPosition = new Vec3(pos);
-            }
-        }
     }
 
     private initXrMode() {
@@ -553,10 +524,13 @@ class Viewer {
 
             // skybox
             'skybox.value': (value: string) => {
-                if (value && value !== 'None') {
-                    this.loadFiles([{ url: value, filename: value }]);
-                } else {
+                if (this.skyboxUrls.has(value)) {
+                    const url = this.skyboxUrls.get(value);
+                    this.loadFiles([{ url, filename: url }]);
+                } else if (value === 'None') {
                     this.clearSkybox();
+                } else {
+                    this.loadFiles([{ url: value, filename: value }]);
                 }
             },
             'skybox.blur': this.setSkyboxBlur.bind(this),
@@ -957,12 +931,12 @@ class Viewer {
         const radius = bbox.halfExtents.length();
         const distance = (radius * 1.4) / Math.sin(0.5 * camera.fov * camera.aspectRatio * math.DEG_TO_RAD);
 
-        if (this.cameraPosition) {
+        if (this.initialCameraPosition) {
             // user-specified camera position
-            const vec = bbox.center.clone().sub(this.cameraPosition);
+            const vec = bbox.center.clone().sub(this.initialCameraPosition);
             this.orbitCamera.vecToAzimElevDistance(vec, vec);
             this.orbitCamera.azimElevDistance.snapto(vec);
-            this.cameraPosition = null;
+            this.initialCameraPosition = null;
         } else {
             // automatically placed camera position
             const aed = this.orbitCamera.azimElevDistance.target.clone();

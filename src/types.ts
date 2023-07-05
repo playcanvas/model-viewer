@@ -35,7 +35,6 @@ export interface ObserverData {
     skybox: {
         value: string,
         options: null,
-        default: null,
         exposure: number,
         rotation: number,
         background: 'Solid Color' | 'Infinite Sphere' | 'Projective Dome',

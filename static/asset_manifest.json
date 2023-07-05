@@ -15,7 +15,5 @@
         { "label": "Venice Sunset", "url": "./skybox/venice_sunset_1k.hdr" },
         { "label": "Vignaioli Night", "url": "./skybox/vignaioli_night_2k.hdr" },
         { "label": "Wooden Motel", "url": "./skybox/wooden_motel_2k.hdr" }
-    ],
-
-    "defaultSkybox": "./skybox/Helipad_equi_small.png"
+    ]
 }
