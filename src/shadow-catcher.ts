@@ -16,7 +16,6 @@ import {
 const endPS = `
     litShaderArgs.opacity = mix(light0_shadowIntensity, 0.0, shadow0);
     gl_FragColor.rgb = vec3(0.0);
-    // gl_FragColor.rgb = vec3(mix(light0_shadowIntensity, 0.0, shadow0));
 `;
 
 class ShadowCatcher {
