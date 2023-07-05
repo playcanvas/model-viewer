@@ -154,6 +154,10 @@ class XrMode {
 
     onPrerender() {
         if (this.active) {
+            // update clip planes
+            const camera = this.camera.camera.camera;
+            this.app.xr._setClipPlanes(camera._nearClip, camera._farClip);
+
             // light estimation
             const le = this.app.xr.lightEstimation;
             if (le.available) {
@@ -170,6 +174,10 @@ class XrMode {
                 this.handlers.updateLighting(this.intensity, this.color, this.rotation);
             }    
         }
+    }
+
+    getCameraMatrix() {
+        return this.active ? this.app.xr.views[0].viewInvOffMat : this.camera.getWorldTransform();
     }
 }
 

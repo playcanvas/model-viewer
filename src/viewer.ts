@@ -974,7 +974,7 @@ class Viewer {
 
     // adjust camera clipping planes to fit the scene
     fitCameraToScene() {
-        const mat = this.observer.get('xrActive') ? this.app.xr.views[0].viewInvOffMat : this.camera.getWorldTransform();
+        const mat = this.xrMode.getCameraMatrix();
 
         const cameraPosition = mat.getTranslation();
         const cameraForward = mat.getZ();
@@ -992,12 +992,6 @@ class Viewer {
         this.camera.camera.nearClip = near;
         this.camera.camera.farClip = far;
         this.light.light.shadowDistance = far;
-
-        if (this.observer.get('xrActive')) {
-            this.app.xr._setClipPlanes(near, far);
-
-            // console.log(`near=${near}, far=${far}`);
-        }
     }
 
     // load gltf model given its url and list of external urls
@@ -1430,7 +1424,7 @@ class Viewer {
 
     update(deltaTime: number) {
         // update the orbit camera
-        if (!this.observer.get('xrActive')) {
+        if (!this.xrMode.active) {
             this.orbitCamera.update(deltaTime);
         }
 
@@ -1450,7 +1444,7 @@ class Viewer {
         }
 
         // always render during xr sessions
-        if (this.observer.get('xrActive')) {
+        if (this.xrMode.active) {
             this.renderNextFrame();
         }
 
