@@ -85,7 +85,7 @@ const observerData: ObserverData = {
         hq: true
     },
     skybox: {
-        value: 'Studio Small',
+        value: 'Paul Lobe Haus',
         options: null,
         exposure: 0,
         rotation: 0,
