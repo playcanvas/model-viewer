@@ -85,7 +85,7 @@ const observerData: ObserverData = {
         hq: true
     },
     skybox: {
-        value: getAssetPath('./skybox/adams_place_bridge_2k.hdr'),
+        value: getAssetPath('Golf Course Sunrise'),
         options: null,
         exposure: 0,
         rotation: 0,
@@ -192,19 +192,20 @@ const saveOptions = (name: string) => {
     }));
 };
 
-const loadOptions = (name: string) => {
+const loadOptions = (name: string, skyboxUrls: Map<string, string>) => {
+    const filter = ['skybox.options', 'debug.renderMode'];
+
     const loadRec = (path: string, value:any) => {
-        const filter = ['skybox.options'];
         if (filter.indexOf(path) !== -1) {
             return;
         }
+
         if (typeof value === 'object') {
             Object.keys(value).forEach((k) => {
                 loadRec(path ? `${path}.${k}` : k, value[k]);
             });
         } else {
-            const notSticky = ['debug.renderMode'];
-            if (observer.has(path) && notSticky.indexOf(path) === -1) {
+            if (path !== 'skybox.value' || skyboxUrls.has(value)) {
                 observer.set(path, value);
             }
         }
@@ -248,7 +249,7 @@ observer.on('spinner:set', (value: boolean) => {
 const main = (skyboxUrls: Map<string, string>) => {
     if (!url.searchParams.has('defaultOptions')) {
         // handle options
-        loadOptions('uistate');
+        loadOptions('uistate', skyboxUrls);
 
         observer.on('*:set', () => {
             saveOptions('uistate');
