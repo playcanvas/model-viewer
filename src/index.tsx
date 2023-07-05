@@ -85,13 +85,13 @@ const observerData: ObserverData = {
         hq: true
     },
     skybox: {
-        value: 'Golf Course Sunrise',
+        value: 'Studio Small',
         options: null,
         exposure: 0,
         rotation: 0,
         background: 'Infinite Sphere',
         backgroundColor: { r: 0.4, g: 0.45, b: 0.5 },
-        blur: 0,
+        blur: 1,
         domeProjection: {
             domeRadius: 20,
             domeOffset: 0.4,
