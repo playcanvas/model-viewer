@@ -312,6 +312,7 @@ class Viewer {
         // construct ministats, default off
         this.miniStats = new MiniStats(app);
         this.miniStats.enabled = observer.get('debug.stats');
+
         this.observer = observer;
 
         const device = this.app.graphicsDevice as WebglGraphicsDevice;
@@ -370,8 +371,6 @@ class Viewer {
     private initXrMode() {
         const backup = {
             position: new Vec3(),
-            shadowEnabled: false,
-            gridEnabled: false
         };
 
         const handlers = {
@@ -490,22 +489,6 @@ class Viewer {
 
         const result = new BoundingBox();
         result.setMinMax(new Vec3(min_x, min_y, min_z), new Vec3(max_x, max_y, max_z));
-        return result;
-    }
-
-    // calculate the intersection of the two bounding boxes
-    private static calcBoundingBoxIntersection(bbox1: BoundingBox, bbox2: BoundingBox) {
-        // bounds don't intersect
-        if (!bbox1.intersects(bbox2)) {
-            return null;
-        }
-        const min1 = bbox1.getMin();
-        const max1 = bbox1.getMax();
-        const min2 = bbox2.getMin();
-        const max2 = bbox2.getMax();
-        const result = new BoundingBox();
-        result.setMinMax(new Vec3(Math.max(min1.x, min2.x), Math.max(min1.y, min2.y), Math.max(min1.z, min2.z)),
-                         new Vec3(Math.min(max1.x, max2.x), Math.min(max1.y, max2.y), Math.min(max1.z, max2.z)));
         return result;
     }
 
@@ -743,27 +726,6 @@ class Viewer {
             app.assets.add(cubemapAsset);
             app.assets.load(cubemapAsset);
         }
-        this.skyboxLoaded = true;
-    }
-
-    // load the built in helipad cubemap
-    private loadHeliSkybox() {
-        const app = this.app;
-
-        const cubemap = new Asset('helipad', 'cubemap', {
-            url: getAssetPath("cubemaps/Helipad.dds")
-        }, {
-            magFilter: FILTER_LINEAR,
-            minFilter: FILTER_LINEAR_MIPMAP_LINEAR,
-            anisotropy: 1,
-            type: TEXTURETYPE_RGBM
-        });
-        cubemap.on('load', () => {
-            app.scene.setSkybox(cubemap.resources);
-            this.renderNextFrame();
-        });
-        app.assets.add(cubemap);
-        app.assets.load(cubemap);
         this.skyboxLoaded = true;
     }
 
