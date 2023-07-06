@@ -370,7 +370,7 @@ class Viewer {
 
     private initXrMode() {
         const backup = {
-            position: new Vec3(),
+            position: new Vec3()
         };
 
         const handlers = {
