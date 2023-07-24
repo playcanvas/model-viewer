@@ -8,7 +8,6 @@ import {
     PIXELFORMAT_RGBA32F,
     SEMANTIC_POSITION,
     drawQuadWithShader,
-    shaderChunks,
     BlendState,
     CameraComponent,
     RenderTarget,
@@ -16,7 +15,8 @@ import {
     Shader,
     Texture,
     Vec3,
-    WebglGraphicsDevice
+    WebglGraphicsDevice,
+    createShaderFromCode
 } from 'playcanvas';
 
 const gamma = 2.2;
@@ -39,17 +39,6 @@ void main(void) {
     gl_FragColor = pow(t, vec4(power));
 }
 `;
-
-const vertexShaderHeader = (device: WebglGraphicsDevice) => {
-    // @ts-ignore
-    return device.webgl2 ? `#version 300 es\n\n${shaderChunks.gles3VS}\n` : '';
-};
-
-const fragmentShaderHeader = (device: WebglGraphicsDevice) => {
-    // @ts-ignore
-    return (device.webgl2 ? `#version 300 es\n\n${shaderChunks.gles3PS}\n` : '') +
-            `precision ${device.precision} float;\n\n`;
-};
 
 const supportsFloat16 = (device: WebglGraphicsDevice): boolean => {
     return device.extTextureHalfFloat && device.textureHalfFloatRenderable;
@@ -90,6 +79,7 @@ class Multiframe {
     samples: Vec3[] = [];
     enabled = true;
     totalWeight = 0;
+    blend = 1.0;
 
     constructor(device: WebglGraphicsDevice, camera: CameraComponent, numSamples: number) {
         this.device = device;
@@ -118,12 +108,8 @@ class Multiframe {
             camera._viewProjMatDirty = true;
         };
 
-        this.shader = new Shader(device, {
-            attributes: {
-                vertex_position: SEMANTIC_POSITION
-            },
-            vshader: vertexShaderHeader(device) + vshader,
-            fshader: fragmentShaderHeader(device) + fshader
+        this.shader = createShaderFromCode(device, vshader, fshader, 'multiframe', {
+            vertex_position: SEMANTIC_POSITION
         });
 
         this.pixelFormat = choosePixelFormat(device);
@@ -236,14 +222,18 @@ class Multiframe {
         const sampleCnt = this.samples.length;
         const sourceTex = this.camera.renderTarget.colorBuffer;
 
-        // store device blend state
-        device.setBlendState(noBlend);
-
         // in disabled state we resolve directly from source to backbuffer
         if (!this.enabled) {
+            if (this.blend !== 1.0) {
+                device.setBlendState(accumBlend);
+                device.setBlendColor(this.blend, this.blend,this.blend, this.blend);
+            } else {
+                device.setBlendState(noBlend);
+            }
+
             this.multiframeTexUniform.setValue(sourceTex);
             this.powerUniform.setValue(1.0);
-            drawQuadWithShader(device, null, this.shader);
+            drawQuadWithShader(device, null, this.shader, null, null);
             this.activateBackbuffer();
             return false;
         }
@@ -268,8 +258,6 @@ class Multiframe {
             drawQuadWithShader(device, this.accumRenderTarget, this.shader, null, null);
 
             this.totalWeight += sampleWeight;
-
-            device.setBlendState(noBlend);
         }
 
         if (this.sampleId === 0) {
@@ -279,6 +267,13 @@ class Multiframe {
         } else {
             this.multiframeTexUniform.setValue(this.accumTexture);
             this.powerUniform.setValue(1.0 / gamma);
+        }
+
+        if (this.blend !== 1.0) {
+            device.setBlendState(accumBlend);
+            device.setBlendColor(this.blend, this.blend,this.blend, this.blend);
+        } else {
+            device.setBlendState(noBlend);
         }
 
         drawQuadWithShader(device, null, this.shader);

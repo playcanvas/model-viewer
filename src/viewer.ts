@@ -4,8 +4,6 @@ import {
     BLENDMODE_ZERO,
     BLENDEQUATION_ADD,
     FILLMODE_NONE,
-    FILTER_LINEAR,
-    FILTER_LINEAR_MIPMAP_LINEAR,
     FILTER_NEAREST,
     LAYERID_DEPTH,
     LAYERID_SKYBOX,
@@ -57,7 +55,6 @@ import { MiniStats } from 'playcanvas-extras';
 // @ts-ignore: library file import
 // import * as VoxParser from 'playcanvas/scripts/parsers/vox-parser.js';
 import { MeshoptDecoder } from '../lib/meshopt_decoder.module.js';
-import { getAssetPath } from './helpers';
 import { DropHandler } from './drop-handler';
 import { MorphTargetData, File, HierarchyNode } from './types';
 import { DebugLines } from './debug-lines';
@@ -228,15 +225,9 @@ class Viewer {
         const light = new Entity();
         light.addComponent("light", {
             type: "directional",
-            color: new Color(1, 1, 1),
-            castShadows: true,
-            intensity: 1,
             shadowBias: 0.2,
-            shadowDistance: 5,
-            normalOffsetBias: 0.05,
             shadowResolution: 2048
         });
-        light.setLocalEulerAngles(45, 30, 0);
         app.root.addChild(light);
 
         // disable autorender
@@ -373,41 +364,89 @@ class Viewer {
             position: new Vec3()
         };
 
+        let placed = false;
+        let currPosition = new Vec3();
+        let targetPosition = new Vec3();
+        let positionLerp = 0;
+        let hoverDistance = 0;
+
+        const start = new Vec3();
+        const end = new Vec3();
+
         const handlers = {
             starting: () => {
+                console.log('starting');
+
                 // store object position so we can restore it when exiting AR
                 backup.position.copy(this.sceneRoot.getLocalPosition());
+                placed = false;
 
-                // hide model and shadow till model is placed in AR scene
-                this.sceneRoot.enabled = false;
+                const bbox = this.calcSceneBounds();
+                const radius = bbox.halfExtents.length();
+                const camera = this.camera.camera;
+                hoverDistance = (radius * 1.4) / Math.sin(0.5 * camera.fov * camera.aspectRatio * math.DEG_TO_RAD);
+
+                // prepare scene for going to AR mode
                 this.shadowCatcher.enabled = false;
                 this.shadowCatcher.intensity = 0.4;
                 this.setDebugGrid(false);
                 this.setDebugBounds(false);
                 this.setLightEnabled(true);
                 this.setLightFollow(false);
+
+                this.sceneRoot.enabled = false;
             },
 
             started: () => {
+                console.log('started');
+
                 // hide skybox
                 this.app.scene.layers.getLayerById(LAYERID_SKYBOX).enabled = false;
-                this.app.scene.skyboxIntensity  = 0;
+                this.multiframe.blend = 0.5;
+                this.sceneRoot.enabled = true;
             },
 
             place: (position: Vec3, rotation: Quat) => {
-                this.sceneRoot.enabled = true;
-                this.shadowCatcher.enabled = true;
+                console.log('place');
 
-                this.sceneRoot.setLocalPosition(position);
-                this.sceneBounds = this.calcSceneBounds();
-                this.dirtyBounds = true;
-                this.dirtyGrid = true;
+                placed = true;
+                this.multiframe.blend = 1.0;
+
+                positionLerp = 0;
+                targetPosition.copy(position);
+                this.shadowCatcher.enabled = true;
             },
 
             updateLighting: (intensity: number, color: Color, rotation: Quat) => {
                 this.light.light.intensity = intensity;
                 this.light.light.color = color;
                 this.light.setLocalRotation(rotation);
+
+                // disable skybox lighting contribution
+                this.app.scene.skyboxIntensity  = 0;
+            },
+
+            onUpdate: (deltaTime: number) => {
+                if (!placed) {
+                    const cameraMatrix = this.xrMode.getCameraMatrix();
+                    cameraMatrix.transformPoint(new Vec3(0, 0, -hoverDistance), currPosition);
+                } else {
+                    positionLerp = Math.min(1.0, positionLerp + deltaTime * 3.0);
+                    currPosition.lerp(currPosition, targetPosition, Math.sin((positionLerp - 0.5) * Math.PI) * 0.5 + 0.5);
+                }
+            },
+
+            onPrerender: () => {
+                this.sceneRoot.setLocalPosition(currPosition);
+                this.sceneBounds = this.calcSceneBounds();
+                this.dirtyBounds = true;
+                this.dirtyGrid = true;
+
+                // this.light.getWorldTransform().transformPoint(Vec3.ZERO, start);
+                // this.light.getWorldTransform().transformPoint(Vec3.FORWARD, end);
+                // start.add(targetPosition);
+                // end.add(targetPosition);
+                // this.app.drawLine(start, end);
             },
 
             ended: () => {
@@ -424,11 +463,12 @@ class Viewer {
                 this.setLightColor(this.observer.get('light.color'));
 
                 // restore object placement
-                this.sceneRoot.enabled = true;
                 this.sceneRoot.setLocalPosition(backup.position);
                 this.sceneBounds = this.calcSceneBounds();
                 this.dirtyBounds = true;
                 this.dirtyGrid = true;
+
+                this.multiframe.blend = 1.0;
             }
         };
 
@@ -917,17 +957,18 @@ class Viewer {
 
         const bound = this.dynamicSceneBounds;
         const boundCenter = bound.center;
-        const boundRadius = bound.halfExtents.length() * 4;
+        const boundRadius = bound.halfExtents.length() * 2;
 
         vec.sub2(boundCenter, cameraPosition);
         const dist = -vec.dot(cameraForward);
 
-        const near = (dist < boundRadius) ? boundRadius / 1024 : dist - boundRadius;
         const far = dist + boundRadius;
+        const near = Math.max(0.001, (dist < boundRadius) ? far / 1024 : dist - boundRadius);
 
         this.camera.camera.nearClip = near;
         this.camera.camera.farClip = far;
         this.light.light.shadowDistance = far;
+        this.light.light.normalOffsetBias = far / 1024;
     }
 
     // load gltf model given its url and list of external urls
@@ -1359,6 +1400,8 @@ class Viewer {
     }
 
     update(deltaTime: number) {
+        this.xrMode.onUpdate(deltaTime);
+
         // update the orbit camera
         if (!this.xrMode.active) {
             this.orbitCamera.update(deltaTime);
@@ -1740,6 +1783,15 @@ class Viewer {
         this.shadowCatcher.onUpdate(this.dynamicSceneBounds);
 
         this.xrMode.onPrerender();
+
+        // show direct light direction
+        const start = new Vec3();
+        const end = new Vec3();
+        this.light.getWorldTransform().transformPoint(Vec3.ZERO, start);
+        this.light.getWorldTransform().transformPoint(Vec3.UP, end);
+        start.add(this.sceneRoot.getLocalPosition());
+        end.add(this.sceneRoot.getLocalPosition());
+        this.app.drawLine(start, end, new Color(0, 1, 1, 1));
     }
 
     private onPostrender() {

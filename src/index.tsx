@@ -167,7 +167,7 @@ const loadOptions = (name: string, skyboxUrls: Map<string, string>) => {
                 loadRec(path ? `${path}.${k}` : k, value[k]);
             });
         } else {
-            if (path !== 'skybox.value' || skyboxUrls.has(value)) {
+            if (path !== 'skybox.value' || value === 'None' || skyboxUrls.has(value)) {
                 observer.set(path, value);
             }
         }

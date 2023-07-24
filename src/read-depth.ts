@@ -4,11 +4,13 @@ import {
     SEMANTIC_POSITION,
     drawQuadWithShader,
     shaderChunks,
+    BlendState,
     RenderTarget,
     ScopeId,
     Shader,
     Texture,
-    WebglGraphicsDevice
+    WebglGraphicsDevice,
+    createShaderFromCode
 } from 'playcanvas';
 
 // @ts-ignore
@@ -34,16 +36,7 @@ void main(void) {
 }
 `;
 
-const vertexShaderHeader = (device: WebglGraphicsDevice) => {
-    // @ts-ignore
-    return device.webgl2 ? `#version 300 es\n\n${shaderChunks.gles3VS}\n` : '';
-};
-
-const fragmentShaderHeader = (device: WebglGraphicsDevice) => {
-    // @ts-ignore
-    return (device.webgl2 ? `#version 300 es\n\n${shaderChunks.gles3PS}\n` : '') +
-            `precision ${device.precision} float;\n\n`;
-};
+const noBlend = new BlendState(false);
 
 // helper class for reading out the depth values from depth render targets.
 class ReadDepth {
@@ -58,12 +51,8 @@ class ReadDepth {
     constructor(device: WebglGraphicsDevice) {
         this.device = device;
 
-        this.shader = new Shader(device, {
-            attributes: {
-                vertex_position: SEMANTIC_POSITION
-            },
-            vshader: vertexShaderHeader(device) + vshader,
-            fshader: fragmentShaderHeader(device) + fshader
+        this.shader = createShaderFromCode(device, vshader, fshader, 'read-depth', {
+            vertex_position: SEMANTIC_POSITION
         });
 
         this.depthTexUniform = device.scope.resolve('depthTex');
@@ -110,12 +99,15 @@ class ReadDepth {
             this.create();
         }
 
+        console.log(`tex=${this.texture.width}x${this.texture.height} depth=${depthTexture.width}x${depthTexture.height}`);
+
         const device = this.device;
         const tx = x + 0.5 / depthTexture.width;
         const ty = y + 0.5 / depthTexture.height;
 
         this.depthTexUniform.setValue(depthTexture);
         this.texcoordRangeUniform.setValue([tx, ty, tx, ty]);
+        device.setBlendState(noBlend);
         drawQuadWithShader(this.device, this.renderTarget, this.shader);
 
         const gl = device.gl;

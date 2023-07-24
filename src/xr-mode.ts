@@ -22,6 +22,8 @@ interface XrHandlers {
     started: () => void;
     place: (position: Vec3, rotation: Quat) => void;
     updateLighting: (intensity: number, color: Color, rotation: Quat) => void;
+    onUpdate: (deltaTime: number) => void;
+    onPrerender: () => void;
     ended: () => void;
 }
 
@@ -111,8 +113,10 @@ class XrMode {
         if (ray) {
             // transform ray to view local space
             const view = this.app.xr.views?.[0];
-            view.viewOffMat.transformPoint(ray.origin, this.ray.origin);
-            view.viewOffMat.transformVector(ray.direction, this.ray.direction);
+            if (view) {
+                view.viewOffMat.transformPoint(ray.origin, this.ray.origin);
+                view.viewOffMat.transformVector(ray.direction, this.ray.direction);
+            }
         }
 
         // perform hittest
@@ -136,11 +140,7 @@ class XrMode {
     // start the XR session
     start() {
         if (this.app.xr.isAvailable(XRTYPE_AR)) {
-            this.camera.setLocalPosition(0, 0, 0);
-            this.camera.setLocalEulerAngles(0, 0, 0);
-
             this.handlers.starting();
-
             this.app.xr.start(this.camera.camera, XRTYPE_AR, XRSPACE_LOCAL, {
                 callback: (err: Error | null) => {
                     if (err) {
@@ -148,6 +148,12 @@ class XrMode {
                     }
                 }
             });
+        }
+    }
+
+    onUpdate(deltaTime: number) {
+        if (this.active) {
+            this.handlers.onUpdate(deltaTime);
         }
     }
 
@@ -172,6 +178,8 @@ class XrMode {
                 }
                 this.handlers.updateLighting(this.intensity, this.color, this.rotation);
             }
+
+            this.handlers.onPrerender();
         }
     }
 

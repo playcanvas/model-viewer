@@ -11,6 +11,7 @@ import {
     SORTMODE_NONE,
     TYPE_FLOAT32,
     TYPE_UINT8,
+    createShaderFromCode,
     DepthState,
     Entity,
     GraphNode,
@@ -19,7 +20,6 @@ import {
     Mesh,
     MeshInstance,
     Mat4,
-    Shader,
     Vec3,
     VertexBuffer,
     VertexFormat,
@@ -55,35 +55,37 @@ const vshader = `
 attribute vec3 vertex_position;
 attribute vec4 vertex_color;
 
+varying vec2 zw;
 varying vec4 vColor;
 
 uniform mat4 matrix_model;
 uniform mat4 matrix_viewProjection;
 
 void main(void) {
-    gl_Position = matrix_viewProjection * matrix_model * vec4(vertex_position, 1.0);
     vColor = vertex_color;
+
+    gl_Position = matrix_viewProjection * matrix_model * vec4(vertex_position, 1.0);
+
+    // store z/w for later use in fragment shader
+    zw = gl_Position.zw;
+
+    // disable depth clipping
+    gl_Position.z = 0.0;
 }`;
 
 const fshader = `
 precision highp float;
 
+varying vec2 zw;
 varying vec4 vColor;
-
 uniform vec4 uColor;
 
 void main(void) {
     gl_FragColor = vColor * uColor;
-}`;
 
-const linesShaderDefinition = {
-    attributes: {
-        vertex_position: SEMANTIC_POSITION,
-        vertex_color: SEMANTIC_COLOR
-    },
-    vshader: vshader,
-    fshader: fshader
-};
+    // clamp depth in Z to [0, 1] range
+    gl_FragDepth = max(0.0, min(1.0, (zw.x / zw.y + 1.0) * 0.5));
+}`;
 
 class DebugLines {
     app: App;
@@ -97,6 +99,11 @@ class DebugLines {
 
     constructor(app: App, camera: Entity, backLayer = true) {
         const device = app.graphicsDevice as WebglGraphicsDevice;
+
+        const shader = createShaderFromCode(device, vshader, fshader, 'debug-lines', {
+            vertex_position: SEMANTIC_POSITION,
+            vertex_color: SEMANTIC_COLOR
+        });
 
         if (!debugLayerFront) {
             // construct the debug layer
@@ -142,7 +149,7 @@ class DebugLines {
         mesh.primitive[0].count = 0;
 
         const frontMaterial = new Material();
-        frontMaterial.shader = new Shader(device, linesShaderDefinition);
+        frontMaterial.shader = shader;
         frontMaterial.setParameter('uColor', [1, 1, 1, 0.7]);
         frontMaterial.blendType = BLEND_NORMAL;
         frontMaterial.update();
@@ -158,7 +165,7 @@ class DebugLines {
         // construct back
         if (backLayer) {
             const backMaterial = new Material();
-            backMaterial.shader = new Shader(device, linesShaderDefinition);
+            backMaterial.shader = shader;
             backMaterial.setParameter('uColor', [0.5, 0.5, 0.5, 0.5]);
             backMaterial.blendType = BLEND_NORMAL;
             backMaterial.depthTest = true;
