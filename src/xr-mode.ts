@@ -21,7 +21,7 @@ interface XrHandlers {
     starting: () => void;
     started: () => void;
     place: (position: Vec3, rotation: Quat) => void;
-    updateLighting: (intensity: number, color: Color, rotation: Quat) => void;
+    updateLighting: (intensity: number, color: Color, rotation: Quat, sphericalHarmonics?: Float32Array) => void;
     onUpdate: (deltaTime: number) => void;
     onPrerender: () => void;
     ended: () => void;
@@ -168,7 +168,7 @@ class XrMode {
             if (le.available) {
                 this.intensity = le.intensity ?? 1;
                 if (le.color) {
-                    // convert color to gamma space
+                    // convert linear color to gamma space (since the engine will convert gamma to linear)
                     this.color.r = Math.pow(le.color.r, 1.0 / 2.2);
                     this.color.g = Math.pow(le.color.g, 1.0 / 2.2);
                     this.color.b = Math.pow(le.color.b, 1.0 / 2.2);
@@ -176,7 +176,7 @@ class XrMode {
                 if (le.rotation) {
                     this.rotation.copy(le.rotation);
                 }
-                this.handlers.updateLighting(this.intensity, this.color, this.rotation);
+                this.handlers.updateLighting(this.intensity, this.color, this.rotation, le.sphericalHarmonics);
             }
 
             this.handlers.onPrerender();

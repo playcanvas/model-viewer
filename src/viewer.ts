@@ -30,6 +30,7 @@ import {
     Entity,
     EnvLighting,
     GraphNode,
+    Keyboard,
     Mat4,
     Mesh,
     MeshInstance,
@@ -60,7 +61,7 @@ import { MorphTargetData, File, HierarchyNode } from './types';
 import { DebugLines } from './debug-lines';
 import { Multiframe } from './multiframe';
 import { ReadDepth } from './read-depth';
-import { OrbitCamera, OrbitCameraInputMouse, OrbitCameraInputTouch } from './orbit-camera';
+import { OrbitCamera, OrbitCameraInputMouse, OrbitCameraInputTouch, OrbitCameraInputKeyboard } from './orbit-camera';
 import { PngExporter } from './png-exporter.js';
 import { ProjectiveSkybox } from './projective-skybox';
 import { ShadowCatcher } from './shadow-catcher';
@@ -74,6 +75,7 @@ const vec = new Vec3();
 class Viewer {
     app: App;
     skyboxUrls: Map<string, string>;
+    controlEventKeys: string[] = null;
     dropHandler: DropHandler;
     pngExporter: PngExporter = null;
     prevCameraMat: Mat4;
@@ -81,6 +83,7 @@ class Viewer {
     orbitCamera: OrbitCamera;
     orbitCameraInputMouse: OrbitCameraInputMouse;
     orbitCameraInputTouch: OrbitCameraInputTouch;
+    orbitCameraInputKeyboard: OrbitCameraInputKeyboard;
     initialCameraPosition: Vec3 | null;
     light: Entity;
     sceneRoot: Entity;
@@ -138,6 +141,7 @@ class Viewer {
         const app = new App(canvas, {
             mouse: new Mouse(canvas),
             touch: new TouchDevice(canvas),
+            keyboard: new Keyboard(window),
             graphicsDeviceOptions: {
                 preferWebGl2: true,
                 alpha: true,
@@ -216,6 +220,7 @@ class Viewer {
         this.orbitCamera = new OrbitCamera(camera, 0.25);
         this.orbitCameraInputMouse = new OrbitCameraInputMouse(this.app, this.orbitCamera);
         this.orbitCameraInputTouch = new OrbitCameraInputTouch(this.app, this.orbitCamera);
+        this.orbitCameraInputKeyboard = new OrbitCameraInputKeyboard(this.app, this.orbitCamera);
 
         this.orbitCamera.focalPoint.snapto(new Vec3(0, 1, 0));
 
@@ -328,6 +333,9 @@ class Viewer {
         // initialize control events
         this.bindControlEvents();
 
+        // load initial settings
+        this.reloadSettings();
+
         this.resizeCanvas();
 
         // construct the depth reader
@@ -370,8 +378,15 @@ class Viewer {
         let positionLerp = 0;
         let hoverDistance = 0;
 
-        const start = new Vec3();
-        const end = new Vec3();
+        const applySH = (sh: Float32Array | null) => {
+            this.meshInstances.forEach((meshInstance) => {
+                const material = meshInstance.material as StandardMaterial;
+                if (material.ambientSH !== sh) {
+                    material.ambientSH = sh;
+                    material.update();
+                }
+            });
+        };
 
         const handlers = {
             starting: () => {
@@ -386,13 +401,17 @@ class Viewer {
                 const camera = this.camera.camera;
                 hoverDistance = (radius * 1.4) / Math.sin(0.5 * camera.fov * camera.aspectRatio * math.DEG_TO_RAD);
 
-                // prepare scene for going to AR mode
-                this.shadowCatcher.enabled = false;
-                this.shadowCatcher.intensity = 0.4;
+                // prepare scene settings for AR mode
+                this.setShadowCatcherEnabled(true);
+                this.setShadowCatcherIntensity(0.4);
                 this.setDebugGrid(false);
                 this.setDebugBounds(false);
                 this.setLightEnabled(true);
+                this.setLightShadow(true);
                 this.setLightFollow(false);
+
+                this.setSkyboxBackground('None');
+                this.setSkyboxExposure(0);
 
                 this.sceneRoot.enabled = false;
             },
@@ -417,13 +436,14 @@ class Viewer {
                 this.shadowCatcher.enabled = true;
             },
 
-            updateLighting: (intensity: number, color: Color, rotation: Quat) => {
+            updateLighting: (intensity: number, color: Color, rotation: Quat, sphericalHarmonics?: Float32Array) => {
+                if (sphericalHarmonics) {
+                    applySH(sphericalHarmonics);
+                }
+
                 this.light.light.intensity = intensity;
                 this.light.light.color = color;
                 this.light.setLocalRotation(rotation);
-
-                // disable skybox lighting contribution
-                this.app.scene.skyboxIntensity  = 0;
             },
 
             onUpdate: (deltaTime: number) => {
@@ -441,34 +461,22 @@ class Viewer {
                 this.sceneBounds = this.calcSceneBounds();
                 this.dirtyBounds = true;
                 this.dirtyGrid = true;
-
-                // this.light.getWorldTransform().transformPoint(Vec3.ZERO, start);
-                // this.light.getWorldTransform().transformPoint(Vec3.FORWARD, end);
-                // start.add(targetPosition);
-                // end.add(targetPosition);
-                // this.app.drawLine(start, end);
             },
 
             ended: () => {
-                // restore settings
-                this.setSkyboxBackground(this.observer.get('skybox.background'));
-                this.setSkyboxExposure(this.observer.get('skybox.exposure'));
-                this.setShadowCatcherEnabled(this.observer.get('shadowCatcher.enabled'));
-                this.setShadowCatcherIntensity(this.observer.get('shadowCatcher.intensity'));
-                this.setDebugGrid(this.observer.get('debug.grid'));
-                this.setDebugBounds(this.observer.get('debug.bounds'));
-                this.setLightEnabled(this.observer.get('light.enabled'));
-                this.setLightFollow(this.observer.get('light.follow'));
-                this.setLightIntensity(this.observer.get('light.intensity'));
-                this.setLightColor(this.observer.get('light.color'));
+                // remove ambientSH from materials
+                applySH(null);
+
+                this.multiframe.blend = 1.0;
+
+                // reload all user options
+                this.reloadSettings();
 
                 // restore object placement
                 this.sceneRoot.setLocalPosition(backup.position);
                 this.sceneBounds = this.calcSceneBounds();
                 this.dirtyBounds = true;
                 this.dirtyGrid = true;
-
-                this.multiframe.blend = 1.0;
             }
         };
 
@@ -534,7 +542,7 @@ class Viewer {
 
     // construct the controls interface and initialize controls
     private bindControlEvents() {
-        const controlEvents:any = {
+        const controlEvents: any = {
             // camera
             'camera.fov': this.setFov.bind(this),
             'camera.tonemapping': this.setTonemapping.bind(this),
@@ -605,14 +613,22 @@ class Viewer {
             'scene.variant.selected': this.setSelectedVariant.bind(this)
         };
 
+        // store control event keys
+        this.controlEventKeys = Object.keys(controlEvents);
+
         // register control events
-        Object.keys(controlEvents).forEach((e) => {
+        this.controlEventKeys.forEach((e) => {
             this.observer.on(`${e}:set`, controlEvents[e]);
-            this.observer.set(e, this.observer.get(e), false, false, true);
         });
 
         this.observer.on('canvasResized', () => {
             this.resizeCanvas();
+        });
+    }
+
+    private reloadSettings() {
+        this.controlEventKeys.forEach((e) => {
+            this.observer.set(e, this.observer.get(e), false, false, true);
         });
     }
 
@@ -1404,6 +1420,7 @@ class Viewer {
 
         // update the orbit camera
         if (!this.xrMode.active) {
+            this.orbitCameraInputKeyboard.update(deltaTime, this.sceneBounds?.halfExtents.length() * 2 ?? 1);
             this.orbitCamera.update(deltaTime);
         }
 
