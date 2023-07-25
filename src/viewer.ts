@@ -73,6 +73,7 @@ const defaultSceneBounds = new BoundingBox(new Vec3(0, 1, 0), new Vec3(1, 1, 1))
 const vec = new Vec3();
 
 class Viewer {
+    canvas: HTMLCanvasElement;
     app: App;
     skyboxUrls: Map<string, string>;
     controlEventKeys: string[] = null;
@@ -136,7 +137,11 @@ class Viewer {
     shadowCatcher: ShadowCatcher = null;
     xrMode: XrMode;
 
+    canvasResize = true;
+
     constructor(canvas: HTMLCanvasElement, observer: Observer, skyboxUrls: Map<string, string>) {
+        this.canvas = canvas;
+
         // create the application
         const app = new App(canvas, {
             mouse: new Mouse(canvas),
@@ -194,13 +199,13 @@ class Viewer {
             this.loadFiles(files, resetScene);
         });
 
-        // Set the canvas to fill the window and automatically change resolution to be the same as the canvas size
-        const canvasSize = this.getCanvasSize();
-        app.setCanvasFillMode(FILLMODE_NONE, canvasSize.width, canvasSize.height);
-        app.setCanvasResolution(RESOLUTION_AUTO);
-        window.addEventListener("resize", () => {
-            this.resizeCanvas();
-        });
+        // observe canvas size changes
+        new ResizeObserver((elements) => {
+            if (!this.xrMode.active) {
+                this.canvasResize = true;
+                this.renderNextFrame();
+            }
+        }).observe(window.document.getElementById('canvas-wrapper'));
 
         // Depth layer is where the framebuffer is copied to a texture to be used in the following layers.
         // Move the depth layer to take place after World and Skydome layers, to capture both of them.
@@ -336,8 +341,6 @@ class Viewer {
         // load initial settings
         this.reloadSettings();
 
-        this.resizeCanvas();
-
         // construct the depth reader
         this.readDepth = new ReadDepth(device);
         this.cursorWorld = new Vec3();
@@ -412,6 +415,8 @@ class Viewer {
 
                 this.setSkyboxBackground('None');
                 this.setSkyboxExposure(0);
+                this.setBackgroundColor(Color.BLACK);
+                this.app.scene.layers.getLayerById(LAYERID_SKYBOX).enabled = false;
 
                 this.sceneRoot.enabled = false;
             },
@@ -546,8 +551,14 @@ class Viewer {
             // camera
             'camera.fov': this.setFov.bind(this),
             'camera.tonemapping': this.setTonemapping.bind(this),
-            'camera.pixelScale': this.resizeCanvas.bind(this),
-            'camera.multisample': this.resizeCanvas.bind(this),
+            'camera.pixelScale': () => {
+                this.canvasResize = true;
+                this.renderNextFrame();
+            },
+            'camera.multisample': () => {
+                this.destroyRenderTargets();
+                this.renderNextFrame();
+            },
             'camera.hq': (enabled: boolean) => {
                 this.multiframe.enabled = enabled;
                 this.renderNextFrame();
@@ -619,10 +630,6 @@ class Viewer {
         // register control events
         this.controlEventKeys.forEach((e) => {
             this.observer.on(`${e}:set`, controlEvents[e]);
-        });
-
-        this.observer.on('canvasResized', () => {
-            this.resizeCanvas();
         });
     }
 
@@ -786,21 +793,39 @@ class Viewer {
     }
 
     private getCanvasSize() {
+        const s = this.canvas.getBoundingClientRect();
         return {
-            width: document.body.clientWidth - document.getElementById("panel-left").offsetWidth, // - document.getElementById("panel-right").offsetWidth,
-            height: document.body.clientHeight
+            width: s.width,
+            height: s.height
         };
     }
 
-    resizeCanvas() {
-        const observer = this.observer;
+    destroyRenderTargets() {
+        const rt = this.camera.camera.renderTarget;
+        if (rt) {
+            rt.colorBuffer.destroy();
+            rt.depthBuffer.destroy();
+            rt.destroy();
+            this.camera.camera.renderTarget = null;
+        }
+    }
 
+    rebuildRenderTargets() {
         const device = this.app.graphicsDevice as WebglGraphicsDevice;
-        const canvasSize = this.getCanvasSize();
 
-        device.maxPixelRatio = window.devicePixelRatio;
-        this.app.resizeCanvas(canvasSize.width, canvasSize.height);
-        this.renderNextFrame();
+        // get the canvas UI size
+        const widthPixels = device.width;
+        const heightPixels = device.height;
+
+        const old = this.camera.camera.renderTarget;
+        if (old && old.width === widthPixels && old.height === heightPixels) {
+            return;
+        }
+
+        console.log(`resize to ${widthPixels} x ${heightPixels}`);
+
+        // out with the old
+        this.destroyRenderTargets();
 
         const createTexture = (width: number, height: number, format: number) => {
             return new Texture(device, {
@@ -815,25 +840,14 @@ class Viewer {
             });
         };
 
-        // out with the old
-        const old = this.camera.camera.renderTarget;
-        if (old) {
-            old.colorBuffer.destroy();
-            old.depthBuffer.destroy();
-            old.destroy();
-        }
-
         // in with the new
-        const pixelScale = observer.get('camera.pixelScale');
-        const w = Math.floor(canvasSize.width * window.devicePixelRatio / pixelScale);
-        const h = Math.floor(canvasSize.height * window.devicePixelRatio / pixelScale);
-        const colorBuffer = createTexture(w, h, PIXELFORMAT_RGBA8);
-        const depthBuffer = createTexture(w, h, PIXELFORMAT_DEPTH);
+        const colorBuffer = createTexture(widthPixels, heightPixels, PIXELFORMAT_RGBA8);
+        const depthBuffer = createTexture(widthPixels, heightPixels, PIXELFORMAT_DEPTH);
         const renderTarget = new RenderTarget({
             colorBuffer: colorBuffer,
             depthBuffer: depthBuffer,
             flipY: false,
-            samples: observer.get('camera.multisample') ? device.maxSamples : 1,
+            samples: this.observer.get('camera.multisample') ? device.maxSamples : 1,
             autoResolve: false
         });
         this.camera.camera.renderTarget = renderTarget;
@@ -1674,6 +1688,20 @@ class Viewer {
 
     // generate and render debug elements on prerender
     private onPrerender() {
+        if (this.canvasResize) {
+            const { width, height } = this.getCanvasSize();
+            console.log(`Resizing canvas to ${width}x${height}`);
+            const pixelScale = this.observer.get('camera.pixelScale');
+            const widthPixels = Math.floor(width * window.devicePixelRatio / pixelScale);
+            const heightPixels = Math.floor(height * window.devicePixelRatio / pixelScale);
+            this.canvas.width = widthPixels;
+            this.canvas.height = heightPixels;
+            this.canvasResize = false;
+        }
+
+        // rebuild render targets
+        this.rebuildRenderTargets();
+
         if (this.firstFrame) {
             return;
         }
@@ -1800,15 +1828,6 @@ class Viewer {
         this.shadowCatcher.onUpdate(this.dynamicSceneBounds);
 
         this.xrMode.onPrerender();
-
-        // show direct light direction
-        const start = new Vec3();
-        const end = new Vec3();
-        this.light.getWorldTransform().transformPoint(Vec3.ZERO, start);
-        this.light.getWorldTransform().transformPoint(Vec3.UP, end);
-        start.add(this.sceneRoot.getLocalPosition());
-        end.add(this.sceneRoot.getLocalPosition());
-        this.app.drawLine(start, end, new Color(0, 1, 1, 1));
     }
 
     private onPostrender() {

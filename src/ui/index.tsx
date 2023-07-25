@@ -27,13 +27,6 @@ class App extends React.Component<{ observer: Observer }> {
         });
     }
 
-    componentDidMount(): void {
-        const resizeCanvas = () => {
-            window.viewer?.observer.emit('canvasResized');
-        };
-        new ResizeObserver(resizeCanvas).observe(this.canvasRef.current);
-    }
-
     _retrieveState = () => {
         const state: any = {};
         (this.props.observer as any)._keys.forEach((key: string) => {
@@ -48,7 +41,7 @@ class App extends React.Component<{ observer: Observer }> {
 
     render() {
         return <div id="application-container">
-            <Container id="panel-left" flex resizable='right' resizeMin={220} resizeMax={800} onResize={() => this.props.observer.emit('canvasResized')}>
+            <Container id="panel-left" flex resizable='right' resizeMin={220} resizeMax={800}>
                 <div className="header" style={{ display: 'none' }}>
                     <div id="title">
                         <img src={getAssetPath('playcanvas-logo.png')}/>
