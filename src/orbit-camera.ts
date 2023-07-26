@@ -332,7 +332,7 @@ class OrbitCameraInputKeyboard {
     // forward, back, left, right, up, down
     app: App;
     orbitCamera: OrbitCamera;
-    controls = [ false, false, false, false, false, false ];
+    controls = [false, false, false, false, false, false];
     shift = false;
 
     constructor(app: App, orbitCamera: OrbitCamera) {

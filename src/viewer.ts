@@ -3,14 +3,12 @@ import {
     BLENDMODE_ONE,
     BLENDMODE_ZERO,
     BLENDEQUATION_ADD,
-    FILLMODE_NONE,
     FILTER_NEAREST,
     LAYERID_DEPTH,
     LAYERID_SKYBOX,
     PIXELFORMAT_DEPTH,
     PIXELFORMAT_RGBA8,
     PRIMITIVE_LINES,
-    RESOLUTION_AUTO,
     TEXTURETYPE_DEFAULT,
     TEXTURETYPE_RGBM,
     TONEMAP_LINEAR,
@@ -200,7 +198,7 @@ class Viewer {
         });
 
         // observe canvas size changes
-        new ResizeObserver((elements) => {
+        new ResizeObserver(() => {
             if (!this.xrMode.active) {
                 this.canvasResize = true;
                 this.renderNextFrame();
@@ -376,10 +374,10 @@ class Viewer {
             rotation: new Vec3()
         };
 
+        const currPosition = new Vec3();
+        const currRotation = new Vec3();
+        const targetPosition = new Vec3();
         let placed = false;
-        let currPosition = new Vec3();
-        let currRotation = new Vec3();
-        let targetPosition = new Vec3();
         let positionLerp = 0;
         let hoverDistance = 0;
 
@@ -434,8 +432,6 @@ class Viewer {
             },
 
             place: (position: Vec3) => {
-                console.log('place');
-
                 placed = true;
                 this.multiframe.blend = 1.0;
 
@@ -830,8 +826,6 @@ class Viewer {
         if (old && old.width === widthPixels && old.height === heightPixels) {
             return;
         }
-
-        console.log(`resize to ${widthPixels} x ${heightPixels}`);
 
         // out with the old
         this.destroyRenderTargets();
@@ -1443,7 +1437,7 @@ class Viewer {
 
         // update the orbit camera
         if (!this.xrMode.active) {
-            this.orbitCameraInputKeyboard.update(deltaTime, this.sceneBounds?.halfExtents.length() * 2 ?? 1);
+            this.orbitCameraInputKeyboard.update(deltaTime, this.sceneBounds ? this.sceneBounds.halfExtents.length() * 2 : 1);
             this.orbitCamera.update(deltaTime);
         }
 
@@ -1699,7 +1693,6 @@ class Viewer {
     private onPrerender() {
         if (this.canvasResize) {
             const { width, height } = this.getCanvasSize();
-            console.log(`Resizing canvas to ${width}x${height}`);
             const pixelScale = this.observer.get('camera.pixelScale');
             const widthPixels = Math.floor(width * window.devicePixelRatio / pixelScale);
             const heightPixels = Math.floor(height * window.devicePixelRatio / pixelScale);

@@ -226,7 +226,7 @@ class Multiframe {
         if (!this.enabled) {
             if (this.blend !== 1.0) {
                 device.setBlendState(accumBlend);
-                device.setBlendColor(this.blend, this.blend,this.blend, this.blend);
+                device.setBlendColor(this.blend, this.blend, this.blend, this.blend);
             } else {
                 device.setBlendState(noBlend);
             }
@@ -271,7 +271,7 @@ class Multiframe {
 
         if (this.blend !== 1.0) {
             device.setBlendState(accumBlend);
-            device.setBlendColor(this.blend, this.blend,this.blend, this.blend);
+            device.setBlendColor(this.blend, this.blend, this.blend, this.blend);
         } else {
             device.setBlendState(noBlend);
         }

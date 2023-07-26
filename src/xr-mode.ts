@@ -30,17 +30,19 @@ interface XrHandlers {
 
 class XRInput {
     dom: HTMLDivElement;
+
     suppressNextTouch = false;
+
     touches: Map<number, {
         previous: { x: number, y: number },
         current: { x: number, y: number }
     }> = new Map();
+
     onRotate: (angle: number) => void;
 
     onPointerDown = (e: PointerEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log("xr pointerdown");
 
         this.touches.set(e.pointerId, {
             previous: { x: e.clientX, y: e.clientY },
@@ -51,7 +53,6 @@ class XRInput {
     onPointerMove = (e: PointerEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log("xr pointermove");
 
         const touch = this.touches.get(e.pointerId);
         if (touch) {
@@ -79,7 +80,6 @@ class XRInput {
     onPointerUp = (e: PointerEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log("xr pointerup");
 
         this.suppressNextTouch ||= this.touches.size === 2;
         this.touches.delete(e.pointerId);
@@ -111,7 +111,7 @@ class XRInput {
         this.dom.removeEventListener('pointermove', this.onPointerMove);
         this.dom.removeEventListener('pointerup', this.onPointerUp);
     }
-};
+}
 
 class XrMode {
     app: App;
@@ -224,9 +224,8 @@ class XrMode {
                 if (err) {
                     console.log(err);
                 } else {
-                    hitTestSource.on('result', (position: Vec3, rotation: Quat) => {
+                    hitTestSource.on('result', (position: Vec3) => {
                         hitTestSource.remove();
-                        // 
                         if (this.input.suppressNextTouch) {
                             // after rotating the view we also get a place event (which
                             // we don't want).
