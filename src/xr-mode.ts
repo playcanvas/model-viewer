@@ -20,7 +20,7 @@ import {
 interface XrHandlers {
     starting: () => void;
     started: () => void;
-    place: (position: Vec3, rotation: Quat) => void;
+    place: (position: Vec3) => void;
     rotate: (angle: number) => void;
     updateLighting: (intensity: number, color: Color, rotation: Quat, sphericalHarmonics?: Float32Array) => void;
     onUpdate: (deltaTime: number) => void;
@@ -232,7 +232,7 @@ class XrMode {
                             // we don't want).
                             this.input.suppressNextTouch = false;
                         } else {
-                            this.handlers.place(position, Quat.IDENTITY);
+                            this.handlers.place(position);
                         }
                     });
                 }

@@ -433,7 +433,7 @@ class Viewer {
                 this.sceneRoot.enabled = true;
             },
 
-            place: (position: Vec3, rotation: Quat) => {
+            place: (position: Vec3) => {
                 console.log('place');
 
                 placed = true;
