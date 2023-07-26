@@ -426,7 +426,6 @@ class Viewer {
                 console.log('started');
 
                 // hide skybox
-                this.app.scene.layers.getLayerById(LAYERID_SKYBOX).enabled = false;
                 this.multiframe.blend = 0.5;
                 this.sceneRoot.enabled = true;
             },
