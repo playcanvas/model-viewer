@@ -14,7 +14,7 @@ import {
 } from 'playcanvas';
 
 const endPS = `
-    litArgs_opacity = mix(light0_shadowIntensity, 0.0, shadow0);
+    litShaderArgs.opacity = mix(light0_shadowIntensity, 0.0, shadow0);
     gl_FragColor.rgb = vec3(0.0);
 `;
 
