@@ -3,16 +3,12 @@ import {
     BLENDMODE_ONE,
     BLENDMODE_ZERO,
     BLENDEQUATION_ADD,
-    FILLMODE_NONE,
-    FILTER_LINEAR,
-    FILTER_LINEAR_MIPMAP_LINEAR,
     FILTER_NEAREST,
     LAYERID_DEPTH,
     LAYERID_SKYBOX,
     PIXELFORMAT_DEPTH,
     PIXELFORMAT_RGBA8,
     PRIMITIVE_LINES,
-    RESOLUTION_AUTO,
     TEXTURETYPE_DEFAULT,
     TEXTURETYPE_RGBM,
     TONEMAP_LINEAR,
@@ -32,6 +28,7 @@ import {
     Entity,
     EnvLighting,
     GraphNode,
+    Keyboard,
     Mat4,
     Mesh,
     MeshInstance,
@@ -57,13 +54,12 @@ import { MiniStats } from 'playcanvas-extras';
 // @ts-ignore: library file import
 // import * as VoxParser from 'playcanvas/scripts/parsers/vox-parser.js';
 import { MeshoptDecoder } from '../lib/meshopt_decoder.module.js';
-import { getAssetPath } from './helpers';
 import { DropHandler } from './drop-handler';
 import { MorphTargetData, File, HierarchyNode } from './types';
 import { DebugLines } from './debug-lines';
 import { Multiframe } from './multiframe';
 import { ReadDepth } from './read-depth';
-import { OrbitCamera, OrbitCameraInputMouse, OrbitCameraInputTouch } from './orbit-camera';
+import { OrbitCamera, OrbitCameraInputMouse, OrbitCameraInputTouch, OrbitCameraInputKeyboard } from './orbit-camera';
 import { PngExporter } from './png-exporter.js';
 import { ProjectiveSkybox } from './projective-skybox';
 import { ShadowCatcher } from './shadow-catcher';
@@ -75,8 +71,10 @@ const defaultSceneBounds = new BoundingBox(new Vec3(0, 1, 0), new Vec3(1, 1, 1))
 const vec = new Vec3();
 
 class Viewer {
+    canvas: HTMLCanvasElement;
     app: App;
     skyboxUrls: Map<string, string>;
+    controlEventKeys: string[] = null;
     dropHandler: DropHandler;
     pngExporter: PngExporter = null;
     prevCameraMat: Mat4;
@@ -84,6 +82,7 @@ class Viewer {
     orbitCamera: OrbitCamera;
     orbitCameraInputMouse: OrbitCameraInputMouse;
     orbitCameraInputTouch: OrbitCameraInputTouch;
+    orbitCameraInputKeyboard: OrbitCameraInputKeyboard;
     initialCameraPosition: Vec3 | null;
     light: Entity;
     sceneRoot: Entity;
@@ -136,11 +135,16 @@ class Viewer {
     shadowCatcher: ShadowCatcher = null;
     xrMode: XrMode;
 
+    canvasResize = true;
+
     constructor(canvas: HTMLCanvasElement, observer: Observer, skyboxUrls: Map<string, string>) {
+        this.canvas = canvas;
+
         // create the application
         const app = new App(canvas, {
             mouse: new Mouse(canvas),
             touch: new TouchDevice(canvas),
+            keyboard: new Keyboard(window),
             graphicsDeviceOptions: {
                 preferWebGl2: true,
                 alpha: true,
@@ -193,13 +197,13 @@ class Viewer {
             this.loadFiles(files, resetScene);
         });
 
-        // Set the canvas to fill the window and automatically change resolution to be the same as the canvas size
-        const canvasSize = this.getCanvasSize();
-        app.setCanvasFillMode(FILLMODE_NONE, canvasSize.width, canvasSize.height);
-        app.setCanvasResolution(RESOLUTION_AUTO);
-        window.addEventListener("resize", () => {
-            this.resizeCanvas();
-        });
+        // observe canvas size changes
+        new ResizeObserver(() => {
+            if (!this.xrMode.active) {
+                this.canvasResize = true;
+                this.renderNextFrame();
+            }
+        }).observe(window.document.getElementById('canvas-wrapper'));
 
         // Depth layer is where the framebuffer is copied to a texture to be used in the following layers.
         // Move the depth layer to take place after World and Skydome layers, to capture both of them.
@@ -219,6 +223,7 @@ class Viewer {
         this.orbitCamera = new OrbitCamera(camera, 0.25);
         this.orbitCameraInputMouse = new OrbitCameraInputMouse(this.app, this.orbitCamera);
         this.orbitCameraInputTouch = new OrbitCameraInputTouch(this.app, this.orbitCamera);
+        this.orbitCameraInputKeyboard = new OrbitCameraInputKeyboard(this.app, this.orbitCamera);
 
         this.orbitCamera.focalPoint.snapto(new Vec3(0, 1, 0));
 
@@ -228,15 +233,9 @@ class Viewer {
         const light = new Entity();
         light.addComponent("light", {
             type: "directional",
-            color: new Color(1, 1, 1),
-            castShadows: true,
-            intensity: 1,
             shadowBias: 0.2,
-            shadowDistance: 5,
-            normalOffsetBias: 0.05,
             shadowResolution: 2048
         });
-        light.setLocalEulerAngles(45, 30, 0);
         app.root.addChild(light);
 
         // disable autorender
@@ -337,7 +336,8 @@ class Viewer {
         // initialize control events
         this.bindControlEvents();
 
-        this.resizeCanvas();
+        // load initial settings
+        this.reloadSettings();
 
         // construct the depth reader
         this.readDepth = new ReadDepth(device);
@@ -370,62 +370,119 @@ class Viewer {
 
     private initXrMode() {
         const backup = {
-            position: new Vec3()
+            position: new Vec3(),
+            rotation: new Vec3()
+        };
+
+        const currPosition = new Vec3();
+        const currRotation = new Vec3();
+        const targetPosition = new Vec3();
+        let placed = false;
+        let positionLerp = 0;
+        let hoverDistance = 0;
+
+        const applySH = (sh: Float32Array | null) => {
+            this.meshInstances.forEach((meshInstance) => {
+                const material = meshInstance.material as StandardMaterial;
+                if (material.ambientSH !== sh) {
+                    material.ambientSH = sh;
+                    material.update();
+                }
+            });
         };
 
         const handlers = {
             starting: () => {
+                console.log('starting');
+
                 // store object position so we can restore it when exiting AR
                 backup.position.copy(this.sceneRoot.getLocalPosition());
+                backup.rotation.copy(this.sceneRoot.getLocalEulerAngles());
+                placed = false;
 
-                // hide model and shadow till model is placed in AR scene
-                this.sceneRoot.enabled = false;
-                this.shadowCatcher.enabled = false;
-                this.shadowCatcher.intensity = 0.4;
+                const bbox = this.calcSceneBounds();
+                const radius = bbox.halfExtents.length();
+                const camera = this.camera.camera;
+                hoverDistance = (radius * 1.4) / Math.sin(0.5 * camera.fov * camera.aspectRatio * math.DEG_TO_RAD);
+
+                // prepare scene settings for AR mode
+                this.setShadowCatcherEnabled(true);
+                this.setShadowCatcherIntensity(0.4);
                 this.setDebugGrid(false);
                 this.setDebugBounds(false);
                 this.setLightEnabled(true);
+                this.setLightShadow(true);
                 this.setLightFollow(false);
+
+                this.setSkyboxBackground('None');
+                this.setSkyboxExposure(0);
+                this.setBackgroundColor(Color.BLACK);
+                this.app.scene.layers.getLayerById(LAYERID_SKYBOX).enabled = false;
+
+                this.sceneRoot.enabled = false;
             },
 
             started: () => {
+                console.log('started');
+
                 // hide skybox
-                this.app.scene.layers.getLayerById(LAYERID_SKYBOX).enabled = false;
-                this.app.scene.skyboxIntensity  = 0;
-            },
-
-            place: (position: Vec3, rotation: Quat) => {
+                this.multiframe.blend = 0.5;
                 this.sceneRoot.enabled = true;
-                this.shadowCatcher.enabled = true;
-
-                this.sceneRoot.setLocalPosition(position);
-                this.sceneBounds = this.calcSceneBounds();
-                this.dirtyBounds = true;
-                this.dirtyGrid = true;
             },
 
-            updateLighting: (intensity: number, color: Color, rotation: Quat) => {
+            place: (position: Vec3) => {
+                placed = true;
+                this.multiframe.blend = 1.0;
+
+                positionLerp = 0;
+                targetPosition.copy(position);
+                this.shadowCatcher.enabled = true;
+            },
+
+            rotate: (angle: number) => {
+                currRotation.y += angle;
+            },
+
+            updateLighting: (intensity: number, color: Color, rotation: Quat, sphericalHarmonics?: Float32Array) => {
+                if (sphericalHarmonics) {
+                    applySH(sphericalHarmonics);
+                }
+
                 this.light.light.intensity = intensity;
                 this.light.light.color = color;
                 this.light.setLocalRotation(rotation);
             },
 
+            onUpdate: (deltaTime: number) => {
+                if (!placed) {
+                    const cameraMatrix = this.xrMode.getCameraMatrix();
+                    cameraMatrix.transformPoint(new Vec3(0, 0, -hoverDistance), currPosition);
+                } else {
+                    positionLerp = Math.min(1.0, positionLerp + deltaTime * 3.0);
+                    currPosition.lerp(currPosition, targetPosition, Math.sin((positionLerp - 0.5) * Math.PI) * 0.5 + 0.5);
+                }
+            },
+
+            onPrerender: () => {
+                this.sceneRoot.setLocalPosition(currPosition);
+                this.sceneRoot.setLocalEulerAngles(currRotation);
+                this.sceneBounds = this.calcSceneBounds();
+                this.dirtyBounds = true;
+                this.dirtyGrid = true;
+            },
+
             ended: () => {
-                // restore settings
-                this.setSkyboxBackground(this.observer.get('skybox.background'));
-                this.setSkyboxExposure(this.observer.get('skybox.exposure'));
-                this.setShadowCatcherEnabled(this.observer.get('shadowCatcher.enabled'));
-                this.setShadowCatcherIntensity(this.observer.get('shadowCatcher.intensity'));
-                this.setDebugGrid(this.observer.get('debug.grid'));
-                this.setDebugBounds(this.observer.get('debug.bounds'));
-                this.setLightEnabled(this.observer.get('light.enabled'));
-                this.setLightFollow(this.observer.get('light.follow'));
-                this.setLightIntensity(this.observer.get('light.intensity'));
-                this.setLightColor(this.observer.get('light.color'));
+                // remove ambientSH from materials
+                applySH(null);
+
+                this.multiframe.blend = 1.0;
+
+                // reload all user options
+                this.reloadSettings();
 
                 // restore object placement
-                this.sceneRoot.enabled = true;
                 this.sceneRoot.setLocalPosition(backup.position);
+                this.sceneRoot.setLocalEulerAngles(backup.rotation);
                 this.sceneBounds = this.calcSceneBounds();
                 this.dirtyBounds = true;
                 this.dirtyGrid = true;
@@ -494,12 +551,18 @@ class Viewer {
 
     // construct the controls interface and initialize controls
     private bindControlEvents() {
-        const controlEvents:any = {
+        const controlEvents: any = {
             // camera
             'camera.fov': this.setFov.bind(this),
             'camera.tonemapping': this.setTonemapping.bind(this),
-            'camera.pixelScale': this.resizeCanvas.bind(this),
-            'camera.multisample': this.resizeCanvas.bind(this),
+            'camera.pixelScale': () => {
+                this.canvasResize = true;
+                this.renderNextFrame();
+            },
+            'camera.multisample': () => {
+                this.destroyRenderTargets();
+                this.renderNextFrame();
+            },
             'camera.hq': (enabled: boolean) => {
                 this.multiframe.enabled = enabled;
                 this.renderNextFrame();
@@ -565,14 +628,18 @@ class Viewer {
             'scene.variant.selected': this.setSelectedVariant.bind(this)
         };
 
-        // register control events
-        Object.keys(controlEvents).forEach((e) => {
-            this.observer.on(`${e}:set`, controlEvents[e]);
-            this.observer.set(e, this.observer.get(e), false, false, true);
-        });
+        // store control event keys
+        this.controlEventKeys = Object.keys(controlEvents);
 
-        this.observer.on('canvasResized', () => {
-            this.resizeCanvas();
+        // register control events
+        this.controlEventKeys.forEach((e) => {
+            this.observer.on(`${e}:set`, controlEvents[e]);
+        });
+    }
+
+    private reloadSettings() {
+        this.controlEventKeys.forEach((e) => {
+            this.observer.set(e, this.observer.get(e), false, false, true);
         });
     }
 
@@ -730,21 +797,37 @@ class Viewer {
     }
 
     private getCanvasSize() {
+        const s = this.canvas.getBoundingClientRect();
         return {
-            width: document.body.clientWidth - document.getElementById("panel-left").offsetWidth, // - document.getElementById("panel-right").offsetWidth,
-            height: document.body.clientHeight
+            width: s.width,
+            height: s.height
         };
     }
 
-    resizeCanvas() {
-        const observer = this.observer;
+    destroyRenderTargets() {
+        const rt = this.camera.camera.renderTarget;
+        if (rt) {
+            rt.colorBuffer.destroy();
+            rt.depthBuffer.destroy();
+            rt.destroy();
+            this.camera.camera.renderTarget = null;
+        }
+    }
 
+    rebuildRenderTargets() {
         const device = this.app.graphicsDevice as WebglGraphicsDevice;
-        const canvasSize = this.getCanvasSize();
 
-        device.maxPixelRatio = window.devicePixelRatio;
-        this.app.resizeCanvas(canvasSize.width, canvasSize.height);
-        this.renderNextFrame();
+        // get the canvas UI size
+        const widthPixels = device.width;
+        const heightPixels = device.height;
+
+        const old = this.camera.camera.renderTarget;
+        if (old && old.width === widthPixels && old.height === heightPixels) {
+            return;
+        }
+
+        // out with the old
+        this.destroyRenderTargets();
 
         const createTexture = (width: number, height: number, format: number) => {
             return new Texture(device, {
@@ -759,25 +842,14 @@ class Viewer {
             });
         };
 
-        // out with the old
-        const old = this.camera.camera.renderTarget;
-        if (old) {
-            old.colorBuffer.destroy();
-            old.depthBuffer.destroy();
-            old.destroy();
-        }
-
         // in with the new
-        const pixelScale = observer.get('camera.pixelScale');
-        const w = Math.floor(canvasSize.width * window.devicePixelRatio / pixelScale);
-        const h = Math.floor(canvasSize.height * window.devicePixelRatio / pixelScale);
-        const colorBuffer = createTexture(w, h, PIXELFORMAT_RGBA8);
-        const depthBuffer = createTexture(w, h, PIXELFORMAT_DEPTH);
+        const colorBuffer = createTexture(widthPixels, heightPixels, PIXELFORMAT_RGBA8);
+        const depthBuffer = createTexture(widthPixels, heightPixels, PIXELFORMAT_DEPTH);
         const renderTarget = new RenderTarget({
             colorBuffer: colorBuffer,
             depthBuffer: depthBuffer,
             flipY: false,
-            samples: observer.get('camera.multisample') ? device.maxSamples : 1,
+            samples: this.observer.get('camera.multisample') ? device.maxSamples : 1,
             autoResolve: false
         });
         this.camera.camera.renderTarget = renderTarget;
@@ -917,17 +989,18 @@ class Viewer {
 
         const bound = this.dynamicSceneBounds;
         const boundCenter = bound.center;
-        const boundRadius = bound.halfExtents.length() * 4;
+        const boundRadius = bound.halfExtents.length() * 2;
 
         vec.sub2(boundCenter, cameraPosition);
         const dist = -vec.dot(cameraForward);
 
-        const near = (dist < boundRadius) ? boundRadius / 1024 : dist - boundRadius;
         const far = dist + boundRadius;
+        const near = Math.max(0.001, (dist < boundRadius) ? far / 1024 : dist - boundRadius);
 
         this.camera.camera.nearClip = near;
         this.camera.camera.farClip = far;
         this.light.light.shadowDistance = far;
+        this.light.light.normalOffsetBias = far / 1024;
     }
 
     // load gltf model given its url and list of external urls
@@ -1359,8 +1432,11 @@ class Viewer {
     }
 
     update(deltaTime: number) {
+        this.xrMode.onUpdate(deltaTime);
+
         // update the orbit camera
         if (!this.xrMode.active) {
+            this.orbitCameraInputKeyboard.update(deltaTime, this.sceneBounds ? this.sceneBounds.halfExtents.length() * 2 : 1);
             this.orbitCamera.update(deltaTime);
         }
 
@@ -1614,6 +1690,19 @@ class Viewer {
 
     // generate and render debug elements on prerender
     private onPrerender() {
+        if (this.canvasResize) {
+            const { width, height } = this.getCanvasSize();
+            const pixelScale = this.observer.get('camera.pixelScale');
+            const widthPixels = Math.floor(width * window.devicePixelRatio / pixelScale);
+            const heightPixels = Math.floor(height * window.devicePixelRatio / pixelScale);
+            this.canvas.width = widthPixels;
+            this.canvas.height = heightPixels;
+            this.canvasResize = false;
+        }
+
+        // rebuild render targets
+        this.rebuildRenderTargets();
+
         if (this.firstFrame) {
             return;
         }

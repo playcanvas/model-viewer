@@ -188,6 +188,9 @@ class LightPanel extends React.Component <{
                         label='Enabled'
                         value={props.lightData.enabled}
                         setProperty={(value: boolean) => props.setProperty('light.enabled', value)} />
+                    <Toggle label='Follow Camera'
+                        value={props.lightData.follow}
+                        setProperty={(value: boolean) => props.setProperty('light.follow', value)} />
                     <ColorPickerControl
                         label='Color'
                         value={rgbToArr(props.lightData.color)}
@@ -197,9 +200,6 @@ class LightPanel extends React.Component <{
                         precision={2} min={0} max={6}
                         value={props.lightData.intensity}
                         setProperty={(value: number) => props.setProperty('light.intensity', value)} />
-                    <Toggle label='Follow Camera'
-                        value={props.lightData.follow}
-                        setProperty={(value: boolean) => props.setProperty('light.follow', value)} />
                     <Toggle
                         label='Cast Shadow'
                         value={props.lightData.shadow}

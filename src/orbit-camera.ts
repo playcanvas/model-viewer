@@ -10,11 +10,13 @@ import {
     EVENT_TOUCHEND,
     EVENT_TOUCHCANCEL,
     EVENT_TOUCHMOVE,
+    KEY_W, KEY_S, KEY_A, KEY_D, KEY_Q, KEY_E, KEY_SHIFT,
     math,
     Entity,
     MouseEvent,
     Touch,
     TouchEvent,
+    KeyboardEvent,
     Vec2,
     Vec3
 } from 'playcanvas';
@@ -325,8 +327,74 @@ class OrbitCameraInputTouch {
     }
 }
 
+// fly controls
+class OrbitCameraInputKeyboard {
+    // forward, back, left, right, up, down
+    app: App;
+    orbitCamera: OrbitCamera;
+    controls = [false, false, false, false, false, false];
+    shift = false;
+
+    constructor(app: App, orbitCamera: OrbitCamera) {
+        this.app = app;
+        this.orbitCamera = orbitCamera;
+
+        app.keyboard.on('keydown', (event: KeyboardEvent) => {
+            switch (event.key) {
+                case KEY_W: this.controls[0] = true; break;
+                case KEY_S: this.controls[1] = true; break;
+                case KEY_A: this.controls[2] = true; break;
+                case KEY_D: this.controls[3] = true; break;
+                case KEY_Q: this.controls[4] = true; break;
+                case KEY_E: this.controls[5] = true; break;
+            }
+        });
+
+        app.keyboard.on('keyup', (event: KeyboardEvent) => {
+            switch (event.key) {
+                case KEY_W: this.controls[0] = false; break;
+                case KEY_S: this.controls[1] = false; break;
+                case KEY_A: this.controls[2] = false; break;
+                case KEY_D: this.controls[3] = false; break;
+                case KEY_Q: this.controls[4] = false; break;
+                case KEY_E: this.controls[5] = false; break;
+            }
+        });
+    }
+
+    update(deltaTime: number, sceneSize: number) {
+        const move = (dir: Vec3, amount: number) => {
+            vec.copy(dir).mulScalar(deltaTime * sceneSize * amount);
+            vec.add(this.orbitCamera.focalPoint.value);
+            this.orbitCamera.focalPoint.goto(vec);
+        };
+
+        const speed = this.app.keyboard.isPressed(KEY_SHIFT) ? 10 : 2;
+
+        if (this.controls[0]) {
+            move(this.orbitCamera.cameraNode.forward, speed);
+        }
+        if (this.controls[1]) {
+            move(this.orbitCamera.cameraNode.forward, -speed);
+        }
+        if (this.controls[2]) {
+            move(this.orbitCamera.cameraNode.right, -speed);
+        }
+        if (this.controls[3]) {
+            move(this.orbitCamera.cameraNode.right, speed);
+        }
+        if (this.controls[4]) {
+            move(this.orbitCamera.cameraNode.up, speed);
+        }
+        if (this.controls[5]) {
+            move(this.orbitCamera.cameraNode.up, -speed);
+        }
+    }
+}
+
 export {
     OrbitCamera,
     OrbitCameraInputMouse,
-    OrbitCameraInputTouch
+    OrbitCameraInputTouch,
+    OrbitCameraInputKeyboard
 };

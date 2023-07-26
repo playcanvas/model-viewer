@@ -61,8 +61,6 @@ class PopupButtonControls extends React.Component <{ observerData: ObserverData,
 
 const toggleCollapsed = () => {
     document.getElementById('panel-left').classList.toggle('collapsed');
-    const observer: Observer = (window.observer as any);
-    if (observer) observer.emit('canvasResized');
 };
 
 class PopupPanel extends React.Component <{ observerData: ObserverData, setProperty: SetProperty }> {
