@@ -372,11 +372,13 @@ class Viewer {
 
     private initXrMode() {
         const backup = {
-            position: new Vec3()
+            position: new Vec3(),
+            rotation: new Vec3()
         };
 
         let placed = false;
         let currPosition = new Vec3();
+        let currRotation = new Vec3();
         let targetPosition = new Vec3();
         let positionLerp = 0;
         let hoverDistance = 0;
@@ -397,6 +399,7 @@ class Viewer {
 
                 // store object position so we can restore it when exiting AR
                 backup.position.copy(this.sceneRoot.getLocalPosition());
+                backup.rotation.copy(this.sceneRoot.getLocalEulerAngles());
                 placed = false;
 
                 const bbox = this.calcSceneBounds();
@@ -441,6 +444,10 @@ class Viewer {
                 this.shadowCatcher.enabled = true;
             },
 
+            rotate: (angle: number) => {
+                currRotation.y += angle;
+            },
+
             updateLighting: (intensity: number, color: Color, rotation: Quat, sphericalHarmonics?: Float32Array) => {
                 if (sphericalHarmonics) {
                     applySH(sphericalHarmonics);
@@ -463,6 +470,7 @@ class Viewer {
 
             onPrerender: () => {
                 this.sceneRoot.setLocalPosition(currPosition);
+                this.sceneRoot.setLocalEulerAngles(currRotation);
                 this.sceneBounds = this.calcSceneBounds();
                 this.dirtyBounds = true;
                 this.dirtyGrid = true;
@@ -479,6 +487,7 @@ class Viewer {
 
                 // restore object placement
                 this.sceneRoot.setLocalPosition(backup.position);
+                this.sceneRoot.setLocalEulerAngles(backup.rotation);
                 this.sceneBounds = this.calcSceneBounds();
                 this.dirtyBounds = true;
                 this.dirtyGrid = true;
