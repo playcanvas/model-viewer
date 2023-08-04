@@ -1,38 +1,67 @@
 name: CI
 
 on:
+  workflow_dispatch:
   push:
     branches: [ main ]
+    paths-ignore: ['README.md', 'LICENSE']
   pull_request:
     branches: [ main ]
+    paths-ignore: ['README.md', 'LICENSE']
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+
+    timeout-minutes: 10
+
+    strategy:
+      matrix:
+        node-version: [18.x]
+
     steps:
     - name: Checkout code
-      uses: actions/checkout@v2
-    - name: Setup Node.js 16.x
-      uses: actions/setup-node@v2.1.4
+      uses: actions/checkout@v3
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
       with:
-        node-version: 16.x
-    - name: Install dependencies
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - name: Install
       run: npm ci
-    - name: Build Viewer
+
+    - name: Build
       run: npm run build
 
   lint:
     name: Lint
     runs-on: ubuntu-latest
+
+    timeout-minutes: 10
+
+    strategy:
+      matrix:
+        node-version: [18.x]
+
     steps:
     - name: Checkout code
-      uses: actions/checkout@v2
-    - name: Setup Node.js 16.x
-      uses: actions/setup-node@v2.1.4
+      uses: actions/checkout@v3
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
       with:
-        node-version: 16.x
-    - name: Install dependencies
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - name: Install
       run: npm ci
-    - name: Run ESLint
+
+    - name: Lint
       run: npm run lint
