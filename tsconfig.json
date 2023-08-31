@@ -14,7 +14,12 @@
         "moduleResolution": "node",
         "resolveJsonModule": true,
         "inlineSources": true,
-        "noEmit": true
+        "noEmit": true,
+        "baseUrl": ".",
+        "paths": {
+            "pcui": ["node_modules/@playcanvas/pcui"],
+            "playcanvas-extras": ["node_modules/playcanvas/build/playcanvas-extras.mjs"]
+        }
     },
     "include": ["**/*.ts", "**/*.tsx"],
     "exclude": ["node_modules", "**/*.js", "dist"]
