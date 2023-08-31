@@ -9,7 +9,6 @@ import replace from '@rollup/plugin-replace';
 import terser from '@rollup/plugin-terser';
 import sass from 'rollup-plugin-sass';
 import typescript from "@rollup/plugin-typescript";
-import sourcemaps from 'rollup-plugin-sourcemaps';
 
 // prod is release build
 if (process.env.BUILD_TYPE === 'prod') {
@@ -88,7 +87,6 @@ export default {
         typescript({
             compilerOptions: tsCompilerOptions
         }),
-        sourcemaps(),
         json(),
         (BUILD_TYPE !== 'debug') && terser()
     ],
