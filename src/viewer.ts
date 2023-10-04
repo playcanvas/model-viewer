@@ -322,7 +322,7 @@ class Viewer {
         this.projectiveSkybox = new ProjectiveSkybox(app);
 
         // dynamic shadow catcher
-        this.shadowCatcher = new ShadowCatcher(app, this.camera.camera.camera, this.debugRoot, this.sceneRoot);
+        this.shadowCatcher = new ShadowCatcher(app, this.camera.camera, this.debugRoot, this.sceneRoot);
 
         // xr support
         this.initXrMode();
