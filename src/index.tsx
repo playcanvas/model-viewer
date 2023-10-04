@@ -1,5 +1,6 @@
 import {
     basisInitialize,
+    createGraphicsDevice,
     Vec3,
     WasmModule
 } from 'playcanvas';
@@ -130,11 +131,14 @@ const observerData: ObserverData = {
         },
         loadTime: null
     },
+    runtime: {
+        deviceType: ''
+    },
     morphs: null,
     spinner: false,
     error: null,
     xrSupported: false,
-    xrActive: false
+    xrActive: false,
 };
 
 // global url
@@ -221,53 +225,67 @@ const main = (skyboxUrls: Map<string, string>) => {
     // create the canvas
     const canvas = document.getElementById("application-canvas") as HTMLCanvasElement;
 
-    // create viewer instance
-    const viewer = new Viewer(canvas, observer, skyboxUrls);
+    // create the graphics device
+    createGraphicsDevice(canvas, {
+        deviceTypes: (url.searchParams.has('webgpu') ? ['webgpu'] : []).concat(['webgl2']),
+        glslangUrl: getAssetPath('lib/glslang/glslang.js'),
+        twgslUrl: getAssetPath('lib/twgsl/twgsl.js'),
+        antialias: false,
+        depth: false,
+        stencil: false,
+        xrCompatible: true,
+        powerPreference: 'high-performance'
+    }).then((device) => {
+        observer.set('runtime.deviceType', device.deviceType);
 
-    // make available globally
-    window.viewer = viewer;
+        // create viewer instance
+        const viewer = new Viewer(canvas, device, observer, skyboxUrls);
 
-    // get list of files, decode them
-    const files = [];
+        // make available globally
+        window.viewer = viewer;
 
-    // handle search params
-    for (const [key, value] of url.searchParams) {
-        switch (key) {
-            case 'load':
-            case 'assetUrl': {
-                const url = decodeURIComponent(value);
-                files.push({ url, filename: url });
-                break;
-            };
-            case 'cameraPosition': {
-                const pos = value.split(',').map(Number);
-                if (pos.length === 3) {
-                    viewer.initialCameraPosition = new Vec3(pos);
-                }
-                break;
-            }
-            default: {
-                if (observer.has(key)) {
-                    switch (typeof observer.get(key)) {
-                        case 'boolean':
-                            observer.set(key, value.toLowerCase() === 'true');
-                            break;
-                        case 'number':
-                            observer.set(key, Number(value));
-                            break;
-                        default:
-                            observer.set(key, decodeURIComponent(value));
-                            break;
+        // get list of files, decode them
+        const files = [];
+
+        // handle search params
+        for (const [key, value] of url.searchParams) {
+            switch (key) {
+                case 'load':
+                case 'assetUrl': {
+                    const url = decodeURIComponent(value);
+                    files.push({ url, filename: url });
+                    break;
+                };
+                case 'cameraPosition': {
+                    const pos = value.split(',').map(Number);
+                    if (pos.length === 3) {
+                        viewer.initialCameraPosition = new Vec3(pos);
                     }
+                    break;
                 }
-                break;
+                default: {
+                    if (observer.has(key)) {
+                        switch (typeof observer.get(key)) {
+                            case 'boolean':
+                                observer.set(key, value.toLowerCase() === 'true');
+                                break;
+                            case 'number':
+                                observer.set(key, Number(value));
+                                break;
+                            default:
+                                observer.set(key, decodeURIComponent(value));
+                                break;
+                        }
+                    }
+                    break;
+                }
             }
         }
-    }
 
-    if (files.length > 0) {
-        viewer.loadFiles(files);
-    }
+        if (files.length > 0) {
+            viewer.loadFiles(files);
+        }
+    });
 };
 
 const skyboxes = [

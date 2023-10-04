@@ -5,7 +5,7 @@ import { extract } from '../../helpers';
 // @ts-ignore no type defs included
 import QRious from 'qrious';
 
-import { Slider, Toggle, Select, ColorPickerControl, ToggleColor, SelectColor, Numeric } from '../components';
+import { Slider, Toggle, Select, ColorPickerControl, ToggleColor, Numeric } from '../components';
 
 const rgbToArr = (rgb: { r: number, g: number, b: number }) => [rgb.r, rgb.g, rgb.b, 1];
 const arrToRgb = (arr: number[]) => { return { r: arr[0], g: arr[1], b: arr[2] } };
@@ -58,7 +58,7 @@ class CameraPanel extends React.Component <{
                     <Toggle
                         label='High Quality'
                         value={props.observerData.camera.hq}
-                        enabled={!props.observerData.animation.playing && !props.observerData.debug.stats}
+                        enabled={!props.observerData.animation.playing && !props.observerData.debug.stats && props.observerData.runtime.deviceType !== 'webgpu' }
                         setProperty={(value: boolean) => props.setProperty('camera.hq', value)}
                     />
                 </Container>
@@ -302,6 +302,7 @@ class DebugPanel extends React.Component <{
 class ViewPanel extends React.Component <{
     sceneData: ObserverData['scene'],
     uiData: ObserverData['ui'],
+    runtimeData: ObserverData['runtime'],
     setProperty: SetProperty }> {
 
     isMobile: boolean;
@@ -369,9 +370,14 @@ class ViewPanel extends React.Component <{
                                 }}/>
                             </div>
                         </> : null }
-                    <Button class='secondary' text='TAKE A SNAPSHOT AS PNG' onClick={() => {
-                        if (window.viewer) window.viewer.downloadPngScreenshot();
-                    }}/>
+                    <Button
+                        class='secondary'
+                        text='TAKE A SNAPSHOT AS PNG'
+                        enabled={props.runtimeData.deviceType !== 'webgpu'}
+                        onClick={() => {
+                            if (window.viewer) window.viewer.downloadPngScreenshot();
+                        }}
+                    />
                 </Container>
             </div>
         );

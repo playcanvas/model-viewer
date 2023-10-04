@@ -14,7 +14,7 @@ import {
 } from 'playcanvas';
 
 const endPS = `
-    litShaderArgs.opacity = mix(light0_shadowIntensity, 0.0, shadow0);
+    litArgs_opacity = mix(light0_shadowIntensity, 0.0, shadow0);
     gl_FragColor.rgb = vec3(0.0);
 `;
 
@@ -111,6 +111,7 @@ class ShadowCatcher {
 
     set enabled(enabled: boolean) {
         this.layer.enabled = enabled;
+        this.light.enabled = enabled;
     }
 
     get enabled() {

@@ -133,6 +133,9 @@ export interface ObserverData {
         name: string,
         targets: Record<string, MorphTargetData>
     }>,
+    runtime: {
+        deviceType: string
+    },
     spinner: boolean,
     error?: string,
     xrSupported: boolean,

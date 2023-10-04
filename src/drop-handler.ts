@@ -1,116 +1,114 @@
 import { path } from 'playcanvas';
-import { File } from './types';
+
+interface File {
+    url: string,
+    filename?: string
+}
 
 type DropHandlerFunc = (files: Array<File>, resetScene: boolean) => void;
 
-class DropHandler {
-    dropHandler: DropHandlerFunc;
+const resolveDirectories = (entries: Array<FileSystemEntry>): Promise<Array<FileSystemFileEntry>> => {
+    const promises: Promise<Array<FileSystemFileEntry>>[] = [];
+    const result: Array<FileSystemFileEntry> = [];
 
-    constructor(dropHandler: DropHandlerFunc) {
-        this.dropHandler = dropHandler;
+    entries.forEach((entry) => {
+        if (entry.isFile) {
+            result.push(entry as FileSystemFileEntry);
+        } else if (entry.isDirectory) {
+            promises.push(new Promise<any>((resolve, reject) => {
+                const reader = (entry as FileSystemDirectoryEntry).createReader();
 
-        // configure drag and drop
-        window.addEventListener('dragstart', (ev) => {
-            ev.preventDefault();
-            ev.stopPropagation();
-            ev.dataTransfer.effectAllowed = "all";
-        }, false);
-        window.addEventListener('dragover', (ev) => {
-            ev.preventDefault();
-            ev.stopPropagation();
-            ev.dataTransfer.effectAllowed = "all";
-        }, false);
-        window.addEventListener('drop', event => this.handleDrop(event), false);
-    }
+                const p: Promise<any>[] = [];
 
-    // use webkitGetAsEntry to extract files so we can include folders
-    private handleDrop(event: DragEvent) {
-
-        const removeCommonPrefix = (urls: Array<File>) => {
-            const split = (pathname: string) => {
-                const parts = pathname.split(path.delimiter);
-                const base = parts[0];
-                const rest = parts.slice(1).join(path.delimiter);
-                return [base, rest];
-            };
-            while (true) {
-                const parts = split(urls[0].filename);
-                if (parts[1].length === 0) {
-                    return;
-                }
-                for (let i = 1; i < urls.length; ++i) {
-                    const other = split(urls[i].filename);
-                    if (parts[0] !== other[0]) {
-                        return;
-                    }
-                }
-                for (let i = 0; i < urls.length; ++i) {
-                    urls[i].filename = split(urls[i].filename)[1];
-                }
-            }
-        };
-
-        const resolveFiles = (entries: Array<FileSystemFileEntry>) => {
-            const files: Array<File> = [];
-            entries.forEach((entry: FileSystemFileEntry) => {
-                entry.file((entryFile: any) => {
-                    files.push({
-                        url: URL.createObjectURL(entryFile),
-                        filename: entry.fullPath.substring(1)
-                    });
-                    if (files.length === entries.length) {
-                        // remove common prefix from files in order to support dragging in the
-                        // root of a folder containing related assets
-                        if (files.length > 1) {
-                            removeCommonPrefix(files);
+                const read = () => {
+                    reader.readEntries((children: Array<FileSystemEntry>) => {
+                        if (children.length > 0) {
+                            p.push(resolveDirectories(children));
+                            read();
+                        } else {
+                            Promise.all(p)
+                            .then((children: Array<Array<FileSystemFileEntry>>) => {
+                                resolve(children.flat());
+                            });
                         }
+                    });
+                };
+                read();
+            }));
+        }
+    });
 
-                        // keep shift in to add files to the scene
-                        this.dropHandler(files, !event.shiftKey);
-                    }
-                });
-            });
-        };
+    return Promise.all(promises)
+        .then((children: Array<Array<FileSystemFileEntry>>) => {
+            return result.concat(...children);
+        });
+};
 
-        const resolveDirectories = (entries: Array<FileSystemEntry>) => {
-            let awaiting = 0;
-            const files: Array<FileSystemFileEntry> = [];
-            const recurse = (entries: Array<FileSystemEntry>) => {
-                entries.forEach((entry: FileSystemEntry) => {
-                    if (entry.isFile) {
-                        files.push(entry as FileSystemFileEntry);
-                    } else if (entry.isDirectory) {
-                        awaiting++;
-                        const reader = (entry as FileSystemDirectoryEntry).createReader();
-                        reader.readEntries((subEntries: Array<FileSystemEntry>) => {
-                            awaiting--;
-                            recurse(subEntries);
-                        });
-                    }
-                });
-                if (awaiting === 0) {
-                    resolveFiles(files);
-                }
-            };
-            recurse(entries);
-        };
-
-        // first things first
-        event.preventDefault();
-
-        const items = event.dataTransfer.items;
-        if (!items) {
+const removeCommonPrefix = (urls: Array<File>) => {
+    const split = (pathname: string) => {
+        const parts = pathname.split(path.delimiter);
+        const base = parts[0];
+        const rest = parts.slice(1).join(path.delimiter);
+        return [base, rest];
+    };
+    while (true) {
+        const parts = split(urls[0].filename);
+        if (parts[1].length === 0) {
             return;
         }
-
-        const entries = [];
-        for (let i = 0; i < items.length; ++i) {
-            entries.push(items[i].webkitGetAsEntry());
+        for (let i = 1; i < urls.length; ++i) {
+            const other = split(urls[i].filename);
+            if (parts[0] !== other[0]) {
+                return;
+            }
         }
-        resolveDirectories(entries);
+        for (let i = 0; i < urls.length; ++i) {
+            urls[i].filename = split(urls[i].filename)[1];
+        }
     }
-}
-
-export {
-    DropHandler
 };
+
+// configure drag and drop
+const CreateDropHandler = (target: HTMLElement, dropHandler: DropHandlerFunc) => {
+    target.addEventListener('dragstart', (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        ev.dataTransfer.effectAllowed = "all";
+    }, false);
+
+    target.addEventListener('dragover', (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        ev.dataTransfer.effectAllowed = "all";
+    }, false);
+
+    target.addEventListener('drop', (ev) => {
+        ev.preventDefault();
+
+        const entries =
+            Array.from(ev.dataTransfer.items)
+                 .map((item) => item.webkitGetAsEntry());
+
+        resolveDirectories(entries)
+        .then((entries: Array<FileSystemFileEntry>) => {
+            return Promise.all(entries.map((entry) => {
+                return new Promise((resolve, reject) => {
+                    entry.file((entryFile: any) => {
+                        resolve({
+                            url: URL.createObjectURL(entryFile),
+                            filename: entry.fullPath.substring(1)
+                        });
+                    });
+                });
+            }));
+        })
+        .then((files: Array<File>) => {
+            if (files.length > 1) {
+                removeCommonPrefix(files);
+            }
+            dropHandler(files, !ev.shiftKey);
+        });
+    }, false);
+};
+
+export {CreateDropHandler,File};

@@ -113,12 +113,7 @@ class DebugLines {
                 opaqueSortMode: SORTMODE_NONE,
                 transparentSortMode: SORTMODE_NONE,
                 passThrough: true,
-                overrideClear: true,
-                onDrawCall: (/* drawCall: any, index: number */) => {
-                    this.depthState.copy(device.depthState);
-                    this.depthState.func = FUNC_GREATER;
-                    device.setDepthState(this.depthState);
-                }
+                overrideClear: true
             });
 
             debugLayerFront = new Layer({
@@ -168,8 +163,8 @@ class DebugLines {
             backMaterial.shader = shader;
             backMaterial.setParameter('uColor', [0.5, 0.5, 0.5, 0.5]);
             backMaterial.blendType = BLEND_NORMAL;
-            backMaterial.depthTest = true;
-            backMaterial.depthWrite = false;
+            backMaterial.depthState.func = FUNC_GREATER;
+            backMaterial.depthState.write = false;
             backMaterial.update();
 
             const backInstance = new MeshInstance(mesh, backMaterial, new GraphNode());
