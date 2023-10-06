@@ -8,8 +8,6 @@ import path from 'path';
 import resolve from "@rollup/plugin-node-resolve";
 import replace from '@rollup/plugin-replace';
 import sass from 'rollup-plugin-sass';
-import sourcemaps from 'rollup-plugin-sourcemaps';
-import terser from '@rollup/plugin-terser';
 import typescript from "@rollup/plugin-typescript";
 
 // prod is release build
@@ -90,7 +88,6 @@ export default {
         typescript({
             compilerOptions: tsCompilerOptions
         }),
-        sourcemaps(),
         json(),
         (BUILD_TYPE !== 'debug') && terser()
     ],
