@@ -7,7 +7,7 @@ import {
 import { Observer } from '@playcanvas/observer';
 
 import { getAssetPath } from './helpers';
-import { Option, ObserverData } from './types';
+import { ObserverData } from './types';
 import { initMaterials } from './material';
 import initializeUI from './ui';
 import Viewer from './viewer';
@@ -16,9 +16,6 @@ import './style.scss';
 import { version as modelViewerVersion } from '../package.json';
 import { version as pcuiVersion, revision as pcuiRevision } from 'pcui';
 import { version as engineVersion, revision as engineRevision } from 'playcanvas';
-
-// print out versions of dependent packages
-console.log(`Model Viewer v${modelViewerVersion} | PCUI v${pcuiVersion} (${pcuiRevision}) | PlayCanvas Engine v${engineVersion} (${engineRevision})`);
 
 // Permit some additional properties to be set on the window
 declare global {
@@ -29,10 +26,27 @@ declare global {
     }
 }
 
-interface Skybox {
-    url: string,
-    label: string
-}
+const skyboxes = [
+    { label: "Abandoned Tank Farm", url: "./skybox/abandoned_tank_farm_01_2k.hdr" },
+    { label: "Adam's Place Bridge", url: "./skybox/adams_place_bridge_2k.hdr" },
+    { label: "Artist Workshop", url: "./skybox/artist_workshop_2k.hdr" },
+    { label: "Ballroom", url: "./skybox/ballroom_2k.hdr" },
+    { label: "Circus Arena", url: "./skybox/circus_arena_2k.hdr" },
+    { label: "Colorful Studio", url: "./skybox/colorful_studio.hdr" },
+    { label: "Golf Course Sunrise", url: "./skybox/golf_course_sunrise_2k.hdr" },
+    { label: "Helipad", url: "./skybox/Helipad_equi.png" },
+    { label: "Kloppenheim", url: "./skybox/kloppenheim_02_2k.hdr" },
+    { label: "Lebombo", url: "./skybox/lebombo_2k.hdr" },
+    { label: "Outdoor Umbrellas", url: "./skybox/outdoor_umbrellas_2k.hdr" },
+    { label: "Paul Lobe Haus", url: "./skybox/paul_lobe_haus_2k.hdr" },
+    { label: "Reinforced Concrete", url: "./skybox/reinforced_concrete_01_2k.hdr" },
+    { label: "Rural Asphalt Road", url: "./skybox/rural_asphalt_road_2k.hdr" },
+    { label: "Spruit Sunrise", url: "./skybox/spruit_sunrise_2k.hdr" },
+    { label: "Studio Small", url: "./skybox/studio_small_03_2k.hdr" },
+    { label: "Venice Sunset", url: "./skybox/venice_sunset_1k.hdr" },
+    { label: "Vignaioli Night", url: "./skybox/vignaioli_night_2k.hdr" },
+    { label: "Wooden Motel", url: "./skybox/wooden_motel_2k.hdr" }
+];
 
 const observerData: ObserverData = {
     ui: {
@@ -48,7 +62,7 @@ const observerData: ObserverData = {
     },
     skybox: {
         value: 'Paul Lobe Haus',
-        options: null,
+        options: JSON.stringify(['None'].concat(skyboxes.map(s => s.label)).map(l => { return { v: l, t: l } })),
         exposure: 0,
         rotation: 0,
         background: 'Infinite Sphere',
@@ -141,13 +155,7 @@ const observerData: ObserverData = {
     xrActive: false,
 };
 
-// global url
-const url = new URL(window.location.href);
-
-// initialize the apps state
-const observer: Observer = new Observer(observerData);
-
-const saveOptions = (name: string) => {
+const saveOptions = (observer: Observer, name: string) => {
     const options = observer.json();
     window.localStorage.setItem(`model-viewer-${name}`, JSON.stringify({
         camera: options.camera,
@@ -158,7 +166,7 @@ const saveOptions = (name: string) => {
     }));
 };
 
-const loadOptions = (name: string, skyboxUrls: Map<string, string>) => {
+const loadOptions = (observer: Observer, name: string, skyboxUrls: Map<string, string>) => {
     const filter = ['skybox.options', 'debug.renderMode'];
 
     const loadRec = (path: string, value:any) => {
@@ -185,42 +193,56 @@ const loadOptions = (name: string, skyboxUrls: Map<string, string>) => {
     }
 };
 
-initMaterials();
-initializeUI(observer);
 
-basisInitialize({
-    glueUrl: getAssetPath('lib/basis/basis.wasm.js'),
-    wasmUrl: getAssetPath('lib/basis/basis.wasm.wasm'),
-    fallbackUrl: getAssetPath('lib/basis/basis.js'),
-    lazyInit: true
-});
+// print out versions of dependent packages
+console.log(`Model Viewer v${modelViewerVersion} | PCUI v${pcuiVersion} (${pcuiRevision}) | PlayCanvas Engine v${engineVersion} (${engineRevision})`);
 
-// @ts-ignore
-WasmModule.setConfig('DracoDecoderModule', {
-    glueUrl: getAssetPath('lib/draco/draco.wasm.js'),
-    wasmUrl: getAssetPath('lib/draco/draco.wasm.wasm'),
-    fallbackUrl: getAssetPath('lib/draco/draco.js')
-});
+const main = () => {
+    // initialize the apps state
+    const observer: Observer = new Observer(observerData);
 
-// hide / show spinner when loading files
-observer.on('spinner:set', (value: boolean) => {
-    const spinner = document.getElementById('spinner');
-    if (value) {
-        spinner.classList.remove('pcui-hidden');
-    } else {
-        spinner.classList.add('pcui-hidden');
-    }
-});
+    // global url
+    const url = new URL(window.location.href);
 
-const main = (skyboxUrls: Map<string, string>) => {
+    initMaterials();
+
+    basisInitialize({
+        glueUrl: getAssetPath('lib/basis/basis.wasm.js'),
+        wasmUrl: getAssetPath('lib/basis/basis.wasm.wasm'),
+        fallbackUrl: getAssetPath('lib/basis/basis.js'),
+        lazyInit: true
+    });
+
+    // @ts-ignore
+    WasmModule.setConfig('DracoDecoderModule', {
+        glueUrl: getAssetPath('lib/draco/draco.wasm.js'),
+        wasmUrl: getAssetPath('lib/draco/draco.wasm.wasm'),
+        fallbackUrl: getAssetPath('lib/draco/draco.js')
+    });
+
+    const skyboxUrls = new Map(skyboxes.map(s => [s.label, getAssetPath(s.url)]));
+
+    // hide / show spinner when loading files
+    observer.on('spinner:set', (value: boolean) => {
+        const spinner = document.getElementById('spinner');
+        if (value) {
+            spinner.classList.remove('pcui-hidden');
+        } else {
+            spinner.classList.add('pcui-hidden');
+        }
+    });
+
     if (!url.searchParams.has('default')) {
         // handle options
-        loadOptions('uistate', skyboxUrls);
+        loadOptions(observer, 'uistate', skyboxUrls);
 
         observer.on('*:set', () => {
-            saveOptions('uistate');
+            saveOptions(observer, 'uistate');
         });
     }
+
+    // create react ui
+    initializeUI(observer);
 
     // create the canvas
     const canvas = document.getElementById("application-canvas") as HTMLCanvasElement;
@@ -288,41 +310,5 @@ const main = (skyboxUrls: Map<string, string>) => {
     });
 };
 
-const skyboxes = [
-    { label: "Abandoned Tank Farm", url: "./skybox/abandoned_tank_farm_01_2k.hdr" },
-    { label: "Adam's Place Bridge", url: "./skybox/adams_place_bridge_2k.hdr" },
-    { label: "Artist Workshop", url: "./skybox/artist_workshop_2k.hdr" },
-    { label: "Ballroom", url: "./skybox/ballroom_2k.hdr" },
-    { label: "Circus Arena", url: "./skybox/circus_arena_2k.hdr" },
-    { label: "Colorful Studio", url: "./skybox/colorful_studio.hdr" },
-    { label: "Golf Course Sunrise", url: "./skybox/golf_course_sunrise_2k.hdr" },
-    { label: "Helipad", url: "./skybox/Helipad_equi.png" },
-    { label: "Kloppenheim", url: "./skybox/kloppenheim_02_2k.hdr" },
-    { label: "Lebombo", url: "./skybox/lebombo_2k.hdr" },
-    { label: "Outdoor Umbrellas", url: "./skybox/outdoor_umbrellas_2k.hdr" },
-    { label: "Paul Lobe Haus", url: "./skybox/paul_lobe_haus_2k.hdr" },
-    { label: "Reinforced Concrete", url: "./skybox/reinforced_concrete_01_2k.hdr" },
-    { label: "Rural Asphalt Road", url: "./skybox/rural_asphalt_road_2k.hdr" },
-    { label: "Spruit Sunrise", url: "./skybox/spruit_sunrise_2k.hdr" },
-    { label: "Studio Small", url: "./skybox/studio_small_03_2k.hdr" },
-    { label: "Venice Sunset", url: "./skybox/venice_sunset_1k.hdr" },
-    { label: "Vignaioli Night", url: "./skybox/vignaioli_night_2k.hdr" },
-    { label: "Wooden Motel", url: "./skybox/wooden_motel_2k.hdr" }
-];
-
-const skyboxUrls = new Map<string, string>();
-const skyboxOptions: Array<Option> = [{
-    v: 'None', t: 'None'
-}];
-
-skyboxes.forEach((skybox: Skybox) => {
-    skyboxUrls.set(skybox.label, getAssetPath(skybox.url));
-    skyboxOptions.push({ v: skybox.label, t: skybox.label });
-});
-
-const skyboxData = observer.get('skybox');
-skyboxData.options = JSON.stringify(skyboxOptions);
-observer.set('skybox', skyboxData);
-
 // start main
-main(skyboxUrls);
+main();

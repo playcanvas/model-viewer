@@ -1,15 +1,16 @@
-import path from 'path';
-import copyAndWatch from "./copy-and-watch.mjs";
-import Handlebars from 'handlebars';
 import alias from '@rollup/plugin-alias';
+import copyAndWatch from "./copy-and-watch.mjs";
+import image from '@rollup/plugin-image';
 import commonjs from "@rollup/plugin-commonjs";
+import Handlebars from 'handlebars';
 import json from "@rollup/plugin-json";
+import path from 'path';
 import resolve from "@rollup/plugin-node-resolve";
 import replace from '@rollup/plugin-replace';
-import terser from '@rollup/plugin-terser';
 import sass from 'rollup-plugin-sass';
-import typescript from "@rollup/plugin-typescript";
 import sourcemaps from 'rollup-plugin-sourcemaps';
+import terser from '@rollup/plugin-terser';
+import typescript from "@rollup/plugin-typescript";
 
 // prod is release build
 if (process.env.BUILD_TYPE === 'prod') {
@@ -82,6 +83,7 @@ export default {
             output: 'dist/style.css',
             outputStyle: 'compressed'
         }),
+        image({dom: true}),
         alias({ entries: aliasEntries }),
         commonjs(),
         resolve(),

@@ -250,6 +250,12 @@ input {
     bottom: 40px;
 }
 
+#launch-ar-button {
+    position: absolute;
+    right: 20px;
+    top: 20px;
+}
+
 .download-button::before, .fullscreen-button::before {
     font-size: 16px !important;
 }
@@ -578,7 +584,8 @@ input {
     }
 
     #popup > #popup-buttons-parent {
-        left: 109px;
+        left: 50%;
+        transform: translateX(-50%);
         bottom: 11px;
     }
 

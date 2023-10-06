@@ -65,12 +65,19 @@ import { OrbitCamera, OrbitCameraInputMouse, OrbitCameraInputTouch, OrbitCameraI
 import { PngExporter } from './png-exporter.js';
 import { ProjectiveSkybox } from './projective-skybox';
 import { ShadowCatcher } from './shadow-catcher';
-import { XrMode } from './xr-mode';
+import { XRObjectPlacementController } from './xr-mode';
+
+// @ts-ignore
+import arModeImage from './svg/ar-mode.svg';
+// @ts-ignore
+import arCloseImage from './svg/ar-close.svg';
 
 // model filename extensions
 const modelExtensions = ['gltf', 'glb', 'vox'];
 const defaultSceneBounds = new BoundingBox(new Vec3(0, 1, 0), new Vec3(1, 1, 1));
+
 const vec = new Vec3();
+const bbox = new BoundingBox();
 
 class Viewer {
     canvas: HTMLCanvasElement;
@@ -134,7 +141,7 @@ class Viewer {
 
     projectiveSkybox: ProjectiveSkybox = null;
     shadowCatcher: ShadowCatcher = null;
-    xrMode: XrMode;
+    xrMode: XRObjectPlacementController;
 
     canvasResize = true;
 
@@ -294,8 +301,8 @@ class Viewer {
         this.dirtyGrid = false;
         this.dirtyNormals = false;
 
-        this.sceneBounds = null;
-        this.dynamicSceneBounds = null;
+        this.sceneBounds = new BoundingBox();
+        this.dynamicSceneBounds = new BoundingBox();
 
         this.debugBounds = new DebugLines(app, camera);
         this.debugSkeleton = new DebugLines(app, camera);
@@ -367,127 +374,54 @@ class Viewer {
     }
 
     private initXrMode() {
-        const backup = {
-            position: new Vec3(),
-            rotation: new Vec3()
-        };
+        const xr = this.app.xr;
 
-        const currPosition = new Vec3();
-        const currRotation = new Vec3();
-        const targetPosition = new Vec3();
-        let placed = false;
-        let positionLerp = 0;
-        let hoverDistance = 0;
+        this.xrMode = new XRObjectPlacementController({
+            xr: xr,
+            camera: this.camera,
+            content: this.sceneRoot,
+            showUI: true,
+            startArImgSrc: arModeImage.src,
+            stopArImgSrc: arCloseImage.src
+        });
 
-        const applySH = (sh: Float32Array | null) => {
-            this.meshInstances.forEach((meshInstance) => {
-                const material = meshInstance.material as StandardMaterial;
-                if (material.ambientSH !== sh) {
-                    material.ambientSH = sh;
-                    material.update();
-                }
-            });
-        };
+        const events = this.xrMode.events;
 
-        const handlers = {
-            starting: () => {
-                console.log('starting');
+        events.on('xr:update', (frame: any) => {
 
-                // store object position so we can restore it when exiting AR
-                backup.position.copy(this.sceneRoot.getLocalPosition());
-                backup.rotation.copy(this.sceneRoot.getLocalEulerAngles());
-                placed = false;
+        });
 
-                const bbox = this.calcSceneBounds();
-                const radius = bbox.halfExtents.length();
-                const camera = this.camera.camera;
-                hoverDistance = (radius * 1.4) / Math.sin(0.5 * camera.fov * camera.aspectRatio * math.DEG_TO_RAD);
+        events.on('xr:started', () => {
+            // prepare scene settings for AR mode
+            this.setShadowCatcherEnabled(true);
+            this.setShadowCatcherIntensity(0.4);
+            this.setDebugGrid(false);
+            this.setDebugBounds(false);
+            this.setLightEnabled(true);
+            this.setLightShadow(true);
+            this.setLightFollow(false);
 
-                // prepare scene settings for AR mode
-                this.setShadowCatcherEnabled(true);
-                this.setShadowCatcherIntensity(0.4);
-                this.setDebugGrid(false);
-                this.setDebugBounds(false);
-                this.setLightEnabled(true);
-                this.setLightShadow(true);
-                this.setLightFollow(false);
+            this.setSkyboxBackground('None');
+            this.setSkyboxExposure(0);
+            this.setBackgroundColor(Color.BLACK);
+            this.app.scene.layers.getLayerById(LAYERID_SKYBOX).enabled = false;
 
-                this.setSkyboxBackground('None');
-                this.setSkyboxExposure(0);
-                this.setBackgroundColor(Color.BLACK);
-                this.app.scene.layers.getLayerById(LAYERID_SKYBOX).enabled = false;
+            this.multiframe.blend = 0.5;
+        });
 
-                this.sceneRoot.enabled = false;
-            },
+        events.on('xr:initial-place', () => {
+            this.multiframe.blend = 1.0;
+        });
 
-            started: () => {
-                console.log('started');
+        events.on('xr:ended', () => {
+            // reload all user options
+            this.reloadSettings();
 
-                // hide skybox
-                this.multiframe.blend = 0.5;
-                this.sceneRoot.enabled = true;
-            },
+            // background color isn't correctly restored
+            this.setBackgroundColor(this.observer.get('skybox.backgroundColor'));
 
-            place: (position: Vec3) => {
-                placed = true;
-                this.multiframe.blend = 1.0;
-
-                positionLerp = 0;
-                targetPosition.copy(position);
-                this.shadowCatcher.enabled = true;
-            },
-
-            rotate: (angle: number) => {
-                currRotation.y += angle;
-            },
-
-            updateLighting: (intensity: number, color: Color, rotation: Quat, sphericalHarmonics?: Float32Array) => {
-                if (sphericalHarmonics) {
-                    applySH(sphericalHarmonics);
-                }
-
-                this.light.light.intensity = intensity;
-                this.light.light.color = color;
-                this.light.setLocalRotation(rotation);
-            },
-
-            onUpdate: (deltaTime: number) => {
-                if (!placed) {
-                    const cameraMatrix = this.xrMode.getCameraMatrix();
-                    cameraMatrix.transformPoint(new Vec3(0, 0, -hoverDistance), currPosition);
-                } else {
-                    positionLerp = Math.min(1.0, positionLerp + deltaTime * 3.0);
-                    currPosition.lerp(currPosition, targetPosition, Math.sin((positionLerp - 0.5) * Math.PI) * 0.5 + 0.5);
-                }
-            },
-
-            onPrerender: () => {
-                this.sceneRoot.setLocalPosition(currPosition);
-                this.sceneRoot.setLocalEulerAngles(currRotation);
-                this.sceneBounds = this.calcSceneBounds();
-                this.dirtyBounds = true;
-                this.dirtyGrid = true;
-            },
-
-            ended: () => {
-                // remove ambientSH from materials
-                applySH(null);
-
-                this.multiframe.blend = 1.0;
-
-                // reload all user options
-                this.reloadSettings();
-
-                // restore object placement
-                this.sceneRoot.setLocalPosition(backup.position);
-                this.sceneRoot.setLocalEulerAngles(backup.rotation);
-                this.sceneBounds = this.calcSceneBounds();
-                this.dirtyBounds = true;
-                this.dirtyGrid = true;
-            }
-        };
-
-        this.xrMode = new XrMode(this.app, this.camera, this.observer, handlers);
+            this.multiframe.blend = 1.0;
+        });
     }
 
     private getSelectedMeshInstances() {
@@ -513,20 +447,17 @@ class Viewer {
     }
 
     // calculate the bounding box of the given mesh
-    private static calcMeshBoundingBox(meshInstances: Array<MeshInstance>) {
-        const bbox = new BoundingBox();
-        for (let i = 0; i < meshInstances.length; ++i) {
-            if (i === 0) {
-                bbox.copy(meshInstances[i].aabb);
-            } else {
-                bbox.add(meshInstances[i].aabb);
+    private static calcMeshBoundingBox(result: BoundingBox, meshInstances: Array<MeshInstance>) {
+        if (meshInstances.length > 0) {
+            result.copy(meshInstances[0].aabb);
+            for (let i = 1; i < meshInstances.length; ++i) {
+                result.add(meshInstances[i].aabb);
             }
         }
-        return bbox;
     }
 
     // calculate the bounding box of the graph-node hierarchy
-    private static calcHierBoundingBox(rootNode: Entity) {
+    private static calcHierBoundingBox(result: BoundingBox, rootNode: Entity) {
         const position = rootNode.getPosition();
         let min_x = position.x;
         let min_y = position.y;
@@ -546,9 +477,7 @@ class Viewer {
         };
         recurse(rootNode);
 
-        const result = new BoundingBox();
         result.setMinMax(new Vec3(min_x, min_y, min_z), new Vec3(max_x, max_y, max_z));
-        return result;
     }
 
     // construct the controls interface and initialize controls
@@ -963,7 +892,7 @@ class Viewer {
         const camera = this.camera.camera;
 
         // calculate scene bounding box
-        const bbox = this.calcSceneBounds(this.selectedNode as Entity);
+        this.calcSceneBounds(bbox, this.selectedNode as Entity);
         const radius = bbox.halfExtents.length();
         const distance = (radius * 1.4) / Math.sin(0.5 * camera.fov * camera.aspectRatio * math.DEG_TO_RAD);
 
@@ -986,7 +915,11 @@ class Viewer {
 
     // adjust camera clipping planes to fit the scene
     fitCameraToScene() {
-        const mat = this.xrMode.getCameraMatrix();
+        if (this.xrMode?.active) {
+            return;
+        }
+
+        const mat = this.camera.getWorldTransform();
 
         const cameraPosition = mat.getTranslation();
         const cameraForward = mat.getZ();
@@ -1438,10 +1371,8 @@ class Viewer {
     }
 
     update(deltaTime: number) {
-        this.xrMode.onUpdate(deltaTime);
-
         // update the orbit camera
-        if (!this.xrMode.active) {
+        if (!this.xrMode?.active) {
             this.orbitCameraInputKeyboard.update(deltaTime, this.sceneBounds ? this.sceneBounds.halfExtents.length() * 2 : 1);
             this.orbitCamera.update(deltaTime);
         }
@@ -1462,7 +1393,7 @@ class Viewer {
         }
 
         // always render during xr sessions
-        if (this.xrMode.active) {
+        if (this.xrMode?.active) {
             this.renderNextFrame();
         }
 
@@ -1667,13 +1598,17 @@ class Viewer {
         this.observer.set('animation', animationState);
     }
 
-    private calcSceneBounds(root: Entity | null = null) {
+    private calcSceneBounds(result: BoundingBox, root: Entity | null = null) {
         const meshInstances = root ? this.collectMeshInstances(root) : this.meshInstances;
         if (meshInstances.length) {
-            return Viewer.calcMeshBoundingBox(meshInstances);
+            Viewer.calcMeshBoundingBox(result, meshInstances);
         } else {
             root = root ?? this.sceneRoot;
-            return root.children.length ? Viewer.calcHierBoundingBox(root) : defaultSceneBounds;
+            if (root.children.length) {
+                Viewer.calcHierBoundingBox(result, root);
+            } else {
+                result.copy(defaultSceneBounds);
+            }
         }
     }
 
@@ -1703,10 +1638,7 @@ class Viewer {
             const pixelScale = this.observer.get('camera.pixelScale');
             const widthPixels = Math.floor(width * window.devicePixelRatio / pixelScale);
             const heightPixels = Math.floor(height * window.devicePixelRatio / pixelScale);
-            this.canvas.width = widthPixels;
-            this.canvas.height = heightPixels;
-            this.app.graphicsDevice._width = widthPixels;
-            this.app.graphicsDevice._height = heightPixels;
+            this.app.graphicsDevice.setResolution(widthPixels, heightPixels);
             this.canvasResize = false;
         }
 
@@ -1740,11 +1672,11 @@ class Viewer {
             this.dirtyBounds = false;
 
             // calculate bounds
-            this.dynamicSceneBounds = this.calcSceneBounds();
+            this.calcSceneBounds(this.dynamicSceneBounds);
 
             this.debugBounds.clear();
             if (this.showBounds) {
-                const bbox = this.calcSceneBounds(this.selectedNode as Entity);
+                this.calcSceneBounds(bbox, this.selectedNode as Entity);
                 this.debugBounds.box(bbox.getMin(), bbox.getMax());
             }
             this.debugBounds.update();
@@ -1841,8 +1773,6 @@ class Viewer {
         this.fitCameraToScene();
 
         this.shadowCatcher.onUpdate(this.dynamicSceneBounds);
-
-        this.xrMode.onPrerender();
     }
 
     private onPostrender() {
@@ -1862,7 +1792,7 @@ class Viewer {
             this.firstFrame = false;
 
             // calculate scene bounds after first render in order to get accurate morph target and skinned bounds
-            this.sceneBounds = this.calcSceneBounds();
+            this.calcSceneBounds(this.sceneBounds);
 
             // offset scene geometry to place it at the origin
             this.sceneRoot.setLocalPosition(-this.sceneBounds.center.x, -this.sceneBounds.getMin().y, -this.sceneBounds.center.z);
