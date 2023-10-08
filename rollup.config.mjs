@@ -8,6 +8,7 @@ import path from 'path';
 import resolve from "@rollup/plugin-node-resolve";
 import replace from '@rollup/plugin-replace';
 import sass from 'rollup-plugin-sass';
+import terser from '@rollup/plugin-terser';
 import typescript from "@rollup/plugin-typescript";
 
 // prod is release build
