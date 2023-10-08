@@ -15,6 +15,8 @@ import {
     RenderComponent
 } from 'playcanvas';
 
+declare class XRObjectPlacementController { }
+
 const vec = new Vec3();
 const vec2 = new Vec3();
 const translation = new Vec3();
@@ -46,9 +48,9 @@ const createRotateInput = (controller: XRObjectPlacementController) => {
         eventDefault(e);
 
         touches.set(e.pointerId, {
-            start: {x: e.clientX, y: e.clientY},
-            previous: {x: e.clientX, y: e.clientY},
-            current: {x: e.clientX, y: e.clientY}
+            start: { x: e.clientX, y: e.clientY },
+            previous: { x: e.clientX, y: e.clientY },
+            current: { x: e.clientX, y: e.clientY }
         });
 
         if (controller.rotating) {
@@ -177,8 +179,8 @@ class Tween {
 
     constructor(value: any) {
         this.value = value;
-        this.source = {...value};
-        this.target = {...value};
+        this.source = { ...value };
+        this.target = { ...value };
     }
 
     goto(target: any, transitionTime = 0.25) {
@@ -222,13 +224,13 @@ const createModelHandler = (controller: XRObjectPlacementController) => {
     const xr = controller.options.xr;
     const events = controller.events;
 
-    const pos = new Tween({x: 0, y: 0, z: 0});
-    const rot = new Tween({x: 0, y: 0, z: 0});
-    const scale = new Tween({scale: 1});
+    const pos = new Tween({ x: 0, y: 0, z: 0 });
+    const rot = new Tween({ x: 0, y: 0, z: 0 });
+    const scale = new Tween({ scale: 1 });
     const lerpSpeed = 0.25;
 
     let hovering = true;
-    let hoverPos = new Vec3();
+    const hoverPos = new Vec3();
 
     const bound = new BoundingBox();
     let meshInstances: MeshInstance[];
@@ -261,22 +263,22 @@ const createModelHandler = (controller: XRObjectPlacementController) => {
         const mat = xr.views[0].viewInvMat;
         mat.transformPoint(hoverPos, vec);
         mat.getEulerAngles(vec2);
-        pos.goto({x: vec.x, y: vec.y, z: vec.z}, 0);
-        rot.goto({x: vec2.x, y: vec2.y, z: vec2.z}, 0);
-        scale.goto({scale: 1}, 0);
+        pos.goto({ x: vec.x, y: vec.y, z: vec.z }, 0);
+        rot.goto({ x: vec2.x, y: vec2.y, z: vec2.z }, 0);
+        scale.goto({ scale: 1 }, 0);
 
-        rot.goto({x: 0, y: 0, z: 0}, lerpSpeed);
-        pos.goto({x: position.x, y: position.y, z: position.z}, lerpSpeed);
+        rot.goto({ x: 0, y: 0, z: 0 }, lerpSpeed);
+        pos.goto({ x: position.x, y: position.y, z: position.z }, lerpSpeed);
         hovering = false;
     });
 
     events.on('xr:place', (position: Vec3) => {
-        pos.goto({x: position.x, y: position.y, z: position.z}, lerpSpeed);
+        pos.goto({ x: position.x, y: position.y, z: position.z }, lerpSpeed);
     });
 
     events.on('xr:rotate', (angle: number) => {
         angle = mod(angle, 360);
-        rot.goto({x: 0, y: angle, z: 0}, lerpSpeed);
+        rot.goto({ x: 0, y: angle, z: 0 }, lerpSpeed);
         // wrap source rotation to be within -180...180 degrees of target
         rot.source.y = angle - 180 + mod(rot.source.y - angle + 180, 360);
     });
@@ -293,7 +295,7 @@ const createModelHandler = (controller: XRObjectPlacementController) => {
         scale.update(dt);
     });
 
-    xr.on('update', (frame: any) => {
+    xr.on('update', () => {
         const xr = controller.options.xr;
 
         if (!xr.views.length) {
@@ -457,4 +459,4 @@ class XRObjectPlacementController {
     }
 }
 
-export {XRObjectPlacementController};
+export { XRObjectPlacementController };

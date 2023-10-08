@@ -387,10 +387,6 @@ class Viewer {
 
         const events = this.xrMode.events;
 
-        events.on('xr:update', (frame: any) => {
-
-        });
-
         events.on('xr:started', () => {
             // prepare scene settings for AR mode
             this.setShadowCatcherEnabled(true);

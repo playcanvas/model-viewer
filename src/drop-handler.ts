@@ -15,7 +15,7 @@ const resolveDirectories = (entries: Array<FileSystemEntry>): Promise<Array<File
         if (entry.isFile) {
             result.push(entry as FileSystemFileEntry);
         } else if (entry.isDirectory) {
-            promises.push(new Promise<any>((resolve, reject) => {
+            promises.push(new Promise<any>((resolve) => {
                 const reader = (entry as FileSystemDirectoryEntry).createReader();
 
                 const p: Promise<any>[] = [];
@@ -27,9 +27,9 @@ const resolveDirectories = (entries: Array<FileSystemEntry>): Promise<Array<File
                             read();
                         } else {
                             Promise.all(p)
-                            .then((children: Array<Array<FileSystemFileEntry>>) => {
-                                resolve(children.flat());
-                            });
+                                .then((children: Array<Array<FileSystemFileEntry>>) => {
+                                    resolve(children.flat());
+                                });
                         }
                     });
                 };
@@ -87,28 +87,28 @@ const CreateDropHandler = (target: HTMLElement, dropHandler: DropHandlerFunc) =>
 
         const entries =
             Array.from(ev.dataTransfer.items)
-                 .map((item) => item.webkitGetAsEntry());
+                .map(item => item.webkitGetAsEntry());
 
         resolveDirectories(entries)
-        .then((entries: Array<FileSystemFileEntry>) => {
-            return Promise.all(entries.map((entry) => {
-                return new Promise((resolve, reject) => {
-                    entry.file((entryFile: any) => {
-                        resolve({
-                            url: URL.createObjectURL(entryFile),
-                            filename: entry.fullPath.substring(1)
+            .then((entries: Array<FileSystemFileEntry>) => {
+                return Promise.all(entries.map((entry) => {
+                    return new Promise((resolve) => {
+                        entry.file((entryFile: any) => {
+                            resolve({
+                                url: URL.createObjectURL(entryFile),
+                                filename: entry.fullPath.substring(1)
+                            });
                         });
                     });
-                });
-            }));
-        })
-        .then((files: Array<File>) => {
-            if (files.length > 1) {
-                removeCommonPrefix(files);
-            }
-            dropHandler(files, !ev.shiftKey);
-        });
+                }));
+            })
+            .then((files: Array<File>) => {
+                if (files.length > 1) {
+                    removeCommonPrefix(files);
+                }
+                dropHandler(files, !ev.shiftKey);
+            });
     }, false);
 };
 
-export {CreateDropHandler,File};
+export { CreateDropHandler, File };
