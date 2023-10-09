@@ -318,7 +318,7 @@ const createModelHandler = (controller: XRObjectPlacementController) => {
             contentRoot.setLocalScale(scale.value.scale, scale.value.scale, scale.value.scale);
         }
 
-        // calculate scene bound
+        // calculate scene bounds
         updateBound();
 
         // update clipping planes
