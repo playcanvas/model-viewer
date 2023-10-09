@@ -1,6 +1,4 @@
 import {
-    // platform,
-    // WebglGraphicsDevice,
     // SoundManager,
     Lightmapper,
     // BatchManager,
