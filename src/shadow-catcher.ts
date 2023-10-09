@@ -1,5 +1,6 @@
 import {
     BLEND_NORMAL,
+    CHUNKAPI_1_65,
     SHADOW_VSM16 as SHADOW_TYPE,
     SHADOWUPDATE_REALTIME as SHADOWUPDATE,
 
@@ -44,7 +45,10 @@ class ShadowCatcher {
         this.material.depthWrite = false;
         this.material.diffuse.set(0, 0, 0);
         this.material.specular.set(0, 0, 0);
-        this.material.chunks.endPS = endPS;
+        this.material.chunks = {
+            APIVersion: CHUNKAPI_1_65,
+            endPS: endPS
+        };
         this.material.update();
 
         // create shadow catcher geometry
@@ -111,6 +115,7 @@ class ShadowCatcher {
 
     set enabled(enabled: boolean) {
         this.layer.enabled = enabled;
+        this.light.enabled = enabled;
     }
 
     get enabled() {

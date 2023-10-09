@@ -1,12 +1,13 @@
 import {
     basisInitialize,
+    createGraphicsDevice,
     Vec3,
     WasmModule
 } from 'playcanvas';
 import { Observer } from '@playcanvas/observer';
 
 import { getAssetPath } from './helpers';
-import { Option, ObserverData } from './types';
+import { ObserverData } from './types';
 import { initMaterials } from './material';
 import initializeUI from './ui';
 import Viewer from './viewer';
@@ -15,9 +16,6 @@ import './style.scss';
 import { version as modelViewerVersion } from '../package.json';
 import { version as pcuiVersion, revision as pcuiRevision } from 'pcui';
 import { version as engineVersion, revision as engineRevision } from 'playcanvas';
-
-// print out versions of dependent packages
-console.log(`Model Viewer v${modelViewerVersion} | PCUI v${pcuiVersion} (${pcuiRevision}) | PlayCanvas Engine v${engineVersion} (${engineRevision})`);
 
 // Permit some additional properties to be set on the window
 declare global {
@@ -28,10 +26,27 @@ declare global {
     }
 }
 
-interface Skybox {
-    url: string,
-    label: string
-}
+const skyboxes = [
+    { label: "Abandoned Tank Farm", url: "./skybox/abandoned_tank_farm_01_2k.hdr" },
+    { label: "Adam's Place Bridge", url: "./skybox/adams_place_bridge_2k.hdr" },
+    { label: "Artist Workshop", url: "./skybox/artist_workshop_2k.hdr" },
+    { label: "Ballroom", url: "./skybox/ballroom_2k.hdr" },
+    { label: "Circus Arena", url: "./skybox/circus_arena_2k.hdr" },
+    { label: "Colorful Studio", url: "./skybox/colorful_studio.hdr" },
+    { label: "Golf Course Sunrise", url: "./skybox/golf_course_sunrise_2k.hdr" },
+    { label: "Helipad", url: "./skybox/Helipad_equi.png" },
+    { label: "Kloppenheim", url: "./skybox/kloppenheim_02_2k.hdr" },
+    { label: "Lebombo", url: "./skybox/lebombo_2k.hdr" },
+    { label: "Outdoor Umbrellas", url: "./skybox/outdoor_umbrellas_2k.hdr" },
+    { label: "Paul Lobe Haus", url: "./skybox/paul_lobe_haus_2k.hdr" },
+    { label: "Reinforced Concrete", url: "./skybox/reinforced_concrete_01_2k.hdr" },
+    { label: "Rural Asphalt Road", url: "./skybox/rural_asphalt_road_2k.hdr" },
+    { label: "Spruit Sunrise", url: "./skybox/spruit_sunrise_2k.hdr" },
+    { label: "Studio Small", url: "./skybox/studio_small_03_2k.hdr" },
+    { label: "Venice Sunset", url: "./skybox/venice_sunset_1k.hdr" },
+    { label: "Vignaioli Night", url: "./skybox/vignaioli_night_2k.hdr" },
+    { label: "Wooden Motel", url: "./skybox/wooden_motel_2k.hdr" }
+];
 
 const observerData: ObserverData = {
     ui: {
@@ -47,7 +62,7 @@ const observerData: ObserverData = {
     },
     skybox: {
         value: 'Paul Lobe Haus',
-        options: null,
+        options: JSON.stringify(['None'].concat(skyboxes.map(s => s.label)).map(l => { return { v: l, t: l } })),
         exposure: 0,
         rotation: 0,
         background: 'Infinite Sphere',
@@ -130,20 +145,17 @@ const observerData: ObserverData = {
         },
         loadTime: null
     },
+    runtime: {
+        deviceType: ''
+    },
     morphs: null,
     spinner: false,
     error: null,
     xrSupported: false,
-    xrActive: false
+    xrActive: false,
 };
 
-// global url
-const url = new URL(window.location.href);
-
-// initialize the apps state
-const observer: Observer = new Observer(observerData);
-
-const saveOptions = (name: string) => {
+const saveOptions = (observer: Observer, name: string) => {
     const options = observer.json();
     window.localStorage.setItem(`model-viewer-${name}`, JSON.stringify({
         camera: options.camera,
@@ -154,7 +166,7 @@ const saveOptions = (name: string) => {
     }));
 };
 
-const loadOptions = (name: string, skyboxUrls: Map<string, string>) => {
+const loadOptions = (observer: Observer, name: string, skyboxUrls: Map<string, string>) => {
     const filter = ['skybox.options', 'debug.renderMode'];
 
     const loadRec = (path: string, value:any) => {
@@ -181,130 +193,122 @@ const loadOptions = (name: string, skyboxUrls: Map<string, string>) => {
     }
 };
 
-initMaterials();
-initializeUI(observer);
 
-basisInitialize({
-    glueUrl: getAssetPath('lib/basis/basis.wasm.js'),
-    wasmUrl: getAssetPath('lib/basis/basis.wasm.wasm'),
-    fallbackUrl: getAssetPath('lib/basis/basis.js'),
-    lazyInit: true
-});
+// print out versions of dependent packages
+console.log(`Model Viewer v${modelViewerVersion} | PCUI v${pcuiVersion} (${pcuiRevision}) | PlayCanvas Engine v${engineVersion} (${engineRevision})`);
 
-// @ts-ignore
-WasmModule.setConfig('DracoDecoderModule', {
-    glueUrl: getAssetPath('lib/draco/draco.wasm.js'),
-    wasmUrl: getAssetPath('lib/draco/draco.wasm.wasm'),
-    fallbackUrl: getAssetPath('lib/draco/draco.js')
-});
+const main = () => {
+    // initialize the apps state
+    const observer: Observer = new Observer(observerData);
 
-// hide / show spinner when loading files
-observer.on('spinner:set', (value: boolean) => {
-    const spinner = document.getElementById('spinner');
-    if (value) {
-        spinner.classList.remove('pcui-hidden');
-    } else {
-        spinner.classList.add('pcui-hidden');
-    }
-});
+    // global url
+    const url = new URL(window.location.href);
 
-const main = (skyboxUrls: Map<string, string>) => {
+    initMaterials();
+
+    basisInitialize({
+        glueUrl: getAssetPath('lib/basis/basis.wasm.js'),
+        wasmUrl: getAssetPath('lib/basis/basis.wasm.wasm'),
+        fallbackUrl: getAssetPath('lib/basis/basis.js'),
+        lazyInit: true
+    });
+
+    // @ts-ignore
+    WasmModule.setConfig('DracoDecoderModule', {
+        glueUrl: getAssetPath('lib/draco/draco.wasm.js'),
+        wasmUrl: getAssetPath('lib/draco/draco.wasm.wasm'),
+        fallbackUrl: getAssetPath('lib/draco/draco.js')
+    });
+
+    const skyboxUrls = new Map(skyboxes.map(s => [s.label, getAssetPath(s.url)]));
+
+    // hide / show spinner when loading files
+    observer.on('spinner:set', (value: boolean) => {
+        const spinner = document.getElementById('spinner');
+        if (value) {
+            spinner.classList.remove('pcui-hidden');
+        } else {
+            spinner.classList.add('pcui-hidden');
+        }
+    });
+
     if (!url.searchParams.has('default')) {
         // handle options
-        loadOptions('uistate', skyboxUrls);
+        loadOptions(observer, 'uistate', skyboxUrls);
 
         observer.on('*:set', () => {
-            saveOptions('uistate');
+            saveOptions(observer, 'uistate');
         });
     }
+
+    // create react ui
+    initializeUI(observer);
 
     // create the canvas
     const canvas = document.getElementById("application-canvas") as HTMLCanvasElement;
 
-    // create viewer instance
-    const viewer = new Viewer(canvas, observer, skyboxUrls);
+    // create the graphics device
+    createGraphicsDevice(canvas, {
+        deviceTypes: (url.searchParams.has('webgpu') ? ['webgpu'] : []).concat(['webgl2']),
+        glslangUrl: getAssetPath('lib/glslang/glslang.js'),
+        twgslUrl: getAssetPath('lib/twgsl/twgsl.js'),
+        antialias: false,
+        depth: false,
+        stencil: false,
+        xrCompatible: true,
+        powerPreference: 'high-performance'
+    }).then((device) => {
+        observer.set('runtime.deviceType', device.deviceType);
 
-    // make available globally
-    window.viewer = viewer;
+        // create viewer instance
+        const viewer = new Viewer(canvas, device, observer, skyboxUrls);
 
-    // get list of files, decode them
-    const files = [];
+        // make available globally
+        window.viewer = viewer;
 
-    // handle search params
-    for (const [key, value] of url.searchParams) {
-        switch (key) {
-            case 'load':
-            case 'assetUrl': {
-                const url = decodeURIComponent(value);
-                files.push({ url, filename: url });
-                break;
-            };
-            case 'cameraPosition': {
-                const pos = value.split(',').map(Number);
-                if (pos.length === 3) {
-                    viewer.initialCameraPosition = new Vec3(pos);
-                }
-                break;
-            }
-            default: {
-                if (observer.has(key)) {
-                    switch (typeof observer.get(key)) {
-                        case 'boolean':
-                            observer.set(key, value.toLowerCase() === 'true');
-                            break;
-                        case 'number':
-                            observer.set(key, Number(value));
-                            break;
-                        default:
-                            observer.set(key, decodeURIComponent(value));
-                            break;
+        // get list of files, decode them
+        const files = [];
+
+        // handle search params
+        for (const [key, value] of url.searchParams) {
+            switch (key) {
+                case 'load':
+                case 'assetUrl': {
+                    const url = decodeURIComponent(value);
+                    files.push({ url, filename: url });
+                    break;
+                };
+                case 'cameraPosition': {
+                    const pos = value.split(',').map(Number);
+                    if (pos.length === 3) {
+                        viewer.initialCameraPosition = new Vec3(pos);
                     }
+                    break;
                 }
-                break;
+                default: {
+                    if (observer.has(key)) {
+                        switch (typeof observer.get(key)) {
+                            case 'boolean':
+                                observer.set(key, value.toLowerCase() === 'true');
+                                break;
+                            case 'number':
+                                observer.set(key, Number(value));
+                                break;
+                            default:
+                                observer.set(key, decodeURIComponent(value));
+                                break;
+                        }
+                    }
+                    break;
+                }
             }
         }
-    }
 
-    if (files.length > 0) {
-        viewer.loadFiles(files);
-    }
+        if (files.length > 0) {
+            viewer.loadFiles(files);
+        }
+    });
 };
 
-const skyboxes = [
-    { label: "Abandoned Tank Farm", url: "./skybox/abandoned_tank_farm_01_2k.hdr" },
-    { label: "Adam's Place Bridge", url: "./skybox/adams_place_bridge_2k.hdr" },
-    { label: "Artist Workshop", url: "./skybox/artist_workshop_2k.hdr" },
-    { label: "Ballroom", url: "./skybox/ballroom_2k.hdr" },
-    { label: "Circus Arena", url: "./skybox/circus_arena_2k.hdr" },
-    { label: "Colorful Studio", url: "./skybox/colorful_studio.hdr" },
-    { label: "Golf Course Sunrise", url: "./skybox/golf_course_sunrise_2k.hdr" },
-    { label: "Helipad", url: "./skybox/Helipad_equi.png" },
-    { label: "Kloppenheim", url: "./skybox/kloppenheim_02_2k.hdr" },
-    { label: "Lebombo", url: "./skybox/lebombo_2k.hdr" },
-    { label: "Outdoor Umbrellas", url: "./skybox/outdoor_umbrellas_2k.hdr" },
-    { label: "Paul Lobe Haus", url: "./skybox/paul_lobe_haus_2k.hdr" },
-    { label: "Reinforced Concrete", url: "./skybox/reinforced_concrete_01_2k.hdr" },
-    { label: "Rural Asphalt Road", url: "./skybox/rural_asphalt_road_2k.hdr" },
-    { label: "Spruit Sunrise", url: "./skybox/spruit_sunrise_2k.hdr" },
-    { label: "Studio Small", url: "./skybox/studio_small_03_2k.hdr" },
-    { label: "Venice Sunset", url: "./skybox/venice_sunset_1k.hdr" },
-    { label: "Vignaioli Night", url: "./skybox/vignaioli_night_2k.hdr" },
-    { label: "Wooden Motel", url: "./skybox/wooden_motel_2k.hdr" }
-];
-
-const skyboxUrls = new Map<string, string>();
-const skyboxOptions: Array<Option> = [{
-    v: 'None', t: 'None'
-}];
-
-skyboxes.forEach((skybox: Skybox) => {
-    skyboxUrls.set(skybox.label, getAssetPath(skybox.url));
-    skyboxOptions.push({ v: skybox.label, t: skybox.label });
-});
-
-const skyboxData = observer.get('skybox');
-skyboxData.options = JSON.stringify(skyboxOptions);
-observer.set('skybox', skyboxData);
-
 // start main
-main(skyboxUrls);
+main();

@@ -10,7 +10,7 @@ import {
     EVENT_TOUCHEND,
     EVENT_TOUCHCANCEL,
     EVENT_TOUCHMOVE,
-    KEY_W, KEY_S, KEY_A, KEY_D, KEY_Q, KEY_E, KEY_SHIFT,
+    KEY_W, KEY_S, KEY_A, KEY_D, KEY_Q, KEY_E, KEY_F, KEY_SHIFT,
     math,
     Entity,
     MouseEvent,
@@ -347,6 +347,7 @@ class OrbitCameraInputKeyboard {
                 case KEY_D: this.controls[3] = true; break;
                 case KEY_Q: this.controls[4] = true; break;
                 case KEY_E: this.controls[5] = true; break;
+                case KEY_F: this.app.fire('focuscamera', true); break;
             }
         });
 

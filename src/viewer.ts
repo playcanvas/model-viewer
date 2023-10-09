@@ -9,6 +9,7 @@ import {
     PIXELFORMAT_DEPTH,
     PIXELFORMAT_RGBA8,
     PRIMITIVE_LINES,
+    SORTMODE_BACK2FRONT,
     TEXTURETYPE_DEFAULT,
     TEXTURETYPE_RGBM,
     TONEMAP_LINEAR,
@@ -27,6 +28,7 @@ import {
     Color,
     Entity,
     EnvLighting,
+    GraphicsDevice,
     GraphNode,
     Keyboard,
     Mat4,
@@ -54,7 +56,7 @@ import { MiniStats } from 'playcanvas-extras';
 // @ts-ignore: library file import
 // import * as VoxParser from 'playcanvas/scripts/parsers/vox-parser.js';
 import { MeshoptDecoder } from '../lib/meshopt_decoder.module.js';
-import { DropHandler } from './drop-handler';
+import { CreateDropHandler } from './drop-handler';
 import { MorphTargetData, File, HierarchyNode } from './types';
 import { DebugLines } from './debug-lines';
 import { Multiframe } from './multiframe';
@@ -63,19 +65,25 @@ import { OrbitCamera, OrbitCameraInputMouse, OrbitCameraInputTouch, OrbitCameraI
 import { PngExporter } from './png-exporter.js';
 import { ProjectiveSkybox } from './projective-skybox';
 import { ShadowCatcher } from './shadow-catcher';
-import { XrMode } from './xr-mode';
+import { XRObjectPlacementController } from './xr-mode';
+
+// @ts-ignore
+import arModeImage from './svg/ar-mode.svg';
+// @ts-ignore
+import arCloseImage from './svg/ar-close.svg';
 
 // model filename extensions
 const modelExtensions = ['gltf', 'glb', 'vox'];
 const defaultSceneBounds = new BoundingBox(new Vec3(0, 1, 0), new Vec3(1, 1, 1));
+
 const vec = new Vec3();
+const bbox = new BoundingBox();
 
 class Viewer {
     canvas: HTMLCanvasElement;
     app: App;
     skyboxUrls: Map<string, string>;
     controlEventKeys: string[] = null;
-    dropHandler: DropHandler;
     pngExporter: PngExporter = null;
     prevCameraMat: Mat4;
     camera: Entity;
@@ -133,11 +141,11 @@ class Viewer {
 
     projectiveSkybox: ProjectiveSkybox = null;
     shadowCatcher: ShadowCatcher = null;
-    xrMode: XrMode;
+    xrMode: XRObjectPlacementController;
 
     canvasResize = true;
 
-    constructor(canvas: HTMLCanvasElement, observer: Observer, skyboxUrls: Map<string, string>) {
+    constructor(canvas: HTMLCanvasElement, graphicsDevice: GraphicsDevice, observer: Observer, skyboxUrls: Map<string, string>) {
         this.canvas = canvas;
 
         // create the application
@@ -145,15 +153,7 @@ class Viewer {
             mouse: new Mouse(canvas),
             touch: new TouchDevice(canvas),
             keyboard: new Keyboard(window),
-            graphicsDeviceOptions: {
-                preferWebGl2: true,
-                alpha: true,
-                // the following aren't needed since we're rendering to an offscreen render target
-                // and would only result in extra memory usage.
-                antialias: false,
-                depth: false,
-                preserveDrawingBuffer: true
-            }
+            graphicsDevice: graphicsDevice
         });
         this.app = app;
         this.skyboxUrls = skyboxUrls;
@@ -193,13 +193,13 @@ class Viewer {
         this.pngExporter = new PngExporter();
 
         // create drop handler
-        this.dropHandler = new DropHandler((files: Array<File>, resetScene: boolean) => {
+        CreateDropHandler(this.canvas, (files: Array<File>, resetScene: boolean) => {
             this.loadFiles(files, resetScene);
         });
 
         // observe canvas size changes
         new ResizeObserver(() => {
-            if (!this.xrMode.active) {
+            if (this.xrMode && !this.xrMode.active) {
                 this.canvasResize = true;
                 this.renderNextFrame();
             }
@@ -242,6 +242,7 @@ class Viewer {
         app.autoRender = false;
         this.prevCameraMat = new Mat4();
         app.on('update', this.update, this);
+        app.on('framerender', this.onFrameRender, this);
         app.on('prerender', this.onPrerender, this);
         app.on('postrender', this.onPostrender, this);
         app.on('frameend', this.onFrameend, this);
@@ -300,8 +301,8 @@ class Viewer {
         this.dirtyGrid = false;
         this.dirtyNormals = false;
 
-        this.sceneBounds = null;
-        this.dynamicSceneBounds = null;
+        this.sceneBounds = new BoundingBox();
+        this.dynamicSceneBounds = new BoundingBox();
 
         this.debugBounds = new DebugLines(app, camera);
         this.debugSkeleton = new DebugLines(app, camera);
@@ -322,7 +323,7 @@ class Viewer {
         });
 
         // multiframe
-        this.multiframe = new Multiframe(device, this.camera.camera, 5);
+        this.multiframe = new Multiframe(device, this.camera.camera);
 
         // projective skybox
         this.projectiveSkybox = new ProjectiveSkybox(app);
@@ -350,7 +351,7 @@ class Viewer {
             const y = 1.0 - event.offsetY / canvas.clientHeight;
 
             // read depth
-            const depth = this.readDepth.read(camera.renderTarget.depthBuffer, x, y);
+            const depth = device.isWebGPU ? 1 : this.readDepth.read(camera.renderTarget.depthBuffer, x, y);
 
             if (depth < 1) {
                 const pos = new Vec4(x, y, depth, 1.0).mulScalar(2.0).subScalar(1.0);            // clip space
@@ -364,132 +365,63 @@ class Viewer {
             }
         });
 
+        app.on('focuscamera', this.focusCamera, this);
+
+        this.app.scene.layers.getLayerByName('World').transparentSortMode = SORTMODE_BACK2FRONT;
+
         // start the application
         app.start();
     }
 
     private initXrMode() {
-        const backup = {
-            position: new Vec3(),
-            rotation: new Vec3()
-        };
+        const xr = this.app.xr;
 
-        const currPosition = new Vec3();
-        const currRotation = new Vec3();
-        const targetPosition = new Vec3();
-        let placed = false;
-        let positionLerp = 0;
-        let hoverDistance = 0;
+        this.xrMode = new XRObjectPlacementController({
+            xr: xr,
+            camera: this.camera,
+            content: this.sceneRoot,
+            showUI: true,
+            startArImgSrc: arModeImage.src,
+            stopArImgSrc: arCloseImage.src
+        });
 
-        const applySH = (sh: Float32Array | null) => {
-            this.meshInstances.forEach((meshInstance) => {
-                const material = meshInstance.material as StandardMaterial;
-                if (material.ambientSH !== sh) {
-                    material.ambientSH = sh;
-                    material.update();
-                }
-            });
-        };
+        const events = this.xrMode.events;
 
-        const handlers = {
-            starting: () => {
-                console.log('starting');
+        events.on('xr:started', () => {
+            // prepare scene settings for AR mode
+            this.setShadowCatcherEnabled(true);
+            this.setShadowCatcherIntensity(0.4);
+            this.setDebugGrid(false);
+            this.setDebugBounds(false);
+            this.setLightEnabled(true);
+            this.setLightShadow(true);
+            this.setLightFollow(false);
 
-                // store object position so we can restore it when exiting AR
-                backup.position.copy(this.sceneRoot.getLocalPosition());
-                backup.rotation.copy(this.sceneRoot.getLocalEulerAngles());
-                placed = false;
+            this.setSkyboxBackground('None');
+            this.setSkyboxExposure(0);
+            this.setBackgroundColor(Color.BLACK);
+            this.app.scene.layers.getLayerById(LAYERID_SKYBOX).enabled = false;
 
-                const bbox = this.calcSceneBounds();
-                const radius = bbox.halfExtents.length();
-                const camera = this.camera.camera;
-                hoverDistance = (radius * 1.4) / Math.sin(0.5 * camera.fov * camera.aspectRatio * math.DEG_TO_RAD);
+            this.multiframe.blend = 0.5;
+        });
 
-                // prepare scene settings for AR mode
-                this.setShadowCatcherEnabled(true);
-                this.setShadowCatcherIntensity(0.4);
-                this.setDebugGrid(false);
-                this.setDebugBounds(false);
-                this.setLightEnabled(true);
-                this.setLightShadow(true);
-                this.setLightFollow(false);
+        events.on('xr:initial-place', () => {
+            this.multiframe.blend = 1.0;
+        });
 
-                this.setSkyboxBackground('None');
-                this.setSkyboxExposure(0);
-                this.setBackgroundColor(Color.BLACK);
-                this.app.scene.layers.getLayerById(LAYERID_SKYBOX).enabled = false;
+        events.on('xr:ended', () => {
+            // reload all user options
+            this.reloadSettings();
 
-                this.sceneRoot.enabled = false;
-            },
+            // background color isn't correctly restored
+            this.setBackgroundColor(this.observer.get('skybox.backgroundColor'));
 
-            started: () => {
-                console.log('started');
+            this.multiframe.blend = 1.0;
+        });
+    }
 
-                // hide skybox
-                this.multiframe.blend = 0.5;
-                this.sceneRoot.enabled = true;
-            },
-
-            place: (position: Vec3) => {
-                placed = true;
-                this.multiframe.blend = 1.0;
-
-                positionLerp = 0;
-                targetPosition.copy(position);
-                this.shadowCatcher.enabled = true;
-            },
-
-            rotate: (angle: number) => {
-                currRotation.y += angle;
-            },
-
-            updateLighting: (intensity: number, color: Color, rotation: Quat, sphericalHarmonics?: Float32Array) => {
-                if (sphericalHarmonics) {
-                    applySH(sphericalHarmonics);
-                }
-
-                this.light.light.intensity = intensity;
-                this.light.light.color = color;
-                this.light.setLocalRotation(rotation);
-            },
-
-            onUpdate: (deltaTime: number) => {
-                if (!placed) {
-                    const cameraMatrix = this.xrMode.getCameraMatrix();
-                    cameraMatrix.transformPoint(new Vec3(0, 0, -hoverDistance), currPosition);
-                } else {
-                    positionLerp = Math.min(1.0, positionLerp + deltaTime * 3.0);
-                    currPosition.lerp(currPosition, targetPosition, Math.sin((positionLerp - 0.5) * Math.PI) * 0.5 + 0.5);
-                }
-            },
-
-            onPrerender: () => {
-                this.sceneRoot.setLocalPosition(currPosition);
-                this.sceneRoot.setLocalEulerAngles(currRotation);
-                this.sceneBounds = this.calcSceneBounds();
-                this.dirtyBounds = true;
-                this.dirtyGrid = true;
-            },
-
-            ended: () => {
-                // remove ambientSH from materials
-                applySH(null);
-
-                this.multiframe.blend = 1.0;
-
-                // reload all user options
-                this.reloadSettings();
-
-                // restore object placement
-                this.sceneRoot.setLocalPosition(backup.position);
-                this.sceneRoot.setLocalEulerAngles(backup.rotation);
-                this.sceneBounds = this.calcSceneBounds();
-                this.dirtyBounds = true;
-                this.dirtyGrid = true;
-            }
-        };
-
-        this.xrMode = new XrMode(this.app, this.camera, this.observer, handlers);
+    private getSelectedMeshInstances() {
+        return this.selectedNode ? this.collectMeshInstances(this.selectedNode as Entity) : this.meshInstances;
     }
 
     // collects all mesh instances from entity hierarchy
@@ -511,20 +443,17 @@ class Viewer {
     }
 
     // calculate the bounding box of the given mesh
-    private static calcMeshBoundingBox(meshInstances: Array<MeshInstance>) {
-        const bbox = new BoundingBox();
-        for (let i = 0; i < meshInstances.length; ++i) {
-            if (i === 0) {
-                bbox.copy(meshInstances[i].aabb);
-            } else {
-                bbox.add(meshInstances[i].aabb);
+    private static calcMeshBoundingBox(result: BoundingBox, meshInstances: Array<MeshInstance>) {
+        if (meshInstances.length > 0) {
+            result.copy(meshInstances[0].aabb);
+            for (let i = 1; i < meshInstances.length; ++i) {
+                result.add(meshInstances[i].aabb);
             }
         }
-        return bbox;
     }
 
     // calculate the bounding box of the graph-node hierarchy
-    private static calcHierBoundingBox(rootNode: Entity) {
+    private static calcHierBoundingBox(result: BoundingBox, rootNode: Entity) {
         const position = rootNode.getPosition();
         let min_x = position.x;
         let min_y = position.y;
@@ -544,9 +473,7 @@ class Viewer {
         };
         recurse(rootNode);
 
-        const result = new BoundingBox();
         result.setMinMax(new Vec3(min_x, min_y, min_z), new Vec3(max_x, max_y, max_z));
-        return result;
     }
 
     // construct the controls interface and initialize controls
@@ -564,7 +491,7 @@ class Viewer {
                 this.renderNextFrame();
             },
             'camera.hq': (enabled: boolean) => {
-                this.multiframe.enabled = enabled;
+                this.multiframe.enabled = !this.app.graphicsDevice.isWebGPU && enabled;
                 this.renderNextFrame();
             },
 
@@ -807,8 +734,8 @@ class Viewer {
     destroyRenderTargets() {
         const rt = this.camera.camera.renderTarget;
         if (rt) {
-            rt.colorBuffer.destroy();
-            rt.depthBuffer.destroy();
+            rt.colorBuffer?.destroy();
+            rt.depthBuffer?.destroy();
             rt.destroy();
             this.camera.camera.renderTarget = null;
         }
@@ -831,6 +758,7 @@ class Viewer {
 
         const createTexture = (width: number, height: number, format: number) => {
             return new Texture(device, {
+                name: 'viewer-rt-texture',
                 width: width,
                 height: height,
                 format: format,
@@ -844,8 +772,9 @@ class Viewer {
 
         // in with the new
         const colorBuffer = createTexture(widthPixels, heightPixels, PIXELFORMAT_RGBA8);
-        const depthBuffer = createTexture(widthPixels, heightPixels, PIXELFORMAT_DEPTH);
+        const depthBuffer = device.isWebGPU ? null : createTexture(widthPixels, heightPixels, PIXELFORMAT_DEPTH);
         const renderTarget = new RenderTarget({
+            name: 'viewer-rt',
             colorBuffer: colorBuffer,
             depthBuffer: depthBuffer,
             flipY: false,
@@ -945,44 +874,48 @@ class Viewer {
     }
 
     downloadPngScreenshot() {
-        const device = this.app.graphicsDevice as WebglGraphicsDevice;
-
-        // save the backbuffer
-        const w = device.width;
-        const h = device.height;
-        const data = new Uint8Array(w * h * 4);
-        device.setRenderTarget(null);
-        device.gl.readPixels(0, 0, w, h, device.gl.RGBA, device.gl.UNSIGNED_BYTE, data);
-        this.pngExporter.export('model-viewer.png', new Uint32Array(data.buffer), w, h);
+        if (!this.app.graphicsDevice.isWebGPU) {
+            const texture = this.camera.camera.renderTarget.colorBuffer;
+            texture.downloadAsync()
+                .then(() => {
+                    this.pngExporter.export('model-viewer.png', new Uint32Array(texture.getSource().buffer.slice()), texture.width, texture.height);
+                });
+        }
     }
 
     // move the camera to view the loaded object
-    focusCamera() {
+    focusCamera(smoothly = false) {
         const camera = this.camera.camera;
 
         // calculate scene bounding box
-        const bbox = this.calcSceneBounds();
+        this.calcSceneBounds(bbox, this.selectedNode as Entity);
         const radius = bbox.halfExtents.length();
         const distance = (radius * 1.4) / Math.sin(0.5 * camera.fov * camera.aspectRatio * math.DEG_TO_RAD);
+
+        const func = smoothly ? 'goto' : 'snapto';
 
         if (this.initialCameraPosition) {
             // user-specified camera position
             const vec = bbox.center.clone().sub(this.initialCameraPosition);
             this.orbitCamera.vecToAzimElevDistance(vec, vec);
-            this.orbitCamera.azimElevDistance.snapto(vec);
+            this.orbitCamera.azimElevDistance[func](vec);
             this.initialCameraPosition = null;
         } else {
             // automatically placed camera position
             const aed = this.orbitCamera.azimElevDistance.target.clone();
             aed.z = distance;
-            this.orbitCamera.azimElevDistance.snapto(aed);
+            this.orbitCamera.azimElevDistance[func](aed);
         }
-        this.orbitCamera.focalPoint.snapto(bbox.center);
+        this.orbitCamera.focalPoint[func](bbox.center);
     }
 
     // adjust camera clipping planes to fit the scene
     fitCameraToScene() {
-        const mat = this.xrMode.getCameraMatrix();
+        if (this.xrMode?.active) {
+            return;
+        }
+
+        const mat = this.camera.getWorldTransform();
 
         const cameraPosition = mat.getTranslation();
         const cameraForward = mat.getZ();
@@ -1261,6 +1194,8 @@ class Viewer {
         }
 
         this.selectedNode = graphNode;
+        this.dirtyWireframe = true;
+        this.dirtyBounds = true;
         this.dirtySkeleton = true;
         this.renderNextFrame();
     }
@@ -1432,10 +1367,8 @@ class Viewer {
     }
 
     update(deltaTime: number) {
-        this.xrMode.onUpdate(deltaTime);
-
         // update the orbit camera
-        if (!this.xrMode.active) {
+        if (!this.xrMode?.active) {
             this.orbitCameraInputKeyboard.update(deltaTime, this.sceneBounds ? this.sceneBounds.halfExtents.length() * 2 : 1);
             this.orbitCamera.update(deltaTime);
         }
@@ -1456,7 +1389,7 @@ class Viewer {
         }
 
         // always render during xr sessions
-        if (this.xrMode.active) {
+        if (this.xrMode?.active) {
             this.renderNextFrame();
         }
 
@@ -1661,11 +1594,18 @@ class Viewer {
         this.observer.set('animation', animationState);
     }
 
-    private calcSceneBounds() {
-        return this.meshInstances.length ?
-            Viewer.calcMeshBoundingBox(this.meshInstances) :
-            (this.sceneRoot.children.length ?
-                Viewer.calcHierBoundingBox(this.sceneRoot) : defaultSceneBounds);
+    private calcSceneBounds(result: BoundingBox, root: Entity | null = null) {
+        const meshInstances = root ? this.collectMeshInstances(root) : this.meshInstances;
+        if (meshInstances.length) {
+            Viewer.calcMeshBoundingBox(result, meshInstances);
+        } else {
+            root = root ?? this.sceneRoot;
+            if (root.children.length) {
+                Viewer.calcHierBoundingBox(result, root);
+            } else {
+                result.copy(defaultSceneBounds);
+            }
+        }
     }
 
     private resetWireframeMeshes() {
@@ -1677,7 +1617,7 @@ class Viewer {
     }
 
     private buildWireframeMeshes() {
-        this.wireframeMeshInstances = this.meshInstances.map((mi) => {
+        this.wireframeMeshInstances = this.getSelectedMeshInstances().map((mi) => {
             const meshInstance = new MeshInstance(mi.mesh, this.wireframeMaterial, mi.node);
             meshInstance.renderStyle = PRIMITIVE_LINES;
             meshInstance.skinInstance = mi.skinInstance;
@@ -1688,21 +1628,22 @@ class Viewer {
         this.app.scene.layers.getLayerByName('World').addMeshInstances(this.wireframeMeshInstances);
     }
 
-    // generate and render debug elements on prerender
-    private onPrerender() {
+    private onFrameRender() {
         if (this.canvasResize) {
             const { width, height } = this.getCanvasSize();
             const pixelScale = this.observer.get('camera.pixelScale');
             const widthPixels = Math.floor(width * window.devicePixelRatio / pixelScale);
             const heightPixels = Math.floor(height * window.devicePixelRatio / pixelScale);
-            this.canvas.width = widthPixels;
-            this.canvas.height = heightPixels;
+            this.app.graphicsDevice.setResolution(widthPixels, heightPixels);
             this.canvasResize = false;
         }
 
         // rebuild render targets
         this.rebuildRenderTargets();
+    }
 
+    // generate and render debug elements on prerender
+    private onPrerender() {
         if (this.firstFrame) {
             return;
         }
@@ -1716,7 +1657,7 @@ class Viewer {
                 this.buildWireframeMeshes();
             }
 
-            this.meshInstances.forEach((mi) => {
+            this.getSelectedMeshInstances().forEach((mi) => {
                 mi.material.depthBias = this.showWireframe ? -1.0 : 0.0;
                 mi.material.slopeDepthBias = this.showWireframe ? 1.0 : 0.0;
             });
@@ -1727,11 +1668,12 @@ class Viewer {
             this.dirtyBounds = false;
 
             // calculate bounds
-            this.dynamicSceneBounds = this.calcSceneBounds();
+            this.calcSceneBounds(this.dynamicSceneBounds);
 
             this.debugBounds.clear();
             if (this.showBounds) {
-                this.debugBounds.box(this.dynamicSceneBounds.getMin(), this.dynamicSceneBounds.getMax());
+                this.calcSceneBounds(bbox, this.selectedNode as Entity);
+                this.debugBounds.box(bbox.getMin(), bbox.getMax());
             }
             this.debugBounds.update();
 
@@ -1827,14 +1769,13 @@ class Viewer {
         this.fitCameraToScene();
 
         this.shadowCatcher.onUpdate(this.dynamicSceneBounds);
-
-        this.xrMode.onPrerender();
     }
 
     private onPostrender() {
         // resolve the (possibly multisampled) render target
-        if (!this.firstFrame && this.camera.camera.renderTarget._samples > 1) {
-            this.camera.camera.renderTarget.resolve();
+        const rt = this.camera.camera.renderTarget;
+        if (!this.app.graphicsDevice.isWebGPU && !this.firstFrame && rt._samples > 1) {
+            rt.resolve();
         }
 
         // perform mulitiframe update. returned flag indicates whether more frames
@@ -1847,7 +1788,7 @@ class Viewer {
             this.firstFrame = false;
 
             // calculate scene bounds after first render in order to get accurate morph target and skinned bounds
-            this.sceneBounds = this.calcSceneBounds();
+            this.calcSceneBounds(this.sceneBounds);
 
             // offset scene geometry to place it at the origin
             this.sceneRoot.setLocalPosition(-this.sceneBounds.center.x, -this.sceneBounds.getMin().y, -this.sceneBounds.center.z);

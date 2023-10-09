@@ -34,7 +34,7 @@ export interface ObserverData {
     },
     skybox: {
         value: string,
-        options: null,
+        options: string,
         exposure: number,
         rotation: number,
         background: 'Solid Color' | 'Infinite Sphere' | 'Projective Dome',
@@ -133,6 +133,9 @@ export interface ObserverData {
         name: string,
         targets: Record<string, MorphTargetData>
     }>,
+    runtime: {
+        deviceType: string
+    },
     spinner: boolean,
     error?: string,
     xrSupported: boolean,

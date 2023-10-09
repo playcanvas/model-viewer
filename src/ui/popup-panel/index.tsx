@@ -14,7 +14,7 @@ const PopupPanelControls = (props: { observerData: ObserverData, setProperty: Se
         <SkyboxPanel setProperty={props.setProperty} skyboxData={props.observerData.skybox} uiData={props.observerData.ui} />
         <LightPanel setProperty={props.setProperty} lightData={props.observerData.light} uiData={props.observerData.ui} shadowCatcherData={props.observerData.shadowCatcher}/>
         <DebugPanel setProperty={props.setProperty} debugData={props.observerData.debug} uiData={props.observerData.ui} />
-        <ViewPanel setProperty={props.setProperty} sceneData={props.observerData.scene} uiData={props.observerData.ui} />
+        <ViewPanel setProperty={props.setProperty} sceneData={props.observerData.scene} uiData={props.observerData.ui} runtimeData={props.observerData.runtime}/>
     </>);
 };
 
@@ -84,8 +84,14 @@ class PopupPanel extends React.Component <{ observerData: ObserverData, setPrope
         return (<div id='popup' className={this.props.observerData.scene.nodes === '[]' ? 'empty' : null}>
             <PopupPanelControls observerData={this.props.observerData} setProperty={this.props.setProperty} />
             <PopupButtonControls observerData={this.props.observerData} setProperty={this.props.setProperty} />
-            <div id='floating-buttons-parent'>
-                <Button class='popup-button' icon='E189' hidden={!this.hasArSupport || this.props.observerData.scene.nodes === '[]'} width={40} height={40} onClick={() => {
+            <Button
+                class='popup-button'
+                id='launch-ar-button'
+                icon='E189'
+                hidden={!this.hasArSupport || this.props.observerData.scene.nodes === '[]'}
+                width={40}
+                height={40}
+                onClick={() => {
                     if (this.usdzExporter) {
                         const sceneRoot = (window as any).viewer.app.root.findByName('sceneRoot');
                         // convert the loaded entity into asdz file
@@ -97,10 +103,19 @@ class PopupPanel extends React.Component <{ observerData: ObserverData, setPrope
                     } else {
                         if (window.viewer) window.viewer.xrMode.start();
                     }
-                } } />
-                <Button class='popup-button' id='fullscreen-button' icon='E127' width={40} height={40} onClick={() => {
-                    toggleCollapsed();
-                } } />
+                } }
+            />
+            <div id='floating-buttons-parent'>
+                <Button
+                    class='popup-button'
+                    id='fullscreen-button'
+                    icon='E127'
+                    width={40}
+                    height={40}
+                    onClick={() => {
+                        toggleCollapsed();
+                    } }
+                />
             </div>
         </div>);
     }
