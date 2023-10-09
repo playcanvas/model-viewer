@@ -55,6 +55,7 @@ import { Observer } from '@playcanvas/observer';
 import { MiniStats } from 'playcanvas-extras';
 // @ts-ignore: library file import
 // import * as VoxParser from 'playcanvas/scripts/parsers/vox-parser.js';
+import { registerPlyParser } from './ply-parser';
 import { MeshoptDecoder } from '../lib/meshopt_decoder.module.js';
 import { CreateDropHandler } from './drop-handler';
 import { MorphTargetData, File, HierarchyNode } from './types';
@@ -73,7 +74,7 @@ import arModeImage from './svg/ar-mode.svg';
 import arCloseImage from './svg/ar-close.svg';
 
 // model filename extensions
-const modelExtensions = ['gltf', 'glb', 'vox'];
+const modelExtensions = ['gltf', 'glb', 'vox', 'ply'];
 const defaultSceneBounds = new BoundingBox(new Vec3(0, 1, 0), new Vec3(1, 1, 1));
 
 const vec = new Vec3();
@@ -188,6 +189,7 @@ class Viewer {
 
         // register vox support
         // VoxParser.registerVoxParser(app);
+        registerPlyParser(app);
 
         // create the exporter
         this.pngExporter = new PngExporter();
