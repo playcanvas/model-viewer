@@ -109,11 +109,9 @@ class HierarchyPanel extends React.Component <{ sceneData: ObserverData['scene']
     }
 }
 
-class DevicePanel extends React.Component <{
-    observerData: ObserverData,
-    setProperty: SetProperty}> {
+class DevicePanel extends React.Component <{ observerData: ObserverData, setProperty: SetProperty }> {
 
-    shouldComponentUpdate(nextProps: Readonly<{ observerData: ObserverData; }>, nextState: Readonly<{}>, nextContext: any): boolean {
+    shouldComponentUpdate(nextProps: Readonly<{ observerData: ObserverData,  setProperty: SetProperty}>): boolean {
         return JSON.stringify(nextProps.observerData.runtime) !== JSON.stringify(this.props.observerData.runtime) ||
                nextProps.observerData.enableWebGPU !== this.props.observerData.enableWebGPU;
     }
@@ -143,7 +141,8 @@ class LeftPanel extends React.Component <{ observerData: ObserverData, setProper
     }
 
     shouldComponentUpdate(nextProps: Readonly<{ observerData: ObserverData; setProperty: SetProperty; }>): boolean {
-        return JSON.stringify(nextProps.observerData.scene) !== JSON.stringify(this.props.observerData.scene);
+        return JSON.stringify(nextProps.observerData.scene) !== JSON.stringify(this.props.observerData.scene) ||
+               JSON.stringify(nextProps.observerData.runtime) !== JSON.stringify(this.props.observerData.runtime);
     }
 
     componentDidMount(): void {
