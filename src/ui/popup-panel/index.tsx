@@ -68,7 +68,7 @@ class PopupPanel extends React.Component <{ observerData: ObserverData, setPrope
     usdzExporter: any;
 
     get hasArSupport() {
-        return this.props.observerData.xrSupported || this.usdzExporter;
+        return this.props.observerData.runtime.xrSupported || this.usdzExporter;
     }
 
     constructor(props: any) {

@@ -50,7 +50,9 @@ const skyboxes = [
 
 const observerData: ObserverData = {
     ui: {
-        active: null
+        active: null,
+        spinner: false,
+        error: null
     },
     camera: {
         fov: 40,
@@ -146,13 +148,14 @@ const observerData: ObserverData = {
         loadTime: null
     },
     runtime: {
-        deviceType: ''
+        activeDeviceType: '',
+        viewportWidth: 0,
+        viewportHeight: 0,
+        xrSupported: false,
+        xrActive: false
     },
+    enableWebGPU: false,
     morphs: null,
-    spinner: false,
-    error: null,
-    xrSupported: false,
-    xrActive: false,
 };
 
 const saveOptions = (observer: Observer, name: string) => {
@@ -162,7 +165,8 @@ const saveOptions = (observer: Observer, name: string) => {
         skybox: options.skybox,
         light: options.light,
         debug: options.debug,
-        shadowCatcher: options.shadowCatcher
+        shadowCatcher: options.shadowCatcher,
+        enableWebGPU: options.enableWebGPU
     }));
 };
 
@@ -223,7 +227,7 @@ const main = () => {
     const skyboxUrls = new Map(skyboxes.map(s => [s.label, getAssetPath(s.url)]));
 
     // hide / show spinner when loading files
-    observer.on('spinner:set', (value: boolean) => {
+    observer.on('ui.spinner:set', (value: boolean) => {
         const spinner = document.getElementById('spinner');
         if (value) {
             spinner.classList.remove('pcui-hidden');
@@ -249,7 +253,7 @@ const main = () => {
 
     // create the graphics device
     createGraphicsDevice(canvas, {
-        deviceTypes: (url.searchParams.has('webgpu') ? ['webgpu'] : []).concat(['webgl2']),
+        deviceTypes: (url.searchParams.has('webgpu') || observer.get('enableWebGPU') ? ['webgpu'] : []).concat(['webgl2']),
         glslangUrl: getAssetPath('lib/glslang/glslang.js'),
         twgslUrl: getAssetPath('lib/twgsl/twgsl.js'),
         antialias: false,
@@ -258,7 +262,7 @@ const main = () => {
         xrCompatible: true,
         powerPreference: 'high-performance'
     }).then((device) => {
-        observer.set('runtime.deviceType', device.deviceType);
+        observer.set('runtime.activeDeviceType', device.deviceType);
 
         // create viewer instance
         const viewer = new Viewer(canvas, device, observer, skyboxUrls);

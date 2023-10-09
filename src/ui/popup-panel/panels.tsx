@@ -58,7 +58,7 @@ class CameraPanel extends React.Component <{
                     <Toggle
                         label='High Quality'
                         value={props.observerData.camera.hq}
-                        enabled={!props.observerData.animation.playing && !props.observerData.debug.stats && props.observerData.runtime.deviceType !== 'webgpu' }
+                        enabled={!props.observerData.animation.playing && !props.observerData.debug.stats && props.observerData.runtime.activeDeviceType !== 'webgpu' }
                         setProperty={(value: boolean) => props.setProperty('camera.hq', value)}
                     />
                 </Container>
@@ -373,7 +373,7 @@ class ViewPanel extends React.Component <{
                     <Button
                         class='secondary'
                         text='TAKE A SNAPSHOT AS PNG'
-                        enabled={props.runtimeData.deviceType !== 'webgpu'}
+                        enabled={props.runtimeData.activeDeviceType !== 'webgpu'}
                         onClick={() => {
                             if (window.viewer) window.viewer.downloadPngScreenshot();
                         }}

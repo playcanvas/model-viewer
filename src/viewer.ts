@@ -1058,8 +1058,8 @@ class Viewer {
 
             const loadTimestamp = Date.now();
 
-            this.observer.set('spinner', true);
-            this.observer.set('error', null);
+            this.observer.set('ui.spinner', true);
+            this.observer.set('ui.error', null);
             this.clearCta();
 
             // load asset files
@@ -1093,10 +1093,10 @@ class Viewer {
                     }
                 })
                 .catch((err) => {
-                    this.observer.set('error', err);
+                    this.observer.set('ui.error', err);
                 })
                 .finally(() => {
-                    this.observer.set('spinner', false);
+                    this.observer.set('ui.spinner', false);
                 });
         } else {
             // load skybox
@@ -1637,6 +1637,8 @@ class Viewer {
             const widthPixels = Math.floor(width * window.devicePixelRatio / pixelScale);
             const heightPixels = Math.floor(height * window.devicePixelRatio / pixelScale);
             this.app.graphicsDevice.setResolution(widthPixels, heightPixels);
+            this.observer.set('runtime.viewportWidth', widthPixels);
+            this.observer.set('runtime.viewportHeight', heightPixels);
             this.canvasResize = false;
         }
 
