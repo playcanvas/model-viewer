@@ -195,7 +195,7 @@ class Viewer {
         this.pngExporter = new PngExporter();
 
         // create drop handler
-        CreateDropHandler(this.canvas, (files: Array<File>, resetScene: boolean) => {
+        CreateDropHandler(document.getElementById('app'), (files: Array<File>, resetScene: boolean) => {
             this.loadFiles(files, resetScene);
         });
 
