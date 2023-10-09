@@ -22,7 +22,9 @@ export interface HierarchyNode {
 
 export interface ObserverData {
     ui: {
-        active?: string
+        active?: string,
+        spinner: boolean,
+        error?: string,
     },
     camera: {
         fov: number,
@@ -134,12 +136,13 @@ export interface ObserverData {
         targets: Record<string, MorphTargetData>
     }>,
     runtime: {
-        deviceType: string
+        activeDeviceType: string,
+        viewportWidth: number,
+        viewportHeight: number,
+        xrSupported: boolean,
+        xrActive: boolean
     },
-    spinner: boolean,
-    error?: string,
-    xrSupported: boolean,
-    xrActive: boolean
+    enableWebGPU: boolean,
 }
 
 export type SetProperty = (path: string, value: any) => void;
