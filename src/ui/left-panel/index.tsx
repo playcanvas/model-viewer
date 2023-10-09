@@ -2,7 +2,7 @@ import React from 'react';
 import { Panel, Container, TreeViewItem, TreeView } from 'pcui';
 import { HierarchyNode, SetProperty, ObserverData } from '../../types';
 
-import { Vector, Detail, Select } from '../components';
+import { Detail, Select, Toggle, Vector } from '../components';
 import { addEventListenerOnClickOnly } from '../../helpers';
 import MorphTargetPanel from './morph-target-panel';
 
@@ -109,6 +109,32 @@ class HierarchyPanel extends React.Component <{ sceneData: ObserverData['scene']
     }
 }
 
+class DevicePanel extends React.Component <{
+    observerData: ObserverData,
+    setProperty: SetProperty}> {
+
+    shouldComponentUpdate(nextProps: Readonly<{ observerData: ObserverData; }>, nextState: Readonly<{}>, nextContext: any): boolean {
+        return JSON.stringify(nextProps.observerData.runtime) !== JSON.stringify(this.props.observerData.runtime) ||
+               nextProps.observerData.enableWebGPU !== this.props.observerData.enableWebGPU;
+    }
+
+    render() {
+        const runtime = this.props.observerData.runtime;
+        return (
+            <Panel headerText='DEVICE' id='device-panel' collapsible={false}>
+                <Toggle
+                    label="Use WebGPU"
+                    value={this.props.observerData.enableWebGPU}
+                    enabled={navigator.gpu !== undefined}
+                    setProperty={(value: boolean) => this.props.setProperty('enableWebGPU', value)}
+                />
+                <Detail label='Active Device' value={runtime.activeDeviceType === 'webgpu' ? 'webgpu (beta)' : runtime.activeDeviceType} />
+                <Detail label='Viewport' value={`${runtime.viewportWidth} x ${runtime.viewportHeight}`} />
+            </Panel>
+        );
+    }
+}
+
 class LeftPanel extends React.Component <{ observerData: ObserverData, setProperty: SetProperty }> {
     isMobile: boolean;
     constructor(props: any) {
@@ -149,6 +175,7 @@ class LeftPanel extends React.Component <{ observerData: ObserverData, setProper
                     <HierarchyPanel sceneData={scene} setProperty={this.props.setProperty} />
                     <MorphTargetPanel progress={this.props.observerData.animation.progress} morphs={morphs} setProperty={this.props.setProperty} />
                 </div>
+                <DevicePanel observerData={this.props.observerData} setProperty={this.props.setProperty} />
             </Container>
         );
     }

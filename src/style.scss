@@ -274,6 +274,10 @@ input {
     overflow-y: auto;
 }
 
+#device-panel {
+    flex-shrink: 0;
+}
+
 .selected-node-panel-parent > .pcui-container {
     position: absolute;
 }
@@ -303,9 +307,8 @@ input {
     font-size: 14px;
 }
 
-.scene-hierarchy-panel > .pcui-panel-content,
-#scene-panel > .pcui-panel-content {
-    margin: 8px;
+.pcui-panel-content {
+    margin: 0px;
 }
 
 .selected-node-panel > .pcui-panel-content {
@@ -478,15 +481,21 @@ input {
 .panel-option {
     display: flex;
     align-items: center;
-    width: 100%;
+    width: calc(100% - 8px);
     height: 30px !important;
+    padding: 0px 0px 0px 8px;
+}
+
+#scene-panel > .pcui-panel-content > .panel-option:nth-child(even),
+#device-panel > .pcui-panel-content > .panel-option:nth-child(even) {
+    background-color: rgba(0, 0, 0, 0.1);
 }
 
 .panel-label {
-    width: 30%;
+    width: 40%;
     font-size: 14px;
     flex-shrink: 0;
-    margin: 2px;
+    margin: 0px;
 }
 
 .panel-label.pcui-disabled {
