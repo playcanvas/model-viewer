@@ -318,7 +318,7 @@ const createModelHandler = (controller: XRObjectPlacementController) => {
             contentRoot.setLocalScale(scale.value.scale, scale.value.scale, scale.value.scale);
         }
 
-        // calculate scene bound
+        // calculate scene bounds
         updateBound();
 
         // update clipping planes
@@ -372,7 +372,7 @@ class XRObjectPlacementController {
 
         createModelHandler(this);
 
-        // perform an asynchronous ray interesection test given a view-space ray
+        // perform an asynchronous ray intersection test given a view-space ray
         // returns a handle used to cancel the hit test
         const hitTest = (resultCallback: (position: Vec3) => void) => {
             xr.hitTest.start({
