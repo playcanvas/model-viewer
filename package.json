@@ -1,6 +1,6 @@
 {
   "name": "model-viewer",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "author": "PlayCanvas<support@playcanvas.com>",
   "homepage": "https://playcanvas.com",
   "description": "PlayCanvas glTF Viewer",
@@ -67,7 +67,7 @@
     "eslint": "^8.48.0",
     "fflate": "^0.8.0",
     "handlebars": "^4.7.8",
-    "playcanvas": "^1.66.0",
+    "playcanvas": "^1.66.1",
     "prop-types": "^15.8.1",
     "qrious": "^4.0.2",
     "react": "^18.2.0",
