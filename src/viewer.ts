@@ -1093,7 +1093,8 @@ class Viewer {
                     }
                 })
                 .catch((err) => {
-                    this.observer.set('ui.error', err);
+                    console.log(err);
+                    this.observer.set('ui.error', err?.toString() || err);
                 })
                 .finally(() => {
                     this.observer.set('ui.spinner', false);
