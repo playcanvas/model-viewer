@@ -1447,7 +1447,11 @@ class Viewer {
         if (!meshesLoaded && prevEntity && prevEntity.findComponent("render")) {
             entity = prevEntity;
         } else {
-            entity = asset.resource.instantiateRenderEntity();
+            entity = asset.resource.instantiateRenderEntity({
+                // temp hack for GS
+                app: this.app,
+                camera: this.camera
+            });
             this.entities.push(entity);
             this.entityAssets.push({ entity: entity, asset: asset });
             this.sceneRoot.addChild(entity);

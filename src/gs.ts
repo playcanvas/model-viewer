@@ -3,7 +3,7 @@ import {
     Asset,
     AssetRegistry,
     BoundingBox,
-    BUFFER_STATIC,
+    BUFFER_DYNAMIC,
     ContainerHandler,
     ContainerResource,
     createShaderFromCode,
@@ -33,6 +33,7 @@ import {
 } from 'playcanvas';
 
 import { readPly, PlyElement } from './ply-parser';
+import { SortWorker } from './sort-worker';
 
 const gsVS = /*glsl_*/ `
 attribute vec3 vertex_position;
@@ -116,11 +117,6 @@ void method1(vec4 splat_cam, vec4 splat_proj) {
 }
 
 void method2(vec4 splat_cam, vec4 splat_proj) {
-    if (splat_proj.z < -splat_proj.w) {
-        gl_Position = vec4(0.0, 0.0, 2.0, 1.0);
-        return;
-    }
-
     mat3 Vrk = mat3(
         splat_cova.x, splat_cova.y, splat_cova.z, 
         splat_cova.y, splat_covb.x, splat_covb.y,
@@ -208,10 +204,10 @@ void main(void)
     vec4 splat_proj = matrix_projection * splat_cam;
 
     // cull behind camera
-    // if (splat_proj.z < -splat_proj.w) {
-    //     gl_Position = vec4(0.0, 0.0, 2.0, 1.0);
-    //     return;
-    // }
+    if (splat_proj.z < -splat_proj.w) {
+        gl_Position = vec4(0.0, 0.0, 2.0, 1.0);
+        return;
+    }
 
     // method 1
     // method1(splat_cam, splat_proj);
@@ -365,8 +361,9 @@ class PlyContainerResource extends ContainerResource {
         for (let i = 0; i < vertexElement.count; ++i) {
             const j = order[i];
 
-            x[j] *= -1;
-            y[j] *= -1;
+            // x[j] *= -1;
+            // y[j] *= -1;
+            // z[j] *= -1;
 
             // positions
             floatData[i * 17 + 0] = x[j];
@@ -487,7 +484,7 @@ class PlyContainerResource extends ContainerResource {
             { semantic: SEMANTIC_ATTR15, components: 4, type: TYPE_FLOAT32 },
             { semantic: SEMANTIC_ATTR11, components: 3, type: TYPE_FLOAT32 }
         ]);
-        const vertexBuffer = new VertexBuffer(this.device, vertexFormat, vertexElement.count, BUFFER_STATIC, floatData.buffer);
+        const vertexBuffer = new VertexBuffer(this.device, vertexFormat, vertexElement.count, BUFFER_DYNAMIC, floatData.buffer);
 
         const meshInstance = new MeshInstance(this.quadMesh, this.quadMaterial);
         meshInstance.setInstancing(vertexBuffer);
@@ -499,10 +496,47 @@ class PlyContainerResource extends ContainerResource {
             castShadows: false                  // shadows not supported
         });
 
-        // result.setLocalScale(-1, -1, 1);
-
         // set custom aabb
         result.render.customAabb = calcAabb();
+
+        // create sort worker
+        if (options?.app && options?.camera) {
+            const sortWorker = new Worker(URL.createObjectURL(new Blob([`(${SortWorker.toString()})()`], {
+                type: 'application/javascript'
+            })));
+
+            sortWorker.onmessage = (message: any) => {
+                const data = message.data.data;
+
+                // copy data
+                const target = new Float32Array(vertexBuffer.lock());
+                target.set(new Float32Array(data));
+                vertexBuffer.unlock();
+
+                // send the memory buffer back to worker
+                sortWorker.postMessage({
+                    data: data
+                }, [data]);
+            };
+
+            // send the initial buffer to worker
+            const buf = new ArrayBuffer(vertexBuffer.numBytes);
+            new Float32Array(buf).set(new Float32Array(vertexBuffer.lock()));
+            vertexBuffer.unlock();
+
+            sortWorker.postMessage({
+                data: buf,
+                stride: 17
+            }, [buf]);
+
+            options.app.on('prerender', () => {
+                const t = options.camera.getWorldTransform().data;
+                sortWorker.postMessage({
+                    cameraPosition: { x: t[12], y: t[13], z: t[14] },
+                    cameraDirection: { x: t[8], y: t[9], z: t[10] }
+                })
+            });
+        }
 
         return result;
     }
