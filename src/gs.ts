@@ -361,9 +361,11 @@ class PlyContainerResource extends ContainerResource {
         for (let i = 0; i < vertexElement.count; ++i) {
             const j = order[i];
 
-            // x[j] *= -1;
-            // y[j] *= -1;
-            // z[j] *= -1;
+            // mirror the scene in the x and y axis (both positions and rotations)
+            x[j] *= -1;
+            y[j] *= -1;
+            rot_1[j] *= -1;
+            rot_2[j] *= -1;
 
             // positions
             floatData[i * 17 + 0] = x[j];
