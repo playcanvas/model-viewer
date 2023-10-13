@@ -208,6 +208,4 @@ const readPly = async (reader: ReadableStreamDefaultReader, propertyFilter: Set<
     return elements;
 };
 
-
-
 export { readPly, PlyProperty, PlyElement };
