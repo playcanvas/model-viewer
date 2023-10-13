@@ -93,6 +93,10 @@ void main(void)
         vec4((vertex_position.x * v1 + vertex_position.y * v2) / viewport * 8.0,
              0.0, 0.0) * splat_proj.w;
 
+    // gl_Position = vec4(splat_proj.xy / splat_proj.w +
+    //     (vertex_position.x * v1 + vertex_position.y * v2) / viewport * 8.0,
+    //          0.0, 1.0);
+
     texCoord = vertex_position * 2.0;
     color = splat_color;
 }
@@ -465,6 +469,7 @@ class SplatResource extends ContainerResource {
 
                 this.quadMaterial.setParameter('viewport', [this.device.width, this.device.height]);
                 this.quadMaterial.setParameter('focal', [focal[0], focal[1]]);
+                // this.quadMaterial.setParameter('focal', [this.device.width / 2, this.device.height / 2]);
             });
         }
 

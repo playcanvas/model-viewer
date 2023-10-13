@@ -909,7 +909,7 @@ class Viewer {
             this.orbitCamera.azimElevDistance[func](aed);
         }
 
-        this.orbitCamera.focalPoint[func](this.assets[0]?.resource?.getFocalPoint() ?? bbox.center);
+        this.orbitCamera.focalPoint[func](this.assets[0]?.resource?.getFocalPoint?.() ?? bbox.center);
     }
 
     // adjust camera clipping planes to fit the scene
