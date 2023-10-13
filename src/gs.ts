@@ -9,6 +9,7 @@ import {
     createShaderFromCode,
     createBox,
     CULLFACE_NONE,
+    CULLFACE_BACK,
     Entity,
     GraphicsDevice,
     Material,
@@ -19,8 +20,6 @@ import {
     SEMANTIC_ATTR11,
     SEMANTIC_ATTR12,
     SEMANTIC_ATTR13,
-    SEMANTIC_ATTR14,
-    SEMANTIC_ATTR15,
     SEMANTIC_COLOR,
     SEMANTIC_POSITION,
     Texture,
@@ -35,88 +34,37 @@ import {
 import { readPly, PlyElement } from './ply-parser';
 import { SortWorker } from './sort-worker';
 
+// set true to render splats as oriented boxes
+const debugRender = false;
+
 const gsVS = /*glsl_*/ `
 attribute vec3 vertex_position;
 attribute vec3 splat_center;
 attribute vec4 splat_color;
 attribute vec3 splat_cova;
 attribute vec3 splat_covb;
-attribute vec4 splat_rotation;
-attribute vec3 splat_scale;
 
 uniform mat4 matrix_model;
 uniform mat4 matrix_view;
 uniform mat4 matrix_projection;
-uniform mat4 matrix_viewProjection;
-uniform mat4 matrix_viewInverse;
+
+uniform vec2 viewport;
+uniform vec2 focal;
 
 varying vec2 texCoord;
 varying vec4 color;
-varying vec3 conic;
 
-const vec2 focal = vec2(1164.6601287484507, 1159.5880733038064);
-const vec2 viewport = vec2(3492.0, 2338.0);
-const vec2 tan_fov = viewport * vec2(0.5) / focal;
-
-vec3 computeCovariance(in vec3 position, in vec3 covA, in vec3 covB)
+void main(void)
 {
-    vec4 t = matrix_view * vec4(position, 1.0);
+    vec4 splat_cam = matrix_view * matrix_model * vec4(splat_center, 1.0);
+    vec4 splat_proj = matrix_projection * splat_cam;
 
-    float limx = 1.3 * tan_fov.x;
-    float limy = 1.3 * tan_fov.y;
-    float txtz = t.x / t.z;
-    float tytz = t.y / t.z;
+    // cull behind camera
+    if (splat_proj.z < -splat_proj.w) {
+        gl_Position = vec4(0.0, 0.0, 2.0, 1.0);
+        return;
+    }
 
-    t.x = min(limx, max(-limx, txtz)) * t.z;
-    t.y = min(limy, max(-limy, tytz)) * t.z;
-
-    mat4 J = mat4(
-        focal.x / t.z, 0., -(focal.x * t.x) / (t.z * t.z), 0.,
-        0., focal.y / t.z, -(focal.y * t.y) / (t.z * t.z), 0.,
-        0., 0., 0., 0.,
-        0., 0., 0., 0.
-    );
-
-    mat4 W = transpose(matrix_view);
-
-    mat4 T = W * J;
-
-    mat4 Vrk = mat4(
-        covA.x, covA.y, covA.z, 0.,
-        covA.y, covB.x, covB.y, 0.,
-        covA.z, covB.y, covB.z, 0.,
-        0., 0., 0., 0.
-    );
-
-    mat4 cov = transpose(T) * transpose(Vrk) * T;
-
-    return vec3(
-        cov[0][0] + 0.3,
-        cov[0][1],
-        cov[1][1] + 0.3
-    );
-}
-
-void method1(vec4 splat_cam, vec4 splat_proj) {
-    vec3 cov2d = computeCovariance(splat_center, splat_cova, splat_covb);
-
-    float det = cov2d.x * cov2d.z - cov2d.y * cov2d.y;
-    float det_inv = 1.0 / det;
-    float mid = 0.5 * (cov2d.x + cov2d.z);
-    float lambda_1 = mid + sqrt(max(0.1, mid * mid - det));
-    float lambda_2 = mid - sqrt(max(0.1, mid * mid - det));
-    float radius_px = ceil(3. * sqrt(max(lambda_1, lambda_2)));
-    vec2 radius_ndc = vec2(radius_px) / viewport;
-
-    vec4 projPosition = splat_proj / splat_proj.w;
-
-    gl_Position = vec4(projPosition.xy + 2.0 * radius_ndc * vertex_position.xy, projPosition.zw);
-    texCoord = radius_px * vertex_position.xy;
-    color = splat_color;
-    conic = vec3(cov2d.z * det_inv, cov2d.y * det_inv, cov2d.x * det_inv);
-}
-
-void method2(vec4 splat_cam, vec4 splat_proj) {
     mat3 Vrk = mat3(
         splat_cova.x, splat_cova.y, splat_cova.z, 
         splat_cova.y, splat_covb.x, splat_covb.y,
@@ -145,28 +93,39 @@ void method2(vec4 splat_cam, vec4 splat_proj) {
         vec2 v1 = min(sqrt(2.0 * lambda1), 1024.0) * diagonalVector;
         vec2 v2 = min(sqrt(2.0 * lambda2), 1024.0) * vec2(diagonalVector.y, -diagonalVector.x);
 
-    gl_Position = vec4(
-        splat_proj.xy / splat_proj.w
-        + vertex_position.x * v1 / viewport * 8.0 
-        + vertex_position.y * v2 / viewport * 8.0, 0.0, 1.0);
+    gl_Position = splat_proj +
+        vec4((vertex_position.x * v1 + vertex_position.y * v2) / viewport * 8.0,
+             0.0, 0.0) * splat_proj.w;
 
     texCoord = vertex_position.xy * 2.0;
     color = splat_color;
 }
+`;
 
-mat3 quatToMat3_(vec4 quat)
+const gsFS = /*glsl_*/ `
+varying vec2 texCoord;
+varying vec4 color;
+
+void main(void)
 {
-    float w = quat.x;
-    float x = quat.y;
-    float y = quat.z;
-    float z = quat.w;
-
-    return mat3(
-        1.0 - 2.0 * (y*y + z*z),       2.0 * (x*y - w*z),       2.0 * (x*z + w*y),
-              2.0 * (x*y + w*z), 1.0 - 2.0 * (x*x + z*z),       2.0 * (y*z - w*x),
-              2.0 * (x*z - w*y),       2.0 * (y*z + w*x), 1.0 - 2.0 * (x*x + y*y)
-    );
+    float A = -dot(texCoord, texCoord);
+    if (A < -4.0) discard;
+    float B = exp(A) * color.a;
+    gl_FragColor = vec4(color.rgb, B);
 }
+`;
+
+const gsDebugVS = /*glsl_*/ `
+attribute vec3 vertex_position;
+attribute vec3 splat_center;
+attribute vec4 splat_color;
+attribute vec4 splat_rotation;
+attribute vec3 splat_scale;
+
+uniform mat4 matrix_model;
+uniform mat4 matrix_viewProjection;
+
+varying vec4 color;
 
 mat3 quatToMat3(vec4 quat)
 {
@@ -190,59 +149,20 @@ mat3 quatToMat3(vec4 quat)
     );
 }
 
-void debugRender() {
-    vec3 local = quatToMat3(splat_rotation) * (vertex_position * splat_scale * 2.0) + splat_center;
-    gl_Position = matrix_viewProjection * matrix_model * vec4(local, 1.0);
-    texCoord = vertex_position.xy;
-    color = splat_color;
-}
-
 void main(void)
 {
-    vec4 splat_world = matrix_model * vec4(splat_center, 1.0);
-    vec4 splat_cam = matrix_view * splat_world;
-    vec4 splat_proj = matrix_projection * splat_cam;
-
-    // cull behind camera
-    if (splat_proj.z < -splat_proj.w) {
-        gl_Position = vec4(0.0, 0.0, 2.0, 1.0);
-        return;
-    }
-
-    // method 1
-    // method1(splat_cam, splat_proj);
-
-    // method 2
-    method2(splat_cam, splat_proj);
-
-    // debug render
-    // debugRender();
+    vec3 local = quatToMat3(splat_rotation) * (vertex_position * splat_scale * 2.0) + splat_center;
+    gl_Position = matrix_viewProjection * matrix_model * vec4(local, 1.0);
+    color = splat_color;
 }
 `;
 
-const gsFS = /*glsl_*/ `
-varying vec2 texCoord;
+const gsDebugFS = /*glsl/*/ `
 varying vec4 color;
-varying vec3 conic;
 
 void main(void)
 {
-    // method 1
-    // vec2 d = -texCoord;
-    // float power = -0.5 * (conic.x * d.x * d.x + conic.z * d.y * d.y) + conic.y * d.x * d.y;
-    // if (power > 0.0) discard;
-    // float alpha = min(0.99, color.a * exp(power));
-    // gl_FragColor = vec4(color.rgb, alpha);
-
-    // method 2
-    float A = -dot(texCoord, texCoord);
-    if (A < -4.0) discard;
-    float B = exp(A) * color.a;
-    gl_FragColor = vec4(color.rgb, B);
-
-    // debug
-    // if (color.w < 0.2) discard;
-    // gl_FragColor = color;
+    gl_FragColor = color;
 }
 `;
 
@@ -266,38 +186,41 @@ class PlyContainerResource extends ContainerResource {
 
         this.quadMaterial = new Material();
         this.quadMaterial.name = 'gsMaterial';
-        this.quadMaterial.cull = CULLFACE_NONE;
+        this.quadMaterial.cull = debugRender ? CULLFACE_BACK : CULLFACE_NONE;
         this.quadMaterial.blendType = BLEND_NORMAL;
         this.quadMaterial.depthWrite = false;
 
-        this.quadMaterial.shader = createShaderFromCode(this.device, gsVS, gsFS, 'gsShader', {
+        this.quadMaterial.shader = createShaderFromCode(this.device, debugRender ? gsDebugVS : gsVS, debugRender ? gsDebugFS : gsFS, 'gsShader', {
             vertex_position: SEMANTIC_POSITION,
-            splat_center: SEMANTIC_ATTR12,
+            splat_center: SEMANTIC_ATTR11,
             splat_color: SEMANTIC_COLOR,
-            splat_cova: SEMANTIC_ATTR13,
-            splat_covb: SEMANTIC_ATTR14,
-            splat_rotation: SEMANTIC_ATTR15,
-            splat_scale: SEMANTIC_ATTR11
+            ... debugRender ? {
+                splat_rotation: SEMANTIC_ATTR12,
+                splat_scale: SEMANTIC_ATTR13
+            } : {
+                splat_cova: SEMANTIC_ATTR12,
+                splat_covb: SEMANTIC_ATTR13,
+            }
         });
 
         this.quadMaterial.update();
 
-        // create the quad mesh
-        this.quadMesh = new Mesh(this.device);
-        this.quadMesh.setPositions(new Float32Array([
-            -1,-1, 0,
-             1,-1, 0,
-             1, 1, 0,
-            -1,-1, 0,
-             1, 1, 0,
-            -1, 1, 0
-        ]), 3);
-        this.quadMesh.update();
-
-        // debug rendering
-        // this.quadMesh = createBox(this.device, {
-        //     halfExtents: new Vec3(1.0, 1.0, 1.0)
-        // });
+        if (debugRender) {
+            this.quadMesh = createBox(this.device, {
+                halfExtents: new Vec3(1.0, 1.0, 1.0)
+            });
+        } else {
+            this.quadMesh = new Mesh(this.device);
+            this.quadMesh.setPositions(new Float32Array([
+                -1,-1, 0,
+                1,-1, 0,
+                1, 1, 0,
+                -1,-1, 0,
+                1, 1, 0,
+                -1, 1, 0
+            ]), 3);
+            this.quadMesh.update();
+        }
     }
 
     destroy() {
@@ -341,17 +264,10 @@ class PlyContainerResource extends ContainerResource {
             return null;
         }
 
-        // create particle order map
-        const order = [];
-        for (let i = 0; i < vertexElement.count; ++i) {
-            order[i] = i;
-        }
-        order.sort((a, b) => {
-            return z[a] - z[b];
-        });
+        const stride = 4 + (debugRender ? 7 : 6);
 
         // position.xyz, color, cova.xyz, covb.xyz, rotation.xyzw, scale.xyz
-        const floatData = new Float32Array(vertexElement.count * 17);
+        const floatData = new Float32Array(vertexElement.count * stride);
         const uint8Data = new Uint8ClampedArray(floatData.buffer);
 
         const quat = new Quat();
@@ -359,7 +275,7 @@ class PlyContainerResource extends ContainerResource {
         const s = [0, 0, 0];
 
         for (let i = 0; i < vertexElement.count; ++i) {
-            const j = order[i];
+            const j = i;
 
             // mirror the scene in the x and y axis (both positions and rotations)
             x[j] *= -1;
@@ -368,16 +284,16 @@ class PlyContainerResource extends ContainerResource {
             rot_2[j] *= -1;
 
             // positions
-            floatData[i * 17 + 0] = x[j];
-            floatData[i * 17 + 1] = y[j];
-            floatData[i * 17 + 2] = z[j];
+            floatData[i * stride + 0] = x[j];
+            floatData[i * stride + 1] = y[j];
+            floatData[i * stride + 2] = z[j];
 
             // vertex colors
             if (f_dc_0 && f_dc_1 && f_dc_2) {
                 const SH_C0 = 0.28209479177387814;
-                uint8Data[i * 68 + 12] = (0.5 + SH_C0 * f_dc_0[j]) * 255;
-                uint8Data[i * 68 + 13] = (0.5 + SH_C0 * f_dc_1[j]) * 255;
-                uint8Data[i * 68 + 14] = (0.5 + SH_C0 * f_dc_2[j]) * 255;
+                uint8Data[i * stride * 4 + 12] = (0.5 + SH_C0 * f_dc_0[j]) * 255;
+                uint8Data[i * stride * 4 + 13] = (0.5 + SH_C0 * f_dc_1[j]) * 255;
+                uint8Data[i * stride * 4 + 14] = (0.5 + SH_C0 * f_dc_2[j]) * 255;
             }
 
             // opacity
@@ -390,12 +306,11 @@ class PlyContainerResource extends ContainerResource {
                         return t / (1 + t);
                     } 
                 };
-                uint8Data[i * 68 + 15] = sigmoid(opacity[j]) * 255;
+                uint8Data[i * stride * 4 + 15] = sigmoid(opacity[j]) * 255;
             } else {
-                uint8Data[i * 68 + 15] = 255;
+                uint8Data[i * stride * 4 + 15] = 255;
             }
 
-            // calculate covariance a & b
             quat.set(rot_0[j], rot_1[j], rot_2[j], rot_3[j]).normalize();
 
             r[0] = quat.x;
@@ -407,53 +322,56 @@ class PlyContainerResource extends ContainerResource {
             s[1] = Math.exp(scale_1[j]);
             s[2] = Math.exp(scale_2[j]);
 
-            const R = [
-                1.0 - 2.0 * (r[2] * r[2] + r[3] * r[3]),
-                      2.0 * (r[1] * r[2] + r[0] * r[3]),
-                      2.0 * (r[1] * r[3] - r[0] * r[2]),
+            if (debugRender) {
+                // rotation
+                floatData[i * stride + 4] = r[0];
+                floatData[i * stride + 5] = r[1];
+                floatData[i * stride + 6] = r[2];
+                floatData[i * stride + 7] = r[3];
 
-                      2.0 * (r[1] * r[2] - r[0] * r[3]),
-                1.0 - 2.0 * (r[1] * r[1] + r[3] * r[3]),
-                      2.0 * (r[2] * r[3] + r[0] * r[1]),
+                // scale
+                floatData[i * stride + 8] = s[0];
+                floatData[i * stride + 9] = s[1];
+                floatData[i * stride + 10] = s[2];
+            } else {
+                // pre-calculate covariance a & b
+                const R = [
+                    1.0 - 2.0 * (r[2] * r[2] + r[3] * r[3]),
+                          2.0 * (r[1] * r[2] + r[0] * r[3]),
+                          2.0 * (r[1] * r[3] - r[0] * r[2]),
 
-                      2.0 * (r[1] * r[3] + r[0] * r[2]),
-                      2.0 * (r[2] * r[3] - r[0] * r[1]),
-                1.0 - 2.0 * (r[1] * r[1] + r[2] * r[2]),
-            ];
+                          2.0 * (r[1] * r[2] - r[0] * r[3]),
+                    1.0 - 2.0 * (r[1] * r[1] + r[3] * r[3]),
+                          2.0 * (r[2] * r[3] + r[0] * r[1]),
 
-            // Compute the matrix product of S and R (M = S * R)
-            const M = [
-                s[0] * R[0],
-                s[0] * R[1],
-                s[0] * R[2],
-                s[1] * R[3],
-                s[1] * R[4],
-                s[1] * R[5],
-                s[2] * R[6],
-                s[2] * R[7],
-                s[2] * R[8],
-            ];
+                          2.0 * (r[1] * r[3] + r[0] * r[2]),
+                          2.0 * (r[2] * r[3] - r[0] * r[1]),
+                    1.0 - 2.0 * (r[1] * r[1] + r[2] * r[2]),
+                ];
 
-            // covariance a
-            floatData[i * 17 + 4] = M[0] * M[0] + M[3] * M[3] + M[6] * M[6];
-            floatData[i * 17 + 5] = M[0] * M[1] + M[3] * M[4] + M[6] * M[7];
-            floatData[i * 17 + 6] = M[0] * M[2] + M[3] * M[5] + M[6] * M[8];
+                // Compute the matrix product of S and R (M = S * R)
+                const M = [
+                    s[0] * R[0],
+                    s[0] * R[1],
+                    s[0] * R[2],
+                    s[1] * R[3],
+                    s[1] * R[4],
+                    s[1] * R[5],
+                    s[2] * R[6],
+                    s[2] * R[7],
+                    s[2] * R[8],
+                ];
 
-            // covariance b
-            floatData[i * 17 + 7] = M[1] * M[1] + M[4] * M[4] + M[7] * M[7];
-            floatData[i * 17 + 8] = M[1] * M[2] + M[4] * M[5] + M[7] * M[8];
-            floatData[i * 17 + 9] = M[2] * M[2] + M[5] * M[5] + M[8] * M[8];
+                // covariance a
+                floatData[i * stride + 4] = M[0] * M[0] + M[3] * M[3] + M[6] * M[6];
+                floatData[i * stride + 5] = M[0] * M[1] + M[3] * M[4] + M[6] * M[7];
+                floatData[i * stride + 6] = M[0] * M[2] + M[3] * M[5] + M[6] * M[8];
 
-            // rotation
-            floatData[i * 17 + 10] = r[0];
-            floatData[i * 17 + 11] = r[1];
-            floatData[i * 17 + 12] = r[2];
-            floatData[i * 17 + 13] = r[3];
-
-            // scale
-            floatData[i * 17 + 14] = s[0];
-            floatData[i * 17 + 15] = s[1];
-            floatData[i * 17 + 16] = s[2];
+                // covariance b
+                floatData[i * stride + 7] = M[1] * M[1] + M[4] * M[4] + M[7] * M[7];
+                floatData[i * stride + 8] = M[1] * M[2] + M[4] * M[5] + M[7] * M[8];
+                floatData[i * stride + 9] = M[2] * M[2] + M[5] * M[5] + M[8] * M[8];
+            }
         }
 
         const calcAabb = () => {
@@ -479,13 +397,15 @@ class PlyContainerResource extends ContainerResource {
 
         // create instance data
         const vertexFormat = new VertexFormat(this.device, [
-            { semantic: SEMANTIC_ATTR12, components: 3, type: TYPE_FLOAT32 },
+            { semantic: SEMANTIC_ATTR11, components: 3, type: TYPE_FLOAT32 },
             { semantic: SEMANTIC_COLOR, components: 4, type: TYPE_UINT8, normalize: true },
+        ].concat(debugRender ? [
+            { semantic: SEMANTIC_ATTR12, components: 4, type: TYPE_FLOAT32 },
+            { semantic: SEMANTIC_ATTR13, components: 3, type: TYPE_FLOAT32 }
+        ] : [
+            { semantic: SEMANTIC_ATTR12, components: 3, type: TYPE_FLOAT32 },
             { semantic: SEMANTIC_ATTR13, components: 3, type: TYPE_FLOAT32 },
-            { semantic: SEMANTIC_ATTR14, components: 3, type: TYPE_FLOAT32 },
-            { semantic: SEMANTIC_ATTR15, components: 4, type: TYPE_FLOAT32 },
-            { semantic: SEMANTIC_ATTR11, components: 3, type: TYPE_FLOAT32 }
-        ]);
+        ]));
         const vertexBuffer = new VertexBuffer(this.device, vertexFormat, vertexElement.count, BUFFER_DYNAMIC, floatData.buffer);
 
         const meshInstance = new MeshInstance(this.quadMesh, this.quadMaterial);
@@ -519,6 +439,9 @@ class PlyContainerResource extends ContainerResource {
                 sortWorker.postMessage({
                     data: data
                 }, [data]);
+
+                // let caller know the view changed
+                options?.onChanged();
             };
 
             // send the initial buffer to worker
@@ -528,7 +451,7 @@ class PlyContainerResource extends ContainerResource {
 
             sortWorker.postMessage({
                 data: buf,
-                stride: 17
+                stride: stride
             }, [buf]);
 
             options.app.on('prerender', () => {
@@ -536,7 +459,12 @@ class PlyContainerResource extends ContainerResource {
                 sortWorker.postMessage({
                     cameraPosition: { x: t[12], y: t[13], z: t[14] },
                     cameraDirection: { x: t[8], y: t[9], z: t[10] }
-                })
+                });
+
+                const focal = [1164.6601287484507, 1159.5880733038064];
+
+                this.quadMaterial.setParameter('viewport', [this.device.width, this.device.height]);
+                this.quadMaterial.setParameter('focal', [focal[0], focal[1]]);
             });
         }
 

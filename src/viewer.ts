@@ -1450,7 +1450,8 @@ class Viewer {
             entity = asset.resource.instantiateRenderEntity({
                 // temp hack for GS
                 app: this.app,
-                camera: this.camera
+                camera: this.camera,
+                onChanged: () => this.renderNextFrame()
             });
             this.entities.push(entity);
             this.entityAssets.push({ entity: entity, asset: asset });

@@ -25,7 +25,7 @@ function SortWorker() {
     const update = () => {
         if (!data || !stride || !cameraPosition || !cameraDirection) return;
 
-        // early out if nothing changed
+        // early out if camera hasn't moved
         if (Math.abs(cameraPosition.x - lastCameraPosition.x) < epsilon &&
             Math.abs(cameraPosition.y - lastCameraPosition.y) < epsilon &&
             Math.abs(cameraPosition.z - lastCameraPosition.z) < epsilon &&
@@ -43,6 +43,14 @@ function SortWorker() {
             orderBuffer = new Uint32Array(numVertices);
             target = new Float32Array(numVertices * stride);
         }
+
+        // store
+        lastCameraPosition.x = cameraPosition.x;
+        lastCameraPosition.y = cameraPosition.y;
+        lastCameraPosition.z = cameraPosition.z;
+        lastCameraDirection.x = cameraDirection.x;
+        lastCameraDirection.y = cameraDirection.y;
+        lastCameraDirection.z = cameraDirection.z;
 
         const px = cameraPosition.x;
         const py = cameraPosition.y;
@@ -63,32 +71,30 @@ function SortWorker() {
         // sort indices
         orderBuffer.sort((a, b) => distanceBuffer[a] - distanceBuffer[b]);
 
-        // shuffle the data
-        for (let i = 0; i < numVertices; ++i) {
-            const index = orderBuffer[i];
-            // copy source data to temp buffer
-            for (let j = 0; j < stride; ++j) target[i * stride + j] = data[index * stride + j];
+        const orderChanged = orderBuffer.some((v, i) => v != i);
+
+        if (orderChanged) {
+            // order the splat data
+            for (let i = 0; i < numVertices; ++i) {
+                const ti = i * stride;
+                const si = orderBuffer[i] * stride;
+                for (let j = 0; j < stride; ++j) {
+                    target[ti + j] = data[si + j];
+                }
+            }
+
+            // swap
+            const tmp = data;
+            data = target;
+            target = tmp;
+
+            // send results
+            self.postMessage({
+                data: data.buffer
+            }, [data.buffer]);
+
+            data = null;
         }
-
-        // store
-        lastCameraPosition.x = cameraPosition.x;
-        lastCameraPosition.y = cameraPosition.y;
-        lastCameraPosition.z = cameraPosition.z;
-        lastCameraDirection.x = cameraDirection.x;
-        lastCameraDirection.y = cameraDirection.y;
-        lastCameraDirection.z = cameraDirection.z;
-
-        // swap
-        const tmp = data;
-        data = target;
-        target = tmp;
-
-        // send results
-        self.postMessage({
-            data: data.buffer
-        }, [data.buffer]);
-
-        data = null;
     }
 
     self.onmessage = (message: any) => {
@@ -101,6 +107,7 @@ function SortWorker() {
         }
         if (message.data.cameraPosition) cameraPosition = message.data.cameraPosition;
         if (message.data.cameraDirection) cameraDirection = message.data.cameraDirection;
+
         update();
     }
 }
