@@ -2,7 +2,7 @@
     "compilerOptions": {
         "noImplicitAny": true,
         "allowJs": true,
-        "target": "es6",
+        "target": "es2022",
         "jsx": "react",
         "lib": [
             "es2019",

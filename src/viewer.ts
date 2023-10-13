@@ -55,6 +55,7 @@ import { Observer } from '@playcanvas/observer';
 import { MiniStats } from 'playcanvas-extras';
 // @ts-ignore: library file import
 // import * as VoxParser from 'playcanvas/scripts/parsers/vox-parser.js';
+import { registerPlyParser } from './ply-parser';
 import { MeshoptDecoder } from '../lib/meshopt_decoder.module.js';
 import { CreateDropHandler } from './drop-handler';
 import { MorphTargetData, File, HierarchyNode } from './types';
@@ -73,7 +74,7 @@ import arModeImage from './svg/ar-mode.svg';
 import arCloseImage from './svg/ar-close.svg';
 
 // model filename extensions
-const modelExtensions = ['gltf', 'glb', 'vox'];
+const modelExtensions = ['gltf', 'glb', 'vox', 'ply'];
 const defaultSceneBounds = new BoundingBox(new Vec3(0, 1, 0), new Vec3(1, 1, 1));
 
 const vec = new Vec3();
@@ -188,6 +189,7 @@ class Viewer {
 
         // register vox support
         // VoxParser.registerVoxParser(app);
+        registerPlyParser(app);
 
         // create the exporter
         this.pngExporter = new PngExporter();
@@ -822,7 +824,7 @@ class Viewer {
 
         // update mesh stats
         this.assets.forEach((asset) => {
-            variants = variants.concat(asset.resource.getMaterialVariants());
+            variants = variants.concat(asset.resource.getMaterialVariants() ?? []);
             asset.resource.renders.forEach((renderAsset: Asset) => {
                 meshCount += renderAsset.resource.meshes.length;
                 renderAsset.resource.meshes.forEach((mesh: Mesh) => {
@@ -906,11 +908,12 @@ class Viewer {
             aed.z = distance;
             this.orbitCamera.azimElevDistance[func](aed);
         }
-        this.orbitCamera.focalPoint[func](bbox.center);
+
+        this.orbitCamera.focalPoint[func](this.assets[0]?.resource?.getFocalPoint() ?? bbox.center);
     }
 
     // adjust camera clipping planes to fit the scene
-    fitCameraToScene() {
+    fitCameraClipPlanes() {
         if (this.xrMode?.active) {
             return;
         }
@@ -1091,7 +1094,8 @@ class Viewer {
                     }
                 })
                 .catch((err) => {
-                    this.observer.set('ui.error', err);
+                    console.log(err);
+                    this.observer.set('ui.error', err?.toString() || err);
                 })
                 .finally(() => {
                     this.observer.set('ui.spinner', false);
@@ -1444,7 +1448,12 @@ class Viewer {
         if (!meshesLoaded && prevEntity && prevEntity.findComponent("render")) {
             entity = prevEntity;
         } else {
-            entity = asset.resource.instantiateRenderEntity();
+            entity = asset.resource.instantiateRenderEntity({
+                // temp hack for GS
+                app: this.app,
+                camera: this.camera,
+                onChanged: () => this.renderNextFrame()
+            });
             this.entities.push(entity);
             this.entityAssets.push({ entity: entity, asset: asset });
             this.sceneRoot.addChild(entity);
@@ -1666,7 +1675,7 @@ class Viewer {
         }
 
         // debug bounds
-        if (this.dirtyBounds) {
+        if (this.dirtyBounds || this.xrMode?.active) {
             this.dirtyBounds = false;
 
             // calculate bounds
@@ -1768,7 +1777,7 @@ class Viewer {
         }
 
         // fit camera planes to the scene
-        this.fitCameraToScene();
+        this.fitCameraClipPlanes();
 
         this.shadowCatcher.onUpdate(this.dynamicSceneBounds);
     }
