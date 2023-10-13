@@ -17,7 +17,7 @@ const elements = [
     'rot_0', 'rot_1', 'rot_2', 'rot_3'
 ];
 
-class PlyContainerParser {
+class PlyParser {
     device: GraphicsDevice;
     assets: AssetRegistry;
     maxRetries: number;
@@ -46,7 +46,7 @@ class PlyContainerParser {
 
 const registerPlyParser = (app: AppBase) => {
     const containerHandler = app.loader.getHandler('container') as ContainerHandler;
-    containerHandler.parsers.ply = new PlyContainerParser(app.graphicsDevice, app.assets, app.loader.maxRetries);
+    containerHandler.parsers.ply = new PlyParser(app.graphicsDevice, app.assets, app.loader.maxRetries);
 };
 
 export { registerPlyParser };
