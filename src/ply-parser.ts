@@ -1,16 +1,15 @@
-
 const magicBytes = new Uint8Array([112, 108, 121, 10]);                                                 // ply\n
 const endHeaderBytes = new Uint8Array([10, 101, 110, 100, 95, 104, 101, 97, 100, 101, 114, 10]);        // \nend_header\n
 
 const dataTypeMap = new Map<string, any>([
-    [ 'char', Int8Array ],
-    [ 'uchar', Uint8Array ],
-    [ 'short', Int16Array ],
-    [ 'ushort', Uint16Array ],
-    [ 'int', Int32Array ],
-    [ 'uint', Uint32Array ],
-    [ 'float', Float32Array ],
-    [ 'double', Float64Array ]
+    ['char', Int8Array],
+    ['uchar', Uint8Array],
+    ['short', Int16Array],
+    ['ushort', Uint16Array],
+    ['int', Int32Array],
+    ['uint', Uint32Array],
+    ['float', Float32Array],
+    ['double', Float64Array]
 ]);
 
 type PlyProperty = {
@@ -27,13 +26,13 @@ type PlyElement = {
 }
 
 // asynchronously read a ply file data
-const readPly = async (reader: ReadableStreamDefaultReader, propertyFilter: Set<string>=null): Promise<PlyElement[]> => {
+const readPly = async (reader: ReadableStreamDefaultReader, propertyFilter: Set<string> = null): Promise<PlyElement[]> => {
     const concat = (a: Uint8Array, b: Uint8Array) => {
         const c = new Uint8Array(a.byteLength + b.byteLength);
         c.set(a);
         c.set(b, a.byteLength);
         return c;
-    }
+    };
 
     const find = (buf: Uint8Array, search: Uint8Array) => {
         const endIndex = buf.length - search.length;
@@ -49,7 +48,7 @@ const readPly = async (reader: ReadableStreamDefaultReader, propertyFilter: Set<
             }
         }
         return -1;
-    }
+    };
 
     const startsWith = (a: Uint8Array, b: Uint8Array) => {
         if (a.length < b.length) {
@@ -70,6 +69,7 @@ const readPly = async (reader: ReadableStreamDefaultReader, propertyFilter: Set<
 
     while (true) {
         // get the next chunk
+        /* eslint-disable no-await-in-loop */
         const { value, done } = await reader.read();
 
         if (done) {
@@ -96,8 +96,7 @@ const readPly = async (reader: ReadableStreamDefaultReader, propertyFilter: Set<
     const headerText = new TextDecoder('ascii').decode(buf.slice(0, endHeaderIndex));
 
     // split into lines and remove comments
-    const headerLines =
-        headerText.split('\n')
+    const headerLines = headerText.split('\n')
         .filter(line => !line.startsWith('comment '));
 
     // decode header and allocate data storage
@@ -114,11 +113,11 @@ const readPly = async (reader: ReadableStreamDefaultReader, propertyFilter: Set<
             case 'element':
                 elements.push({
                     name: words[1],
-                    count: parseInt(words[2]),
+                    count: parseInt(words[2], 10),
                     properties: []
                 });
                 break;
-            case 'property':
+            case 'property': {
                 if (!dataTypeMap.has(words[1])) {
                     throw new Error(`Unrecognized property data type '${words[1]}' in ply header`);
                 }
@@ -132,6 +131,7 @@ const readPly = async (reader: ReadableStreamDefaultReader, propertyFilter: Set<
                     byteSize: storageType.BYTES_PER_ELEMENT
                 });
                 break;
+            }
             default:
                 throw new Error(`Unrecognized header value '${words[0]}' in ply header`);
         }
@@ -206,6 +206,6 @@ const readPly = async (reader: ReadableStreamDefaultReader, propertyFilter: Set<
     // console.log(elements);
 
     return elements;
-}
+};
 
 export { readPly, PlyProperty, PlyElement };

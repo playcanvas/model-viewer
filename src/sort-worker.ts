@@ -1,4 +1,3 @@
-
 type Vec3 = {
     x: number,
     y: number,
@@ -14,13 +13,12 @@ function SortWorker() {
     let cameraPosition: Vec3;
     let cameraDirection: Vec3;
 
-    let lastCameraPosition = { x: 0, y: 0, z: 0 };
-    let lastCameraDirection = { x: 0, y: 0, z: 0 };
+    const lastCameraPosition = { x: 0, y: 0, z: 0 };
+    const lastCameraDirection = { x: 0, y: 0, z: 0 };
 
     let distanceBuffer: Float32Array;
-    let orderBuffer: Uint32Array
+    let orderBuffer: Uint32Array;
     let target: Float32Array;
-    let vertexData: Float32Array;
 
     const update = () => {
         if (!data || !stride || !cameraPosition || !cameraDirection) return;
@@ -71,7 +69,7 @@ function SortWorker() {
         // sort indices
         orderBuffer.sort((a, b) => distanceBuffer[a] - distanceBuffer[b]);
 
-        const orderChanged = orderBuffer.some((v, i) => v != i);
+        const orderChanged = orderBuffer.some((v, i) => v !== i);
 
         if (orderChanged) {
             // order the splat data
@@ -95,7 +93,7 @@ function SortWorker() {
 
             data = null;
         }
-    }
+    };
 
     self.onmessage = (message: any) => {
         if (message.data.data) {
@@ -103,15 +101,12 @@ function SortWorker() {
         }
         if (message.data.stride) {
             stride = message.data.stride;
-            vertexData = new Float32Array(stride);
         }
         if (message.data.cameraPosition) cameraPosition = message.data.cameraPosition;
         if (message.data.cameraDirection) cameraDirection = message.data.cameraDirection;
 
         update();
-    }
+    };
 }
 
-export {
-    SortWorker
-}
+export { SortWorker };

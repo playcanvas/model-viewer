@@ -1,6 +1,5 @@
 import {
     AppBase,
-    Asset,
     AssetRegistry,
     BoundingBox,
     BUFFER_DYNAMIC,
@@ -37,8 +36,8 @@ import { SortWorker } from './sort-worker';
 // set true to render splats as oriented boxes
 const debugRender = false;
 
-const gsVS = /*glsl_*/ `
-attribute vec3 vertex_position;
+const gsVS = /* glsl_ */ `
+attribute vec2 vertex_position;
 attribute vec3 splat_center;
 attribute vec4 splat_color;
 attribute vec3 splat_cova;
@@ -97,12 +96,12 @@ void main(void)
         vec4((vertex_position.x * v1 + vertex_position.y * v2) / viewport * 8.0,
              0.0, 0.0) * splat_proj.w;
 
-    texCoord = vertex_position.xy * 2.0;
+    texCoord = vertex_position * 2.0;
     color = splat_color;
 }
 `;
 
-const gsFS = /*glsl_*/ `
+const gsFS = /* glsl_ */ `
 varying vec2 texCoord;
 varying vec4 color;
 
@@ -115,7 +114,7 @@ void main(void)
 }
 `;
 
-const gsDebugVS = /*glsl_*/ `
+const gsDebugVS = /* glsl_ */ `
 attribute vec3 vertex_position;
 attribute vec3 splat_center;
 attribute vec4 splat_color;
@@ -157,7 +156,7 @@ void main(void)
 }
 `;
 
-const gsDebugFS = /*glsl/*/ `
+const gsDebugFS = /* glsl_ */ `
 varying vec4 color;
 
 void main(void)
@@ -194,12 +193,12 @@ class PlyContainerResource extends ContainerResource {
             vertex_position: SEMANTIC_POSITION,
             splat_center: SEMANTIC_ATTR11,
             splat_color: SEMANTIC_COLOR,
-            ... debugRender ? {
+            ...debugRender ? {
                 splat_rotation: SEMANTIC_ATTR12,
                 splat_scale: SEMANTIC_ATTR13
             } : {
                 splat_cova: SEMANTIC_ATTR12,
-                splat_covb: SEMANTIC_ATTR13,
+                splat_covb: SEMANTIC_ATTR13
             }
         });
 
@@ -212,13 +211,8 @@ class PlyContainerResource extends ContainerResource {
         } else {
             this.quadMesh = new Mesh(this.device);
             this.quadMesh.setPositions(new Float32Array([
-                -1,-1, 0,
-                1,-1, 0,
-                1, 1, 0,
-                -1,-1, 0,
-                1, 1, 0,
-                -1, 1, 0
-            ]), 3);
+                -1, -1, 1, -1, 1, 1, -1, -1, 1, 1, -1, 1
+            ]), 2);
             this.quadMesh.update();
         }
     }
@@ -227,19 +221,19 @@ class PlyContainerResource extends ContainerResource {
 
     }
 
-    instantiateModelEntity(options: any): Entity {
+    instantiateModelEntity(/* options: any */): Entity {
         return null;
     }
 
     instantiateRenderEntity(options: any): Entity {
-        const vertexElement = this.elements.find((element) => element.name === 'vertex');
+        const vertexElement = this.elements.find(element => element.name === 'vertex');
         if (!vertexElement) {
             return null;
         }
 
         const find = (name: string) => {
             return vertexElement.properties.find((property: any) => property.name === name && property.storage)?.storage;
-        }
+        };
 
         const x = find('x');
         const y = find('y');
@@ -301,10 +295,10 @@ class PlyContainerResource extends ContainerResource {
                 const sigmoid = (v: number) => {
                     if (v > 0) {
                         return 1 / (1 + Math.exp(-v));
-                    } else {
-                        const t = Math.exp(v);
-                        return t / (1 + t);
-                    } 
+                    }
+
+                    const t = Math.exp(v);
+                    return t / (1 + t);
                 };
                 uint8Data[i * stride * 4 + 15] = sigmoid(opacity[j]) * 255;
             } else {
@@ -337,16 +331,16 @@ class PlyContainerResource extends ContainerResource {
                 // pre-calculate covariance a & b
                 const R = [
                     1.0 - 2.0 * (r[2] * r[2] + r[3] * r[3]),
-                          2.0 * (r[1] * r[2] + r[0] * r[3]),
-                          2.0 * (r[1] * r[3] - r[0] * r[2]),
+                    2.0 * (r[1] * r[2] + r[0] * r[3]),
+                    2.0 * (r[1] * r[3] - r[0] * r[2]),
 
-                          2.0 * (r[1] * r[2] - r[0] * r[3]),
+                    2.0 * (r[1] * r[2] - r[0] * r[3]),
                     1.0 - 2.0 * (r[1] * r[1] + r[3] * r[3]),
-                          2.0 * (r[2] * r[3] + r[0] * r[1]),
+                    2.0 * (r[2] * r[3] + r[0] * r[1]),
 
-                          2.0 * (r[1] * r[3] + r[0] * r[2]),
-                          2.0 * (r[2] * r[3] - r[0] * r[1]),
-                    1.0 - 2.0 * (r[1] * r[1] + r[2] * r[2]),
+                    2.0 * (r[1] * r[3] + r[0] * r[2]),
+                    2.0 * (r[2] * r[3] - r[0] * r[1]),
+                    1.0 - 2.0 * (r[1] * r[1] + r[2] * r[2])
                 ];
 
                 // Compute the matrix product of S and R (M = S * R)
@@ -359,7 +353,7 @@ class PlyContainerResource extends ContainerResource {
                     s[1] * R[5],
                     s[2] * R[6],
                     s[2] * R[7],
-                    s[2] * R[8],
+                    s[2] * R[8]
                 ];
 
                 // covariance a
@@ -384,7 +378,7 @@ class PlyContainerResource extends ContainerResource {
                     max = Math.max(max, data[i]);
                 }
                 return [min, max];
-            }
+            };
             const xMinMax = minmax(x);
             const yMinMax = minmax(y);
             const zMinMax = minmax(z);
@@ -393,18 +387,18 @@ class PlyContainerResource extends ContainerResource {
             aabb.setMinMax(new Vec3(xMinMax[0], yMinMax[0], zMinMax[0]), new Vec3(xMinMax[1], yMinMax[1], zMinMax[1]));
 
             return aabb;
-        }
+        };
 
         // create instance data
         const vertexFormat = new VertexFormat(this.device, [
             { semantic: SEMANTIC_ATTR11, components: 3, type: TYPE_FLOAT32 },
-            { semantic: SEMANTIC_COLOR, components: 4, type: TYPE_UINT8, normalize: true },
+            { semantic: SEMANTIC_COLOR, components: 4, type: TYPE_UINT8, normalize: true }
         ].concat(debugRender ? [
             { semantic: SEMANTIC_ATTR12, components: 4, type: TYPE_FLOAT32 },
             { semantic: SEMANTIC_ATTR13, components: 3, type: TYPE_FLOAT32 }
         ] : [
             { semantic: SEMANTIC_ATTR12, components: 3, type: TYPE_FLOAT32 },
-            { semantic: SEMANTIC_ATTR13, components: 3, type: TYPE_FLOAT32 },
+            { semantic: SEMANTIC_ATTR13, components: 3, type: TYPE_FLOAT32 }
         ]));
         const vertexBuffer = new VertexBuffer(this.device, vertexFormat, vertexElement.count, BUFFER_DYNAMIC, floatData.buffer);
 
@@ -414,7 +408,7 @@ class PlyContainerResource extends ContainerResource {
         const result = new Entity('ply');
         result.addComponent('render', {
             type: 'asset',
-            meshInstances: [ meshInstance ],
+            meshInstances: [meshInstance],
             castShadows: false                  // shadows not supported
         });
 
@@ -470,7 +464,7 @@ class PlyContainerResource extends ContainerResource {
 
         return result;
     }
-};  
+}
 
 // filter out element data we're not going to use
 const elements = [
@@ -493,7 +487,7 @@ class PlyContainerParser {
         this.maxRetries = maxRetries;
     }
 
-    async load(url: any, callback: (err: string, resource: ContainerResource) => void, asset: Asset) {
+    async load(url: any, callback: (err: string, resource: ContainerResource) => void) {
         const response = await fetch(url.load);
         readPly(response.body.getReader(), new Set(elements))
             .then((response) => {
@@ -504,7 +498,7 @@ class PlyContainerParser {
             });
     }
 
-    open(url: string, data: any, asset: Asset) {
+    open(url: string, data: any) {
         return data;
     }
 }
