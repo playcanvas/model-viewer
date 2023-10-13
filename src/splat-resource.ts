@@ -169,6 +169,9 @@ class SplatResource extends ContainerResource {
     quadMaterial: Material;
     quadMesh: Mesh;
 
+    focalPoint = new Vec3();
+    entity: Entity;
+
     renders: RenderComponent[] = [];
     meshes: Mesh[] = [];
     materials: Material[] = [];
@@ -386,6 +389,9 @@ class SplatResource extends ContainerResource {
             const aabb = new BoundingBox();
             aabb.setMinMax(new Vec3(xMinMax[0], yMinMax[0], zMinMax[0]), new Vec3(xMinMax[1], yMinMax[1], zMinMax[1]));
 
+            console.log(aabb.getMin());
+            console.log(aabb.getMax());
+
             return aabb;
         };
 
@@ -462,7 +468,28 @@ class SplatResource extends ContainerResource {
             });
         }
 
+        // calculate focal point
+        const calcFocalPoint = (result: Vec3) => {
+            let sum = 0;
+            for (let i = 0; i < vertexElement.count; ++i) {
+                const weight = 1.0 / (1.0 + Math.exp(Math.max(scale_0[i], scale_1[i], scale_2[i])));
+                result.x += x[i] * weight;
+                result.y += y[i] * weight;
+                result.z += z[i] * weight;
+                sum += weight;
+            }
+            result.mulScalar(1 / sum);
+            console.log(result);
+        };
+        calcFocalPoint(this.focalPoint);
+
+        this.entity = result;
+
         return result;
+    }
+
+    getFocalPoint(): Vec3 {
+        return this.entity.getWorldTransform().transformPoint(this.focalPoint);
     }
 }
 

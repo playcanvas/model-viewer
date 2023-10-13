@@ -908,11 +908,12 @@ class Viewer {
             aed.z = distance;
             this.orbitCamera.azimElevDistance[func](aed);
         }
-        this.orbitCamera.focalPoint[func](bbox.center);
+
+        this.orbitCamera.focalPoint[func](this.assets[0]?.resource?.getFocalPoint() ?? bbox.center);
     }
 
     // adjust camera clipping planes to fit the scene
-    fitCameraToScene() {
+    fitCameraClipPlanes() {
         if (this.xrMode?.active) {
             return;
         }
@@ -1776,7 +1777,7 @@ class Viewer {
         }
 
         // fit camera planes to the scene
-        this.fitCameraToScene();
+        this.fitCameraClipPlanes();
 
         this.shadowCatcher.onUpdate(this.dynamicSceneBounds);
     }
