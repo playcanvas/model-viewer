@@ -33,7 +33,7 @@ import { SortWorker } from './sort-worker';
 // set true to render splats as oriented boxes
 const debugRender = false;
 
-const gsVS = /* glsl_ */ `
+const splatVS = /* glsl_ */ `
 attribute vec2 vertex_position;
 attribute vec3 splat_center;
 attribute vec4 splat_color;
@@ -98,7 +98,7 @@ void main(void)
 }
 `;
 
-const gsFS = /* glsl_ */ `
+const splatFS = /* glsl_ */ `
 varying vec2 texCoord;
 varying vec4 color;
 
@@ -111,7 +111,7 @@ void main(void)
 }
 `;
 
-const gsDebugVS = /* glsl_ */ `
+const splatDebugVS = /* glsl_ */ `
 attribute vec3 vertex_position;
 attribute vec3 splat_center;
 attribute vec4 splat_color;
@@ -153,7 +153,7 @@ void main(void)
 }
 `;
 
-const gsDebugFS = /* glsl_ */ `
+const splatDebugFS = /* glsl_ */ `
 varying vec4 color;
 
 void main(void)
@@ -181,12 +181,15 @@ class SplatResource extends ContainerResource {
         this.elements = elements;
 
         this.quadMaterial = new Material();
-        this.quadMaterial.name = 'gsMaterial';
+        this.quadMaterial.name = 'splatMaterial';
         this.quadMaterial.cull = debugRender ? CULLFACE_BACK : CULLFACE_NONE;
         this.quadMaterial.blendType = BLEND_NORMAL;
         this.quadMaterial.depthWrite = false;
 
-        this.quadMaterial.shader = createShaderFromCode(this.device, debugRender ? gsDebugVS : gsVS, debugRender ? gsDebugFS : gsFS, 'gsShader', {
+        const vs = debugRender ? splatDebugVS : splatVS;
+        const fs = debugRender ? splatDebugFS : splatFS;
+
+        this.quadMaterial.shader = createShaderFromCode(this.device, vs, fs, 'splatShader', {
             vertex_position: SEMANTIC_POSITION,
             splat_center: SEMANTIC_ATTR11,
             splat_color: SEMANTIC_COLOR,
