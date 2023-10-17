@@ -33,6 +33,30 @@ import { SortWorker } from './sort-worker';
 // set true to render splats as oriented boxes
 const debugRender = false;
 
+const quatToMat3 = `
+mat3 quatToMat3(vec3 R)
+{
+    float x = R.x;
+    float y = R.y;
+    float z = R.z;
+    float w = sqrt(1.0 - dot(R, R));
+
+    return mat3(
+        1.0 - 2.0 * (z * z + w * w),
+              2.0 * (y * z + x * w),
+              2.0 * (y * w - x * z),
+
+              2.0 * (y * z - x * w),
+        1.0 - 2.0 * (y * y + w * w),
+              2.0 * (z * w + x * y),
+
+              2.0 * (y * w + x * z),
+              2.0 * (z * w - x * y),
+        1.0 - 2.0 * (y * y + z * z)
+    );
+}
+`;
+
 const splatVS = /* glsl_ */ `
 attribute vec2 vertex_position;
 attribute vec3 splat_center;
@@ -50,24 +74,7 @@ uniform vec2 focal;
 varying vec2 texCoord;
 varying vec4 color;
 
-mat3 quatToMat3(vec3 r)
-{
-    vec4 R = vec4(r.x, r.y, r.z, sqrt(1.0 - dot(r, r)));
-
-    return mat3(
-        1.0 - 2.0 * (R.z * R.z + R.w * R.w),
-        2.0 * (R.y * R.z + R.x * R.w),
-        2.0 * (R.y * R.w - R.x * R.z),
-
-        2.0 * (R.y * R.z - R.x * R.w),
-        1.0 - 2.0 * (R.y * R.y + R.w * R.w),
-        2.0 * (R.z * R.w + R.x * R.y),
-
-        2.0 * (R.y * R.w + R.x * R.z),
-        2.0 * (R.z * R.w - R.x * R.y),
-        1.0 - 2.0 * (R.y * R.y + R.z * R.z)
-    );
-}
+${quatToMat3}
 
 void computeCov3d(in vec3 rot, in vec3 scale, out vec3 covA, out vec3 covB)
 {
@@ -146,10 +153,6 @@ void main(void)
         vec4((vertex_position.x * v1 + vertex_position.y * v2) / viewport * 8.0,
              0.0, 0.0) * splat_proj.w;
 
-    // gl_Position = vec4(splat_proj.xy / splat_proj.w +
-    //     (vertex_position.x * v1 + vertex_position.y * v2) / viewport * 8.0,
-    //          0.0, 1.0);
-
     texCoord = vertex_position * 2.0;
     color = splat_color;
 }
@@ -180,27 +183,7 @@ uniform mat4 matrix_viewProjection;
 
 varying vec4 color;
 
-mat3 quatToMat3(vec3 quat)
-{
-    float x = quat.x;
-    float y = quat.y;
-    float z = quat.z;
-    float w = sqrt(1.0 - dot(quat, quat));
-    
-    return mat3(
-        1.0 - 2.0 * (z * z + w * w),
-              2.0 * (y * z + x * w),
-              2.0 * (y * w - x * z),
-
-              2.0 * (y * z - x * w),
-        1.0 - 2.0 * (y * y + w * w),
-              2.0 * (z * w + x * y),
-
-              2.0 * (y * w + x * z),
-              2.0 * (z * w - x * y),
-        1.0 - 2.0 * (y * y + z * z)
-    );
-}
+${quatToMat3}
 
 void main(void)
 {
@@ -286,6 +269,25 @@ class SplatResource extends ContainerResource {
         if (!vertexElement) {
             return null;
         }
+
+        // create a debug splat
+        vertexElement.count = 1;
+        vertexElement.properties = [
+            { type: 'float', name: 'x', storage: [0], byteSize: 4 },
+            { type: 'float', name: 'y', storage: [0], byteSize: 4 },
+            { type: 'float', name: 'z', storage: [0], byteSize: 4 },
+            { type: 'float', name: 'f_dc_0', storage: [1.772453850905516], byteSize: 4 },
+            { type: 'float', name: 'f_dc_1', storage: [1.772453850905516], byteSize: 4 },
+            { type: 'float', name: 'f_dc_2', storage: [1.772453850905516], byteSize: 4 },
+            { type: 'float', name: 'opacity', storage: [1], byteSize: 4 },
+            { type: 'float', name: 'scale_0', storage: [1.0], byteSize: 4 },
+            { type: 'float', name: 'scale_1', storage: [0.5], byteSize: 4 },
+            { type: 'float', name: 'scale_2', storage: [0.2], byteSize: 4 },
+            { type: 'float', name: 'rot_0', storage: [0], byteSize: 4 },
+            { type: 'float', name: 'rot_1', storage: [0], byteSize: 4 },
+            { type: 'float', name: 'rot_2', storage: [0], byteSize: 4 },
+            { type: 'float', name: 'rot_3', storage: [1], byteSize: 4 },
+        ];
 
         const find = (name: string) => {
             return vertexElement.properties.find((property: any) => property.name === name && property.storage)?.storage;
@@ -394,7 +396,9 @@ class SplatResource extends ContainerResource {
             const zMinMax = minmax(z);
 
             const aabb = new BoundingBox();
-            aabb.setMinMax(new Vec3(xMinMax[0], yMinMax[0], zMinMax[0]), new Vec3(xMinMax[1], yMinMax[1], zMinMax[1]));
+            aabb.setMinMax(
+                new Vec3(xMinMax[0] - 1, yMinMax[0] - 0.5, zMinMax[0] - 0.2),
+                new Vec3(xMinMax[1] + 1, yMinMax[1] + 0.5, zMinMax[1] + 0.2));
 
             return aabb;
         };
@@ -466,6 +470,22 @@ class SplatResource extends ContainerResource {
                 this.quadMaterial.setParameter('viewport', [this.device.width, this.device.height]);
                 this.quadMaterial.setParameter('focal', [focal[0], focal[1]]);
                 // this.quadMaterial.setParameter('focal', [this.device.width / 2, this.device.height / 2]);
+
+                // debug render splat bounds
+                const immediate = options.app.scene.immediate;
+                const data = new Float32Array(vertexBuffer.lock());
+                for (let i = 0; i < data.length / stride; ++i) {
+                    const x = data[i * stride + 0];
+                    const y = data[i * stride + 1];
+                    const z = data[i * stride + 2];
+                    const rx = data[i * stride + 4];
+                    const ry = data[i * stride + 5];
+                    const rz = data[i * stride + 6];
+                    const sx = data[i * stride + 7];
+                    const sy = data[i * stride + 8];
+                    const sz = data[i * stride + 9];
+                }
+                vertexBuffer.unlock();
             });
         }
 
