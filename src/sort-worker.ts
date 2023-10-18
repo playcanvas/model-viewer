@@ -76,7 +76,7 @@ function SortWorker() {
             const d = (data[istride + 0] - px) * dx +
                       (data[istride + 1] - py) * dy +
                       (data[istride + 2] - pz) * dz;
-            orderBuffer32[i * 2 + 1] = Math.floor((d - minDist) / range * 2**32);
+            orderBuffer32[i * 2 + 1] = Math.floor((d - minDist) / range * (2 ** 32));
             orderBuffer32[i * 2] = i;
         }
 
