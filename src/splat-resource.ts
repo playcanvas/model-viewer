@@ -453,31 +453,8 @@ class SplatResource extends ContainerResource {
             castShadows: false                  // shadows not supported
         });
 
-        // calculate accurate aabb
-        const calcAabb = () => {
-            const minmax = (data: Float32Array) => {
-                let min = data[0];
-                let max = data[0];
-                for (let i = 1; i < data.length; ++i) {
-                    min = Math.min(min, data[i]);
-                    max = Math.max(max, data[i]);
-                }
-                return [min, max];
-            };
-            const xMinMax = minmax(x);
-            const yMinMax = minmax(y);
-            const zMinMax = minmax(z);
-
-            const aabb = new BoundingBox();
-            aabb.setMinMax(
-                new Vec3(xMinMax[0] - 1, yMinMax[0] - 0.5, zMinMax[0] - 0.2),
-                new Vec3(xMinMax[1] + 1, yMinMax[1] + 0.5, zMinMax[1] + 0.2));
-
-            return aabb;
-        };
-
         // calculate scene aabb taking into account splat size
-        const calcAabb2 = (aabb: BoundingBox) => {
+        const calcAabb = (aabb: BoundingBox) => {
             // initialize aabb
             aabb.center.set(floatData[0], floatData[1], floatData[2]);
             aabb.halfExtents.set(0, 0, 0);
@@ -494,9 +471,8 @@ class SplatResource extends ContainerResource {
         }
 
         // set custom aabb
-        // result.render.customAabb = calcAabb();
         const aabb = new BoundingBox();
-        calcAabb2(aabb);
+        calcAabb(aabb);
         result.render.customAabb = aabb;
 
         // create sort worker
