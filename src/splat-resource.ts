@@ -361,27 +361,6 @@ class SplatResource extends ContainerResource {
             floatData[i * stride + 9] = Math.exp(scale_2[j]);
         }
 
-        const calcAabb = () => {
-            // calc aabb
-            const minmax = (data: Float32Array) => {
-                let min = data[0];
-                let max = data[0];
-                for (let i = 1; i < data.length; ++i) {
-                    min = Math.min(min, data[i]);
-                    max = Math.max(max, data[i]);
-                }
-                return [min, max];
-            };
-            const xMinMax = minmax(x);
-            const yMinMax = minmax(y);
-            const zMinMax = minmax(z);
-
-            const aabb = new BoundingBox();
-            aabb.setMinMax(new Vec3(xMinMax[0], yMinMax[0], zMinMax[0]), new Vec3(xMinMax[1], yMinMax[1], zMinMax[1]));
-
-            return aabb;
-        };
-
         // create instance data
         const vertexFormat = new VertexFormat(this.device, [
             { semantic: SEMANTIC_ATTR11, components: 3, type: TYPE_FLOAT32 },
@@ -401,6 +380,29 @@ class SplatResource extends ContainerResource {
             castShadows: false                  // shadows not supported
         });
 
+        // calculate accurate aabb
+        const calcAabb = () => {
+            const minmax = (data: Float32Array) => {
+                let min = data[0];
+                let max = data[0];
+                for (let i = 1; i < data.length; ++i) {
+                    min = Math.min(min, data[i]);
+                    max = Math.max(max, data[i]);
+                }
+                return [min, max];
+            };
+            const xMinMax = minmax(x);
+            const yMinMax = minmax(y);
+            const zMinMax = minmax(z);
+
+            const aabb = new BoundingBox();
+            aabb.setMinMax(
+                new Vec3(xMinMax[0] - 1, yMinMax[0] - 0.5, zMinMax[0] - 0.2),
+                new Vec3(xMinMax[1] + 1, yMinMax[1] + 0.5, zMinMax[1] + 0.2));
+
+            return aabb;
+        };
+
         // set custom aabb
         result.render.customAabb = calcAabb();
 
@@ -413,15 +415,16 @@ class SplatResource extends ContainerResource {
             sortWorker.onmessage = (message: any) => {
                 const data = message.data.data;
 
-                // copy data
-                const target = new Float32Array(vertexBuffer.lock());
-                target.set(new Float32Array(data));
-                vertexBuffer.unlock();
+                // copy source data
+                floatData.set(new Float32Array(data));
 
                 // send the memory buffer back to worker
                 sortWorker.postMessage({
                     data: data
                 }, [data]);
+
+                // upload new data to GPU
+                vertexBuffer.unlock();
 
                 // let caller know the view changed
                 options?.onChanged();
