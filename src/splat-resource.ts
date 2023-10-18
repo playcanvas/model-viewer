@@ -33,12 +33,36 @@ import { SortWorker } from './sort-worker';
 // set true to render splats as oriented boxes
 const debugRender = false;
 
+const quatToMat3 = `
+mat3 quatToMat3(vec3 R)
+{
+    float x = R.x;
+    float y = R.y;
+    float z = R.z;
+    float w = sqrt(1.0 - dot(R, R));
+
+    return mat3(
+        1.0 - 2.0 * (z * z + w * w),
+              2.0 * (y * z + x * w),
+              2.0 * (y * w - x * z),
+
+              2.0 * (y * z - x * w),
+        1.0 - 2.0 * (y * y + w * w),
+              2.0 * (z * w + x * y),
+
+              2.0 * (y * w + x * z),
+              2.0 * (z * w - x * y),
+        1.0 - 2.0 * (y * y + z * z)
+    );
+}
+`;
+
 const splatVS = /* glsl_ */ `
 attribute vec2 vertex_position;
 attribute vec3 splat_center;
 attribute vec4 splat_color;
-attribute vec3 splat_cova;
-attribute vec3 splat_covb;
+attribute vec3 splat_rotation;
+attribute vec3 splat_scale;
 
 uniform mat4 matrix_model;
 uniform mat4 matrix_view;
@@ -50,6 +74,38 @@ uniform vec2 focal;
 varying vec2 texCoord;
 varying vec4 color;
 
+${quatToMat3}
+
+void computeCov3d(in vec3 rot, in vec3 scale, out vec3 covA, out vec3 covB)
+{
+    mat3 R = quatToMat3(rot);
+
+    // M = S * R
+    float M[9] = float[9](
+        scale.x * R[0][0],
+        scale.x * R[0][1],
+        scale.x * R[0][2],
+        scale.y * R[1][0],
+        scale.y * R[1][1],
+        scale.y * R[1][2],
+        scale.z * R[2][0],
+        scale.z * R[2][1],
+        scale.z * R[2][2]
+    );
+
+    covA = vec3(
+        M[0] * M[0] + M[3] * M[3] + M[6] * M[6],
+        M[0] * M[1] + M[3] * M[4] + M[6] * M[7],
+        M[0] * M[2] + M[3] * M[5] + M[6] * M[8]
+    );
+
+    covB = vec3(
+        M[1] * M[1] + M[4] * M[4] + M[7] * M[7],
+        M[1] * M[2] + M[4] * M[5] + M[7] * M[8],
+        M[2] * M[2] + M[5] * M[5] + M[8] * M[8]
+    );
+}
+
 void main(void)
 {
     vec4 splat_cam = matrix_view * matrix_model * vec4(splat_center, 1.0);
@@ -60,6 +116,10 @@ void main(void)
         gl_Position = vec4(0.0, 0.0, 2.0, 1.0);
         return;
     }
+
+    vec3 splat_cova;
+    vec3 splat_covb;
+    computeCov3d(splat_rotation, splat_scale, splat_cova, splat_covb);
 
     mat3 Vrk = mat3(
         splat_cova.x, splat_cova.y, splat_cova.z, 
@@ -93,10 +153,6 @@ void main(void)
         vec4((vertex_position.x * v1 + vertex_position.y * v2) / viewport * 8.0,
              0.0, 0.0) * splat_proj.w;
 
-    // gl_Position = vec4(splat_proj.xy / splat_proj.w +
-    //     (vertex_position.x * v1 + vertex_position.y * v2) / viewport * 8.0,
-    //          0.0, 1.0);
-
     texCoord = vertex_position * 2.0;
     color = splat_color;
 }
@@ -119,7 +175,7 @@ const splatDebugVS = /* glsl_ */ `
 attribute vec3 vertex_position;
 attribute vec3 splat_center;
 attribute vec4 splat_color;
-attribute vec4 splat_rotation;
+attribute vec3 splat_rotation;
 attribute vec3 splat_scale;
 
 uniform mat4 matrix_model;
@@ -127,27 +183,7 @@ uniform mat4 matrix_viewProjection;
 
 varying vec4 color;
 
-mat3 quatToMat3(vec4 quat)
-{
-    float x = quat.x;
-    float y = quat.y;
-    float z = quat.z;
-    float w = quat.w;
-    
-    return mat3(
-        1.0 - 2.0 * (z * z + w * w),
-              2.0 * (y * z + x * w),
-              2.0 * (y * w - x * z),
-
-              2.0 * (y * z - x * w),
-        1.0 - 2.0 * (y * y + w * w),
-              2.0 * (z * w + x * y),
-
-              2.0 * (y * w + x * z),
-              2.0 * (z * w - x * y),
-        1.0 - 2.0 * (y * y + z * z)
-    );
-}
+${quatToMat3}
 
 void main(void)
 {
@@ -162,6 +198,7 @@ varying vec4 color;
 
 void main(void)
 {
+    if (color.a < 0.2) discard;
     gl_FragColor = color;
 }
 `;
@@ -200,13 +237,8 @@ class SplatResource extends ContainerResource {
             vertex_position: SEMANTIC_POSITION,
             splat_center: SEMANTIC_ATTR11,
             splat_color: SEMANTIC_COLOR,
-            ...debugRender ? {
-                splat_rotation: SEMANTIC_ATTR12,
-                splat_scale: SEMANTIC_ATTR13
-            } : {
-                splat_cova: SEMANTIC_ATTR12,
-                splat_covb: SEMANTIC_ATTR13
-            }
+            splat_rotation: SEMANTIC_ATTR12,
+            splat_scale: SEMANTIC_ATTR13
         });
 
         this.quadMaterial.update();
@@ -265,15 +297,13 @@ class SplatResource extends ContainerResource {
             return null;
         }
 
-        const stride = 4 + (debugRender ? 7 : 6);
+        const stride = 10;
 
-        // position.xyz, color, cova.xyz, covb.xyz, rotation.xyzw, scale.xyz
+        // position.xyz, color, rotation.xyz, scale.xyz
         const floatData = new Float32Array(vertexElement.count * stride);
         const uint8Data = new Uint8ClampedArray(floatData.buffer);
 
         const quat = new Quat();
-        const r = [0, 0, 0, 0];
-        const s = [0, 0, 0];
 
         for (let i = 0; i < vertexElement.count; ++i) {
             const j = i;
@@ -314,65 +344,21 @@ class SplatResource extends ContainerResource {
 
             quat.set(rot_0[j], rot_1[j], rot_2[j], rot_3[j]).normalize();
 
-            r[0] = quat.x;
-            r[1] = quat.y;
-            r[2] = quat.z;
-            r[3] = quat.w;
-
-            s[0] = Math.exp(scale_0[j]);
-            s[1] = Math.exp(scale_1[j]);
-            s[2] = Math.exp(scale_2[j]);
-
-            if (debugRender) {
-                // rotation
-                floatData[i * stride + 4] = r[0];
-                floatData[i * stride + 5] = r[1];
-                floatData[i * stride + 6] = r[2];
-                floatData[i * stride + 7] = r[3];
-
-                // scale
-                floatData[i * stride + 8] = s[0];
-                floatData[i * stride + 9] = s[1];
-                floatData[i * stride + 10] = s[2];
+            // rotation
+            if (quat.w < 0) {
+                floatData[i * stride + 4] = -quat.x;
+                floatData[i * stride + 5] = -quat.y;
+                floatData[i * stride + 6] = -quat.z;
             } else {
-                // pre-calculate covariance a & b
-                const R = [
-                    1.0 - 2.0 * (r[2] * r[2] + r[3] * r[3]),
-                    2.0 * (r[1] * r[2] + r[0] * r[3]),
-                    2.0 * (r[1] * r[3] - r[0] * r[2]),
-
-                    2.0 * (r[1] * r[2] - r[0] * r[3]),
-                    1.0 - 2.0 * (r[1] * r[1] + r[3] * r[3]),
-                    2.0 * (r[2] * r[3] + r[0] * r[1]),
-
-                    2.0 * (r[1] * r[3] + r[0] * r[2]),
-                    2.0 * (r[2] * r[3] - r[0] * r[1]),
-                    1.0 - 2.0 * (r[1] * r[1] + r[2] * r[2])
-                ];
-
-                // Compute the matrix product of S and R (M = S * R)
-                const M = [
-                    s[0] * R[0],
-                    s[0] * R[1],
-                    s[0] * R[2],
-                    s[1] * R[3],
-                    s[1] * R[4],
-                    s[1] * R[5],
-                    s[2] * R[6],
-                    s[2] * R[7],
-                    s[2] * R[8]
-                ];
-
-                // covariance a
-                floatData[i * stride + 4] = M[0] * M[0] + M[3] * M[3] + M[6] * M[6];
-                floatData[i * stride + 5] = M[0] * M[1] + M[3] * M[4] + M[6] * M[7];
-                floatData[i * stride + 6] = M[0] * M[2] + M[3] * M[5] + M[6] * M[8];
-
-                // covariance b
-                floatData[i * stride + 7] = M[1] * M[1] + M[4] * M[4] + M[7] * M[7];
-                floatData[i * stride + 8] = M[1] * M[2] + M[4] * M[5] + M[7] * M[8];
-                floatData[i * stride + 9] = M[2] * M[2] + M[5] * M[5] + M[8] * M[8];
+                floatData[i * stride + 4] = quat.x;
+                floatData[i * stride + 5] = quat.y;
+                floatData[i * stride + 6] = quat.z;
             }
+
+            // scale
+            floatData[i * stride + 7] = Math.exp(scale_0[j]);
+            floatData[i * stride + 8] = Math.exp(scale_1[j]);
+            floatData[i * stride + 9] = Math.exp(scale_2[j]);
         }
 
         const calcAabb = () => {
@@ -393,23 +379,16 @@ class SplatResource extends ContainerResource {
             const aabb = new BoundingBox();
             aabb.setMinMax(new Vec3(xMinMax[0], yMinMax[0], zMinMax[0]), new Vec3(xMinMax[1], yMinMax[1], zMinMax[1]));
 
-            console.log(aabb.getMin());
-            console.log(aabb.getMax());
-
             return aabb;
         };
 
         // create instance data
         const vertexFormat = new VertexFormat(this.device, [
             { semantic: SEMANTIC_ATTR11, components: 3, type: TYPE_FLOAT32 },
-            { semantic: SEMANTIC_COLOR, components: 4, type: TYPE_UINT8, normalize: true }
-        ].concat(debugRender ? [
-            { semantic: SEMANTIC_ATTR12, components: 4, type: TYPE_FLOAT32 },
-            { semantic: SEMANTIC_ATTR13, components: 3, type: TYPE_FLOAT32 }
-        ] : [
+            { semantic: SEMANTIC_COLOR, components: 4, type: TYPE_UINT8, normalize: true },
             { semantic: SEMANTIC_ATTR12, components: 3, type: TYPE_FLOAT32 },
             { semantic: SEMANTIC_ATTR13, components: 3, type: TYPE_FLOAT32 }
-        ]));
+        ]);
         const vertexBuffer = new VertexBuffer(this.device, vertexFormat, vertexElement.count, BUFFER_DYNAMIC, floatData.buffer);
 
         const meshInstance = new MeshInstance(this.quadMesh, this.quadMaterial);
@@ -484,7 +463,6 @@ class SplatResource extends ContainerResource {
                 sum += weight;
             }
             result.mulScalar(1 / sum);
-            console.log(result);
         };
         calcFocalPoint(this.focalPoint);
 
