@@ -1,6 +1,8 @@
 import {
+    AppBase,
     BoundingBox,
     BUFFER_DYNAMIC,
+    Color,
     ContainerResource,
     createShaderFromCode,
     createBox,
@@ -8,6 +10,7 @@ import {
     CULLFACE_BACK,
     Entity,
     GraphicsDevice,
+    Mat4,
     Material,
     Mesh,
     MeshInstance,
@@ -32,6 +35,7 @@ import { SortWorker } from './sort-worker';
 
 // set true to render splats as oriented boxes
 const debugRender = false;
+const debugRenderBounds = false;
 
 const quatToMat3 = `
 mat3 quatToMat3(vec3 R)
@@ -69,7 +73,6 @@ uniform mat4 matrix_view;
 uniform mat4 matrix_projection;
 
 uniform vec2 viewport;
-uniform vec2 focal;
 
 varying vec2 texCoord;
 varying vec4 color;
@@ -127,9 +130,11 @@ void main(void)
         splat_cova.z, splat_covb.y, splat_covb.z
     );
 
+    float focal = viewport.x * matrix_projection[0][0];
+
     mat3 J = mat3(
-        focal.x / splat_cam.z, 0., -(focal.x * splat_cam.x) / (splat_cam.z * splat_cam.z), 
-        0., focal.y / splat_cam.z, -(focal.y * splat_cam.y) / (splat_cam.z * splat_cam.z), 
+        focal / splat_cam.z, 0., -(focal * splat_cam.x) / (splat_cam.z * splat_cam.z), 
+        0., focal / splat_cam.z, -(focal * splat_cam.y) / (splat_cam.z * splat_cam.z), 
         0., 0., 0.
     );
 
@@ -150,7 +155,7 @@ void main(void)
         vec2 v2 = min(sqrt(2.0 * lambda2), 1024.0) * vec2(diagonalVector.y, -diagonalVector.x);
 
     gl_Position = splat_proj +
-        vec4((vertex_position.x * v1 + vertex_position.y * v2) / viewport * 8.0,
+        vec4((vertex_position.x * v1 + vertex_position.y * v2) / viewport * 2.0,
              0.0, 0.0) * splat_proj.w;
 
     texCoord = vertex_position * 2.0;
@@ -202,6 +207,75 @@ void main(void)
     gl_FragColor = color;
 }
 `;
+
+const vec3 = new Vec3();
+const mat4 = new Mat4();
+const aabb = new BoundingBox();
+
+const debugPoints = [new Vec3(), new Vec3(), new Vec3(), new Vec3(), new Vec3(), new Vec3(), new Vec3(), new Vec3()];
+const debugLines = [
+    debugPoints[0], debugPoints[1], debugPoints[1], debugPoints[3], debugPoints[3], debugPoints[2], debugPoints[2], debugPoints[0],
+    debugPoints[4], debugPoints[5], debugPoints[5], debugPoints[7], debugPoints[7], debugPoints[6], debugPoints[6], debugPoints[4],
+    debugPoints[0], debugPoints[4], debugPoints[1], debugPoints[5], debugPoints[2], debugPoints[6], debugPoints[3], debugPoints[7]
+];
+const debugColor = new Color(1, 1, 0, 0.4);
+
+const getSplatMat = (result: Mat4, data: Float32Array) => {
+    const px = data[0];
+    const py = data[1];
+    const pz = data[2];
+    const x = data[4];
+    const y = data[5];
+    const z = data[6];
+    const w = Math.sqrt(1 - (x * x + y * y + z * z));
+
+    // build rotation matrix
+    result.data.set([
+        1.0 - 2.0 * (z * z + w * w),
+        2.0 * (y * z + x * w),
+        2.0 * (y * w - x * z),
+        0,
+
+        2.0 * (y * z - x * w),
+        1.0 - 2.0 * (y * y + w * w),
+        2.0 * (z * w + x * y),
+        0,
+
+        2.0 * (y * w + x * z),
+        2.0 * (z * w - x * y),
+        1.0 - 2.0 * (y * y + z * z),
+        0,
+
+        px, py, pz, 1
+    ]);
+};
+
+const getSplatAabb = (result: BoundingBox, data: Float32Array) => {
+    getSplatMat(mat4, data);
+    aabb.center.set(0, 0, 0);
+    aabb.halfExtents.set(data[7] * 2, data[8] * 2, data[9] * 2);
+    result.setFromTransformedAabb(aabb, mat4);
+};
+
+const renderDebugSplat = (app: AppBase, worldMat: Mat4, data: Float32Array) => {
+    getSplatMat(mat4, data);
+    mat4.mul2(worldMat, mat4);
+
+    const sx = data[7];
+    const sy = data[8];
+    const sz = data[9];
+
+    for (let i = 0; i < 8; ++i) {
+        vec3.set(
+            sx * 2 * ((i & 1) ? 1 : -1),
+            sy * 2 * ((i & 2) ? 1 : -1),
+            sz * 2 * ((i & 4) ? 1 : -1)
+        );
+        mat4.transformPoint(vec3, debugPoints[i]);
+    }
+
+    app.drawLines(debugLines, debugColor);
+};
 
 class SplatResource extends ContainerResource {
     device: GraphicsDevice;
@@ -380,31 +454,27 @@ class SplatResource extends ContainerResource {
             castShadows: false                  // shadows not supported
         });
 
-        // calculate accurate aabb
-        const calcAabb = () => {
-            const minmax = (data: Float32Array) => {
-                let min = data[0];
-                let max = data[0];
-                for (let i = 1; i < data.length; ++i) {
-                    min = Math.min(min, data[i]);
-                    max = Math.max(max, data[i]);
+        // calculate scene aabb taking into account splat size
+        const calcAabb = (aabb: BoundingBox) => {
+            // initialize aabb
+            aabb.center.set(floatData[0], floatData[1], floatData[2]);
+            aabb.halfExtents.set(0, 0, 0);
+
+            const splat = new Float32Array(stride);
+            const tmpAabb = new BoundingBox();
+            for (let i = 0; i < vertexElement.count; ++i) {
+                for (let j = 0; j < stride; ++j) {
+                    splat[j] = floatData[i * stride + j];
                 }
-                return [min, max];
-            };
-            const xMinMax = minmax(x);
-            const yMinMax = minmax(y);
-            const zMinMax = minmax(z);
-
-            const aabb = new BoundingBox();
-            aabb.setMinMax(
-                new Vec3(xMinMax[0] - 1, yMinMax[0] - 0.5, zMinMax[0] - 0.2),
-                new Vec3(xMinMax[1] + 1, yMinMax[1] + 0.5, zMinMax[1] + 0.2));
-
-            return aabb;
+                getSplatAabb(tmpAabb, splat);
+                aabb.add(tmpAabb);
+            }
         };
 
         // set custom aabb
-        result.render.customAabb = calcAabb();
+        const aabb = new BoundingBox();
+        calcAabb(aabb);
+        result.render.customAabb = aabb;
 
         // create sort worker
         if (options?.app && options?.camera) {
@@ -440,6 +510,8 @@ class SplatResource extends ContainerResource {
                 stride: stride
             }, [buf]);
 
+            const viewport = [this.device.width, this.device.height];
+
             options.app.on('prerender', () => {
                 const t = options.camera.getWorldTransform().data;
                 sortWorker.postMessage({
@@ -447,11 +519,21 @@ class SplatResource extends ContainerResource {
                     cameraDirection: { x: t[8], y: t[9], z: t[10] }
                 });
 
-                const focal = [1164.6601287484507, 1159.5880733038064];
+                viewport[0] = this.device.width;
+                viewport[1] = this.device.height;
+                this.quadMaterial.setParameter('viewport', viewport);
 
-                this.quadMaterial.setParameter('viewport', [this.device.width, this.device.height]);
-                this.quadMaterial.setParameter('focal', [focal[0], focal[1]]);
-                // this.quadMaterial.setParameter('focal', [this.device.width / 2, this.device.height / 2]);
+                // debug render splat bounds
+                if (debugRenderBounds) {
+                    const modelMat = result.getWorldTransform();
+                    const splat = new Float32Array(stride);
+                    for (let i = 0; i < vertexElement.count; ++i) {
+                        for (let j = 0; j < stride; ++j) {
+                            splat[j] = floatData[i * stride + j];
+                        }
+                        renderDebugSplat(options.app, modelMat, splat);
+                    }
+                }
             });
         }
 
