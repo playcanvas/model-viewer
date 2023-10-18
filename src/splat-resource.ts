@@ -23,11 +23,17 @@ import {
     SEMANTIC_POSITION,
     Texture,
     TYPE_UINT8,
+    Vec2,
     Vec3,
     VertexFormat,
     VertexBuffer,
     TYPE_FLOAT32,
-    BLEND_NORMAL
+    BLEND_NORMAL,
+    FILTER_NEAREST,
+    ADDRESS_CLAMP_TO_EDGE,
+    PIXELFORMAT_RGBA8,
+    SEMANTIC_ATTR14,
+    TYPE_UINT32
 } from 'playcanvas';
 
 import { PlyElement } from './ply-reader';
@@ -61,12 +67,18 @@ mat3 quatToMat3(vec3 R)
 }
 `;
 
-const splatVS = /* glsl_ */ `
+const splatVS = /* glsl */ `
 attribute vec2 vertex_position;
 attribute vec3 splat_center;
 attribute vec4 splat_color;
 attribute vec3 splat_rotation;
 attribute vec3 splat_scale;
+
+#ifdef WEBGPU
+    attribute uint vertex_id;
+#else
+    attribute float vertex_id;
+#endif
 
 uniform mat4 matrix_model;
 uniform mat4 matrix_view;
@@ -76,6 +88,36 @@ uniform vec2 viewport;
 
 varying vec2 texCoord;
 varying vec4 color;
+
+uniform vec4 tex_params;
+uniform sampler2D splatColor;
+
+#ifdef WEBGPU
+    ivec2 getTextureCoords() {
+
+        // turn vertex_id into int grid coordinates
+        ivec2 textureSize = ivec2(tex_params.xy);
+        vec2 invTextureSize = tex_params.zw;
+
+        int gridV = int(float(vertex_id) * invTextureSize.x);
+        int gridU = int(vertex_id - gridV * textureSize.x);
+        return ivec2(gridU, gridV);
+    }
+
+#else
+    vec2 getTextureCoords() {
+        vec2 textureSize = tex_params.xy;
+        vec2 invTextureSize = tex_params.zw;
+
+        // turn vertex_id into int grid coordinates
+        float gridV = floor(vertex_id * invTextureSize.x);
+        float gridU = vertex_id - (gridV * textureSize.x);
+
+        // convert grid coordinates to uv coordinates with half pixel offset
+        return vec2(gridU, gridV) * invTextureSize + (0.5 * invTextureSize);
+    }
+#endif
+
 
 ${quatToMat3}
 
@@ -159,7 +201,16 @@ void main(void)
              0.0, 0.0) * splat_proj.w;
 
     texCoord = vertex_position * 2.0;
-    color = splat_color;
+
+    // sample color texture
+    #ifdef WEBGPU
+        ivec2 textureUV = getTextureCoords();
+        color = texelFetch(splatColor, ivec2(textureUV), 0);
+    #else
+        vec2 textureUV = getTextureCoords();
+        color = texture2D(splatColor, textureUV);
+    #endif
+    // color = splat_color;
 }
 `;
 
@@ -312,7 +363,8 @@ class SplatResource extends ContainerResource {
             splat_center: SEMANTIC_ATTR11,
             splat_color: SEMANTIC_COLOR,
             splat_rotation: SEMANTIC_ATTR12,
-            splat_scale: SEMANTIC_ATTR13
+            splat_scale: SEMANTIC_ATTR13,
+            vertex_id: SEMANTIC_ATTR14
         });
 
         this.quadMaterial.update();
@@ -332,6 +384,27 @@ class SplatResource extends ContainerResource {
 
     destroy() {
 
+    }
+
+    evalTextureSize(count: number) : Vec2 {
+        const width = Math.ceil(Math.sqrt(count));
+        const height = Math.ceil(count / width);
+        return new Vec2(width, height);
+    }
+
+    createTexture(name: string, format: number, size: Vec2) {
+        return new Texture(this.device, {
+            width: size.x,
+            height: size.y,
+            format: format,
+            cubemap: false,
+            mipmaps: false,
+            minFilter: FILTER_NEAREST,
+            magFilter: FILTER_NEAREST,
+            addressU: ADDRESS_CLAMP_TO_EDGE,
+            addressV: ADDRESS_CLAMP_TO_EDGE,
+            name: name
+        });
     }
 
     instantiateModelEntity(/* options: any */): Entity {
@@ -371,13 +444,19 @@ class SplatResource extends ContainerResource {
             return null;
         }
 
-        const stride = 10;
+        const stride = 11;
+
+        const textureSize = this.evalTextureSize(vertexElement.count);
+        const colorTexture = this.createTexture('splatColor', PIXELFORMAT_RGBA8, textureSize);
+        const colorData = colorTexture.lock();
 
         // position.xyz, color, rotation.xyz, scale.xyz
         const floatData = new Float32Array(vertexElement.count * stride);
         const uint8Data = new Uint8ClampedArray(floatData.buffer);
+        const uint32Data = new Uint32Array(floatData.buffer);
 
         const quat = new Quat();
+        const isWebGPU = this.device.isWebGPU;
 
         for (let i = 0; i < vertexElement.count; ++i) {
             const j = i;
@@ -399,6 +478,10 @@ class SplatResource extends ContainerResource {
                 uint8Data[i * stride * 4 + 12] = (0.5 + SH_C0 * f_dc_0[j]) * 255;
                 uint8Data[i * stride * 4 + 13] = (0.5 + SH_C0 * f_dc_1[j]) * 255;
                 uint8Data[i * stride * 4 + 14] = (0.5 + SH_C0 * f_dc_2[j]) * 255;
+
+                colorData[i * 4 + 0] = uint8Data[i * stride * 4 + 12];
+                colorData[i * 4 + 1] = uint8Data[i * stride * 4 + 13];
+                colorData[i * 4 + 2] = uint8Data[i * stride * 4 + 14];
             }
 
             // opacity
@@ -412,8 +495,12 @@ class SplatResource extends ContainerResource {
                     return t / (1 + t);
                 };
                 uint8Data[i * stride * 4 + 15] = sigmoid(opacity[j]) * 255;
+
+                colorData[i * 4 + 3] = uint8Data[i * stride * 4 + 15];
             } else {
                 uint8Data[i * stride * 4 + 15] = 255;
+
+                colorData[i * 4 + 3] = 255;
             }
 
             quat.set(rot_0[j], rot_1[j], rot_2[j], rot_3[j]).normalize();
@@ -433,14 +520,30 @@ class SplatResource extends ContainerResource {
             floatData[i * stride + 7] = Math.exp(scale_0[j]);
             floatData[i * stride + 8] = Math.exp(scale_1[j]);
             floatData[i * stride + 9] = Math.exp(scale_2[j]);
+
+            // index
+            if (isWebGPU) {
+                uint32Data[i * stride + 10] = i;
+            } else {
+                floatData[i * stride + 10] = i;
+            }
         }
+
+
+
+        colorTexture.unlock();
+        this.quadMaterial.setParameter('splatColor', colorTexture);
+        this.quadMaterial.setParameter('tex_params', new Float32Array([textureSize.x, textureSize.y, 1 / textureSize.x, 1 / textureSize.y]));
+
+
 
         // create instance data
         const vertexFormat = new VertexFormat(this.device, [
             { semantic: SEMANTIC_ATTR11, components: 3, type: TYPE_FLOAT32 },
             { semantic: SEMANTIC_COLOR, components: 4, type: TYPE_UINT8, normalize: true },
             { semantic: SEMANTIC_ATTR12, components: 3, type: TYPE_FLOAT32 },
-            { semantic: SEMANTIC_ATTR13, components: 3, type: TYPE_FLOAT32 }
+            { semantic: SEMANTIC_ATTR13, components: 3, type: TYPE_FLOAT32 },
+            { semantic: SEMANTIC_ATTR14, components: 1, type: isWebGPU ? TYPE_UINT32 : TYPE_FLOAT32 }
         ]);
         const vertexBuffer = new VertexBuffer(this.device, vertexFormat, vertexElement.count, BUFFER_DYNAMIC, floatData.buffer);
 
