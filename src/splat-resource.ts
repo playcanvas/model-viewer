@@ -529,13 +529,9 @@ class SplatResource extends ContainerResource {
             }
         }
 
-
-
         colorTexture.unlock();
         this.quadMaterial.setParameter('splatColor', colorTexture);
         this.quadMaterial.setParameter('tex_params', new Float32Array([textureSize.x, textureSize.y, 1 / textureSize.x, 1 / textureSize.y]));
-
-
 
         // create instance data
         const vertexFormat = new VertexFormat(this.device, [
