@@ -93,6 +93,7 @@ class Viewer {
     orbitCameraInputTouch: OrbitCameraInputTouch;
     orbitCameraInputKeyboard: OrbitCameraInputKeyboard;
     initialCameraPosition: Vec3 | null;
+    initialCameraFocus: Vec3 | null;
     light: Entity;
     sceneRoot: Entity;
     debugRoot: Entity;
@@ -259,6 +260,7 @@ class Viewer {
         // store app things
         this.camera = camera;
         this.initialCameraPosition = null;
+        this.initialCameraFocus = null;
         this.light = light;
         this.sceneRoot = sceneRoot;
         this.debugRoot = debugRoot;
@@ -891,25 +893,35 @@ class Viewer {
 
         // calculate scene bounding box
         this.calcSceneBounds(bbox, this.selectedNode as Entity);
-        const radius = bbox.halfExtents.length();
-        const distance = (radius * 1.4) / Math.sin(0.5 * camera.fov * camera.aspectRatio * math.DEG_TO_RAD);
 
         const func = smoothly ? 'goto' : 'snapto';
 
+        // calculate the camera focus point
+        const focus = new Vec3();
+        if (this.initialCameraFocus) {
+            focus.copy(this.initialCameraFocus);
+            this.initialCameraFocus = null;
+        } else {
+            focus.copy(this.assets[0]?.resource?.getFocalPoint?.() ?? bbox.center);
+        }
+
+        // calculate the camera azim/elev/distance
+        const aed = new Vec3();
         if (this.initialCameraPosition) {
             // user-specified camera position
-            const vec = bbox.center.clone().sub(this.initialCameraPosition);
-            this.orbitCamera.vecToAzimElevDistance(vec, vec);
-            this.orbitCamera.azimElevDistance[func](vec);
+            aed.sub2(focus, this.initialCameraPosition);
+            this.orbitCamera.vecToAzimElevDistance(aed, aed);
             this.initialCameraPosition = null;
         } else {
             // automatically placed camera position
-            const aed = this.orbitCamera.azimElevDistance.target.clone();
+            const radius = bbox.halfExtents.length();
+            const distance = (radius * 1.4) / Math.sin(0.5 * camera.fov * camera.aspectRatio * math.DEG_TO_RAD);
+            aed.copy(this.orbitCamera.azimElevDistance.target);
             aed.z = distance;
-            this.orbitCamera.azimElevDistance[func](aed);
         }
 
-        this.orbitCamera.focalPoint[func](this.assets[0]?.resource?.getFocalPoint?.() ?? bbox.center);
+        this.orbitCamera.azimElevDistance[func](aed);
+        this.orbitCamera.focalPoint[func](focus);
     }
 
     // adjust camera clipping planes to fit the scene

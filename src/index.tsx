@@ -289,6 +289,13 @@ const main = () => {
                     }
                     break;
                 }
+                case 'cameraFocus': {
+                    const pos = value.split(',').map(Number);
+                    if (pos.length === 3) {
+                        viewer.initialCameraFocus = new Vec3(pos);
+                    }
+                    break;
+                }
                 default: {
                     if (observer.has(key)) {
                         switch (typeof observer.get(key)) {
