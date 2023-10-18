@@ -380,8 +380,27 @@ class SplatResource extends ContainerResource {
             floatData[i * stride + 9] = Math.exp(scale_2[j]);
         }
 
+        // create instance data
+        const vertexFormat = new VertexFormat(this.device, [
+            { semantic: SEMANTIC_ATTR11, components: 3, type: TYPE_FLOAT32 },
+            { semantic: SEMANTIC_COLOR, components: 4, type: TYPE_UINT8, normalize: true },
+            { semantic: SEMANTIC_ATTR12, components: 3, type: TYPE_FLOAT32 },
+            { semantic: SEMANTIC_ATTR13, components: 3, type: TYPE_FLOAT32 }
+        ]);
+        const vertexBuffer = new VertexBuffer(this.device, vertexFormat, vertexElement.count, BUFFER_DYNAMIC, floatData.buffer);
+
+        const meshInstance = new MeshInstance(this.quadMesh, this.quadMaterial);
+        meshInstance.setInstancing(vertexBuffer);
+
+        const result = new Entity('ply');
+        result.addComponent('render', {
+            type: 'asset',
+            meshInstances: [meshInstance],
+            castShadows: false                  // shadows not supported
+        });
+
+        // calculate accurate aabb
         const calcAabb = () => {
-            // calc aabb
             const minmax = (data: Float32Array) => {
                 let min = data[0];
                 let max = data[0];
@@ -403,24 +422,19 @@ class SplatResource extends ContainerResource {
             return aabb;
         };
 
-        // create instance data
-        const vertexFormat = new VertexFormat(this.device, [
-            { semantic: SEMANTIC_ATTR11, components: 3, type: TYPE_FLOAT32 },
-            { semantic: SEMANTIC_COLOR, components: 4, type: TYPE_UINT8, normalize: true },
-            { semantic: SEMANTIC_ATTR12, components: 3, type: TYPE_FLOAT32 },
-            { semantic: SEMANTIC_ATTR13, components: 3, type: TYPE_FLOAT32 }
-        ]);
-        const vertexBuffer = new VertexBuffer(this.device, vertexFormat, vertexElement.count, BUFFER_DYNAMIC, floatData.buffer);
-
-        const meshInstance = new MeshInstance(this.quadMesh, this.quadMaterial);
-        meshInstance.setInstancing(vertexBuffer);
-
-        const result = new Entity('ply');
-        result.addComponent('render', {
-            type: 'asset',
-            meshInstances: [meshInstance],
-            castShadows: false                  // shadows not supported
-        });
+        const calcAabb2 = () => {
+            for (let i = 0; i < vertexElement.count; ++i) {
+                const x = floatData[i * stride + 0];
+                const y = floatData[i * stride + 1];
+                const z = floatData[i * stride + 2];
+                const rx = floatData[i * stride + 4];
+                const ry = floatData[i * stride + 5];
+                const rz = floatData[i * stride + 6];
+                const sx = floatData[i * stride + 7];
+                const sy = floatData[i * stride + 8];
+                const sz = floatData[i * stride + 9];
+            }
+        }
 
         // set custom aabb
         result.render.customAabb = calcAabb();
@@ -434,15 +448,16 @@ class SplatResource extends ContainerResource {
             sortWorker.onmessage = (message: any) => {
                 const data = message.data.data;
 
-                // copy data
-                const target = new Float32Array(vertexBuffer.lock());
-                target.set(new Float32Array(data));
-                vertexBuffer.unlock();
+                // copy source data
+                floatData.set(new Float32Array(data));
 
                 // send the memory buffer back to worker
                 sortWorker.postMessage({
                     data: data
                 }, [data]);
+
+                // upload new data to GPU
+                vertexBuffer.unlock();
 
                 // let caller know the view changed
                 options?.onChanged();
@@ -472,20 +487,20 @@ class SplatResource extends ContainerResource {
                 // this.quadMaterial.setParameter('focal', [this.device.width / 2, this.device.height / 2]);
 
                 // debug render splat bounds
-                const immediate = options.app.scene.immediate;
-                const data = new Float32Array(vertexBuffer.lock());
-                for (let i = 0; i < data.length / stride; ++i) {
-                    const x = data[i * stride + 0];
-                    const y = data[i * stride + 1];
-                    const z = data[i * stride + 2];
-                    const rx = data[i * stride + 4];
-                    const ry = data[i * stride + 5];
-                    const rz = data[i * stride + 6];
-                    const sx = data[i * stride + 7];
-                    const sy = data[i * stride + 8];
-                    const sz = data[i * stride + 9];
-                }
-                vertexBuffer.unlock();
+                // const immediate = options.app.scene.immediate;
+                // const data = new Float32Array(vertexBuffer.lock());
+                // for (let i = 0; i < data.length / stride; ++i) {
+                //     const x = data[i * stride + 0];
+                //     const y = data[i * stride + 1];
+                //     const z = data[i * stride + 2];
+                //     const rx = data[i * stride + 4];
+                //     const ry = data[i * stride + 5];
+                //     const rz = data[i * stride + 6];
+                //     const sx = data[i * stride + 7];
+                //     const sy = data[i * stride + 8];
+                //     const sz = data[i * stride + 9];
+                // }
+                // vertexBuffer.unlock();
             });
         }
 
