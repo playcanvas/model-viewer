@@ -525,7 +525,7 @@ class SplatResource extends ContainerResource {
             if (isWebGPU) {
                 uint32Data[i * stride + 10] = i;
             } else {
-                floatData[i * stride + 10] = i;
+                floatData[i * stride + 10] = i + 0.2;
             }
         }
 
