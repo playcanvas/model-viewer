@@ -55,7 +55,7 @@ import { Observer } from '@playcanvas/observer';
 import { MiniStats } from 'playcanvas-extras';
 // @ts-ignore: library file import
 // import * as VoxParser from 'playcanvas/scripts/parsers/vox-parser.js';
-import { registerPlyParser } from './ply-parser';
+import { registerPlyParser } from './splat/ply-parser';
 import { MeshoptDecoder } from '../lib/meshopt_decoder.module.js';
 import { CreateDropHandler } from './drop-handler';
 import { MorphTargetData, File, HierarchyNode } from './types';
