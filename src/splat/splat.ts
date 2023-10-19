@@ -25,7 +25,7 @@ import {
     BUFFER_DYNAMIC,
     VertexBuffer,
     BoundingBox,
-    Mat4,
+    Mat4
 } from "playcanvas";
 import { SplatData } from "./splat-data";
 import { SortWorker } from "./sort-worker";
@@ -33,7 +33,7 @@ import { createSplatMaterial } from "./splat-material";
 
 // set true to render splats as oriented boxes
 const debugRender = false;
-const debugRenderBounds = false;
+const debugRenderBounds = true;
 
 class Splat {
     device: GraphicsDevice;
@@ -85,8 +85,6 @@ class Splat {
     }
 
     create(splatData: SplatData, options: any) {
-        const elements = splatData.elements;
-
         const x = splatData.getProp('x');
         const y = splatData.getProp('y');
         const z = splatData.getProp('z');
@@ -251,7 +249,7 @@ class Splat {
                 // debug render splat bounds
                 if (debugRenderBounds) {
                     // FIXME: need world matrix
-                    splatData.renderWireframeBounds(options.app, Mat4.IDENTITY)
+                    splatData.renderWireframeBounds(options.app, Mat4.IDENTITY);
                 }
             });
         }

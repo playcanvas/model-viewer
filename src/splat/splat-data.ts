@@ -65,6 +65,8 @@ class SplatData {
         this.elements = elements;
         this.vertexElement = elements.find(element => element.name === 'vertex');
 
+        this.vertexElement.count = 1000;
+
         // mirror the scene in the x and y axis (both positions and rotations)
         const x = this.getProp('x');
         const y = this.getProp('y');
@@ -106,9 +108,7 @@ class SplatData {
         const rw = this.getProp('rot_3');
 
         const splat = {
-            x: 0, y: 0, z: 0,
-            rx: 0, ry: 0, rz: 0, rw: 0,
-            sx: 0, sy: 0, sz: 0
+            x: 0, y: 0, z: 0, rx: 0, ry: 0, rz: 0, rw: 0, sx: 0, sy: 0, sz: 0
         };
 
         // initialize aabb
@@ -130,7 +130,7 @@ class SplatData {
             calcSplatAabb(aabb2, splat);
             result.add(aabb2);
         }
-    };
+    }
 
     renderWireframeBounds(app: AppBase, worldMat: Mat4) {
         const x = this.getProp('x');
@@ -147,9 +147,7 @@ class SplatData {
         const rw = this.getProp('rot_3');
 
         const splat = {
-            x: 0, y: 0, z: 0,
-            rx: 0, ry: 0, rz: 0, rw: 0,
-            sx: 0, sy: 0, sz: 0
+            x: 0, y: 0, z: 0, rx: 0, ry: 0, rz: 0, rw: 0, sx: 0, sy: 0, sz: 0
         };
 
         for (let i = 0; i < this.numSplats; ++i) {
@@ -166,7 +164,7 @@ class SplatData {
 
             calcSplatMat(mat4, splat);
             mat4.mul2(worldMat, mat4);
-    
+
             for (let i = 0; i < 8; ++i) {
                 vec3.set(
                     sx * 2 * ((i & 1) ? 1 : -1),
@@ -175,7 +173,7 @@ class SplatData {
                 );
                 mat4.transformPoint(vec3, debugPoints[i]);
             }
-    
+
             app.drawLines(debugLines, debugColor);
         }
     }
