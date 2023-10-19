@@ -1,3 +1,17 @@
+import {
+    BLEND_NORMAL,
+    createShaderFromCode,
+    CULLFACE_BACK,
+    CULLFACE_NONE,
+    GraphicsDevice,
+    Material,
+    SEMANTIC_POSITION,
+    SEMANTIC_ATTR11,
+    SEMANTIC_ATTR12,
+    SEMANTIC_ATTR13,
+    SEMANTIC_ATTR14
+} from "playcanvas";
+
 const sharedShader = `
     mat3 quatToMat3(vec3 R)
     {
@@ -214,4 +228,27 @@ const splatDebugFS = /* glsl_ */ `
     }
 `;
 
-export { splatVS, splatFS, splatDebugVS, splatDebugFS };
+const createSplatMaterial = (device: GraphicsDevice, debugRender = false) => {
+    const result = new Material();
+    result.name = 'splatMaterial';
+    result.cull = debugRender ? CULLFACE_BACK : CULLFACE_NONE;
+    result.blendType = BLEND_NORMAL;
+    result.depthWrite = false;
+
+    const vs = debugRender ? splatDebugVS : splatVS;
+    const fs = debugRender ? splatDebugFS : splatFS;
+
+    result.shader = createShaderFromCode(device, vs, fs, 'splatShader', {
+        vertex_position: SEMANTIC_POSITION,
+        splat_center: SEMANTIC_ATTR11,
+        splat_rotation: SEMANTIC_ATTR12,
+        splat_scale: SEMANTIC_ATTR13,
+        vertex_id: SEMANTIC_ATTR14
+    });
+
+    result.update();
+
+    return result;
+};
+
+export { createSplatMaterial };
