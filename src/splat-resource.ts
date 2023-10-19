@@ -600,10 +600,7 @@ class SplatResource extends ContainerResource {
             };
 
             // send the initial buffer to worker
-            const buf = new ArrayBuffer(vertexBuffer.numBytes);
-            new Float32Array(buf).set(new Float32Array(vertexBuffer.lock()));
-            vertexBuffer.unlock();
-
+            const buf = vertexBuffer.storage.slice(0);
             sortWorker.postMessage({
                 data: buf,
                 stride: stride
