@@ -98,14 +98,14 @@ class SplatData {
         const y = this.getProp('y');
         const z = this.getProp('z');
 
-        const sx = this.getProp('scale_0');
-        const sy = this.getProp('scale_1');
-        const sz = this.getProp('scale_2');
-
         const rx = this.getProp('rot_0');
         const ry = this.getProp('rot_1');
         const rz = this.getProp('rot_2');
         const rw = this.getProp('rot_3');
+
+        const sx = this.getProp('scale_0');
+        const sy = this.getProp('scale_1');
+        const sz = this.getProp('scale_2');
 
         const splat = {
             x: 0, y: 0, z: 0, rx: 0, ry: 0, rz: 0, rw: 0, sx: 0, sy: 0, sz: 0
@@ -137,14 +137,14 @@ class SplatData {
         const y = this.getProp('y');
         const z = this.getProp('z');
 
-        const sx = this.getProp('scale_0');
-        const sy = this.getProp('scale_1');
-        const sz = this.getProp('scale_2');
-
         const rx = this.getProp('rot_0');
         const ry = this.getProp('rot_1');
         const rz = this.getProp('rot_2');
         const rw = this.getProp('rot_3');
+
+        const sx = this.getProp('scale_0');
+        const sy = this.getProp('scale_1');
+        const sz = this.getProp('scale_2');
 
         const splat = {
             x: 0, y: 0, z: 0, rx: 0, ry: 0, rz: 0, rw: 0, sx: 0, sy: 0, sz: 0
@@ -165,13 +165,13 @@ class SplatData {
             calcSplatMat(mat4, splat);
             mat4.mul2(worldMat, mat4);
 
-            for (let i = 0; i < 8; ++i) {
+            for (let j = 0; j < 8; ++j) {
                 vec3.set(
-                    sx * 2 * ((i & 1) ? 1 : -1),
-                    sy * 2 * ((i & 2) ? 1 : -1),
-                    sz * 2 * ((i & 4) ? 1 : -1)
+                    splat.sx * 2 * ((j & 1) ? 1 : -1),
+                    splat.sy * 2 * ((j & 2) ? 1 : -1),
+                    splat.sz * 2 * ((j & 4) ? 1 : -1)
                 );
-                mat4.transformPoint(vec3, debugPoints[i]);
+                mat4.transformPoint(vec3, debugPoints[j]);
             }
 
             app.drawLines(debugLines, debugColor);
