@@ -24,10 +24,11 @@ const calcSplatMat = (result: Mat4, data: any) => {
     const px = data.x;
     const py = data.y;
     const pz = data.z;
-    const x = data.rx;
-    const y = data.ry;
-    const z = data.rz;
-    const w = data.rw;
+    const d = Math.sqrt(data.rx * data.rx + data.ry * data.ry + data.rz * data.rz + data.rw * data.rw);
+    const x = data.rx / d;
+    const y = data.ry / d;
+    const z = data.rz / d;
+    const w = data.rw / d;
 
     // build rotation matrix
     result.data.set([
@@ -65,8 +66,6 @@ class SplatData {
         this.elements = elements;
         this.vertexElement = elements.find(element => element.name === 'vertex');
 
-        this.vertexElement.count = 1000;
-
         // mirror the scene in the x and y axis (both positions and rotations)
         const x = this.getProp('x');
         const y = this.getProp('y');
@@ -93,7 +92,6 @@ class SplatData {
 
     // calculate scene aabb taking into account splat size
     calcAabb(result: BoundingBox) {
-
         const x = this.getProp('x');
         const y = this.getProp('y');
         const z = this.getProp('z');
@@ -123,9 +121,9 @@ class SplatData {
             splat.ry = ry[i];
             splat.rz = rz[i];
             splat.rw = rw[i];
-            splat.sx = sx[i];
-            splat.sy = sy[i];
-            splat.sz = sz[i];
+            splat.sx = Math.exp(sx[i]);
+            splat.sy = Math.exp(sy[i]);
+            splat.sz = Math.exp(sz[i]);
 
             calcSplatAabb(aabb2, splat);
             result.add(aabb2);
@@ -158,9 +156,9 @@ class SplatData {
             splat.ry = ry[i];
             splat.rz = rz[i];
             splat.rw = rw[i];
-            splat.sx = sx[i];
-            splat.sy = sy[i];
-            splat.sz = sz[i];
+            splat.sx = Math.exp(sx[i]);
+            splat.sy = Math.exp(sy[i]);
+            splat.sz = Math.exp(sz[i]);
 
             calcSplatMat(mat4, splat);
             mat4.mul2(worldMat, mat4);
@@ -176,6 +174,26 @@ class SplatData {
 
             app.drawLines(debugLines, debugColor);
         }
+    }
+
+    calcFocalPoint(result: Vec3) {
+        const x = this.getProp('x');
+        const y = this.getProp('y');
+        const z = this.getProp('z');
+
+        const sx = this.getProp('scale_0');
+        const sy = this.getProp('scale_1');
+        const sz = this.getProp('scale_2');
+
+        let sum = 0;
+        for (let i = 0; i < this.numSplats; ++i) {
+            const weight = 1.0 / (1.0 + Math.exp(Math.max(sx[i], sy[i], sz[i])));
+            result.x += x[i] * weight;
+            result.y += y[i] * weight;
+            result.z += z[i] * weight;
+            sum += weight;
+        }
+        result.mulScalar(1 / sum);
     }
 }
 

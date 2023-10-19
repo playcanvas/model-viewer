@@ -33,7 +33,7 @@ import { createSplatMaterial } from "./splat-material";
 
 // set true to render splats as oriented boxes
 const debugRender = false;
-const debugRenderBounds = true;
+const debugRenderBounds = false;
 
 class Splat {
     device: GraphicsDevice;
@@ -255,18 +255,7 @@ class Splat {
         }
 
         // calculate focal point
-        const calcFocalPoint = (result: Vec3) => {
-            let sum = 0;
-            for (let i = 0; i < splatData.numSplats; ++i) {
-                const weight = 1.0 / (1.0 + Math.exp(Math.max(scale_0[i], scale_1[i], scale_2[i])));
-                result.x += x[i] * weight;
-                result.y += y[i] * weight;
-                result.z += z[i] * weight;
-                sum += weight;
-            }
-            result.mulScalar(1 / sum);
-        };
-        calcFocalPoint(this.focalPoint);
+        splatData.calcFocalPoint(this.focalPoint);
 
     }
 }
