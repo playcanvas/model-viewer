@@ -5,6 +5,7 @@ import {
     GraphicsDevice
 } from 'playcanvas';
 import { SplatResource } from './splat-resource';
+import { SplatData } from './splat-data';
 import { readPly } from './ply-reader';
 
 // filter out element data we're not going to use
@@ -32,7 +33,7 @@ class PlyParser {
         const response = await fetch(url.load);
         readPly(response.body.getReader(), new Set(elements))
             .then((response) => {
-                callback(null, new SplatResource(this.device, response));
+                callback(null, new SplatResource(this.device, new SplatData(response)));
             })
             .catch((err) => {
                 callback(err, null);

@@ -9,12 +9,12 @@ import {
     Vec3
 } from 'playcanvas';
 
-import { PlyElement } from './ply-reader';
+import { SplatData } from './splat-data';
 import { Splat } from './splat';
 
 class SplatResource extends ContainerResource {
     device: GraphicsDevice;
-    elements: PlyElement[];
+    splatData: SplatData;
 
     focalPoint = new Vec3();
     entity: Entity;
@@ -24,11 +24,11 @@ class SplatResource extends ContainerResource {
     materials: Material[] = [];
     textures: Texture[] = [];
 
-    constructor(device: GraphicsDevice, elements: PlyElement[]) {
+    constructor(device: GraphicsDevice, splatData: SplatData) {
         super();
 
         this.device = device;
-        this.elements = elements;
+        this.splatData = splatData;
     }
 
     destroy() {
@@ -42,7 +42,7 @@ class SplatResource extends ContainerResource {
     instantiateRenderEntity(options: any): Entity {
 
         const splat = new Splat(this.device);
-        splat.create(this.elements, options);
+        splat.create(this.splatData, options);
 
         const result = new Entity('ply');
         result.addComponent('render', {
@@ -51,7 +51,7 @@ class SplatResource extends ContainerResource {
             castShadows: false                  // shadows not supported
         });
 
-        // // set custom aabb
+        // set custom aabb
         result.render.customAabb = splat.aabb;
 
         this.focalPoint.copy(splat.focalPoint);
