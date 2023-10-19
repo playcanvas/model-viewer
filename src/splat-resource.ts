@@ -19,10 +19,9 @@ import {
     SEMANTIC_ATTR11,
     SEMANTIC_ATTR12,
     SEMANTIC_ATTR13,
-    SEMANTIC_COLOR,
     SEMANTIC_POSITION,
     Texture,
-    TYPE_UINT8,
+    math,
     Vec2,
     Vec3,
     VertexFormat,
@@ -43,7 +42,7 @@ import { SortWorker } from './sort-worker';
 const debugRender = false;
 const debugRenderBounds = false;
 
-const quatToMat3 = `
+const sharedShader = `
 mat3 quatToMat3(vec3 R)
 {
     float x = R.x;
@@ -65,29 +64,12 @@ mat3 quatToMat3(vec3 R)
         1.0 - 2.0 * (y * y + z * z)
     );
 }
-`;
-
-const splatVS = /* glsl */ `
-attribute vec2 vertex_position;
-attribute vec3 splat_center;
-attribute vec4 splat_color;
-attribute vec3 splat_rotation;
-attribute vec3 splat_scale;
 
 #ifdef WEBGPU
     attribute uint vertex_id;
 #else
     attribute float vertex_id;
 #endif
-
-uniform mat4 matrix_model;
-uniform mat4 matrix_view;
-uniform mat4 matrix_projection;
-
-uniform vec2 viewport;
-
-varying vec2 texCoord;
-varying vec4 color;
 
 uniform vec4 tex_params;
 uniform sampler2D splatColor;
@@ -118,8 +100,34 @@ uniform sampler2D splatColor;
     }
 #endif
 
+vec4 getColor() {
+    #ifdef WEBGPU
+        ivec2 textureUV = getTextureCoords();
+        return texelFetch(splatColor, ivec2(textureUV), 0);
+    #else
+        vec2 textureUV = getTextureCoords();
+        return texture2D(splatColor, textureUV);
+    #endif
+}
 
-${quatToMat3}
+`;
+
+const splatVS = `
+attribute vec2 vertex_position;
+attribute vec3 splat_center;
+attribute vec3 splat_rotation;
+attribute vec3 splat_scale;
+
+uniform mat4 matrix_model;
+uniform mat4 matrix_view;
+uniform mat4 matrix_projection;
+
+uniform vec2 viewport;
+
+varying vec2 texCoord;
+varying vec4 color;
+
+${sharedShader}
 
 void computeCov3d(in vec3 rot, in vec3 scale, out vec3 covA, out vec3 covB)
 {
@@ -202,15 +210,7 @@ void main(void)
 
     texCoord = vertex_position * 2.0;
 
-    // sample color texture
-    #ifdef WEBGPU
-        ivec2 textureUV = getTextureCoords();
-        color = texelFetch(splatColor, ivec2(textureUV), 0);
-    #else
-        vec2 textureUV = getTextureCoords();
-        color = texture2D(splatColor, textureUV);
-    #endif
-    // color = splat_color;
+    color = getColor();
 }
 `;
 
@@ -230,7 +230,6 @@ void main(void)
 const splatDebugVS = /* glsl_ */ `
 attribute vec3 vertex_position;
 attribute vec3 splat_center;
-attribute vec4 splat_color;
 attribute vec3 splat_rotation;
 attribute vec3 splat_scale;
 
@@ -239,13 +238,14 @@ uniform mat4 matrix_viewProjection;
 
 varying vec4 color;
 
-${quatToMat3}
+${sharedShader}
 
 void main(void)
 {
     vec3 local = quatToMat3(splat_rotation) * (vertex_position * splat_scale * 2.0) + splat_center;
     gl_Position = matrix_viewProjection * matrix_model * vec4(local, 1.0);
-    color = splat_color;
+
+    color = getColor();
 }
 `;
 
@@ -275,9 +275,9 @@ const getSplatMat = (result: Mat4, data: Float32Array) => {
     const px = data[0];
     const py = data[1];
     const pz = data[2];
-    const x = data[4];
-    const y = data[5];
-    const z = data[6];
+    const x = data[3];
+    const y = data[4];
+    const z = data[5];
     const w = Math.sqrt(1 - (x * x + y * y + z * z));
 
     // build rotation matrix
@@ -304,7 +304,7 @@ const getSplatMat = (result: Mat4, data: Float32Array) => {
 const getSplatAabb = (result: BoundingBox, data: Float32Array) => {
     getSplatMat(mat4, data);
     aabb.center.set(0, 0, 0);
-    aabb.halfExtents.set(data[7] * 2, data[8] * 2, data[9] * 2);
+    aabb.halfExtents.set(data[6] * 2, data[7] * 2, data[8] * 2);
     result.setFromTransformedAabb(aabb, mat4);
 };
 
@@ -312,9 +312,9 @@ const renderDebugSplat = (app: AppBase, worldMat: Mat4, data: Float32Array) => {
     getSplatMat(mat4, data);
     mat4.mul2(worldMat, mat4);
 
-    const sx = data[7];
-    const sy = data[8];
-    const sz = data[9];
+    const sx = data[6];
+    const sy = data[7];
+    const sz = data[8];
 
     for (let i = 0; i < 8; ++i) {
         vec3.set(
@@ -361,7 +361,6 @@ class SplatResource extends ContainerResource {
         this.quadMaterial.shader = createShaderFromCode(this.device, vs, fs, 'splatShader', {
             vertex_position: SEMANTIC_POSITION,
             splat_center: SEMANTIC_ATTR11,
-            splat_color: SEMANTIC_COLOR,
             splat_rotation: SEMANTIC_ATTR12,
             splat_scale: SEMANTIC_ATTR13,
             vertex_id: SEMANTIC_ATTR14
@@ -444,7 +443,7 @@ class SplatResource extends ContainerResource {
             return null;
         }
 
-        const stride = 11;
+        const stride = 10;
 
         const textureSize = this.evalTextureSize(vertexElement.count);
         const colorTexture = this.createTexture('splatColor', PIXELFORMAT_RGBA8, textureSize);
@@ -452,7 +451,6 @@ class SplatResource extends ContainerResource {
 
         // position.xyz, color, rotation.xyz, scale.xyz
         const floatData = new Float32Array(vertexElement.count * stride);
-        const uint8Data = new Uint8ClampedArray(floatData.buffer);
         const uint32Data = new Uint32Array(floatData.buffer);
 
         const quat = new Quat();
@@ -475,13 +473,13 @@ class SplatResource extends ContainerResource {
             // vertex colors
             if (f_dc_0 && f_dc_1 && f_dc_2) {
                 const SH_C0 = 0.28209479177387814;
-                uint8Data[i * stride * 4 + 12] = (0.5 + SH_C0 * f_dc_0[j]) * 255;
-                uint8Data[i * stride * 4 + 13] = (0.5 + SH_C0 * f_dc_1[j]) * 255;
-                uint8Data[i * stride * 4 + 14] = (0.5 + SH_C0 * f_dc_2[j]) * 255;
+                const r = math.clamp((0.5 + SH_C0 * f_dc_0[j]) * 255, 0, 255);
+                const g = math.clamp((0.5 + SH_C0 * f_dc_1[j]) * 255, 0, 255);
+                const b = math.clamp((0.5 + SH_C0 * f_dc_2[j]) * 255, 0, 255);
 
-                colorData[i * 4 + 0] = uint8Data[i * stride * 4 + 12];
-                colorData[i * 4 + 1] = uint8Data[i * stride * 4 + 13];
-                colorData[i * 4 + 2] = uint8Data[i * stride * 4 + 14];
+                colorData[i * 4 + 0] = r;
+                colorData[i * 4 + 1] = g;
+                colorData[i * 4 + 2] = b;
             }
 
             // opacity
@@ -494,12 +492,9 @@ class SplatResource extends ContainerResource {
                     const t = Math.exp(v);
                     return t / (1 + t);
                 };
-                uint8Data[i * stride * 4 + 15] = sigmoid(opacity[j]) * 255;
-
-                colorData[i * 4 + 3] = uint8Data[i * stride * 4 + 15];
+                const a = sigmoid(opacity[j]) * 255;
+                colorData[i * 4 + 3] = a;
             } else {
-                uint8Data[i * stride * 4 + 15] = 255;
-
                 colorData[i * 4 + 3] = 255;
             }
 
@@ -507,25 +502,25 @@ class SplatResource extends ContainerResource {
 
             // rotation
             if (quat.w < 0) {
-                floatData[i * stride + 4] = -quat.x;
-                floatData[i * stride + 5] = -quat.y;
-                floatData[i * stride + 6] = -quat.z;
+                floatData[i * stride + 3] = -quat.x;
+                floatData[i * stride + 4] = -quat.y;
+                floatData[i * stride + 5] = -quat.z;
             } else {
-                floatData[i * stride + 4] = quat.x;
-                floatData[i * stride + 5] = quat.y;
-                floatData[i * stride + 6] = quat.z;
+                floatData[i * stride + 3] = quat.x;
+                floatData[i * stride + 4] = quat.y;
+                floatData[i * stride + 5] = quat.z;
             }
 
             // scale
-            floatData[i * stride + 7] = Math.exp(scale_0[j]);
-            floatData[i * stride + 8] = Math.exp(scale_1[j]);
-            floatData[i * stride + 9] = Math.exp(scale_2[j]);
+            floatData[i * stride + 6] = Math.exp(scale_0[j]);
+            floatData[i * stride + 7] = Math.exp(scale_1[j]);
+            floatData[i * stride + 8] = Math.exp(scale_2[j]);
 
             // index
             if (isWebGPU) {
-                uint32Data[i * stride + 10] = i;
+                uint32Data[i * stride + 9] = i;
             } else {
-                floatData[i * stride + 10] = i + 0.2;
+                floatData[i * stride + 9] = i + 0.2;
             }
         }
 
@@ -536,7 +531,6 @@ class SplatResource extends ContainerResource {
         // create instance data
         const vertexFormat = new VertexFormat(this.device, [
             { semantic: SEMANTIC_ATTR11, components: 3, type: TYPE_FLOAT32 },
-            { semantic: SEMANTIC_COLOR, components: 4, type: TYPE_UINT8, normalize: true },
             { semantic: SEMANTIC_ATTR12, components: 3, type: TYPE_FLOAT32 },
             { semantic: SEMANTIC_ATTR13, components: 3, type: TYPE_FLOAT32 },
             { semantic: SEMANTIC_ATTR14, components: 1, type: isWebGPU ? TYPE_UINT32 : TYPE_FLOAT32 }
