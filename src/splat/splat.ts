@@ -380,17 +380,18 @@ class Splat {
                 viewport[1] = this.device.height;
                 this.quadMaterial.setParameter('viewport', viewport);
 
-                // // debug render splat bounds
-                // if (debugRenderBounds) {
-                //     const modelMat = result.getWorldTransform();
-                //     const splat = new Float32Array(stride);
-                //     for (let i = 0; i < vertexElement.count; ++i) {
-                //         for (let j = 0; j < stride; ++j) {
-                //             splat[j] = floatData[i * stride + j];
-                //         }
-                //         renderDebugSplat(options.app, modelMat, splat);
-                //     }
-                // }
+                // debug render splat bounds
+                if (debugRenderBounds) {
+//                    const modelMat = result.getWorldTransform();
+                    const modelMat = Mat4.IDENTITY;
+                    const splat = new Float32Array(stride);
+                    for (let i = 0; i < vertexElement.count; ++i) {
+                        for (let j = 0; j < stride; ++j) {
+                            splat[j] = floatData[i * stride + j];
+                        }
+                        renderDebugSplat(options.app, modelMat, splat);
+                    }
+                }
             });
         }
 
