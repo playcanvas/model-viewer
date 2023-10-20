@@ -7,14 +7,12 @@ import {
     Material,
     SEMANTIC_POSITION,
     SEMANTIC_ATTR11,
-    SEMANTIC_ATTR12,
     SEMANTIC_ATTR13
 } from "playcanvas";
 
 const splatVS = `
     attribute vec3 vertex_position;
     attribute vec3 splat_center;
-    attribute vec3 splat_rotation;
 
     uniform mat4 matrix_model;
     uniform mat4 matrix_view;
@@ -51,6 +49,7 @@ const splatVS = `
     uniform vec4 tex_params;
     uniform sampler2D splatColor;
     uniform highp sampler2D splatScale;
+    uniform highp sampler2D splatRotation;
 
     #ifdef WEBGPU
 
@@ -74,7 +73,11 @@ const splatVS = `
         vec3 getScale() {
             return texelFetch(splatScale, dataUV, 0).xyz;
         }
-    
+
+        vec3 getRotation() {
+            return texelFetch(splatRotation, dataUV, 0).xyz;
+        }
+
     #else
 
         // TODO: use texture2DLodEXT on WebGL
@@ -100,7 +103,11 @@ const splatVS = `
         vec3 getScale() {
             return texture(splatScale, dataUV).xyz;
         }
-    
+
+        vec3 getRotation() {
+            return texture(splatRotation, dataUV).xyz;
+        }
+
     #endif
 
     void computeCov3d(in vec3 rot, in vec3 scale, out vec3 covA, out vec3 covB)
@@ -149,7 +156,8 @@ const splatVS = `
         vec3 splat_cova;
         vec3 splat_covb;
         vec3 scale = getScale();
-        computeCov3d(splat_rotation, scale, splat_cova, splat_covb);
+        vec3 rotation = getRotation();
+        computeCov3d(rotation, scale, splat_cova, splat_covb);
 
         mat3 Vrk = mat3(
             splat_cova.x, splat_cova.y, splat_cova.z, 
@@ -191,7 +199,7 @@ const splatVS = `
 
         #ifdef DEBUG_RENDER
 
-            vec3 local = quatToMat3(splat_rotation) * (vertex_position * scale * 2.0) + splat_center;
+            vec3 local = quatToMat3(rotation) * (vertex_position * scale * 2.0) + splat_center;
             gl_Position = matrix_viewProjection * matrix_model * vec4(local, 1.0);
 
             color = getColor();
@@ -236,7 +244,6 @@ const createSplatMaterial = (device: GraphicsDevice, debugRender = false) => {
     result.shader = createShaderFromCode(device, vs, fs, `splatShader-${debugRender}`, {
         vertex_position: SEMANTIC_POSITION,
         splat_center: SEMANTIC_ATTR11,
-        splat_rotation: SEMANTIC_ATTR12,
         vertex_id: SEMANTIC_ATTR13
     });
 
