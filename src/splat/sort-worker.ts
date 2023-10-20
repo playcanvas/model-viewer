@@ -8,8 +8,9 @@ type Vec3 = {
 function SortWorker() {
     const epsilon = 0.0001;
 
-    // number of bits used to store the distance in integer array. Smaller number gives is smaller
-    //  precision but less radix sort passes to sort. Could even be dynamic for less precise sorting.
+    // number of bits used to store the distance in integer array. Smaller number gives it a smaller
+    // precision but less radix sort passes to sort. Could even be dynamic for less precise sorting.
+    // 16bit seems plenty of large scenes (train), 10bits is enough for sled.
     const compareBits = 16;
 
     let data: Float32Array;
