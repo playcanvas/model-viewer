@@ -265,6 +265,36 @@ class Splat {
         return texture;
     }
 
+    createCenterTexture(splatData: SplatData, size: Vec2, format: object) {
+
+        // texture format based vars
+        const { numComponents, isHalf } = format;
+
+        const x = splatData.getProp('x');
+        const y = splatData.getProp('y');
+        const z = splatData.getProp('z');
+
+        const texture = this.createTexture('splatCenter', format.format, size);
+        const data = texture.lock();
+
+        for (let i = 0; i < splatData.numSplats; i++) {
+
+            if (isHalf) {
+                data[i * numComponents + 0] = float2Half(x[i]);
+                data[i * numComponents + 1] = float2Half(y[i]);
+                data[i * numComponents + 2] = float2Half(z[i]);
+            } else {
+                data[i * numComponents + 0] = x[i];
+                data[i * numComponents + 1] = y[i];
+                data[i * numComponents + 2] = z[i];
+            }
+        }
+
+        texture.unlock();
+        return texture;
+    }
+
+
     create(splatData: SplatData, options: any) {
         const x = splatData.getProp('x');
         const y = splatData.getProp('y');
@@ -280,12 +310,12 @@ class Splat {
         const colorTexture = this.createColorTexture(splatData, textureSize);
         const scaleTexture = this.createScaleTexture(splatData, textureSize, this.getTextureFormat(false));
         const rotationTexture = this.createRotationTexture(splatData, textureSize, this.getTextureFormat(false));
+        const centerTexture = this.createCenterTexture(splatData, textureSize, this.getTextureFormat(false));
 
         // position.xyz, rotation.xyz
         const floatData = new Float32Array(splatData.numSplats * stride);
         const uint32Data = new Uint32Array(floatData.buffer);
 
-        // const quat = new Quat();
         const isWebGPU = this.device.isWebGPU;
 
         for (let i = 0; i < splatData.numSplats; ++i) {
@@ -307,6 +337,7 @@ class Splat {
         this.material.setParameter('splatColor', colorTexture);
         this.material.setParameter('splatScale', scaleTexture);
         this.material.setParameter('splatRotation', rotationTexture);
+        this.material.setParameter('splatCenter', centerTexture);
         this.material.setParameter('tex_params', new Float32Array([textureSize.x, textureSize.y, 1 / textureSize.x, 1 / textureSize.y]));
 
         // create instance data
