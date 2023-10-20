@@ -6,13 +6,11 @@ import {
     GraphicsDevice,
     Material,
     SEMANTIC_POSITION,
-    SEMANTIC_ATTR11,
     SEMANTIC_ATTR13
 } from "playcanvas";
 
 const splatVS = `
     attribute vec3 vertex_position;
-    attribute vec3 splat_center;
 
     uniform mat4 matrix_model;
     uniform mat4 matrix_view;
@@ -50,6 +48,7 @@ const splatVS = `
     uniform sampler2D splatColor;
     uniform highp sampler2D splatScale;
     uniform highp sampler2D splatRotation;
+    uniform highp sampler2D splatCenter;
 
     #ifdef WEBGPU
 
@@ -76,6 +75,10 @@ const splatVS = `
 
         vec3 getRotation() {
             return texelFetch(splatRotation, dataUV, 0).xyz;
+        }
+
+        vec3 getCenter() {
+            return texelFetch(splatCenter, dataUV, 0).xyz;
         }
 
     #else
@@ -106,6 +109,10 @@ const splatVS = `
 
         vec3 getRotation() {
             return texture(splatRotation, dataUV).xyz;
+        }
+
+        vec3 getCenter() {
+            return texture(splatCenter, dataUV).xyz;
         }
 
     #endif
@@ -144,7 +151,8 @@ const splatVS = `
     {
         evalDataUV();
 
-        vec4 splat_cam = matrix_view * matrix_model * vec4(splat_center, 1.0);
+        vec3 center = getCenter();
+        vec4 splat_cam = matrix_view * matrix_model * vec4(center, 1.0);
         vec4 splat_proj = matrix_projection * splat_cam;
 
         // cull behind camera
@@ -199,7 +207,7 @@ const splatVS = `
 
         #ifdef DEBUG_RENDER
 
-            vec3 local = quatToMat3(rotation) * (vertex_position * scale * 2.0) + splat_center;
+            vec3 local = quatToMat3(rotation) * (vertex_position * scale * 2.0) + center;
             gl_Position = matrix_viewProjection * matrix_model * vec4(local, 1.0);
 
             color = getColor();
@@ -243,7 +251,6 @@ const createSplatMaterial = (device: GraphicsDevice, debugRender = false) => {
 
     result.shader = createShaderFromCode(device, vs, fs, `splatShader-${debugRender}`, {
         vertex_position: SEMANTIC_POSITION,
-        splat_center: SEMANTIC_ATTR11,
         vertex_id: SEMANTIC_ATTR13
     });
 
