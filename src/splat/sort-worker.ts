@@ -13,6 +13,8 @@ function SortWorker() {
     // 16bit seems plenty of large scenes (train), 10bits is enough for sled.
     const compareBits = 16;
 
+    const radixBase = 512;
+
     let data: Float32Array;
     let centers: Float32Array;
     let cameraPosition: Vec3;
@@ -28,23 +30,23 @@ function SortWorker() {
 
     // A function to do counting sort of arr[] according to the digit represented by exp.
     const countSort = (arr: BigUint64Array, arr32: Uint32Array, temp: BigUint64Array, n: number, exp: number) => {
-        const count = new Array(10);
-        for (let i = 0; i < 10; i++)
+        const count = new Array(radixBase);
+        for (let i = 0; i < radixBase; i++)
             count[i] = 0;
 
         // Store count of occurrences in count[]
         for (let i = 0; i < n; i++) {
-            const x = Math.floor(arr32[i * 2 + 1] / exp) % 10;
+            const x = Math.floor(arr32[i * 2 + 1] / exp) % radixBase;
             count[x]++;
         }
 
         // Change count[i] so that count[i] now contains actual position of this digit in output[]
-        for (let i = 1; i < 10; i++)
+        for (let i = 1; i < radixBase; i++)
             count[i] += count[i - 1];
 
         // Build the output array
         for (let i = n - 1; i >= 0; i--) {
-            const x = Math.floor(arr32[i * 2 + 1] / exp) % 10;
+            const x = Math.floor(arr32[i * 2 + 1] / exp) % radixBase;
             temp[count[x] - 1] = arr[i];
             count[x]--;
         }
@@ -65,7 +67,7 @@ function SortWorker() {
 
         // Do counting sort for every digit. Note that instead of passing digit number, exp is passed.
         // exp is 10^i where i is current digit number
-        for (let exp = 1; Math.floor(m / exp) > 0; exp *= 10) {
+        for (let exp = 1; Math.floor(m / exp) > 0; exp *= radixBase) {
             countSort(arr, arr32, temp, n, exp);
         }
     };
