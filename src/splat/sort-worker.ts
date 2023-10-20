@@ -9,9 +9,10 @@ function SortWorker() {
     const epsilon = 0.0001;
 
     let data: Float32Array;
-    let stride: number;
+    let centers: Float32Array;
     let cameraPosition: Vec3;
     let cameraDirection: Vec3;
+    let isWebGPU: boolean;
 
     const lastCameraPosition = { x: 0, y: 0, z: 0 };
     const lastCameraDirection = { x: 0, y: 0, z: 0 };
@@ -21,7 +22,7 @@ function SortWorker() {
     let target: Float32Array;
 
     const update = () => {
-        if (!data || !stride || !cameraPosition || !cameraDirection) return;
+        if (!centers || !data || !cameraPosition || !cameraDirection) return;
 
         const px = cameraPosition.x;
         const py = cameraPosition.y;
@@ -47,24 +48,23 @@ function SortWorker() {
         lastCameraDirection.y = dy;
         lastCameraDirection.z = dz;
 
-        const numVertices = data.length / stride;
+        const numVertices = centers.length / 3;
 
         // create distance buffer
         if (orderBuffer?.length !== numVertices) {
             orderBuffer = new BigUint64Array(numVertices);
             orderBuffer32 = new Uint32Array(orderBuffer.buffer);
-            target = new Float32Array(numVertices * stride);
+            target = new Float32Array(numVertices);
         }
 
-        const strideVertices = numVertices * stride;
-
         // calc min/max
-        let minDist = (data[0] - px) * dx + (data[1] - py) * dy + (data[2] - pz) * dz;
+        let minDist = (centers[0] - px) * dx + (centers[1] - py) * dy + (centers[2] - pz) * dz;
         let maxDist = minDist;
-        for (let i = stride; i < strideVertices; i += stride) {
-            const d = (data[i + 0] - px) * dx +
-                      (data[i + 1] - py) * dy +
-                      (data[i + 2] - pz) * dz;
+        for (let i = 1; i < numVertices; i++) {
+            const istride = i * 3;
+            const d = (centers[istride + 0] - px) * dx +
+                      (centers[istride + 1] - py) * dy +
+                      (centers[istride + 2] - pz) * dz;
             minDist = Math.min(minDist, d);
             maxDist = Math.max(maxDist, d);
         }
@@ -72,23 +72,28 @@ function SortWorker() {
         // generate per vertex distance to camera
         const range = maxDist - minDist;
         for (let i = 0; i < numVertices; ++i) {
-            const istride = i * stride;
-            const d = (data[istride + 0] - px) * dx +
-                      (data[istride + 1] - py) * dy +
-                      (data[istride + 2] - pz) * dz;
+            const istride = i * 3;
+            const d = (centers[istride + 0] - px) * dx +
+                      (centers[istride + 1] - py) * dy +
+                      (centers[istride + 2] - pz) * dz;
+            orderBuffer32[i * 2 + 0] = i;
             orderBuffer32[i * 2 + 1] = Math.floor((d - minDist) / range * (2 ** 32));
-            orderBuffer32[i * 2] = i;
         }
 
         // sort indices
         orderBuffer.sort();
 
         // order the splat data
-        for (let i = 0; i < numVertices; ++i) {
-            const ti = i * stride;
-            const si = orderBuffer32[i * 2] * stride;
-            for (let j = 0; j < stride; ++j) {
-                target[ti + j] = data[si + j];
+        if (isWebGPU) {
+            const target32 = new Uint32Array(target.buffer);
+            for (let i = 0; i < numVertices; ++i) {
+                const index = orderBuffer32[i * 2];
+                target32[i] = index;
+            }
+        } else {
+            for (let i = 0; i < numVertices; ++i) {
+                const index = orderBuffer32[i * 2];
+                target[i] = index + 0.2;
             }
         }
 
@@ -109,8 +114,11 @@ function SortWorker() {
         if (message.data.data) {
             data = new Float32Array(message.data.data);
         }
-        if (message.data.stride) {
-            stride = message.data.stride;
+        if (message.data.centers) {
+            centers = new Float32Array(message.data.centers);
+        }
+        if (message.data.isWebGPU) {
+            isWebGPU = message.data.isWebGPU;
         }
         if (message.data.cameraPosition) cameraPosition = message.data.cameraPosition;
         if (message.data.cameraDirection) cameraDirection = message.data.cameraDirection;

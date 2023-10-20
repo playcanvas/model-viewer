@@ -12,7 +12,6 @@ import {
     Mesh,
     Vec3,
     createBox,
-    SEMANTIC_ATTR11,
     SEMANTIC_ATTR13,
     TYPE_FLOAT32,
     VertexFormat,
@@ -294,7 +293,6 @@ class Splat {
         return texture;
     }
 
-
     create(splatData: SplatData, options: any) {
         const x = splatData.getProp('x');
         const y = splatData.getProp('y');
@@ -304,34 +302,18 @@ class Splat {
             return;
         }
 
-        const stride = 4;
-
         const textureSize = this.evalTextureSize(splatData.numSplats);
         const colorTexture = this.createColorTexture(splatData, textureSize);
         const scaleTexture = this.createScaleTexture(splatData, textureSize, this.getTextureFormat(false));
         const rotationTexture = this.createRotationTexture(splatData, textureSize, this.getTextureFormat(false));
         const centerTexture = this.createCenterTexture(splatData, textureSize, this.getTextureFormat(false));
 
-        // position.xyz, rotation.xyz
-        const floatData = new Float32Array(splatData.numSplats * stride);
-        const uint32Data = new Uint32Array(floatData.buffer);
-
-        const isWebGPU = this.device.isWebGPU;
-
+        // centers - constant buffer that is sent to the worker
+        const centers = new Float32Array(splatData.numSplats * 3);
         for (let i = 0; i < splatData.numSplats; ++i) {
-            const j = i;
-
-            // positions
-            floatData[i * stride + 0] = x[j];
-            floatData[i * stride + 1] = y[j];
-            floatData[i * stride + 2] = z[j];
-
-            // index
-            if (isWebGPU) {
-                uint32Data[i * stride + 3] = i;
-            } else {
-                floatData[i * stride + 3] = i + 0.2;
-            }
+            centers[i * 3 + 0] = x[i];
+            centers[i * 3 + 1] = y[i];
+            centers[i * 3 + 2] = z[i];
         }
 
         this.material.setParameter('splatColor', colorTexture);
@@ -341,10 +323,12 @@ class Splat {
         this.material.setParameter('tex_params', new Float32Array([textureSize.x, textureSize.y, 1 / textureSize.x, 1 / textureSize.y]));
 
         // create instance data
+        const isWebGPU = this.device.isWebGPU;
         const vertexFormat = new VertexFormat(this.device, [
-            { semantic: SEMANTIC_ATTR11, components: 3, type: TYPE_FLOAT32 },
             { semantic: SEMANTIC_ATTR13, components: 1, type: isWebGPU ? TYPE_UINT32 : TYPE_FLOAT32 }
         ]);
+
+        const floatData = new Float32Array(splatData.numSplats);
         const vertexBuffer = new VertexBuffer(this.device, vertexFormat, splatData.numSplats, BUFFER_DYNAMIC, floatData.buffer);
 
         this.meshInstance = new MeshInstance(this.quadMesh, this.material);
@@ -362,7 +346,7 @@ class Splat {
             sortWorker.onmessage = (message: any) => {
                 const data = message.data.data;
 
-                // copy source data
+                // copy output data to VB
                 floatData.set(new Float32Array(data));
 
                 // send the memory buffer back to worker
@@ -379,10 +363,12 @@ class Splat {
 
             // send the initial buffer to worker
             const buf = vertexBuffer.storage.slice(0);
+            const centerBuf = centers.buffer.slice(0);
             sortWorker.postMessage({
                 data: buf,
-                stride: stride
-            }, [buf]);
+                centers: centerBuf,
+                isWebGPU: isWebGPU
+            }, [buf, centerBuf]);
 
             const viewport = [this.device.width, this.device.height];
 
