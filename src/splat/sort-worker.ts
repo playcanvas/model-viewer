@@ -8,6 +8,10 @@ type Vec3 = {
 function SortWorker() {
     const epsilon = 0.0001;
 
+    // number of bits used to store the distance in integer array. Smaller number gives is smaller
+    //  precision but less radix sort passes to sort. Could even be dynamic for less precise sorting.
+    const compareBits = 16;
+
     let data: Float32Array;
     let centers: Float32Array;
     let cameraPosition: Vec3;
@@ -20,6 +24,50 @@ function SortWorker() {
     let orderBuffer: BigUint64Array;
     let orderBuffer32: Uint32Array;
     let target: Float32Array;
+
+    // A function to do counting sort of arr[] according to the digit represented by exp.
+    const countSort = (arr: BigUint64Array, arr32: Uint32Array, temp: BigUint64Array, n: number, exp: number) => {
+        const count = new Array(10);
+        for (let i = 0; i < 10; i++)
+            count[i] = 0;
+
+        // Store count of occurrences in count[]
+        for (let i = 0; i < n; i++) {
+            const x = Math.floor(arr32[i * 2 + 1] / exp) % 10;
+            count[x]++;
+        }
+
+        // Change count[i] so that count[i] now contains actual position of this digit in output[]
+        for (let i = 1; i < 10; i++)
+            count[i] += count[i - 1];
+
+        // Build the output array
+        for (let i = n - 1; i >= 0; i--) {
+            const x = Math.floor(arr32[i * 2 + 1] / exp) % 10;
+            temp[count[x] - 1] = arr[i];
+            count[x]--;
+        }
+
+        // Copy the output array to arr[], so that arr[] now contains sorted numbers according to current digit
+        for (let i = 0; i < n; i++)
+            arr[i] = temp[i];
+    };
+
+    // The main function to that sorts arr[] of size n using Radix Sort
+    const radixSort = (arr: BigUint64Array, arr32: Uint32Array, n: number) => {
+
+        // maximum number to know number of digits
+        const m = 2 ** compareBits;
+
+        // temp array - ideally we'd cache this globally
+        const temp = new BigUint64Array(n);
+
+        // Do counting sort for every digit. Note that instead of passing digit number, exp is passed.
+        // exp is 10^i where i is current digit number
+        for (let exp = 1; Math.floor(m / exp) > 0; exp *= 10) {
+            countSort(arr, arr32, temp, n, exp);
+        }
+    };
 
     const update = () => {
         if (!centers || !data || !cameraPosition || !cameraDirection) return;
@@ -77,11 +125,18 @@ function SortWorker() {
                       (centers[istride + 1] - py) * dy +
                       (centers[istride + 2] - pz) * dz;
             orderBuffer32[i * 2 + 0] = i;
-            orderBuffer32[i * 2 + 1] = Math.floor((d - minDist) / range * (2 ** 32));
+            orderBuffer32[i * 2 + 1] = Math.floor((d - minDist) / range * (2 ** compareBits));
         }
 
-        // sort indices
-        orderBuffer.sort();
+        console.time("sort");
+
+        // sort indices by distance only, so use distance in orderBuffer32 as sorting key
+        radixSort(orderBuffer, orderBuffer32, numVertices);
+
+        // normal sort
+        // orderBuffer.sort();
+
+        console.timeEnd("sort");
 
         // order the splat data
         if (isWebGPU) {
