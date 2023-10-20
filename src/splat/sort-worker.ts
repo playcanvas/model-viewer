@@ -13,6 +13,8 @@ function SortWorker() {
     // 16bit seems plenty of large scenes (train), 10bits is enough for sled.
     const compareBits = 16;
 
+    // larger based makes a lot less passes by radix sort, but each pass is slightly slower. Big win
+    // to use 512 vs 10. Needs to find a the sweet spot for this.
     const radixBase = 512;
 
     let data: Float32Array;
