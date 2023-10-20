@@ -87,8 +87,8 @@ class Splat {
     quadMesh: Mesh;
     aabb = new BoundingBox();
     focalPoint = new Vec3();
-    halfFormat: number;
-    floatFormat: number;
+    halfFormat: object;
+    floatFormat: object;
 
     constructor(device: GraphicsDevice) {
         this.device = device;
@@ -100,12 +100,23 @@ class Splat {
 
     testTextureFormats() {
         const { device } = this;
-        this.halfFormat = (device.extTextureHalfFloat && device.textureHalfFloatUpdatable) ? PIXELFORMAT_RGBA16F : undefined;
-        this.floatFormat = device.extTextureFloat ? PIXELFORMAT_RGB32F : undefined;
-
+        const halfFormat = (device.extTextureHalfFloat && device.textureHalfFloatUpdatable) ? PIXELFORMAT_RGBA16F : undefined;
+        let floatFormat = device.extTextureFloat ? PIXELFORMAT_RGB32F : undefined;
         if (device.isWebGPU) {
-            this.floatFormat = PIXELFORMAT_RGBA32F;
+            floatFormat = PIXELFORMAT_RGBA32F;
         }
+
+        this.halfFormat = halfFormat ? {
+            format: halfFormat,
+            numComponents: 4,
+            isHalf: true
+        } : undefined;
+
+        this.floatFormat = floatFormat ? {
+            format: floatFormat,
+            numComponents: floatFormat === PIXELFORMAT_RGBA32F ? 4 : 3,
+            isHalf: false
+        } : undefined;
     }
 
     getTextureFormat(preferHighPrecision: boolean) {
@@ -185,25 +196,16 @@ class Splat {
         return texture;
     }
 
-    createScaleTexture(splatData: SplatData, size: Vec2, format: number) {
+    createScaleTexture(splatData: SplatData, size: Vec2, format: object) {
 
         // texture format based vars
-        let halfFloat = false;
-        let numComponents = 3;  // RGB32 is used
-        if (format === PIXELFORMAT_RGBA16F) {
-            halfFloat = true;
-            numComponents = 4;  // RGBA16 is used, RGB16 does not work
-        }
-
-        if (format === PIXELFORMAT_RGBA32F) {
-            numComponents = 4;
-        }
+        const { numComponents, isHalf } = format;
 
         const scale0 = splatData.getProp('scale_0');
         const scale1 = splatData.getProp('scale_1');
         const scale2 = splatData.getProp('scale_2');
 
-        const texture = this.createTexture('splatScale', format, size);
+        const texture = this.createTexture('splatScale', format.format, size);
         const data = texture.lock();
 
         for (let i = 0; i < splatData.numSplats; i++) {
@@ -212,7 +214,7 @@ class Splat {
             const sy = Math.exp(scale1[i]);
             const sz = Math.exp(scale2[i]);
 
-            if (halfFloat) {
+            if (isHalf) {
                 data[i * numComponents + 0] = float2Half(sx);
                 data[i * numComponents + 1] = float2Half(sy);
                 data[i * numComponents + 2] = float2Half(sz);
@@ -245,7 +247,7 @@ class Splat {
 
         const textureSize = this.evalTextureSize(splatData.numSplats);
         const colorTexture = this.createColorTexture(splatData, textureSize);
-        const scaleTexture = this.createScaleTexture(splatData, textureSize, this.getTextureFormat(true));
+        const scaleTexture = this.createScaleTexture(splatData, textureSize, this.getTextureFormat(false));
 
         // position.xyz, rotation.xyz
         const floatData = new Float32Array(splatData.numSplats * stride);
