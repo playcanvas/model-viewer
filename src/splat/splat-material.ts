@@ -117,21 +117,19 @@ const splatVS = `
 
     #endif
 
-    void computeCov3d(in vec3 rot, in vec3 scale, out vec3 covA, out vec3 covB)
+    void computeCov3d(in mat3 rot, in vec3 scale, out vec3 covA, out vec3 covB)
     {
-        mat3 R = quatToMat3(rot);
-
         // M = S * R
         float M[9] = float[9](
-            scale.x * R[0][0],
-            scale.x * R[0][1],
-            scale.x * R[0][2],
-            scale.y * R[1][0],
-            scale.y * R[1][1],
-            scale.y * R[1][2],
-            scale.z * R[2][0],
-            scale.z * R[2][1],
-            scale.z * R[2][2]
+            scale.x * rot[0][0],
+            scale.x * rot[0][1],
+            scale.x * rot[0][2],
+            scale.y * rot[1][0],
+            scale.y * rot[1][1],
+            scale.y * rot[1][2],
+            scale.z * rot[2][0],
+            scale.z * rot[2][1],
+            scale.z * rot[2][2]
         );
 
         covA = vec3(
@@ -165,7 +163,7 @@ const splatVS = `
         vec3 splat_covb;
         vec3 scale = getScale();
         vec3 rotation = getRotation();
-        computeCov3d(rotation, scale, splat_cova, splat_covb);
+        computeCov3d(mat3(matrix_model) * quatToMat3(rotation), scale, splat_cova, splat_covb);
 
         mat3 Vrk = mat3(
             splat_cova.x, splat_cova.y, splat_cova.z, 
