@@ -3,12 +3,15 @@ import {
     BoundingBox,
     Color,
     Mat4,
-    Vec3
+    Vec3,
+    Quat
 } from "playcanvas";
 import { PlyElement } from "./ply-reader";
 
 const vec3 = new Vec3();
 const mat4 = new Mat4();
+const quat = new Quat();
+const quat2 = new Quat();
 const aabb = new BoundingBox();
 const aabb2 = new BoundingBox();
 
@@ -66,26 +69,48 @@ class SplatData {
         this.elements = elements;
         this.vertexElement = elements.find(element => element.name === 'vertex');
 
-        // mirror the scene in the x and y axis (both positions and rotations)
-        const x = this.getProp('x');
-        const y = this.getProp('y');
-        const rot_1 = this.getProp('rot_1');
-        const rot_2 = this.getProp('rot_2');
-
-        if (x && y && rot_1 && rot_2) {
-            for (let i = 0; i < this.numSplats; ++i) {
-                x[i] *= -1;
-                y[i] *= -1;
-                rot_1[i] *= -1;
-                rot_2[i] *= -1;
-            }
-        }
+        mat4.setScale(-1, -1, 1);
+        // mat4.setFromEulerAngles(-90, -90, 0);
+        this.transform(mat4);
     }
 
     get numSplats() {
         return this.vertexElement.count;
     }
 
+    // transform splat data by the given matrix
+    transform(mat: Mat4) {
+        const x = this.getProp('x');
+        const y = this.getProp('y');
+        const z = this.getProp('z');
+
+        const rx = this.getProp('rot_0');
+        const ry = this.getProp('rot_1');
+        const rz = this.getProp('rot_2');
+        const rw = this.getProp('rot_3');
+
+        quat2.setFromMat4(mat);
+
+        for (let i = 0; i < this.numSplats; ++i) {
+            // transform center
+            vec3.set(x[i], y[i], z[i]);
+            mat.transformPoint(vec3, vec3);
+            x[i] = vec3.x;
+            y[i] = vec3.y;
+            z[i] = vec3.z;
+
+            // transform orientation
+            quat.set(ry[i], rz[i], rw[i], rx[i]).mul2(quat2, quat);
+            rx[i] = quat.w;
+            ry[i] = quat.x;
+            rz[i] = quat.y;
+            rw[i] = quat.z;
+
+            // TODO: transform SH
+        }
+    }
+
+    // access a named property
     getProp(name: string) {
         return this.vertexElement.properties.find((property: any) => property.name === name && property.storage)?.storage;
     }

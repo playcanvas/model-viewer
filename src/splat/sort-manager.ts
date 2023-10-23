@@ -1,3 +1,5 @@
+import { VertexBuffer } from "playcanvas";
+
 type Vec3 = {
     x: number,
     y: number,
@@ -12,7 +14,7 @@ function SortWorker() {
     let centers: Float32Array;
     let cameraPosition: Vec3;
     let cameraDirection: Vec3;
-    let isWebGPU: boolean;
+    let intIndices: boolean;
 
     const lastCameraPosition = { x: 0, y: 0, z: 0 };
     const lastCameraDirection = { x: 0, y: 0, z: 0 };
@@ -84,7 +86,7 @@ function SortWorker() {
         orderBuffer.sort();
 
         // order the splat data
-        if (isWebGPU) {
+        if (intIndices) {
             const target32 = new Uint32Array(target.buffer);
             for (let i = 0; i < numVertices; ++i) {
                 const index = orderBuffer32[i * 2];
@@ -117,8 +119,8 @@ function SortWorker() {
         if (message.data.centers) {
             centers = new Float32Array(message.data.centers);
         }
-        if (message.data.isWebGPU) {
-            isWebGPU = message.data.isWebGPU;
+        if (message.data.intIndices) {
+            intIndices = message.data.intIndices;
         }
         if (message.data.cameraPosition) cameraPosition = message.data.cameraPosition;
         if (message.data.cameraDirection) cameraDirection = message.data.cameraDirection;
@@ -127,4 +129,49 @@ function SortWorker() {
     };
 }
 
-export { SortWorker };
+class SortManager {
+    worker: Worker;
+    vertexBuffer: VertexBuffer;
+    updatedCallback: () => void;
+
+    constructor() {
+        this.worker = new Worker(URL.createObjectURL(new Blob([`(${SortWorker.toString()})()`], {
+            type: 'application/javascript'
+        })));
+
+        this.worker.onmessage = (message: any) => {
+            const newData = message.data.data;
+            const oldData = this.vertexBuffer.storage;
+
+            // send vertex storage to worker to start the next frame
+            this.worker.postMessage({
+                data: oldData
+            }, [oldData]);
+
+            this.vertexBuffer.setData(newData);
+            this.updatedCallback?.();
+        };
+    }
+
+    sort(vertexBuffer: VertexBuffer, centers: Float32Array, intIndices: boolean, updatedCallback?: () => void) {
+        this.vertexBuffer = vertexBuffer;
+        this.updatedCallback = updatedCallback;
+
+        // send the initial buffer to worker
+        const buf = vertexBuffer.storage.slice(0);
+        this.worker.postMessage({
+            data: buf,
+            centers: centers.buffer,
+            intIndices: intIndices
+        }, [buf, centers.buffer]);
+    }
+
+    setCamera(pos: Vec3, dir: Vec3) {
+        this.worker.postMessage({
+            cameraPosition: { x: pos.x, y: pos.y, z: pos.z },
+            cameraDirection: { x: dir.x, y: dir.y, z: dir.z }
+        });
+    }
+}
+
+export { SortManager };
