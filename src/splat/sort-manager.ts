@@ -33,6 +33,7 @@ function SortWorker() {
 
     let orderBuffer: BigUint64Array;
     let orderBuffer32: Uint32Array;
+    let orderBufferTmp: BigUint64Array;
     let target: Float32Array;
 
     // A function to do counting sort of arr[] according to the digit represented by exp.
@@ -64,18 +65,15 @@ function SortWorker() {
     };
 
     // The main function to that sorts arr[] of size n using Radix Sort
-    const radixSort = (arr: BigUint64Array, arr32: Uint32Array, n: number) => {
+    const radixSort = (arr: BigUint64Array, arr32: Uint32Array, arrTmp: BigUint64Array, n: number) => {
 
         // maximum number to know number of digits
         const m = 2 ** compareBits;
 
-        // temp array - ideally we'd cache this globally
-        const temp = new BigUint64Array(n);
-
         // Do counting sort for every digit. Note that instead of passing digit number, exp is passed.
         // exp is 10^i where i is current digit number
         for (let exp = 1; Math.floor(m / exp) > 0; exp *= radixBase) {
-            countSort(arr, arr32, temp, n, exp);
+            countSort(arr, arr32, arrTmp, n, exp);
         }
     };
 
@@ -112,6 +110,7 @@ function SortWorker() {
         if (orderBuffer?.length !== numVertices) {
             orderBuffer = new BigUint64Array(numVertices);
             orderBuffer32 = new Uint32Array(orderBuffer.buffer);
+            orderBufferTmp = new BigUint64Array(numVertices);
             target = new Float32Array(numVertices);
         }
 
@@ -145,7 +144,7 @@ function SortWorker() {
         // console.time("sort");
 
         // sort indices by distance only, so use distance in orderBuffer32 as sorting key
-        radixSort(orderBuffer, orderBuffer32, numVertices);
+        radixSort(orderBuffer, orderBuffer32, orderBufferTmp, numVertices);
 
         // normal sort
         // orderBuffer.sort();
