@@ -1815,6 +1815,7 @@ class Viewer {
 
             // offset scene geometry to place it at the origin
             this.sceneRoot.setLocalPosition(-this.sceneBounds.center.x, -this.sceneBounds.getMin().y, -this.sceneBounds.center.z);
+            // this.sceneRoot.setLocalEulerAngles(-90, -90, 0);
 
             // set projective skybox radius
             this.projectiveSkybox.domeRadius = this.sceneBounds.halfExtents.length() * this.observer.get('skybox.domeProjection.domeRadius');
