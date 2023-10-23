@@ -64,7 +64,7 @@ function SortWorker() {
 
         // calc min/max distance using bound
         let minDist;
-        let maxDist
+        let maxDist;
         for (let i = 0; i < 8; ++i) {
             const x = i & 1 ? boundMin.x : boundMax.x;
             const y = i & 2 ? boundMin.y : boundMax.y;
