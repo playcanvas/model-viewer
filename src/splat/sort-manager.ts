@@ -16,8 +16,8 @@ function SortWorker() {
     let cameraDirection: Vec3;
     let intIndices: boolean;
 
-    let boundMin = { x: 0, y: 0, z: 0 };
-    let boundMax = { x: 0, y: 0, z: 0 };
+    const boundMin = { x: 0, y: 0, z: 0 };
+    const boundMax = { x: 0, y: 0, z: 0 };
 
     const lastCameraPosition = { x: 0, y: 0, z: 0 };
     const lastCameraDirection = { x: 0, y: 0, z: 0 };
@@ -62,7 +62,7 @@ function SortWorker() {
             target = new Float32Array(numVertices);
         }
 
-        // calc min/max
+        // calc min/max distance using bound
         let minDist;
         let maxDist
         for (let i = 0; i < 8; ++i) {
