@@ -1,3 +1,5 @@
+import { VertexBuffer } from "playcanvas";
+
 type Vec3 = {
     x: number,
     y: number,
@@ -21,7 +23,10 @@ function SortWorker() {
     let centers: Float32Array;
     let cameraPosition: Vec3;
     let cameraDirection: Vec3;
-    let isWebGPU: boolean;
+    let intIndices: boolean;
+
+    const boundMin = { x: 0, y: 0, z: 0 };
+    const boundMax = { x: 0, y: 0, z: 0 };
 
     const lastCameraPosition = { x: 0, y: 0, z: 0 };
     const lastCameraDirection = { x: 0, y: 0, z: 0 };
@@ -110,16 +115,20 @@ function SortWorker() {
             target = new Float32Array(numVertices);
         }
 
-        // calc min/max
-        let minDist = (centers[0] - px) * dx + (centers[1] - py) * dy + (centers[2] - pz) * dz;
-        let maxDist = minDist;
-        for (let i = 1; i < numVertices; i++) {
-            const istride = i * 3;
-            const d = (centers[istride + 0] - px) * dx +
-                      (centers[istride + 1] - py) * dy +
-                      (centers[istride + 2] - pz) * dz;
-            minDist = Math.min(minDist, d);
-            maxDist = Math.max(maxDist, d);
+        // calc min/max distance using bound
+        let minDist;
+        let maxDist;
+        for (let i = 0; i < 8; ++i) {
+            const x = i & 1 ? boundMin.x : boundMax.x;
+            const y = i & 2 ? boundMin.y : boundMax.y;
+            const z = i & 4 ? boundMin.z : boundMax.z;
+            const d = (x - px) * dx + (y - py) * dy + (z - pz) * dz;
+            if (i === 0) {
+                minDist = maxDist = d;
+            } else {
+                minDist = Math.min(minDist, d);
+                maxDist = Math.max(maxDist, d);
+            }
         }
 
         // generate per vertex distance to camera
@@ -144,7 +153,7 @@ function SortWorker() {
         console.timeEnd("sort");
 
         // order the splat data
-        if (isWebGPU) {
+        if (intIndices) {
             const target32 = new Uint32Array(target.buffer);
             for (let i = 0; i < numVertices; ++i) {
                 const index = orderBuffer32[i * 2];
@@ -176,9 +185,29 @@ function SortWorker() {
         }
         if (message.data.centers) {
             centers = new Float32Array(message.data.centers);
+
+            // calculate bounds
+            boundMin.x = boundMax.x = centers[0];
+            boundMin.y = boundMax.y = centers[1];
+            boundMin.z = boundMax.z = centers[2];
+
+            const numVertices = centers.length / 3;
+            for (let i = 1; i < numVertices; ++i) {
+                const x = centers[i * 3 + 0];
+                const y = centers[i * 3 + 1];
+                const z = centers[i * 3 + 2];
+
+                boundMin.x = Math.min(boundMin.x, x);
+                boundMin.y = Math.min(boundMin.y, y);
+                boundMin.z = Math.min(boundMin.z, z);
+
+                boundMax.x = Math.max(boundMax.x, x);
+                boundMax.y = Math.max(boundMax.y, y);
+                boundMax.z = Math.max(boundMax.z, z);
+            }
         }
-        if (message.data.isWebGPU) {
-            isWebGPU = message.data.isWebGPU;
+        if (message.data.intIndices) {
+            intIndices = message.data.intIndices;
         }
         if (message.data.cameraPosition) cameraPosition = message.data.cameraPosition;
         if (message.data.cameraDirection) cameraDirection = message.data.cameraDirection;
@@ -187,4 +216,49 @@ function SortWorker() {
     };
 }
 
-export { SortWorker };
+class SortManager {
+    worker: Worker;
+    vertexBuffer: VertexBuffer;
+    updatedCallback: () => void;
+
+    constructor() {
+        this.worker = new Worker(URL.createObjectURL(new Blob([`(${SortWorker.toString()})()`], {
+            type: 'application/javascript'
+        })));
+
+        this.worker.onmessage = (message: any) => {
+            const newData = message.data.data;
+            const oldData = this.vertexBuffer.storage;
+
+            // send vertex storage to worker to start the next frame
+            this.worker.postMessage({
+                data: oldData
+            }, [oldData]);
+
+            this.vertexBuffer.setData(newData);
+            this.updatedCallback?.();
+        };
+    }
+
+    sort(vertexBuffer: VertexBuffer, centers: Float32Array, intIndices: boolean, updatedCallback?: () => void) {
+        this.vertexBuffer = vertexBuffer;
+        this.updatedCallback = updatedCallback;
+
+        // send the initial buffer to worker
+        const buf = vertexBuffer.storage.slice(0);
+        this.worker.postMessage({
+            data: buf,
+            centers: centers.buffer,
+            intIndices: intIndices
+        }, [buf, centers.buffer]);
+    }
+
+    setCamera(pos: Vec3, dir: Vec3) {
+        this.worker.postMessage({
+            cameraPosition: { x: pos.x, y: pos.y, z: pos.z },
+            cameraDirection: { x: dir.x, y: dir.y, z: dir.z }
+        });
+    }
+}
+
+export { SortManager };

@@ -18,19 +18,15 @@ import {
     TYPE_UINT32,
     BUFFER_DYNAMIC,
     VertexBuffer,
-    BoundingBox,
-    Mat4,
     PIXELFORMAT_RGBA16F,
     PIXELFORMAT_RGB32F,
     PIXELFORMAT_RGBA32F
 } from "playcanvas";
 import { SplatData } from "./splat-data";
-import { SortWorker } from "./sort-worker";
 import { createSplatMaterial } from "./splat-material";
 
 // set true to render splats as oriented boxes
 const debugRender = false;
-const debugRenderBounds = false;
 
 const floatView = new Float32Array(1);
 const int32View = new Int32Array(floatView.buffer);
@@ -83,8 +79,6 @@ class Splat {
     material: Material;
     meshInstance: MeshInstance;
     quadMesh: Mesh;
-    aabb = new BoundingBox();
-    focalPoint = new Vec3();
     halfFormat: object;
     floatFormat: object;
 
@@ -293,7 +287,7 @@ class Splat {
         return texture;
     }
 
-    create(splatData: SplatData, options: any) {
+    create(splatData: SplatData) {
         const x = splatData.getProp('x');
         const y = splatData.getProp('y');
         const z = splatData.getProp('z');
@@ -308,14 +302,6 @@ class Splat {
         const rotationTexture = this.createRotationTexture(splatData, textureSize, this.getTextureFormat(false));
         const centerTexture = this.createCenterTexture(splatData, textureSize, this.getTextureFormat(false));
 
-        // centers - constant buffer that is sent to the worker
-        const centers = new Float32Array(splatData.numSplats * 3);
-        for (let i = 0; i < splatData.numSplats; ++i) {
-            centers[i * 3 + 0] = x[i];
-            centers[i * 3 + 1] = y[i];
-            centers[i * 3 + 2] = z[i];
-        }
-
         this.material.setParameter('splatColor', colorTexture);
         this.material.setParameter('splatScale', scaleTexture);
         this.material.setParameter('splatRotation', rotationTexture);
@@ -328,71 +314,16 @@ class Splat {
             { semantic: SEMANTIC_ATTR13, components: 1, type: isWebGPU ? TYPE_UINT32 : TYPE_FLOAT32 }
         ]);
 
-        const floatData = new Float32Array(splatData.numSplats);
-        const vertexBuffer = new VertexBuffer(this.device, vertexFormat, splatData.numSplats, BUFFER_DYNAMIC, floatData.buffer);
+        const vertexBuffer = new VertexBuffer(
+            this.device,
+            vertexFormat,
+            splatData.numSplats,
+            BUFFER_DYNAMIC,
+            new ArrayBuffer(splatData.numSplats * 4)
+        );
 
         this.meshInstance = new MeshInstance(this.quadMesh, this.material);
         this.meshInstance.setInstancing(vertexBuffer);
-
-        // calculate custom aabb
-        splatData.calcAabb(this.aabb);
-
-        // create sort worker
-        if (options?.app && options?.camera) {
-            const sortWorker = new Worker(URL.createObjectURL(new Blob([`(${SortWorker.toString()})()`], {
-                type: 'application/javascript'
-            })));
-
-            sortWorker.onmessage = (message: any) => {
-                const data = message.data.data;
-
-                // copy output data to VB
-                floatData.set(new Float32Array(data));
-
-                // send the memory buffer back to worker
-                sortWorker.postMessage({
-                    data: data
-                }, [data]);
-
-                // upload new data to GPU
-                vertexBuffer.unlock();
-
-                // let caller know the view changed
-                options?.onChanged();
-            };
-
-            // send the initial buffer to worker
-            const buf = vertexBuffer.storage.slice(0);
-            const centerBuf = centers.buffer.slice(0);
-            sortWorker.postMessage({
-                data: buf,
-                centers: centerBuf,
-                isWebGPU: isWebGPU
-            }, [buf, centerBuf]);
-
-            const viewport = [this.device.width, this.device.height];
-
-            options.app.on('prerender', () => {
-                const t = options.camera.getWorldTransform().data;
-                sortWorker.postMessage({
-                    cameraPosition: { x: t[12], y: t[13], z: t[14] },
-                    cameraDirection: { x: t[8], y: t[9], z: t[10] }
-                });
-
-                viewport[0] = this.device.width;
-                viewport[1] = this.device.height;
-                this.material.setParameter('viewport', viewport);
-
-                // debug render splat bounds
-                if (debugRenderBounds) {
-                    // FIXME: need world matrix
-                    splatData.renderWireframeBounds(options.app, Mat4.IDENTITY);
-                }
-            });
-        }
-
-        // calculate focal point
-        splatData.calcFocalPoint(this.focalPoint);
     }
 }
 
