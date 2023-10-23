@@ -34,6 +34,8 @@ class SplatResource extends ContainerResource {
     materials: Material[] = [];
     textures: Texture[] = [];
 
+    handle: any;
+
     constructor(device: GraphicsDevice, splatData: SplatData) {
         super();
 
@@ -42,7 +44,7 @@ class SplatResource extends ContainerResource {
     }
 
     destroy() {
-
+        this.handle.off();
     }
 
     instantiateModelEntity(/* options: any */): Entity {
@@ -92,7 +94,7 @@ class SplatResource extends ContainerResource {
 
         const viewport = [0, 0];
 
-        options.app.on('prerender', () => {
+        this.handle = options.app.on('prerender', () => {
             const cameraMat = options.camera.getWorldTransform();
             cameraMat.getTranslation(pos);
             cameraMat.getZ(dir);
