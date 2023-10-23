@@ -145,7 +145,7 @@ class SortManager {
 
             // send vertex storage to worker to start the next frame
             this.worker.postMessage({
-                data: oldData,
+                data: oldData
             }, [oldData]);
 
             this.vertexBuffer.setData(newData);
@@ -164,7 +164,6 @@ class SortManager {
             centers: centers.buffer,
             intIndices: intIndices
         }, [buf, centers.buffer]);
-
     }
 
     setCamera(pos: Vec3, dir: Vec3) {
@@ -173,6 +172,6 @@ class SortManager {
             cameraDirection: { x: dir.x, y: dir.y, z: dir.z }
         });
     }
-};
+}
 
 export { SortManager };

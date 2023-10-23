@@ -51,7 +51,7 @@ class SplatResource extends ContainerResource {
 
     instantiateRenderEntity(options: any): Entity {
         const splat = new Splat(this.device);
-        splat.create(this.splatData, options);
+        splat.create(this.splatData);
 
         const result = new Entity('ply');
         result.addComponent('render', {
@@ -83,7 +83,7 @@ class SplatResource extends ContainerResource {
 
         // initialize sort
         this.sortManager = new SortManager();
-        const sortJob = this.sortManager.sort(
+        this.sortManager.sort(
             splat.meshInstance.instancingData.vertexBuffer,
             centers,
             this.device.isWebGPU,

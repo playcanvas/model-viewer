@@ -27,7 +27,6 @@ import { createSplatMaterial } from "./splat-material";
 
 // set true to render splats as oriented boxes
 const debugRender = false;
-const debugRenderBounds = false;
 
 const floatView = new Float32Array(1);
 const int32View = new Int32Array(floatView.buffer);
@@ -288,7 +287,7 @@ class Splat {
         return texture;
     }
 
-    create(splatData: SplatData, options: any) {
+    create(splatData: SplatData) {
         const x = splatData.prop('x');
         const y = splatData.prop('y');
         const z = splatData.prop('z');
