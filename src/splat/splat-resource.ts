@@ -70,9 +70,9 @@ class SplatResource extends ContainerResource {
         this.splatData.calcFocalPoint(this.focalPoint);
 
         // centers - constant buffer that is sent to the worker
-        const x = this.splatData.prop('x');
-        const y = this.splatData.prop('y');
-        const z = this.splatData.prop('z');
+        const x = this.splatData.getProp('x');
+        const y = this.splatData.getProp('y');
+        const z = this.splatData.getProp('z');
 
         const centers = new Float32Array(this.splatData.numSplats * 3);
         for (let i = 0; i < this.splatData.numSplats; ++i) {

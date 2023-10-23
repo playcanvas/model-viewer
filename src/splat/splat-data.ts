@@ -80,14 +80,14 @@ class SplatData {
 
     // transform splat data by the given matrix
     transform(mat: Mat4) {
-        const x = this.prop('x');
-        const y = this.prop('y');
-        const z = this.prop('z');
+        const x = this.getProp('x');
+        const y = this.getProp('y');
+        const z = this.getProp('z');
 
-        const rx = this.prop('rot_0');
-        const ry = this.prop('rot_1');
-        const rz = this.prop('rot_2');
-        const rw = this.prop('rot_3');
+        const rx = this.getProp('rot_0');
+        const ry = this.getProp('rot_1');
+        const rz = this.getProp('rot_2');
+        const rw = this.getProp('rot_3');
 
         quat2.setFromMat4(mat);
 
@@ -111,24 +111,24 @@ class SplatData {
     }
 
     // access a named property
-    prop(name: string) {
+    getProp(name: string) {
         return this.vertexElement.properties.find((property: any) => property.name === name && property.storage)?.storage;
     }
 
     // calculate scene aabb taking into account splat size
     calcAabb(result: BoundingBox) {
-        const x = this.prop('x');
-        const y = this.prop('y');
-        const z = this.prop('z');
+        const x = this.getProp('x');
+        const y = this.getProp('y');
+        const z = this.getProp('z');
 
-        const rx = this.prop('rot_0');
-        const ry = this.prop('rot_1');
-        const rz = this.prop('rot_2');
-        const rw = this.prop('rot_3');
+        const rx = this.getProp('rot_0');
+        const ry = this.getProp('rot_1');
+        const rz = this.getProp('rot_2');
+        const rw = this.getProp('rot_3');
 
-        const sx = this.prop('scale_0');
-        const sy = this.prop('scale_1');
-        const sz = this.prop('scale_2');
+        const sx = this.getProp('scale_0');
+        const sy = this.getProp('scale_1');
+        const sz = this.getProp('scale_2');
 
         const splat = {
             x: 0, y: 0, z: 0, rx: 0, ry: 0, rz: 0, rw: 0, sx: 0, sy: 0, sz: 0
@@ -156,18 +156,18 @@ class SplatData {
     }
 
     renderWireframeBounds(app: AppBase, worldMat: Mat4) {
-        const x = this.prop('x');
-        const y = this.prop('y');
-        const z = this.prop('z');
+        const x = this.getProp('x');
+        const y = this.getProp('y');
+        const z = this.getProp('z');
 
-        const rx = this.prop('rot_0');
-        const ry = this.prop('rot_1');
-        const rz = this.prop('rot_2');
-        const rw = this.prop('rot_3');
+        const rx = this.getProp('rot_0');
+        const ry = this.getProp('rot_1');
+        const rz = this.getProp('rot_2');
+        const rw = this.getProp('rot_3');
 
-        const sx = this.prop('scale_0');
-        const sy = this.prop('scale_1');
-        const sz = this.prop('scale_2');
+        const sx = this.getProp('scale_0');
+        const sy = this.getProp('scale_1');
+        const sz = this.getProp('scale_2');
 
         const splat = {
             x: 0, y: 0, z: 0, rx: 0, ry: 0, rz: 0, rw: 0, sx: 0, sy: 0, sz: 0
@@ -202,13 +202,13 @@ class SplatData {
     }
 
     calcFocalPoint(result: Vec3) {
-        const x = this.prop('x');
-        const y = this.prop('y');
-        const z = this.prop('z');
+        const x = this.getProp('x');
+        const y = this.getProp('y');
+        const z = this.getProp('z');
 
-        const sx = this.prop('scale_0');
-        const sy = this.prop('scale_1');
-        const sz = this.prop('scale_2');
+        const sx = this.getProp('scale_0');
+        const sy = this.getProp('scale_1');
+        const sz = this.getProp('scale_2');
 
         let sum = 0;
         for (let i = 0; i < this.numSplats; ++i) {

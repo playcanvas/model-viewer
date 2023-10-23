@@ -154,10 +154,10 @@ class Splat {
 
         const SH_C0 = 0.28209479177387814;
 
-        const f_dc_0 = splatData.prop('f_dc_0');
-        const f_dc_1 = splatData.prop('f_dc_1');
-        const f_dc_2 = splatData.prop('f_dc_2');
-        const opacity = splatData.prop('opacity');
+        const f_dc_0 = splatData.getProp('f_dc_0');
+        const f_dc_1 = splatData.getProp('f_dc_1');
+        const f_dc_2 = splatData.getProp('f_dc_2');
+        const opacity = splatData.getProp('opacity');
 
         const texture = this.createTexture('splatColor', PIXELFORMAT_RGBA8, size);
         const data = texture.lock();
@@ -193,9 +193,9 @@ class Splat {
         // texture format based vars
         const { numComponents, isHalf } = format;
 
-        const scale0 = splatData.prop('scale_0');
-        const scale1 = splatData.prop('scale_1');
-        const scale2 = splatData.prop('scale_2');
+        const scale0 = splatData.getProp('scale_0');
+        const scale1 = splatData.getProp('scale_1');
+        const scale2 = splatData.getProp('scale_2');
 
         const texture = this.createTexture('splatScale', format.format, size);
         const data = texture.lock();
@@ -227,10 +227,10 @@ class Splat {
         const { numComponents, isHalf } = format;
         const quat = new Quat();
 
-        const rot0 = splatData.prop('rot_0');
-        const rot1 = splatData.prop('rot_1');
-        const rot2 = splatData.prop('rot_2');
-        const rot3 = splatData.prop('rot_3');
+        const rot0 = splatData.getProp('rot_0');
+        const rot1 = splatData.getProp('rot_1');
+        const rot2 = splatData.getProp('rot_2');
+        const rot3 = splatData.getProp('rot_3');
 
         const texture = this.createTexture('splatRotation', format.format, size);
         const data = texture.lock();
@@ -263,9 +263,9 @@ class Splat {
         // texture format based vars
         const { numComponents, isHalf } = format;
 
-        const x = splatData.prop('x');
-        const y = splatData.prop('y');
-        const z = splatData.prop('z');
+        const x = splatData.getProp('x');
+        const y = splatData.getProp('y');
+        const z = splatData.getProp('z');
 
         const texture = this.createTexture('splatCenter', format.format, size);
         const data = texture.lock();
@@ -288,9 +288,9 @@ class Splat {
     }
 
     create(splatData: SplatData) {
-        const x = splatData.prop('x');
-        const y = splatData.prop('y');
-        const z = splatData.prop('z');
+        const x = splatData.getProp('x');
+        const y = splatData.getProp('y');
+        const z = splatData.getProp('z');
 
         if (!x || !y || !z) {
             return;
