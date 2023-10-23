@@ -16,6 +16,9 @@ function SortWorker() {
     let cameraDirection: Vec3;
     let intIndices: boolean;
 
+    let boundMin = { x: 0, y: 0, z: 0 };
+    let boundMax = { x: 0, y: 0, z: 0 };
+
     const lastCameraPosition = { x: 0, y: 0, z: 0 };
     const lastCameraDirection = { x: 0, y: 0, z: 0 };
 
@@ -60,15 +63,19 @@ function SortWorker() {
         }
 
         // calc min/max
-        let minDist = (centers[0] - px) * dx + (centers[1] - py) * dy + (centers[2] - pz) * dz;
-        let maxDist = minDist;
-        for (let i = 1; i < numVertices; i++) {
-            const istride = i * 3;
-            const d = (centers[istride + 0] - px) * dx +
-                      (centers[istride + 1] - py) * dy +
-                      (centers[istride + 2] - pz) * dz;
-            minDist = Math.min(minDist, d);
-            maxDist = Math.max(maxDist, d);
+        let minDist;
+        let maxDist
+        for (let i = 0; i < 8; ++i) {
+            const x = i & 1 ? boundMin.x : boundMax.x;
+            const y = i & 2 ? boundMin.y : boundMax.y;
+            const z = i & 4 ? boundMin.z : boundMax.z;
+            const d = (x - px) * dx + (y - py) * dy + (z - pz) * dz;
+            if (i === 0) {
+                minDist = maxDist = d;
+            } else {
+                minDist = Math.min(minDist, d);
+                maxDist = Math.max(maxDist, d);
+            }
         }
 
         // generate per vertex distance to camera
@@ -118,6 +125,26 @@ function SortWorker() {
         }
         if (message.data.centers) {
             centers = new Float32Array(message.data.centers);
+
+            // calculate bounds
+            boundMin.x = boundMax.x = centers[0];
+            boundMin.y = boundMax.y = centers[1];
+            boundMin.z = boundMax.z = centers[2];
+
+            const numVertices = centers.length / 3;
+            for (let i = 1; i < numVertices; ++i) {
+                const x = centers[i * 3 + 0];
+                const y = centers[i * 3 + 1];
+                const z = centers[i * 3 + 2];
+
+                boundMin.x = Math.min(boundMin.x, x);
+                boundMin.y = Math.min(boundMin.y, y);
+                boundMin.z = Math.min(boundMin.z, z);
+
+                boundMax.x = Math.max(boundMax.x, x);
+                boundMax.y = Math.max(boundMax.y, y);
+                boundMax.z = Math.max(boundMax.z, z);
+            }
         }
         if (message.data.intIndices) {
             intIndices = message.data.intIndices;
