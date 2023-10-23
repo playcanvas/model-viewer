@@ -142,7 +142,7 @@ function SortWorker() {
             orderBuffer32[i * 2 + 1] = Math.floor((d - minDist) / range * (2 ** compareBits));
         }
 
-        console.time("sort");
+        // console.time("sort");
 
         // sort indices by distance only, so use distance in orderBuffer32 as sorting key
         radixSort(orderBuffer, orderBuffer32, numVertices);
@@ -150,7 +150,7 @@ function SortWorker() {
         // normal sort
         // orderBuffer.sort();
 
-        console.timeEnd("sort");
+        // console.timeEnd("sort");
 
         // order the splat data
         if (intIndices) {
