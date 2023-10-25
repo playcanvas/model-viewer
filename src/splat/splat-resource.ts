@@ -45,6 +45,8 @@ class SplatResource extends ContainerResource {
 
     destroy() {
         this.handle.off();
+
+        // TODO
     }
 
     instantiateModelEntity(/* options: any */): Entity {
@@ -52,8 +54,13 @@ class SplatResource extends ContainerResource {
     }
 
     instantiateRenderEntity(options: any): Entity {
-        const splat = new Splat(this.device);
-        splat.create(this.splatData);
+        const splatData = this.splatData;
+        const splat = new Splat(this.device, splatData.numSplats, false);
+
+        splat.updateColorData(splatData.getProp('f_dc_0'), splatData.getProp('f_dc_1'), splatData.getProp('f_dc_2'), splatData.getProp('opacity'));
+        splat.updateScaleData(splatData.getProp('scale_0'), splatData.getProp('scale_1'), splatData.getProp('scale_2'));
+        splat.updateRotationData(splatData.getProp('rot_0'), splatData.getProp('rot_1'), splatData.getProp('rot_2'), splatData.getProp('rot_3'));
+        splat.updateCenterData(splatData.getProp('x'), splatData.getProp('y'), splatData.getProp('z'));
 
         const result = new Entity('ply');
         result.addComponent('render', {
