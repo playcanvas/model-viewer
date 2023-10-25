@@ -22,11 +22,19 @@ import {
     PIXELFORMAT_RGB32F,
     PIXELFORMAT_RGBA32F
 } from "playcanvas";
-import { SplatData } from "./splat-data";
 import { createSplatMaterial } from "./splat-material";
 
-// set true to render splats as oriented boxes
-const debugRender = false;
+type TypedArray =
+    | Int8Array
+    | Uint8Array
+    | Uint8ClampedArray
+    | Int16Array
+    | Uint16Array
+    | Int32Array
+    | Uint32Array
+    | Float32Array
+    | Float64Array
+    | number[];
 
 const floatView = new Float32Array(1);
 const int32View = new Int32Array(floatView.buffer);
@@ -74,92 +82,114 @@ const float2Half = (value: number) => {
     return bits;
 };
 
+
+const evalTextureSize = (count: number) : Vec2 => {
+    const width = Math.ceil(Math.sqrt(count));
+    const height = Math.ceil(count / width);
+    return new Vec2(width, height);
+};
+
+const createTexture = (device: GraphicsDevice, name: string, format: number, size: Vec2) => {
+    return new Texture(device, {
+        width: size.x,
+        height: size.y,
+        format: format,
+        cubemap: false,
+        mipmaps: false,
+        minFilter: FILTER_NEAREST,
+        magFilter: FILTER_NEAREST,
+        addressU: ADDRESS_CLAMP_TO_EDGE,
+        addressV: ADDRESS_CLAMP_TO_EDGE,
+        name: name
+    });
+};
+
+const getTextureFormat = (device: GraphicsDevice, preferHighPrecision: boolean) => {
+    const halfFormat = (device.extTextureHalfFloat && device.textureHalfFloatUpdatable) ? PIXELFORMAT_RGBA16F : undefined;
+    const half = halfFormat ? {
+        format: halfFormat,
+        numComponents: 4,
+        isHalf: true
+    } : undefined;
+
+    const floatFormat = device.isWebGPU ? PIXELFORMAT_RGBA32F : (device.extTextureFloat ? PIXELFORMAT_RGB32F : undefined);
+    const float = floatFormat ? {
+        format: floatFormat,
+        numComponents: floatFormat === PIXELFORMAT_RGBA32F ? 4 : 3,
+        isHalf: false
+    } : undefined;
+
+    return preferHighPrecision ? (float ?? half) : (half ?? float);
+};
+
 class Splat {
     device: GraphicsDevice;
+    numSplats: number;
     material: Material;
+    mesh: Mesh;
     meshInstance: MeshInstance;
-    quadMesh: Mesh;
-    halfFormat: object;
-    floatFormat: object;
 
-    constructor(device: GraphicsDevice) {
+    format: any;
+    colorTexture: Texture;
+    scaleTexture: Texture;
+    rotationTexture: Texture;
+    centerTexture: Texture;
+
+    constructor(device: GraphicsDevice, numSplats: number, debugRender = false) {
         this.device = device;
-        this.testTextureFormats();
+        this.numSplats = numSplats;
 
+        // material
         this.material = createSplatMaterial(device, debugRender);
-        this.createMesh();
-    }
 
-    testTextureFormats() {
-        const { device } = this;
-        const halfFormat = (device.extTextureHalfFloat && device.textureHalfFloatUpdatable) ? PIXELFORMAT_RGBA16F : undefined;
-        let floatFormat = device.extTextureFloat ? PIXELFORMAT_RGB32F : undefined;
-        if (device.isWebGPU) {
-            floatFormat = PIXELFORMAT_RGBA32F;
-        }
-
-        this.halfFormat = halfFormat ? {
-            format: halfFormat,
-            numComponents: 4,
-            isHalf: true
-        } : undefined;
-
-        this.floatFormat = floatFormat ? {
-            format: floatFormat,
-            numComponents: floatFormat === PIXELFORMAT_RGBA32F ? 4 : 3,
-            isHalf: false
-        } : undefined;
-    }
-
-    getTextureFormat(preferHighPrecision: boolean) {
-        return preferHighPrecision ? (this.floatFormat ?? this.halfFormat) : (this.halfFormat ?? this.floatFormat);
-    }
-
-    createMesh() {
+        // mesh
         if (debugRender) {
-            this.quadMesh = createBox(this.device, {
+            this.mesh = createBox(this.device, {
                 halfExtents: new Vec3(1.0, 1.0, 1.0)
             });
         } else {
-            this.quadMesh = new Mesh(this.device);
-            this.quadMesh.setPositions(new Float32Array([
+            this.mesh = new Mesh(this.device);
+            this.mesh.setPositions(new Float32Array([
                 -1, -1, 1, -1, 1, 1, -1, -1, 1, 1, -1, 1
             ]), 2);
-            this.quadMesh.update();
+            this.mesh.update();
         }
+
+        // mesh instance
+        const vertexFormat = new VertexFormat(this.device, [
+            { semantic: SEMANTIC_ATTR13, components: 1, type: this.device.isWebGPU ? TYPE_UINT32 : TYPE_FLOAT32 }
+        ]);
+
+        const vertexBuffer = new VertexBuffer(
+            this.device,
+            vertexFormat,
+            numSplats,
+            BUFFER_DYNAMIC,
+            new ArrayBuffer(numSplats * 4)
+        );
+
+        this.meshInstance = new MeshInstance(this.mesh, this.material);
+        this.meshInstance.setInstancing(vertexBuffer);
+
+        // create data textures and fill
+        const size = evalTextureSize(numSplats);
+
+        this.format = getTextureFormat(device, false);
+        this.colorTexture = createTexture(this.device, 'splatColor', PIXELFORMAT_RGBA8, size);
+        this.scaleTexture = createTexture(this.device, 'splatScale', this.format.format, size);
+        this.rotationTexture = createTexture(this.device, 'splatRotation', this.format.format, size);
+        this.centerTexture = createTexture(this.device, 'splatCenter', this.format.format, size);
+
+        this.material.setParameter('splatColor', this.colorTexture);
+        this.material.setParameter('splatScale', this.scaleTexture);
+        this.material.setParameter('splatRotation', this.rotationTexture);
+        this.material.setParameter('splatCenter', this.centerTexture);
+        this.material.setParameter('tex_params', new Float32Array([size.x, size.y, 1 / size.x, 1 / size.y]));
     }
 
-    evalTextureSize(count: number) : Vec2 {
-        const width = Math.ceil(Math.sqrt(count));
-        const height = Math.ceil(count / width);
-        return new Vec2(width, height);
-    }
-
-    createTexture(name: string, format: number, size: Vec2) {
-        return new Texture(this.device, {
-            width: size.x,
-            height: size.y,
-            format: format,
-            cubemap: false,
-            mipmaps: false,
-            minFilter: FILTER_NEAREST,
-            magFilter: FILTER_NEAREST,
-            addressU: ADDRESS_CLAMP_TO_EDGE,
-            addressV: ADDRESS_CLAMP_TO_EDGE,
-            name: name
-        });
-    }
-
-    createColorTexture(splatData: SplatData, size: Vec2) {
-
+    updateColorData(f_dc_0: TypedArray, f_dc_1: TypedArray, f_dc_2: TypedArray, opacity: TypedArray) {
         const SH_C0 = 0.28209479177387814;
-
-        const f_dc_0 = splatData.getProp('f_dc_0');
-        const f_dc_1 = splatData.getProp('f_dc_1');
-        const f_dc_2 = splatData.getProp('f_dc_2');
-        const opacity = splatData.getProp('opacity');
-
-        const texture = this.createTexture('splatColor', PIXELFORMAT_RGBA8, size);
+        const texture = this.colorTexture;
         const data = texture.lock();
 
         const sigmoid = (v: number) => {
@@ -171,7 +201,7 @@ class Splat {
             return t / (1 + t);
         };
 
-        for (let i = 0; i < splatData.numSplats; ++i) {
+        for (let i = 0; i < this.numSplats; ++i) {
 
             // colors
             if (f_dc_0 && f_dc_1 && f_dc_2) {
@@ -185,26 +215,19 @@ class Splat {
         }
 
         texture.unlock();
-        return texture;
     }
 
-    createScaleTexture(splatData: SplatData, size: Vec2, format: object) {
-
+    updateScaleData(scale_0: TypedArray, scale_1: TypedArray, scale_2: TypedArray) {
         // texture format based vars
-        const { numComponents, isHalf } = format;
-
-        const scale0 = splatData.getProp('scale_0');
-        const scale1 = splatData.getProp('scale_1');
-        const scale2 = splatData.getProp('scale_2');
-
-        const texture = this.createTexture('splatScale', format.format, size);
+        const { numComponents, isHalf } = this.format;
+        const texture = this.scaleTexture;
         const data = texture.lock();
 
-        for (let i = 0; i < splatData.numSplats; i++) {
+        for (let i = 0; i < this.numSplats; i++) {
 
-            const sx = Math.exp(scale0[i]);
-            const sy = Math.exp(scale1[i]);
-            const sz = Math.exp(scale2[i]);
+            const sx = Math.exp(scale_0[i]);
+            const sy = Math.exp(scale_1[i]);
+            const sz = Math.exp(scale_2[i]);
 
             if (isHalf) {
                 data[i * numComponents + 0] = float2Half(sx);
@@ -218,26 +241,19 @@ class Splat {
         }
 
         texture.unlock();
-        return texture;
     }
 
-    createRotationTexture(splatData: SplatData, size: Vec2, format: object) {
-
+    updateRotationData(rot_0: TypedArray, rot_1: TypedArray, rot_2: TypedArray, rot_3: TypedArray) {
         // texture format based vars
-        const { numComponents, isHalf } = format;
+        const { numComponents, isHalf } = this.format;
         const quat = new Quat();
 
-        const rot0 = splatData.getProp('rot_0');
-        const rot1 = splatData.getProp('rot_1');
-        const rot2 = splatData.getProp('rot_2');
-        const rot3 = splatData.getProp('rot_3');
-
-        const texture = this.createTexture('splatRotation', format.format, size);
+        const texture = this.rotationTexture;
         const data = texture.lock();
 
-        for (let i = 0; i < splatData.numSplats; i++) {
+        for (let i = 0; i < this.numSplats; i++) {
 
-            quat.set(rot0[i], rot1[i], rot2[i], rot3[i]).normalize();
+            quat.set(rot_0[i], rot_1[i], rot_2[i], rot_3[i]).normalize();
 
             if (quat.w < 0) {
                 quat.conjugate();
@@ -255,22 +271,16 @@ class Splat {
         }
 
         texture.unlock();
-        return texture;
     }
 
-    createCenterTexture(splatData: SplatData, size: Vec2, format: object) {
-
+    updateCenterData(x: TypedArray, y: TypedArray, z: TypedArray) {
         // texture format based vars
-        const { numComponents, isHalf } = format;
+        const { numComponents, isHalf } = this.format;
 
-        const x = splatData.getProp('x');
-        const y = splatData.getProp('y');
-        const z = splatData.getProp('z');
-
-        const texture = this.createTexture('splatCenter', format.format, size);
+        const texture = this.centerTexture;
         const data = texture.lock();
 
-        for (let i = 0; i < splatData.numSplats; i++) {
+        for (let i = 0; i < this.numSplats; i++) {
 
             if (isHalf) {
                 data[i * numComponents + 0] = float2Half(x[i]);
@@ -284,46 +294,6 @@ class Splat {
         }
 
         texture.unlock();
-        return texture;
-    }
-
-    create(splatData: SplatData) {
-        const x = splatData.getProp('x');
-        const y = splatData.getProp('y');
-        const z = splatData.getProp('z');
-
-        if (!x || !y || !z) {
-            return;
-        }
-
-        const textureSize = this.evalTextureSize(splatData.numSplats);
-        const colorTexture = this.createColorTexture(splatData, textureSize);
-        const scaleTexture = this.createScaleTexture(splatData, textureSize, this.getTextureFormat(false));
-        const rotationTexture = this.createRotationTexture(splatData, textureSize, this.getTextureFormat(false));
-        const centerTexture = this.createCenterTexture(splatData, textureSize, this.getTextureFormat(false));
-
-        this.material.setParameter('splatColor', colorTexture);
-        this.material.setParameter('splatScale', scaleTexture);
-        this.material.setParameter('splatRotation', rotationTexture);
-        this.material.setParameter('splatCenter', centerTexture);
-        this.material.setParameter('tex_params', new Float32Array([textureSize.x, textureSize.y, 1 / textureSize.x, 1 / textureSize.y]));
-
-        // create instance data
-        const isWebGPU = this.device.isWebGPU;
-        const vertexFormat = new VertexFormat(this.device, [
-            { semantic: SEMANTIC_ATTR13, components: 1, type: isWebGPU ? TYPE_UINT32 : TYPE_FLOAT32 }
-        ]);
-
-        const vertexBuffer = new VertexBuffer(
-            this.device,
-            vertexFormat,
-            splatData.numSplats,
-            BUFFER_DYNAMIC,
-            new ArrayBuffer(splatData.numSplats * 4)
-        );
-
-        this.meshInstance = new MeshInstance(this.quadMesh, this.material);
-        this.meshInstance.setInstancing(vertexBuffer);
     }
 }
 
