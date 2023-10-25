@@ -115,6 +115,16 @@ class SplatData {
         return this.vertexElement.properties.find((property: any) => property.name === name && property.storage)?.storage;
     }
 
+    // add a new property
+    addProp(name: string, storage: Float32Array) {
+        this.vertexElement.properties.push({
+            type: 'float',
+            name,
+            storage,
+            byteSize: 4
+        });
+    }
+
     // calculate scene aabb taking into account splat size
     calcAabb(result: BoundingBox) {
         const x = this.getProp('x');
