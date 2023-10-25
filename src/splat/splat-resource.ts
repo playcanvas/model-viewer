@@ -19,34 +19,50 @@ const mat = new Mat4();
 const pos = new Vec3();
 const dir = new Vec3();
 
+const debugRender = false;
 const debugRenderBounds = false;
 
 class SplatResource extends ContainerResource {
     device: GraphicsDevice;
     splatData: SplatData;
-    sortManager: SortManager;
-
     focalPoint = new Vec3();
-    entity: Entity;
+    customAabb = new BoundingBox();
 
     renders: RenderComponent[] = [];
     meshes: Mesh[] = [];
     materials: Material[] = [];
     textures: Texture[] = [];
 
-    handle: any;
+    // per-instance data (currently only a single instance is supported)
+    instances: {
+        splat: Splat,
+        sortManager: SortManager,
+        entity: Entity,
+        callbackHandle: any
+    }[] = [];
 
     constructor(device: GraphicsDevice, splatData: SplatData) {
         super();
 
         this.device = device;
         this.splatData = splatData;
+
+        // calculate splat focal point
+        this.splatData.calcFocalPoint(this.focalPoint);
+
+        // calculate custom aabb
+        this.splatData.calcAabb(this.customAabb);
     }
 
     destroy() {
-        this.handle.off();
+        this.instances.forEach((instance) => {
+            instance.splat.destroy();
+            instance.sortManager.destroy();
+            instance.entity.destroy();
+            instance.callbackHandle.off();
+        });
 
-        // TODO
+        this.splatData = null;
     }
 
     instantiateModelEntity(/* options: any */): Entity {
@@ -55,7 +71,7 @@ class SplatResource extends ContainerResource {
 
     instantiateRenderEntity(options: any): Entity {
         const splatData = this.splatData;
-        const splat = new Splat(this.device, splatData.numSplats, false);
+        const splat = new Splat(this.device, splatData.numSplats, options?.debugRender ?? debugRender);
 
         splat.updateColorData(splatData.getProp('f_dc_0'), splatData.getProp('f_dc_1'), splatData.getProp('f_dc_2'), splatData.getProp('opacity'));
         splat.updateScaleData(splatData.getProp('scale_0'), splatData.getProp('scale_1'), splatData.getProp('scale_2'));
@@ -69,14 +85,8 @@ class SplatResource extends ContainerResource {
             castShadows: false                  // shadows not supported
         });
 
-        this.entity = result;
-
         // set custom aabb
-        const customAabb = new BoundingBox();
-        this.splatData.calcAabb(customAabb);
-        result.render.customAabb = customAabb;
-
-        this.splatData.calcFocalPoint(this.focalPoint);
+        result.render.customAabb = this.customAabb;
 
         // centers - constant buffer that is sent to the worker
         const x = this.splatData.getProp('x');
@@ -91,8 +101,8 @@ class SplatResource extends ContainerResource {
         }
 
         // initialize sort
-        this.sortManager = new SortManager();
-        this.sortManager.sort(
+        const sortManager = new SortManager();
+        sortManager.sort(
             splat.meshInstance.instancingData.vertexBuffer,
             centers,
             this.device.isWebGPU,
@@ -101,17 +111,17 @@ class SplatResource extends ContainerResource {
 
         const viewport = [0, 0];
 
-        this.handle = options.app.on('prerender', () => {
+        const callbackHandle = options.app.on('prerender', () => {
             const cameraMat = options.camera.getWorldTransform();
             cameraMat.getTranslation(pos);
             cameraMat.getZ(dir);
 
-            const modelMat = this.entity.getWorldTransform();
+            const modelMat = result.getWorldTransform();
             const invModelMat = mat.invert(modelMat);
             invModelMat.transformPoint(pos, pos);
             invModelMat.transformVector(dir, dir);
 
-            this.sortManager.setCamera(pos, dir);
+            sortManager.setCamera(pos, dir);
 
             viewport[0] = this.device.width;
             viewport[1] = this.device.height;
@@ -123,11 +133,20 @@ class SplatResource extends ContainerResource {
             }
         });
 
+        // store instance
+        this.instances.push({
+            splat,
+            sortManager,
+            entity: result,
+            callbackHandle
+        });
+
         return result;
     }
 
     getFocalPoint(): Vec3 {
-        return this.entity.getWorldTransform().transformPoint(this.focalPoint);
+        const instance = this.instances[0];
+        return instance?.entity.getWorldTransform().transformPoint(this.focalPoint);
     }
 }
 
