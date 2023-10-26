@@ -194,13 +194,13 @@ const splatVS = `
             float offDiagonal = cov[0][1];
             float diagonal2 = cov[1][1] + 0.3;
 
-                float mid = 0.5 * (diagonal1 + diagonal2);
-                float radius = length(vec2((diagonal1 - diagonal2) / 2.0, offDiagonal));
-                float lambda1 = mid + radius;
-                float lambda2 = max(mid - radius, 0.1);
-                vec2 diagonalVector = normalize(vec2(offDiagonal, lambda1 - diagonal1));
-                vec2 v1 = min(sqrt(2.0 * lambda1), 1024.0) * diagonalVector;
-                vec2 v2 = min(sqrt(2.0 * lambda2), 1024.0) * vec2(diagonalVector.y, -diagonalVector.x);
+            float mid = 0.5 * (diagonal1 + diagonal2);
+            float radius = length(vec2((diagonal1 - diagonal2) / 2.0, offDiagonal));
+            float lambda1 = mid + radius;
+            float lambda2 = max(mid - radius, 0.1);
+            vec2 diagonalVector = normalize(vec2(offDiagonal, lambda1 - diagonal1));
+            vec2 v1 = min(sqrt(2.0 * lambda1), 1024.0) * diagonalVector;
+            vec2 v2 = min(sqrt(2.0 * lambda2), 1024.0) * vec2(diagonalVector.y, -diagonalVector.x);
 
             gl_Position = splat_proj +
                 vec4((vertex_position.x * v1 + vertex_position.y * v2) / viewport * 2.0,
