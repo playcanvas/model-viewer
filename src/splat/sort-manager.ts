@@ -239,6 +239,11 @@ class SortManager {
         };
     }
 
+    destroy() {
+        this.worker.terminate();
+        this.worker = null;
+    }
+
     sort(vertexBuffer: VertexBuffer, centers: Float32Array, intIndices: boolean, updatedCallback?: () => void) {
         this.vertexBuffer = vertexBuffer;
         this.updatedCallback = updatedCallback;

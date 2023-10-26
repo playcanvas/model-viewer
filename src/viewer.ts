@@ -1801,7 +1801,7 @@ class Viewer {
             rt.resolve();
         }
 
-        // perform mulitiframe update. returned flag indicates whether more frames
+        // perform multiframe update. returned flag indicates whether more frames
         // are needed.
         this.multiframeBusy = this.multiframe.update();
     }

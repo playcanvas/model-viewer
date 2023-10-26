@@ -159,33 +159,40 @@ const splatVS = `
             return;
         }
 
-        vec3 splat_cova;
-        vec3 splat_covb;
         vec3 scale = getScale();
         vec3 rotation = getRotation();
-        computeCov3d(mat3(matrix_model) * quatToMat3(rotation), scale, splat_cova, splat_covb);
 
-        mat3 Vrk = mat3(
-            splat_cova.x, splat_cova.y, splat_cova.z, 
-            splat_cova.y, splat_covb.x, splat_covb.y,
-            splat_cova.z, splat_covb.y, splat_covb.z
-        );
+        color = getColor();
 
-        float focal = viewport.x * matrix_projection[0][0];
+        #ifdef DEBUG_RENDER
+            vec3 local = quatToMat3(rotation) * (vertex_position * scale * 2.0) + center;
+            gl_Position = matrix_viewProjection * matrix_model * vec4(local, 1.0);
+        #else
+            vec3 splat_cova;
+            vec3 splat_covb;
+            computeCov3d(mat3(matrix_model) * quatToMat3(rotation), scale, splat_cova, splat_covb);
 
-        mat3 J = mat3(
-            focal / splat_cam.z, 0., -(focal * splat_cam.x) / (splat_cam.z * splat_cam.z), 
-            0., focal / splat_cam.z, -(focal * splat_cam.y) / (splat_cam.z * splat_cam.z), 
-            0., 0., 0.
-        );
+            mat3 Vrk = mat3(
+                splat_cova.x, splat_cova.y, splat_cova.z, 
+                splat_cova.y, splat_covb.x, splat_covb.y,
+                splat_cova.z, splat_covb.y, splat_covb.z
+            );
 
-        mat3 W = transpose(mat3(matrix_view));
-        mat3 T = W * J;
-        mat3 cov = transpose(T) * Vrk * T;
+            float focal = viewport.x * matrix_projection[0][0];
 
-        float diagonal1 = cov[0][0] + 0.3;
-        float offDiagonal = cov[0][1];
-        float diagonal2 = cov[1][1] + 0.3;
+            mat3 J = mat3(
+                focal / splat_cam.z, 0., -(focal * splat_cam.x) / (splat_cam.z * splat_cam.z), 
+                0., focal / splat_cam.z, -(focal * splat_cam.y) / (splat_cam.z * splat_cam.z), 
+                0., 0., 0.
+            );
+
+            mat3 W = transpose(mat3(matrix_view));
+            mat3 T = W * J;
+            mat3 cov = transpose(T) * Vrk * T;
+
+            float diagonal1 = cov[0][0] + 0.3;
+            float offDiagonal = cov[0][1];
+            float diagonal2 = cov[1][1] + 0.3;
 
             float mid = 0.5 * (diagonal1 + diagonal2);
             float radius = length(vec2((diagonal1 - diagonal2) / 2.0, offDiagonal));
@@ -195,21 +202,11 @@ const splatVS = `
             vec2 v1 = min(sqrt(2.0 * lambda1), 1024.0) * diagonalVector;
             vec2 v2 = min(sqrt(2.0 * lambda2), 1024.0) * vec2(diagonalVector.y, -diagonalVector.x);
 
-        gl_Position = splat_proj +
-            vec4((vertex_position.x * v1 + vertex_position.y * v2) / viewport * 2.0,
-                0.0, 0.0) * splat_proj.w;
+            gl_Position = splat_proj +
+                vec4((vertex_position.x * v1 + vertex_position.y * v2) / viewport * 2.0,
+                    0.0, 0.0) * splat_proj.w;
 
-        texCoord = vertex_position.xy * 2.0;
-
-        color = getColor();
-
-        #ifdef DEBUG_RENDER
-
-            vec3 local = quatToMat3(rotation) * (vertex_position * scale * 2.0) + center;
-            gl_Position = matrix_viewProjection * matrix_model * vec4(local, 1.0);
-
-            color = getColor();
-
+            texCoord = vertex_position.xy * 2.0;
         #endif
     }
 `;

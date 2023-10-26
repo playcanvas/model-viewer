@@ -82,7 +82,6 @@ const float2Half = (value: number) => {
     return bits;
 };
 
-
 const evalTextureSize = (count: number) : Vec2 => {
     const width = Math.ceil(Math.sqrt(count));
     const height = Math.ceil(count / width);
@@ -123,7 +122,6 @@ const getTextureFormat = (device: GraphicsDevice, preferHighPrecision: boolean) 
 };
 
 class Splat {
-    device: GraphicsDevice;
     numSplats: number;
     material: Material;
     mesh: Mesh;
@@ -136,7 +134,6 @@ class Splat {
     centerTexture: Texture;
 
     constructor(device: GraphicsDevice, numSplats: number, debugRender = false) {
-        this.device = device;
         this.numSplats = numSplats;
 
         // material
@@ -144,11 +141,11 @@ class Splat {
 
         // mesh
         if (debugRender) {
-            this.mesh = createBox(this.device, {
+            this.mesh = createBox(device, {
                 halfExtents: new Vec3(1.0, 1.0, 1.0)
             });
         } else {
-            this.mesh = new Mesh(this.device);
+            this.mesh = new Mesh(device);
             this.mesh.setPositions(new Float32Array([
                 -1, -1, 1, -1, 1, 1, -1, -1, 1, 1, -1, 1
             ]), 2);
@@ -156,12 +153,12 @@ class Splat {
         }
 
         // mesh instance
-        const vertexFormat = new VertexFormat(this.device, [
-            { semantic: SEMANTIC_ATTR13, components: 1, type: this.device.isWebGPU ? TYPE_UINT32 : TYPE_FLOAT32 }
+        const vertexFormat = new VertexFormat(device, [
+            { semantic: SEMANTIC_ATTR13, components: 1, type: device.isWebGPU ? TYPE_UINT32 : TYPE_FLOAT32 }
         ]);
 
         const vertexBuffer = new VertexBuffer(
-            this.device,
+            device,
             vertexFormat,
             numSplats,
             BUFFER_DYNAMIC,
@@ -175,16 +172,25 @@ class Splat {
         const size = evalTextureSize(numSplats);
 
         this.format = getTextureFormat(device, false);
-        this.colorTexture = createTexture(this.device, 'splatColor', PIXELFORMAT_RGBA8, size);
-        this.scaleTexture = createTexture(this.device, 'splatScale', this.format.format, size);
-        this.rotationTexture = createTexture(this.device, 'splatRotation', this.format.format, size);
-        this.centerTexture = createTexture(this.device, 'splatCenter', this.format.format, size);
+        this.colorTexture = createTexture(device, 'splatColor', PIXELFORMAT_RGBA8, size);
+        this.scaleTexture = createTexture(device, 'splatScale', this.format.format, size);
+        this.rotationTexture = createTexture(device, 'splatRotation', this.format.format, size);
+        this.centerTexture = createTexture(device, 'splatCenter', this.format.format, size);
 
         this.material.setParameter('splatColor', this.colorTexture);
         this.material.setParameter('splatScale', this.scaleTexture);
         this.material.setParameter('splatRotation', this.rotationTexture);
         this.material.setParameter('splatCenter', this.centerTexture);
         this.material.setParameter('tex_params', new Float32Array([size.x, size.y, 1 / size.x, 1 / size.y]));
+    }
+
+    destroy() {
+        this.colorTexture.destroy();
+        this.scaleTexture.destroy();
+        this.rotationTexture.destroy();
+        this.centerTexture.destroy();
+        this.material.destroy();
+        this.mesh.destroy();
     }
 
     updateColorData(f_dc_0: TypedArray, f_dc_1: TypedArray, f_dc_2: TypedArray, opacity: TypedArray) {
@@ -218,7 +224,6 @@ class Splat {
     }
 
     updateScaleData(scale_0: TypedArray, scale_1: TypedArray, scale_2: TypedArray) {
-        // texture format based vars
         const { numComponents, isHalf } = this.format;
         const texture = this.scaleTexture;
         const data = texture.lock();
@@ -244,7 +249,6 @@ class Splat {
     }
 
     updateRotationData(rot_0: TypedArray, rot_1: TypedArray, rot_2: TypedArray, rot_3: TypedArray) {
-        // texture format based vars
         const { numComponents, isHalf } = this.format;
         const quat = new Quat();
 
@@ -274,7 +278,6 @@ class Splat {
     }
 
     updateCenterData(x: TypedArray, y: TypedArray, z: TypedArray) {
-        // texture format based vars
         const { numComponents, isHalf } = this.format;
 
         const texture = this.centerTexture;
