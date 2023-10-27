@@ -157,12 +157,26 @@ class Splat {
             { semantic: SEMANTIC_ATTR13, components: 1, type: device.isWebGPU ? TYPE_UINT32 : TYPE_FLOAT32 }
         ]);
 
+        // initialize index data
+        let indexData;
+        if (device.isWebGPU) {
+            indexData = new Uint32Array(numSplats);
+            for (let i = 0; i < numSplats; ++i) {
+                indexData[i] = i;
+            }
+        } else {
+            indexData = new Float32Array(numSplats);
+            for (let i = 0; i < numSplats; ++i) {
+                indexData[i] = i + 0.2;
+            }
+        }
+
         const vertexBuffer = new VertexBuffer(
             device,
             vertexFormat,
             numSplats,
             BUFFER_DYNAMIC,
-            new ArrayBuffer(numSplats * 4)
+            indexData.buffer
         );
 
         this.meshInstance = new MeshInstance(this.mesh, this.material);

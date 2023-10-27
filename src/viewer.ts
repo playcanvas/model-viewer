@@ -914,12 +914,11 @@ class Viewer {
             this.initialCameraPosition = null;
         } else {
             // automatically placed camera position
-            const radius = bbox.halfExtents.length();
-            const distance = (radius * 1.4) / Math.sin(0.5 * camera.fov * camera.aspectRatio * math.DEG_TO_RAD);
             aed.copy(this.orbitCamera.azimElevDistance.target);
-            aed.z = distance;
+            aed.z = 1.4 / Math.sin(0.5 * camera.fov * camera.aspectRatio * math.DEG_TO_RAD);
         }
 
+        this.orbitCamera.sceneSize = bbox.halfExtents.length();
         this.orbitCamera.azimElevDistance[func](aed);
         this.orbitCamera.focalPoint[func](focus);
     }
@@ -1560,14 +1559,20 @@ class Viewer {
         // dirty everything
         this.dirtyWireframe = this.dirtyBounds = this.dirtySkeleton = this.dirtyGrid = this.dirtyNormals = true;
 
-        // reset scene offset
-        this.sceneRoot.setLocalPosition(0, 0, 0);
+        // calculate scene bounds after first render in order to get accurate morph target and skinned bounds
+        this.calcSceneBounds(this.sceneBounds);
 
-        // we can't refocus the camera here because the scene hierarchy only gets updated
-        // during render. we must instead set a flag, wait for a render to take place and
-        // then focus the camera.
-        this.firstFrame = true;
+        // offset scene geometry to place it at the origin
+        this.sceneRoot.setLocalPosition(-this.sceneBounds.center.x, -this.sceneBounds.getMin().y, -this.sceneBounds.center.z);
+
+        // set projective skybox radius
+        this.projectiveSkybox.domeRadius = this.sceneBounds.halfExtents.length() * this.observer.get('skybox.domeProjection.domeRadius');
+
+        this.focusCamera();
         this.renderNextFrame();
+
+        // we perform some special processing on the first frame
+        this.firstFrame = true;
     }
 
     // rebuild the animation state graph
@@ -1668,6 +1673,7 @@ class Viewer {
     // generate and render debug elements on prerender
     private onPrerender() {
         if (this.firstFrame) {
+            this.firstFrame = false;
             return;
         }
 
@@ -1797,7 +1803,7 @@ class Viewer {
     private onPostrender() {
         // resolve the (possibly multisampled) render target
         const rt = this.camera.camera.renderTarget;
-        if (!this.app.graphicsDevice.isWebGPU && !this.firstFrame && rt._samples > 1) {
+        if (!this.app.graphicsDevice.isWebGPU && rt._samples > 1) {
             rt.resolve();
         }
 
@@ -1807,23 +1813,6 @@ class Viewer {
     }
 
     private onFrameend() {
-        if (this.firstFrame) {
-            this.firstFrame = false;
-
-            // calculate scene bounds after first render in order to get accurate morph target and skinned bounds
-            this.calcSceneBounds(this.sceneBounds);
-
-            // offset scene geometry to place it at the origin
-            this.sceneRoot.setLocalPosition(-this.sceneBounds.center.x, -this.sceneBounds.getMin().y, -this.sceneBounds.center.z);
-            // this.sceneRoot.setLocalEulerAngles(-90, -90, 0);
-
-            // set projective skybox radius
-            this.projectiveSkybox.domeRadius = this.sceneBounds.halfExtents.length() * this.observer.get('skybox.domeProjection.domeRadius');
-
-            this.focusCamera();
-            this.renderNextFrame();
-        }
-
         if (this.loadTimestamp !== null) {
             this.observer.set('scene.loadTime', `${Date.now() - this.loadTimestamp}ms`);
             this.loadTimestamp = null;
