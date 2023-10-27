@@ -1803,7 +1803,7 @@ class Viewer {
     private onPostrender() {
         // resolve the (possibly multisampled) render target
         const rt = this.camera.camera.renderTarget;
-        if (!this.app.graphicsDevice.isWebGPU /*&& !this.firstFrame*/ && rt._samples > 1) {
+        if (!this.app.graphicsDevice.isWebGPU && rt._samples > 1) {
             rt.resolve();
         }
 
@@ -1813,11 +1813,6 @@ class Viewer {
     }
 
     private onFrameend() {
-        if (this.firstFrame) {
-            this.firstFrame = false;
-
-        }
-
         if (this.loadTimestamp !== null) {
             this.observer.set('scene.loadTime', `${Date.now() - this.loadTimestamp}ms`);
             this.loadTimestamp = null;
