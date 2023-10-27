@@ -74,6 +74,10 @@ class OrbitCamera {
     focalPoint: SmoothedValue;
     azimElevDistance: SmoothedValue;
 
+    sceneSize: number;
+    zoomMin = 0.05;
+    zoomMax = 10;
+
     constructor(cameraNode: Entity, transitionTime: number) {
         this.cameraNode = cameraNode;
         this.focalPoint = new SmoothedValue(new Vec3(0, 0, 0), transitionTime);
@@ -105,7 +109,7 @@ class OrbitCamera {
 
         const aed = this.azimElevDistance.value;
         this.calcForwardVec(vec);
-        vec.mulScalar(aed.z);
+        vec.mulScalar(Math.max(this.zoomMin, Math.min(this.zoomMax, aed.z)) * this.sceneSize);
         vec.add(this.focalPoint.value);
 
         this.cameraNode.setLocalPosition(vec);
@@ -155,18 +159,20 @@ class OrbitCameraInputMouse {
     }
 
     pan(screenPoint: MouseEvent) {
+        const orbitCamera = this.orbitCamera;
+
         // For panning to work at any zoom level, we use screen point to world projection
         // to work out how far we need to pan the pivotEntity in world space
-        const camera = this.orbitCamera.cameraNode.camera;
-        const distance = this.orbitCamera.azimElevDistance.value.z;
+        const camera = orbitCamera.cameraNode.camera;
+        const distance = orbitCamera.azimElevDistance.value.z * orbitCamera.sceneSize;
 
         camera.screenToWorld(screenPoint.x, screenPoint.y, distance, fromWorldPoint);
         camera.screenToWorld(this.lastPoint.x, this.lastPoint.y, distance, toWorldPoint);
 
         worldDiff.sub2(toWorldPoint, fromWorldPoint);
-        worldDiff.add(this.orbitCamera.focalPoint.target);
+        worldDiff.add(orbitCamera.focalPoint.target);
 
-        this.orbitCamera.focalPoint.goto(worldDiff);
+        orbitCamera.focalPoint.goto(worldDiff);
     }
 
 
@@ -208,8 +214,10 @@ class OrbitCameraInputMouse {
     }
 
     onMouseWheel(event: MouseEvent) {
-        vec.copy(this.orbitCamera.azimElevDistance.target);
+        const orbitCamera = this.orbitCamera;
+        vec.copy(orbitCamera.azimElevDistance.target);
         vec.z -= event.wheelDelta * -2 * this.distanceSensitivity * (vec.z * 0.1);
+        vec.z = Math.max(orbitCamera.zoomMin, Math.min(orbitCamera.zoomMax, vec.z));
         this.orbitCamera.azimElevDistance.goto(vec);
         event.event.preventDefault();
     }
@@ -282,24 +290,27 @@ class OrbitCameraInputTouch {
     }
 
     pan(midPoint: Vec2) {
+        const orbitCamera = this.orbitCamera;
+
         // For panning to work at any zoom level, we use screen point to world projection
         // to work out how far we need to pan the pivotEntity in world space
-        const camera = this.orbitCamera.cameraNode.camera;
-        const distance = this.orbitCamera.azimElevDistance.target.z;
+        const camera = orbitCamera.cameraNode.camera;
+        const distance = orbitCamera.azimElevDistance.target.z * orbitCamera.sceneSize;
 
         camera.screenToWorld(midPoint.x, midPoint.y, distance, fromWorldPoint);
         camera.screenToWorld(this.lastPinchMidPoint.x, this.lastPinchMidPoint.y, distance, toWorldPoint);
 
         worldDiff.sub2(toWorldPoint, fromWorldPoint);
-        worldDiff.add(this.orbitCamera.focalPoint.target);
+        worldDiff.add(orbitCamera.focalPoint.target);
 
-        this.orbitCamera.focalPoint.goto(worldDiff);
+        orbitCamera.focalPoint.goto(worldDiff);
     }
 
     onTouchMove(event: TouchEvent) {
+        const orbitCamera = this.orbitCamera;
         const pinchMidPoint = this.pinchMidPoint;
 
-        const aed = this.orbitCamera.azimElevDistance.target.clone();
+        const aed = orbitCamera.azimElevDistance.target.clone();
 
         // We only care about the first touch for camera rotation. Work out the difference moved since the last event
         // and use that to update the camera target position
@@ -308,7 +319,7 @@ class OrbitCameraInputTouch {
             const touch = touches[0];
             aed.y -= (touch.y - this.lastTouchPoint.y) * this.orbitSensitivity;
             aed.x -= (touch.x - this.lastTouchPoint.x) * this.orbitSensitivity;
-            this.orbitCamera.azimElevDistance.goto(aed);
+            orbitCamera.azimElevDistance.goto(aed);
             this.lastTouchPoint.set(touch.x, touch.y);
         } else if (touches.length === 2) {
             // Calculate the difference in pinch distance since the last event
@@ -317,7 +328,8 @@ class OrbitCameraInputTouch {
             this.lastPinchDistance = currentPinchDistance;
 
             aed.z -= (diffInPinchDistance * this.distanceSensitivity * 0.1) * (aed.z * 0.1);
-            this.orbitCamera.azimElevDistance.goto(aed);
+            aed.z = Math.max(orbitCamera.zoomMin, Math.min(orbitCamera.zoomMax, aed.z));
+            orbitCamera.azimElevDistance.goto(aed);
 
             // Calculate pan difference
             this.calcMidPoint(touches[0], touches[1], pinchMidPoint);
