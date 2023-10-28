@@ -1559,6 +1559,16 @@ class Viewer {
         // dirty everything
         this.dirtyWireframe = this.dirtyBounds = this.dirtySkeleton = this.dirtyGrid = this.dirtyNormals = true;
 
+        this.initSceneBounds();
+        this.renderNextFrame();
+
+        // we perform some special processing on the first frame
+        this.firstFrame = true;
+    }
+
+    private initSceneBounds() {
+        this.sceneRoot.setLocalPosition(0, 0, 0);
+
         // calculate scene bounds after first render in order to get accurate morph target and skinned bounds
         this.calcSceneBounds(this.sceneBounds);
 
@@ -1568,11 +1578,8 @@ class Viewer {
         // set projective skybox radius
         this.projectiveSkybox.domeRadius = this.sceneBounds.halfExtents.length() * this.observer.get('skybox.domeProjection.domeRadius');
 
+        // set camera clipping planes
         this.focusCamera();
-        this.renderNextFrame();
-
-        // we perform some special processing on the first frame
-        this.firstFrame = true;
     }
 
     // rebuild the animation state graph
@@ -1673,7 +1680,6 @@ class Viewer {
     // generate and render debug elements on prerender
     private onPrerender() {
         if (this.firstFrame) {
-            this.firstFrame = false;
             return;
         }
 
@@ -1801,6 +1807,13 @@ class Viewer {
     }
 
     private onPostrender() {
+        if (this.firstFrame) {
+            this.firstFrame = false;
+
+            // reinit scene bounds after first render in order to get accurate morph target and skinned bounds
+            this.initSceneBounds();
+        }
+
         // resolve the (possibly multisampled) render target
         const rt = this.camera.camera.renderTarget;
         if (!this.app.graphicsDevice.isWebGPU && rt._samples > 1) {
