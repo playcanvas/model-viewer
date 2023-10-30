@@ -37,7 +37,7 @@ function SortWorker() {
     let target: Float32Array;
 
     // A function to do counting sort of arr[] according to the digit represented by exp.
-    const countSort = (arr: BigUint64Array, arr32: Uint32Array, temp: BigUint64Array, n: number, exp: number) => {
+    const countSort = (arr: BigUint64Array, arr32: Uint32Array, temp: BigUint64Array, n: number, exp: number, intIndices: boolean, outputArray: any) => {
         const count = new Array(radixBase);
         for (let i = 0; i < radixBase; i++)
             count[i] = 0;
@@ -59,13 +59,31 @@ function SortWorker() {
             count[x]--;
         }
 
-        // Copy the output array to arr[], so that arr[] now contains sorted numbers according to current digit
-        for (let i = 0; i < n; i++)
-            arr[i] = temp[i];
+        // if outputting directly to final array, avoid the copy to temp array
+        if (outputArray) {
+
+            const temp32 = new Uint32Array(temp.buffer);
+            if (intIndices) {
+
+                for (let i = 0; i < n; i++)
+                    outputArray[i] = temp32[i * 2];
+
+            } else {
+
+                for (let i = 0; i < n; i++)
+                    outputArray[i] = temp32[i * 2] + 0.2;
+            }
+
+        } else {
+
+            // Copy the output array to arr[], so that arr[] now contains sorted numbers according to current digit
+            for (let i = 0; i < n; i++)
+                arr[i] = temp[i];
+        }
     };
 
     // The main function to that sorts arr[] of size n using Radix Sort
-    const radixSort = (arr: BigUint64Array, arr32: Uint32Array, arrTmp: BigUint64Array, n: number) => {
+    const radixSort = (arr: BigUint64Array, arr32: Uint32Array, arrTmp: BigUint64Array, n: number, intIndices: boolean, finalArray: any) => {
 
         // maximum number to know number of digits
         const m = 2 ** compareBits;
@@ -73,7 +91,9 @@ function SortWorker() {
         // Do counting sort for every digit. Note that instead of passing digit number, exp is passed.
         // exp is 10^i where i is current digit number
         for (let exp = 1; Math.floor(m / exp) > 0; exp *= radixBase) {
-            countSort(arr, arr32, arrTmp, n, exp);
+
+            const lastPass = Math.floor(m / (exp * radixBase)) === 0;
+            countSort(arr, arr32, arrTmp, n, exp, intIndices, lastPass ? finalArray : null);
         }
     };
 
@@ -132,38 +152,19 @@ function SortWorker() {
 
         // generate per vertex distance to camera
         const range = maxDist - minDist;
+        const divider = 1 / range * (2 ** compareBits);
         for (let i = 0; i < numVertices; ++i) {
             const istride = i * 3;
             const d = (centers[istride + 0] - px) * dx +
                       (centers[istride + 1] - py) * dy +
                       (centers[istride + 2] - pz) * dz;
             orderBuffer32[i * 2 + 0] = i;
-            orderBuffer32[i * 2 + 1] = Math.floor((d - minDist) / range * (2 ** compareBits));
+            orderBuffer32[i * 2 + 1] = Math.floor((d - minDist) * divider);
         }
-
-        // console.time("sort");
 
         // sort indices by distance only, so use distance in orderBuffer32 as sorting key
-        radixSort(orderBuffer, orderBuffer32, orderBufferTmp, numVertices);
-
-        // normal sort
-        // orderBuffer.sort();
-
-        // console.timeEnd("sort");
-
-        // order the splat data
-        if (intIndices) {
-            const target32 = new Uint32Array(target.buffer);
-            for (let i = 0; i < numVertices; ++i) {
-                const index = orderBuffer32[i * 2];
-                target32[i] = index;
-            }
-        } else {
-            for (let i = 0; i < numVertices; ++i) {
-                const index = orderBuffer32[i * 2];
-                target[i] = index + 0.2;
-            }
-        }
+        const finalArray = intIndices ? new Uint32Array(target.buffer) : target;
+        radixSort(orderBuffer, orderBuffer32, orderBufferTmp, numVertices, intIndices, finalArray);
 
         // swap
         const tmp = data;
