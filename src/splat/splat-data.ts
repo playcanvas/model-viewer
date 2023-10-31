@@ -126,7 +126,7 @@ class SplatData {
     }
 
     // calculate scene aabb taking into account splat size
-    calcAabb(result: BoundingBox) {
+    calcAabb(result: BoundingBox, pred?: (index: number) => boolean) {
         const x = this.getProp('x');
         const y = this.getProp('y');
         const z = this.getProp('z');
@@ -140,8 +140,6 @@ class SplatData {
         const sy = this.getProp('scale_1');
         const sz = this.getProp('scale_2');
 
-        const opacity = this.getProp('opacity');
-
         const splat = {
             x: 0, y: 0, z: 0, rx: 0, ry: 0, rz: 0, rw: 0, sx: 0, sy: 0, sz: 0
         };
@@ -149,7 +147,7 @@ class SplatData {
         let first = true;
 
         for (let i = 0; i < this.numSplats; ++i) {
-            if (opacity[i] === -1000) {
+            if (pred && !pred(i)) {
                 continue;
             }
 
@@ -222,11 +220,10 @@ class SplatData {
         }
     }
 
-    calcFocalPoint(result: Vec3) {
+    calcFocalPoint(result: Vec3, pred?: (index: number) => boolean) {
         const x = this.getProp('x');
         const y = this.getProp('y');
         const z = this.getProp('z');
-        const opacity = this.getProp('opacity');
 
         const sx = this.getProp('scale_0');
         const sy = this.getProp('scale_1');
@@ -234,7 +231,10 @@ class SplatData {
 
         let sum = 0;
         for (let i = 0; i < this.numSplats; ++i) {
-            const weight = opacity[i] / (1.0 + Math.exp(Math.max(sx[i], sy[i], sz[i])));
+            if (pred && !pred(i)) {
+                continue;
+            }
+            const weight = 1.0 / (1.0 + Math.exp(Math.max(sx[i], sy[i], sz[i])));
             result.x += x[i] * weight;
             result.y += y[i] * weight;
             result.z += z[i] * weight;
