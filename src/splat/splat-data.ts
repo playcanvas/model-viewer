@@ -174,6 +174,29 @@ class SplatData {
         return !first;
     }
 
+    calcFocalPoint(result: Vec3, pred?: (index: number) => boolean) {
+        const x = this.getProp('x');
+        const y = this.getProp('y');
+        const z = this.getProp('z');
+
+        const sx = this.getProp('scale_0');
+        const sy = this.getProp('scale_1');
+        const sz = this.getProp('scale_2');
+
+        let sum = 0;
+        for (let i = 0; i < this.numSplats; ++i) {
+            if (pred && !pred(i)) {
+                continue;
+            }
+            const weight = 1.0 / (1.0 + Math.exp(Math.max(sx[i], sy[i], sz[i])));
+            result.x += x[i] * weight;
+            result.y += y[i] * weight;
+            result.z += z[i] * weight;
+            sum += weight;
+        }
+        result.mulScalar(1 / sum);
+    }
+
     renderWireframeBounds(app: AppBase, worldMat: Mat4) {
         const x = this.getProp('x');
         const y = this.getProp('y');
@@ -218,29 +241,6 @@ class SplatData {
 
             app.drawLines(debugLines, debugColor);
         }
-    }
-
-    calcFocalPoint(result: Vec3, pred?: (index: number) => boolean) {
-        const x = this.getProp('x');
-        const y = this.getProp('y');
-        const z = this.getProp('z');
-
-        const sx = this.getProp('scale_0');
-        const sy = this.getProp('scale_1');
-        const sz = this.getProp('scale_2');
-
-        let sum = 0;
-        for (let i = 0; i < this.numSplats; ++i) {
-            if (pred && !pred(i)) {
-                continue;
-            }
-            const weight = 1.0 / (1.0 + Math.exp(Math.max(sx[i], sy[i], sz[i])));
-            result.x += x[i] * weight;
-            result.y += y[i] * weight;
-            result.z += z[i] * weight;
-            sum += weight;
-        }
-        result.mulScalar(1 / sum);
     }
 }
 
