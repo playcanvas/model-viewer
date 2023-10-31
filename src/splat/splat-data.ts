@@ -183,6 +183,10 @@ class SplatData {
         const sy = this.getProp('scale_1');
         const sz = this.getProp('scale_2');
 
+        result.x = 0;
+        result.y = 0;
+        result.z = 0;
+
         let sum = 0;
         for (let i = 0; i < this.numSplats; ++i) {
             if (pred && !pred(i)) {
