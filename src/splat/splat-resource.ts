@@ -144,6 +144,18 @@ class SplatResource extends ContainerResource {
         return result;
     }
 
+    updateFocalPoint() {
+        this.splatData.calcFocalPoint(this.focalPoint);
+    }
+
+    updateAabb() {
+        this.splatData.calcAabb(this.customAabb);
+
+        this.instances.forEach((instance) => {
+            instance.entity.render.customAabb = this.customAabb;
+        });
+    }
+
     getFocalPoint(): Vec3 {
         const instance = this.instances[0];
         return instance?.entity.getWorldTransform().transformPoint(this.focalPoint);
