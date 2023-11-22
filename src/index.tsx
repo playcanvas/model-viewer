@@ -253,7 +253,7 @@ const main = () => {
 
     // create the graphics device
     createGraphicsDevice(canvas, {
-        deviceTypes: (url.searchParams.has('webgpu') || observer.get('enableWebGPU') ? ['webgpu'] : []).concat(['webgl2']),
+        deviceTypes: (url.searchParams.has('webgpu') || observer.get('enableWebGPU') ? ['webgpu'] : []).concat(['webgl2', 'webgl1']),
         glslangUrl: getAssetPath('lib/glslang/glslang.js'),
         twgslUrl: getAssetPath('lib/twgsl/twgsl.js'),
         antialias: false,
