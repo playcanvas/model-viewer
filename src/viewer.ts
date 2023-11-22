@@ -1492,7 +1492,7 @@ class Viewer {
             entity = prevEntity;
         } else {
             entity = asset.resource.instantiateRenderEntity({
-                cameraEntity: this.camera,
+                cameraEntity: this.camera
             });
 
             // render frame if gaussian splat sorter updates)
