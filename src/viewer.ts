@@ -8,7 +8,13 @@ import {
     LAYERID_SKYBOX,
     PIXELFORMAT_DEPTH,
     PIXELFORMAT_RGBA8,
+    PRIMITIVE_POINTS,
+    PRIMITIVE_LINELOOP,
     PRIMITIVE_LINES,
+    PRIMITIVE_LINESTRIP,
+    PRIMITIVE_TRIANGLES,
+    PRIMITIVE_TRISTRIP,
+    PRIMITIVE_TRIFAN,
     SORTMODE_BACK2FRONT,
     TEXTURETYPE_DEFAULT,
     TEXTURETYPE_RGBM,
@@ -52,10 +58,9 @@ import { App } from './app';
 
 import { Observer } from '@playcanvas/observer';
 // @ts-ignore: library file import
-import { MiniStats } from 'playcanvas-extras';
+import { MiniStats, registerPlyParser } from 'playcanvas-extras';
 // @ts-ignore: library file import
 // import * as VoxParser from 'playcanvas/scripts/parsers/vox-parser.js';
-import { registerPlyParser } from './splat/ply-parser';
 import { MeshoptDecoder } from '../lib/meshopt_decoder.module.js';
 import { CreateDropHandler } from './drop-handler';
 import { MorphTargetData, File, HierarchyNode } from './types';
@@ -814,7 +819,7 @@ class Viewer {
         this.animationMap = { };
     }
 
-    updateSceneInfo() {
+    updateSceneStats() {
         let meshCount = 0;
         let meshVRAM = 0;
         let vertexCount = 0;
@@ -826,22 +831,42 @@ class Viewer {
 
         // update mesh stats
         this.assets.forEach((asset) => {
-            variants = variants.concat(asset.resource.getMaterialVariants() ?? []);
-            asset.resource.renders.forEach((renderAsset: Asset) => {
-                meshCount += renderAsset.resource.meshes.length;
-                renderAsset.resource.meshes.forEach((mesh: Mesh) => {
-                    vertexCount += mesh.vertexBuffer.getNumVertices();
-                    primitiveCount += mesh.primitive[0].count;
-                    meshVRAM += mesh.vertexBuffer.numBytes + (mesh.indexBuffer?.numBytes ?? 0);
+            const resource = asset.resource;
+
+            if (resource.splatData) {
+                meshCount++;
+                materialCount++;
+                primitiveCount += resource.splatData.numSplats;
+                vertexCount += resource.splatData.numSplats * 4;
+                meshVRAM += resource.splatData.numSplats * 64;      // 16 * float32
+            } else {
+                variants = variants.concat(resource.getMaterialVariants() ?? []);
+
+                resource.renders.forEach((renderAsset: Asset) => {
+                    meshCount += renderAsset.resource.meshes.length;
+                    renderAsset.resource.meshes.forEach((mesh: Mesh) => {
+                        vertexCount += mesh.vertexBuffer.getNumVertices();
+
+                        const prim = mesh.primitive[0];
+                        switch (prim.type) {
+                            case PRIMITIVE_POINTS: primitiveCount += prim.count; break;
+                            case PRIMITIVE_LINES: primitiveCount += prim.count / 2; break;
+                            case PRIMITIVE_LINELOOP: primitiveCount += prim.count; break;
+                            case PRIMITIVE_LINESTRIP: primitiveCount += prim.count - 1; break;
+                            case PRIMITIVE_TRIANGLES: primitiveCount += prim.count / 3; break;
+                            case PRIMITIVE_TRISTRIP: primitiveCount += prim.count - 2; break;
+                            case PRIMITIVE_TRIFAN: primitiveCount += prim.count - 2; break;
+                        }
+                        meshVRAM += mesh.vertexBuffer.numBytes + (mesh.indexBuffer?.numBytes ?? 0);
+                    });
                 });
-            });
 
-            materialCount += asset.resource.materials.length;
-
-            textureCount += asset.resource.textures.length;
-            asset.resource.textures.forEach((texture: Asset) => {
-                textureVRAM += texture.resource.gpuSize;
-            });
+                materialCount += resource.materials.length ?? 0;
+                textureCount += resource.textures.length ?? 0;
+                (resource.textures ?? []).forEach((texture: Asset) => {
+                    textureVRAM += texture.resource.gpuSize;
+                });
+            }
         });
 
         const mapChildren = function (node: GraphNode): Array<HierarchyNode> {
@@ -902,7 +927,14 @@ class Viewer {
             focus.copy(this.initialCameraFocus);
             this.initialCameraFocus = null;
         } else {
-            focus.copy(this.assets[0]?.resource?.getFocalPoint?.() ?? bbox.center);
+            const entityAsset = this.entityAssets[0];
+            const splatData = entityAsset?.asset?.resource?.splatData;
+            if (splatData) {
+                splatData.calcFocalPoint(focus);
+                entityAsset.entity.getWorldTransform().transformPoint(focus, focus);
+            } else {
+                focus.copy(bbox.center);
+            }
         }
 
         // calculate the camera azim/elev/distance
@@ -1460,11 +1492,12 @@ class Viewer {
             entity = prevEntity;
         } else {
             entity = asset.resource.instantiateRenderEntity({
-                // temp hack for GS
-                app: this.app,
-                camera: this.camera,
-                onChanged: () => this.renderNextFrame()
+                cameraEntity: this.camera
             });
+
+            // render frame if gaussian splat sorter updates)
+            entity?.render?.meshInstances?.[0]?.splatInstance?.sorter?.on('updated', () => this.renderNextFrame());
+
             this.entities.push(entity);
             this.entityAssets.push({ entity: entity, asset: asset });
             this.sceneRoot.addChild(entity);
@@ -1496,7 +1529,7 @@ class Viewer {
         }
 
         // update
-        this.updateSceneInfo();
+        this.updateSceneStats();
 
         // rebuild the anim state graph
         if (this.animTracks.length > 0) {
