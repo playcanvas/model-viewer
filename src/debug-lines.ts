@@ -317,13 +317,13 @@ class DebugLines {
         v2.set(size / v2.x, size / v2.y, size / v2.z);
 
         m.getX(v1).mul(v2).add(v0);
-        this.line(v0, v1, 0xffff0000);
+        this.line(v0, v1, 0xff0000ff);
 
         m.getY(v1).mul(v2).add(v0);
         this.line(v0, v1, 0xff00ff00);
 
         m.getZ(v1).mul(v2).add(v0);
-        this.line(v0, v1, 0xff0000ff);
+        this.line(v0, v1, 0xffff0000);
     }
 
     // generate skeleton
