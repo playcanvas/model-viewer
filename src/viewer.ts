@@ -588,73 +588,15 @@ class Viewer {
 
     // initialize the faces and prefiltered lighting data from the given
     // skybox texture, which is either a cubemap or equirect texture.
-    private initSkyboxFromTextureNew(env: Texture) {
-        const skybox = EnvLighting.generateSkyboxCubemap(env);
-        const lighting = EnvLighting.generateLightingSource(env);
+    private initSkybox(source: Texture) {
+        const skybox = EnvLighting.generateSkyboxCubemap(source);
+        const lighting = EnvLighting.generateLightingSource(source);
         // The second options parameter should not be necessary but the TS declarations require it for now
         const envAtlas = EnvLighting.generateAtlas(lighting, {});
         lighting.destroy();
         this.app.scene.envAtlas = envAtlas;
         this.app.scene.skybox = skybox;
 
-        this.renderNextFrame();
-    }
-
-    // initialize the faces and prefiltered lighting data from the given
-    // skybox texture, which is either a cubemap or equirect texture.
-    private initSkyboxFromTexture(skybox: Texture) {
-        if (EnvLighting) {
-            return this.initSkyboxFromTextureNew(skybox);
-        }
-
-        const app = this.app;
-        const device = app.graphicsDevice;
-
-        const createCubemap = (size: number) => {
-            return new Texture(device, {
-                name: `skyboxFaces-${size}`,
-                cubemap: true,
-                width: size,
-                height: size,
-                type: TEXTURETYPE_RGBM,
-                addressU: ADDRESS_CLAMP_TO_EDGE,
-                addressV: ADDRESS_CLAMP_TO_EDGE,
-                fixCubemapSeams: true,
-                mipmaps: false
-            });
-        };
-
-        const cubemaps = [];
-
-        cubemaps.push(EnvLighting.generateSkyboxCubemap(skybox));
-
-        const lightingSource = EnvLighting.generateLightingSource(skybox);
-
-        // create top level
-        const top = createCubemap(128);
-        reprojectTexture(lightingSource, top, {
-            numSamples: 1
-        });
-        cubemaps.push(top);
-
-        // generate prefiltered lighting data
-        const sizes = [128, 64, 32, 16, 8, 4];
-        const specPower = [1, 512, 128, 32, 8, 2];
-        for (let i = 1; i < sizes.length; ++i) {
-            const level = createCubemap(sizes[i]);
-            reprojectTexture(lightingSource, level, {
-                numSamples: 1024,
-                specularPower: specPower[i],
-                distribution: 'ggx'
-            });
-
-            cubemaps.push(level);
-        }
-
-        lightingSource.destroy();
-
-        // assign the textures to the scene
-        app.scene.setSkybox(cubemaps);
         this.renderNextFrame();
     }
 
@@ -675,7 +617,7 @@ class Viewer {
                     // assume RGBA data (pngs) are RGBM
                     texture.type = TEXTURETYPE_RGBM;
                 }
-                this.initSkyboxFromTexture(texture);
+                this.initSkybox(texture);
             });
             app.assets.add(textureAsset);
             app.assets.load(textureAsset);
@@ -724,7 +666,7 @@ class Viewer {
             });
             cubemapAsset.loadFaces = true;
             cubemapAsset.on('load', () => {
-                this.initSkyboxFromTexture(cubemapAsset.resource);
+                this.initSkybox(cubemapAsset.resource);
             });
             app.assets.add(cubemapAsset);
             app.assets.load(cubemapAsset);
@@ -1056,7 +998,7 @@ class Viewer {
                 }
             };
 
-            const containerAsset = new Asset(gltfUrl.filename, 'container', gltfUrl, null, {
+            const containerAsset = new Asset(gltfUrl.filename, 'container', gltfUrl, { elementFilter: () => true }, {
                 // @ts-ignore TODO no definition in pc
                 bufferView: {
                     processAsync: processBufferView.bind(this)
