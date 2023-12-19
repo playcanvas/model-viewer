@@ -1,5 +1,5 @@
 import React from 'react';
-import { Container, Button, Label, TextInput } from '@playcanvas/pcui/react';
+import { Container, Button, Label, TextInput } from 'pcui';
 import { SetProperty, ObserverData } from '../../types';
 import { extract } from '../../helpers';
 // @ts-ignore no type defs included
