@@ -6,7 +6,7 @@ import {
 
     AppBase,
     BoundingBox,
-    Camera,
+    CameraComponent,
     Entity,
     Layer,
     MeshInstance,
@@ -25,9 +25,9 @@ class ShadowCatcher {
     plane: Entity;
     light: Entity;
     sceneRoot: Entity;
-    camera: Camera;
+    camera: CameraComponent;
 
-    constructor(app: AppBase, camera: Camera, parent: Entity, sceneRoot: Entity) {
+    constructor(app: AppBase, camera: CameraComponent, parent: Entity, sceneRoot: Entity) {
         // create and add the shadow layer
         this.layer = new Layer({
             name: 'Shadow Layer'
