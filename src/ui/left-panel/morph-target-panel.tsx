@@ -1,7 +1,7 @@
 import React from 'react';
 import VisibilitySensor from 'react-visibility-sensor';
 import { MorphTargetData, SetProperty, ObserverData } from '../../types';
-import { Panel } from 'pcui';
+import { Panel } from '@playcanvas/pcui/react';
 import { MorphSlider } from '../components';
 
 class MorphTargetPanel extends React.Component <{ morphs: ObserverData['morphs'], progress: number, setProperty: SetProperty }> {

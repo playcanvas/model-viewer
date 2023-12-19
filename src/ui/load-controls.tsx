@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Container, Label, Button, TextInput } from 'pcui';
+import { Container, Label, Button, TextInput } from '@playcanvas/pcui/react';
 import { getAssetPath } from '../helpers';
 
 import { File, SetProperty } from '../types';
