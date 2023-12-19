@@ -17,7 +17,6 @@
         "noEmit": true,
         "baseUrl": ".",
         "paths": {
-            "pcui": ["node_modules/@playcanvas/pcui"],
             "playcanvas-extras": ["node_modules/playcanvas/build/playcanvas-extras.mjs"]
         }
     },

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Panel, Container, TreeViewItem, TreeView } from 'pcui';
+import { Panel, Container, TreeViewItem, TreeView } from '@playcanvas/pcui/react';
 import { HierarchyNode, SetProperty, ObserverData } from '../../types';
 
 import { Detail, Select, Toggle, Vector } from '../components';
