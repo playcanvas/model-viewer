@@ -8,7 +8,7 @@ import {
     SliderInput,
     VectorInput,
     NumericInput
-} from '@playcanvas/pcui/react';
+} from 'pcui';
 import { Option } from '../../types';
 
 export const Detail = (props: { label: string, value:string|number}) => {
