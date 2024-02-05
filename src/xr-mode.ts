@@ -260,12 +260,12 @@ const createModelHandler = (controller: XRObjectPlacementController) => {
     });
 
     events.on('xr:initial-place', (position: Vec3) => {
-        const mat = xr.views[0].viewInvMat;
+        const mat = xr.views.list[0]._viewInvMat;
         mat.transformPoint(hoverPos, vec);
         mat.getEulerAngles(vec2);
         pos.goto({ x: vec.x, y: vec.y, z: vec.z }, 0);
         rot.goto({ x: vec2.x, y: vec2.y, z: vec2.z }, 0);
-        scale.goto({ scale: 1 }, 0);
+        scale.goto({ scale: 0.55 }, 0);
 
         rot.goto({ x: 0, y: 0, z: 0 }, lerpSpeed);
         pos.goto({ x: position.x, y: position.y, z: position.z }, lerpSpeed);
@@ -298,11 +298,11 @@ const createModelHandler = (controller: XRObjectPlacementController) => {
     xr.on('update', () => {
         const xr = controller.options.xr;
 
-        if (!xr.views.length) {
+        if (!xr.views.list.length) {
             return;
         }
 
-        const mat = xr.views[0].viewInvMat;
+        const mat = xr.views.list[0]._viewInvMat;
         const contentRoot = controller.options.content;
 
         if (hovering) {
