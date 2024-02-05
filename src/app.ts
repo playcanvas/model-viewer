@@ -53,9 +53,7 @@ import {
     // TextHandler,
     // TextureAtlasHandler,
     TextureHandler,
-    XrManager,
-    GSplatComponentSystem,
-    GSplatHandler
+    XrManager
 } from 'playcanvas';
 
 class App extends AppBase {
@@ -102,7 +100,7 @@ class App extends AppBase {
             // @ts-ignore
             CameraComponentSystem,
             // @ts-ignore
-            LightComponentSystem,
+            LightComponentSystem
             // script.legacy ? ScriptLegacyComponentSystem : ScriptComponentSystem,
             // AudioSourceComponentSystem,
             // SoundComponentSystem,
@@ -116,8 +114,7 @@ class App extends AppBase {
             // SpriteComponentSystem,
             // LayoutGroupComponentSystem,
             // LayoutChildComponentSystem,
-            // ZoneComponentSystem,
-            GSplatComponentSystem
+            // ZoneComponentSystem
         ];
     }
 
@@ -153,8 +150,7 @@ class App extends AppBase {
             // SpriteHandler,
             // TemplateHandler,
             // @ts-ignore
-            ContainerHandler,
-            GSplatHandler
+            ContainerHandler
         ];
     }
 }
