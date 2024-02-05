@@ -35,6 +35,7 @@ import {
     EnvLighting,
     GraphicsDevice,
     GraphNode,
+    GSplatComponent,
     Keyboard,
     Mat4,
     Mesh,
@@ -57,7 +58,7 @@ import { App } from './app';
 
 import { Observer } from '@playcanvas/observer';
 // @ts-ignore: library file import
-import { MiniStats, registerPlyParser } from 'playcanvas-extras';
+import { MiniStats } from 'playcanvas-extras';
 // @ts-ignore: library file import
 // import * as VoxParser from 'playcanvas/scripts/parsers/vox-parser.js';
 import { MeshoptDecoder } from '../lib/meshopt_decoder.module.js';
@@ -78,7 +79,7 @@ import arModeImage from './svg/ar-mode.svg';
 import arCloseImage from './svg/ar-close.svg';
 
 // model filename extensions
-const modelExtensions = ['gltf', 'glb', 'vox', 'ply'];
+const modelExtensions = ['gltf', 'glb', 'vox'];
 const defaultSceneBounds = new BoundingBox(new Vec3(0, 1, 0), new Vec3(1, 1, 1));
 
 const vec = new Vec3();
@@ -194,7 +195,6 @@ class Viewer {
 
         // register vox support
         // VoxParser.registerVoxParser(app);
-        registerPlyParser(app);
 
         // create the exporter
         this.pngExporter = new PngExporter();
@@ -444,6 +444,14 @@ class Viewer {
                         const meshInstance = render.meshInstances[m];
                         meshInstances.push(meshInstance);
                     }
+                }
+            }
+
+            const gsplatComponents = entity.findComponents("gsplat");
+            for (let i = 0; i < gsplatComponents.length; i++) {
+                const gsplat = gsplatComponents[i] as GSplatComponent;
+                if (gsplat.instance) {
+                    meshInstances.push(gsplat.instance.meshInstance);
                 }
             }
         }
@@ -1017,10 +1025,26 @@ class Viewer {
         });
     }
 
+    private loadPly(url: File) {
+        return new Promise((resolve, reject) => {
+            const asset = new Asset(url.filename, 'gsplat', url);
+            asset.on('load', () => resolve(asset));
+            asset.on('error', (err : string) => reject(err));
+            this.app.assets.add(asset);
+            this.app.assets.load(asset);
+        });
+    }
+
     // returns true if the filename has one of the recognized model extensions
     isModelFilename(filename: string) {
         const parts = filename.split('?')[0].split('/').pop().split('.');
         const result = parts.length === 1 || modelExtensions.includes(parts.pop().toLowerCase());
+        return result;
+    }
+
+    isGSplatFilename(filename: string) {
+        const parts = filename.split('?')[0].split('/').pop().split('.');
+        const result = parts.length > 0 && (parts.pop().toLowerCase() === 'ply');
         return result;
     }
 
@@ -1034,7 +1058,7 @@ class Viewer {
         }
 
         // check if any file is a model
-        const hasModelFilename = files.reduce((p, f) => p || this.isModelFilename(f.filename), false);
+        const hasModelFilename = files.reduce((p, f) => p || this.isModelFilename(f.filename) || this.isGSplatFilename(f.filename), false);
 
         if (hasModelFilename) {
             if (resetScene) {
@@ -1049,7 +1073,9 @@ class Viewer {
 
             // load asset files
             const promises = files.map((file) => {
-                return this.isModelFilename(file.filename) ? this.loadGltf(file, files) : null;
+                return this.isModelFilename(file.filename) ?
+                    this.loadGltf(file, files) :
+                    (this.isGSplatFilename(file.filename) ? this.loadPly(file) : null);
             });
 
             Promise.all(promises)
@@ -1432,12 +1458,16 @@ class Viewer {
         if (!meshesLoaded && prevEntity && prevEntity.findComponent("render")) {
             entity = prevEntity;
         } else {
-            entity = asset.resource.instantiateRenderEntity({
-                cameraEntity: this.camera
-            });
+            if (asset.type === 'container') {
+                entity = asset.resource.instantiateRenderEntity();
+            } else {
+                entity = asset.resource.instantiate();
 
-            // render frame if gaussian splat sorter updates)
-            entity?.render?.meshInstances?.[0]?.splatInstance?.sorter?.on('updated', () => this.renderNextFrame());
+                // render frame if gaussian splat sorter updates)
+                entity.gsplat.instance.sorter.on('updated', () => {
+                    this.renderNextFrame();
+                });
+            }
 
             this.entities.push(entity);
             this.entityAssets.push({ entity: entity, asset: asset });
