@@ -1075,7 +1075,7 @@ class Viewer {
             const promises = files.map((file) => {
                 return this.isModelFilename(file.filename) ?
                     this.loadGltf(file, files) :
-                        (this.isGSplatFilename(file.filename) ? this.loadPly(file) : null);
+                    (this.isGSplatFilename(file.filename) ? this.loadPly(file) : null);
             });
 
             Promise.all(promises)
