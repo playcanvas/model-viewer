@@ -59,13 +59,13 @@
     "@rollup/plugin-terser": "^0.4.4",
     "@rollup/plugin-typescript": "^11.1.6",
     "@types/react": "^18.2.55",
-    "@types/react-dom": "^18.2.18",
-    "@typescript-eslint/eslint-plugin": "^6.21.0",
-    "@typescript-eslint/parser": "^6.21.0",
+    "@types/react-dom": "^18.2.19",
+    "@typescript-eslint/eslint-plugin": "^7.0.1",
+    "@typescript-eslint/parser": "^7.0.1",
     "concurrently": "^8.2.2",
     "cross-env": "^7.0.3",
     "eslint": "^8.56.0",
-    "fflate": "^0.8.1",
+    "fflate": "^0.8.2",
     "handlebars": "^4.7.8",
     "playcanvas": "^1.68.1",
     "prop-types": "^15.8.1",
@@ -73,7 +73,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-visibility-sensor": "^5.1.1",
-    "rollup": "^4.9.6",
+    "rollup": "^4.11.0",
     "rollup-plugin-copy": "^3.5.0",
     "rollup-plugin-sass": "^1.12.21",
     "serve": "^14.2.1",
@@ -81,7 +81,7 @@
     "typescript": "^5.3.3"
   },
   "optionalDependencies": {
-    "@rollup/rollup-linux-x64-gnu": "4.9.6"
+    "@rollup/rollup-linux-x64-gnu": "4.11.0"
   },
   "scripts": {
     "build": "rollup -c",
