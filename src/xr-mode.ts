@@ -12,7 +12,8 @@ import {
     XrHitTestSource,
     XrManager,
     MeshInstance,
-    RenderComponent
+    RenderComponent,
+    GSplatComponent
 } from 'playcanvas';
 
 declare class XRObjectPlacementController { }
@@ -251,7 +252,12 @@ const createModelHandler = (controller: XRObjectPlacementController) => {
             .map((render: RenderComponent) => {
                 return render.meshInstances;
             })
-            .flat();
+            .flat()
+            .concat(controller.options.content.findComponents('gsplat')
+                .map((gsplat: GSplatComponent) => {
+                    return gsplat.instance.meshInstance;
+                })
+            );
 
         updateBound();
 
