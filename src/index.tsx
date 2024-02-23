@@ -154,8 +154,9 @@ const observerData: ObserverData = {
         xrSupported: false,
         xrActive: false
     },
-    enableWebGPU: false,
     morphs: null,
+    enableWebGPU: false,
+    centerScene: false
 };
 
 const saveOptions = (observer: Observer, name: string) => {

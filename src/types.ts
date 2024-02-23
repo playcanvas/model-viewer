@@ -143,6 +143,7 @@ export interface ObserverData {
         xrActive: boolean
     },
     enableWebGPU: boolean,
+    centerScene: boolean,
 }
 
 export type SetProperty = (path: string, value: any) => void;
