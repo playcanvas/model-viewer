@@ -88,7 +88,7 @@ class OrbitCamera {
         const distance = vec.length();
         const azim = Math.atan2(-vec.x / distance, -vec.z / distance) * math.RAD_TO_DEG;
         const elev = Math.asin(vec.y / distance) * math.RAD_TO_DEG;
-        azimElevDistance.set(azim, elev, distance);
+        azimElevDistance.set(azim, elev, distance / this.sceneSize);
     }
 
     // calculate the current forward vector
