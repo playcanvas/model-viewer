@@ -1231,11 +1231,18 @@ class Viewer {
     }
 
     setCenterScene(value: boolean) {
+        this.sceneRoot.setLocalPosition(0, 0, 0);
+
+        // calculate scene bounds after first render in order to get accurate morph target and skinned bounds
+        this.calcSceneBounds(this.sceneBounds);
+
+        // offset scene geometry to place it at the origin
         if (value) {
             this.sceneRoot.setLocalPosition(-this.sceneBounds.center.x, -this.sceneBounds.getMin().y, -this.sceneBounds.center.z);
-        } else {
-            this.sceneRoot.setLocalPosition(0, 0, 0);
         }
+
+        this.dirtyBounds = true;
+
         this.renderNextFrame();
     }
 
@@ -1584,15 +1591,7 @@ class Viewer {
     }
 
     private initSceneBounds() {
-        this.sceneRoot.setLocalPosition(0, 0, 0);
-
-        // calculate scene bounds after first render in order to get accurate morph target and skinned bounds
-        this.calcSceneBounds(this.sceneBounds);
-
-        // offset scene geometry to place it at the origin
-        if (this.observer.get('centerScene')) {
-            this.sceneRoot.setLocalPosition(-this.sceneBounds.center.x, -this.sceneBounds.getMin().y, -this.sceneBounds.center.z);
-        }
+        this.setCenterScene(this.observer.get('centerScene'));
 
         // set projective skybox radius
         this.projectiveSkybox.domeRadius = this.sceneBounds.halfExtents.length() * this.observer.get('skybox.domeProjection.domeRadius');
