@@ -404,6 +404,7 @@ class Viewer {
             this.setLightEnabled(true);
             this.setLightShadow(true);
             this.setLightFollow(false);
+            this.setCenterScene(true);
 
             this.setSkyboxBackground('None');
             this.setSkyboxExposure(0);
@@ -568,7 +569,9 @@ class Viewer {
             'animation.progress': this.setAnimationProgress.bind(this),
 
             'scene.selectedNode.path': this.setSelectedNode.bind(this),
-            'scene.variant.selected': this.setSelectedVariant.bind(this)
+            'scene.variant.selected': this.setSelectedVariant.bind(this),
+
+            'centerScene': this.setCenterScene.bind(this)
         };
 
         // store control event keys
@@ -868,6 +871,9 @@ class Viewer {
         // calculate scene bounding box
         this.calcSceneBounds(bbox, this.selectedNode as Entity);
 
+        // set orbit camera scene size
+        this.orbitCamera.sceneSize = bbox.halfExtents.length();
+
         const func = smoothly ? 'goto' : 'snapto';
 
         // calculate the camera focus point
@@ -899,7 +905,6 @@ class Viewer {
             aed.z = 1.4 / Math.sin(0.5 * camera.fov * camera.aspectRatio * math.DEG_TO_RAD);
         }
 
-        this.orbitCamera.sceneSize = bbox.halfExtents.length();
         this.orbitCamera.azimElevDistance[func](aed);
         this.orbitCamera.focalPoint[func](focus);
     }
@@ -1223,6 +1228,15 @@ class Viewer {
             });
             this.renderNextFrame();
         }
+    }
+
+    setCenterScene(value: boolean) {
+        if (value) {
+            this.sceneRoot.setLocalPosition(-this.sceneBounds.center.x, -this.sceneBounds.getMin().y, -this.sceneBounds.center.z);
+        } else {
+            this.sceneRoot.setLocalPosition(0, 0, 0);
+        }
+        this.renderNextFrame();
     }
 
     setDebugStats(show: boolean) {
@@ -1563,7 +1577,6 @@ class Viewer {
         // dirty everything
         this.dirtyWireframe = this.dirtyBounds = this.dirtySkeleton = this.dirtyGrid = this.dirtyNormals = true;
 
-        this.initSceneBounds();
         this.renderNextFrame();
 
         // we perform some special processing on the first frame
