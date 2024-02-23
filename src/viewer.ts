@@ -1576,9 +1576,6 @@ class Viewer {
         // calculate scene bounds after first render in order to get accurate morph target and skinned bounds
         this.calcSceneBounds(this.sceneBounds);
 
-        // offset scene geometry to place it at the origin
-        this.sceneRoot.setLocalPosition(-this.sceneBounds.center.x, -this.sceneBounds.getMin().y, -this.sceneBounds.center.z);
-
         // set projective skybox radius
         this.projectiveSkybox.domeRadius = this.sceneBounds.halfExtents.length() * this.observer.get('skybox.domeProjection.domeRadius');
 
@@ -1785,7 +1782,7 @@ class Viewer {
                 const v0 = new Vec3(0, 0, 0);
                 const v1 = new Vec3(0, 0, 0);
 
-                const y = this.sceneBounds.getMin().y;
+                const y = 0;
 
                 const numGrids = 10;
                 const a = numGrids * spacing;
