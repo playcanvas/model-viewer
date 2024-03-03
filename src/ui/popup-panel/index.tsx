@@ -1,5 +1,4 @@
 import React from 'react';
-import { Observer } from '@playcanvas/observer';
 import { Button } from 'pcui';
 import { SetProperty, ObserverData } from '../../types';
 import AnimationControls from './animation-controls';
