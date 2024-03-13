@@ -613,28 +613,13 @@ input {
     }
 
     #popup > #popup-buttons-parent > .animation-controls-panel-parent {
+        flex-wrap: wrap;
+        height: fit-content !important;
+        width: 220px;
         position: absolute;
-        bottom: 46px;
+        bottom: 50px;
         left: -8px;
-        width: 189px;
-        background: none;
-        padding: 0px 0px;
-        margin-left: 6px;
-        margin-bottom: 6px;
-    }
-    #popup > #popup-buttons-parent > .animation-controls-panel-parent > .anim-control-button {
-        width: 47px !important;
-        height: 40px !important;
-    }
-
-    #popup > #popup-buttons-parent > .animation-controls-panel-parent > .anim-control-button,
-    #popup > #popup-buttons-parent > .animation-controls-panel-parent > #anim-track-select > .pcui-select-input-container-value  {
-        background-color: rgba(32, 32, 32, 0.4) !important;
-    }
-
-    #popup > #popup-buttons-parent > .animation-controls-panel-parent > #anim-scrub-slider,
-    #popup > #popup-buttons-parent > .animation-controls-panel-parent > #anim-speed-select {
-        display: none;
+        padding: 6px !important;
     }
 
     .selected-node-panel {
