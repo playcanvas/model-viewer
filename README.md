@@ -57,4 +57,14 @@ Run:
 
     npm run serve
 
-Open a browser and navigate to http://localhost:5000.
+Open a browser and navigate to http://localhost:3000.
+
+## Development 
+
+Run:
+
+    npm run develop
+
+Open a browser and navigate to http://localhost:3000.
+
+N.B. To load local models run `npx server --cors` in the directory containing the model (disables CORS).
