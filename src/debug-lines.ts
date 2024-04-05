@@ -51,7 +51,7 @@ const unitBone = [
     [[-0.5, 0, 0.3], [0, -0.5, 0.3]]
 ];
 
-const vshader = `
+const vshader = /* glsl */`
 attribute vec3 vertex_position;
 attribute vec4 vertex_color;
 
@@ -73,7 +73,7 @@ void main(void) {
     gl_Position.z = 0.0;
 }`;
 
-const fshader = `
+const fshader = /* glsl */`
 precision highp float;
 
 varying vec2 zw;
