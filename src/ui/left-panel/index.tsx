@@ -110,8 +110,7 @@ class HierarchyPanel extends React.Component <{ sceneData: ObserverData['scene']
 }
 
 class DevicePanel extends React.Component <{ observerData: ObserverData, setProperty: SetProperty }> {
-
-    shouldComponentUpdate(nextProps: Readonly<{ observerData: ObserverData,  setProperty: SetProperty}>): boolean {
+    shouldComponentUpdate(nextProps: Readonly<{ observerData: ObserverData, setProperty: SetProperty}>): boolean {
         return JSON.stringify(nextProps.observerData.runtime) !== JSON.stringify(this.props.observerData.runtime) ||
                nextProps.observerData.enableWebGPU !== this.props.observerData.enableWebGPU;
     }

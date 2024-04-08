@@ -12,7 +12,7 @@ import LoadControls from './load-controls';
 import ErrorBox from './errors';
 
 class App extends React.Component<{ observer: Observer }> {
-    state: ObserverData;
+    state: ObserverData = null;
     canvasRef: any;
 
     constructor(props: any) {
