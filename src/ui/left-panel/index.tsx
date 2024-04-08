@@ -6,6 +6,12 @@ import { Detail, Select, Toggle, Vector } from '../components';
 import { addEventListenerOnClickOnly } from '../../helpers';
 import MorphTargetPanel from './morph-target-panel';
 
+declare global {
+    interface Navigator {
+      readonly gpu: any;
+    }
+}
+
 const toggleCollapsed = () => {
     const leftPanel = document.getElementById('panel-left');
     if (leftPanel) {
