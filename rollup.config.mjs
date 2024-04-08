@@ -1,5 +1,5 @@
+// official rollup plugins
 import alias from '@rollup/plugin-alias';
-import copyAndWatch from "./copy-and-watch.mjs";
 import image from '@rollup/plugin-image';
 import commonjs from "@rollup/plugin-commonjs";
 import Handlebars from 'handlebars';
@@ -10,6 +10,9 @@ import replace from '@rollup/plugin-replace';
 import sass from 'rollup-plugin-sass';
 import terser from '@rollup/plugin-terser';
 import typescript from "@rollup/plugin-typescript";
+
+// custom plugins
+import copyAndWatch from "./plugins/copy-and-watch.mjs";
 
 // prod is release build
 if (process.env.BUILD_TYPE === 'prod') {
@@ -25,24 +28,8 @@ const PCUI_DIR = path.resolve(process.env.PCUI_PATH || 'node_modules/@playcanvas
 const ENGINE_NAME = (BUILD_TYPE === 'debug') ? 'playcanvas.dbg.mjs' : 'playcanvas.mjs';
 const ENGINE_PATH = path.resolve(ENGINE_DIR, 'build', ENGINE_NAME);
 
-// define supported module overrides
-const aliasEntries = {
-    'playcanvas': ENGINE_PATH,
-    'playcanvas-extras': EXTRAS_DIR,
-    'pcui': PCUI_DIR
-};
-
-const tsCompilerOptions = {
-    baseUrl: '.',
-    paths: {
-        'playcanvas': [ENGINE_DIR],
-        'playcanvas-extras': [EXTRAS_DIR],
-        'pcui': [PCUI_DIR]
-    }
-};
-
 // compile mustache template
-const compileMustache = (content, srcFilename) => {
+const compileMustache = (content) => {
     return Handlebars.compile(content.toString('utf8'))({
         hasPublicPath: !!process.env.PUBLIC_PATH,
         hasAnalyticsID: !!process.env.ANALYTICS_ID,
@@ -51,11 +38,6 @@ const compileMustache = (content, srcFilename) => {
         oneTrustDomainKey: process.env.ONETRUST_DOMAIN_KEY,
         oneTrustDeveloperID: process.env.ONETRUST_DEVELOPER_ID
     });
-};
-
-const replaceValues = {
-    'process.env.NODE_ENV': JSON.stringify(BUILD_TYPE === 'release' ? 'production' : 'development'),
-    '__PUBLIC_PATH__': JSON.stringify(process.env.PUBLIC_PATH)
 };
 
 export default {
@@ -74,7 +56,10 @@ export default {
             ]
         }),
         replace({
-            values: replaceValues,
+            values: {
+                'process.env.NODE_ENV': JSON.stringify(BUILD_TYPE === 'release' ? 'production' : 'development'),
+                '__PUBLIC_PATH__': JSON.stringify(process.env.PUBLIC_PATH)
+            },
             preventAssignment: true
         }),
         sass({
@@ -82,12 +67,25 @@ export default {
             output: 'dist/style.css',
             outputStyle: 'compressed'
         }),
-        image({dom: true}),
-        alias({ entries: aliasEntries }),
+        image({ dom: true }),
+        alias({
+            entries: {
+                'playcanvas': ENGINE_PATH,
+                'playcanvas-extras': EXTRAS_DIR,
+                'pcui': PCUI_DIR
+            }
+        }),
         commonjs(),
         resolve(),
         typescript({
-            compilerOptions: tsCompilerOptions
+            compilerOptions: {
+                baseUrl: '.',
+                paths: {
+                    'playcanvas': [ENGINE_DIR],
+                    'playcanvas-extras': [EXTRAS_DIR],
+                    'pcui': [PCUI_DIR]
+                }
+            }
         }),
         json(),
         (BUILD_TYPE !== 'debug') && terser()

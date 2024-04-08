@@ -38,20 +38,20 @@ export default function copyAndWatch(config) {
 
     return {
         name: 'copy-and-watch',
-        async buildStart() {
+        buildStart() {
             resolvedConfig.targets.forEach((target) => {
                 this.addWatchFile(target.src);
             });
         },
-        async generateBundle() {
+        generateBundle() {
             resolvedConfig.targets.forEach((target) => {
                 const contents = fs.readFileSync(target.src);
                 this.emitFile({
                     type: 'asset',
                     fileName: target.dest,
                     source: target.transform ? target.transform(contents, target.src) : contents
-                })
+                });
             });
         }
-    }
+    };
 }

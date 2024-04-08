@@ -68,7 +68,7 @@ import { DebugLines } from './debug-lines';
 import { Multiframe } from './multiframe';
 import { ReadDepth } from './read-depth';
 import { OrbitCamera, OrbitCameraInputMouse, OrbitCameraInputTouch, OrbitCameraInputKeyboard } from './orbit-camera';
-import { PngExporter } from './png-exporter.js';
+import { PngExporter } from './png-exporter';
 import { ProjectiveSkybox } from './projective-skybox';
 import { ShadowCatcher } from './shadow-catcher';
 import { XRObjectPlacementController } from './xr-mode';
@@ -809,7 +809,7 @@ class Viewer {
                             case PRIMITIVE_TRISTRIP: primitiveCount += prim.count - 2; break;
                             case PRIMITIVE_TRIFAN: primitiveCount += prim.count - 2; break;
                         }
-                        meshVRAM += mesh.vertexBuffer.numBytes + (mesh.indexBuffer?.numBytes ?? 0);
+                        meshVRAM += mesh.vertexBuffer.numBytes + (mesh.indexBuffer?.[0]?.numBytes ?? 0);
                     });
                 });
 
@@ -1852,12 +1852,6 @@ class Viewer {
         if (this.multiframeBusy) {
             this.app.renderNextFrame = true;
         }
-    }
-
-    // to change samples at runtime execute in the debugger 'viewer.setSamples(5, false, 2, 0)'
-    setSamples(numSamples: number, jitter = false, size = 1, sigma = 0) {
-        this.multiframe.setSamples(numSamples, jitter, size, sigma);
-        this.renderNextFrame();
     }
 }
 

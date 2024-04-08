@@ -4,9 +4,9 @@ import {
     Vec3
 } from "playcanvas";
 
-const projectiveSkyboxVS = shaderChunks.skyboxVS.replace(' * cubeMapRotationMatrix', '');
+const projectiveSkyboxVS = (shaderChunks as any).skyboxVS.replace(' * cubeMapRotationMatrix', '');
 
-const projectiveSkyboxHDRPS = `
+const projectiveSkyboxHDRPS = /* glsl */`
 void intersectPlane(inout float t, vec3 pos, vec3 dir, vec4 plane) {
     float d = dot(dir, plane.xyz);
     if (d != 0.0) {
@@ -67,8 +67,8 @@ void main(void) {
 }
 `;
 
-shaderChunks.skyboxHDRPS = projectiveSkyboxHDRPS;
-shaderChunks.skyboxVS = projectiveSkyboxVS;
+(shaderChunks as any).skyboxHDRPS = projectiveSkyboxHDRPS;
+(shaderChunks as any).skyboxVS = projectiveSkyboxVS;
 
 class ProjectiveSkybox {
     app: AppBase;

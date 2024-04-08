@@ -3,7 +3,6 @@ import {
     CHUNKAPI_1_65,
     SHADOW_VSM16 as SHADOW_TYPE,
     SHADOWUPDATE_REALTIME as SHADOWUPDATE,
-
     AppBase,
     BoundingBox,
     CameraComponent,

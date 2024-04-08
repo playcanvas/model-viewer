@@ -2,7 +2,9 @@ import {
     basisInitialize,
     createGraphicsDevice,
     Vec3,
-    WasmModule
+    WasmModule,
+    version as engineVersion,
+    revision as engineRevision
 } from 'playcanvas';
 import { Observer } from '@playcanvas/observer';
 
@@ -15,7 +17,6 @@ import './style.scss';
 
 import { version as modelViewerVersion } from '../package.json';
 import { version as pcuiVersion, revision as pcuiRevision } from 'pcui';
-import { version as engineVersion, revision as engineRevision } from 'playcanvas';
 
 // Permit some additional properties to be set on the window
 declare global {
@@ -64,7 +65,7 @@ const observerData: ObserverData = {
     },
     skybox: {
         value: 'Paul Lobe Haus',
-        options: JSON.stringify(['None'].concat(skyboxes.map(s => s.label)).map(l => { return { v: l, t: l } })),
+        options: JSON.stringify(['None'].concat(skyboxes.map(s => s.label)).map(l => ({ v: l, t: l }))),
         exposure: 0,
         rotation: 0,
         background: 'Infinite Sphere',
@@ -74,7 +75,7 @@ const observerData: ObserverData = {
             domeRadius: 20,
             domeOffset: 0.4,
             tripodOffset: 0.1
-        },
+        }
     },
     light: {
         enabled: false,
@@ -85,7 +86,7 @@ const observerData: ObserverData = {
     },
     shadowCatcher: {
         enabled: false,
-        intensity: 0.4,
+        intensity: 0.4
     },
     debug: {
         renderMode: 'default',
@@ -282,7 +283,7 @@ const main = () => {
                     const url = decodeURIComponent(value);
                     files.push({ url, filename: url });
                     break;
-                };
+                }
                 case 'cameraPosition': {
                     const pos = value.split(',').map(Number);
                     if (pos.length === 3) {
