@@ -67,7 +67,8 @@ import { MorphTargetData, File, HierarchyNode } from './types';
 import { DebugLines } from './debug-lines';
 import { Multiframe } from './multiframe';
 import { ReadDepth } from './read-depth';
-import { OrbitCamera } from './orbit-camera';
+import { FlyCamera } from './fly-camera';
+// import { OrbitCamera } from './orbit-camera';
 import { PngExporter } from './png-exporter';
 import { ProjectiveSkybox } from './projective-skybox';
 import { ShadowCatcher } from './shadow-catcher';
@@ -93,7 +94,8 @@ class Viewer {
     pngExporter: PngExporter = null;
     prevCameraMat: Mat4;
     camera: Entity;
-    orbitCamera: OrbitCamera;
+    // orbitCamera: OrbitCamera;
+    flyCamera: FlyCamera;
     initialCameraPosition: Vec3 | null;
     initialCameraFocus: Vec3 | null;
     light: Entity;
@@ -223,8 +225,10 @@ class Viewer {
             clearColor: new Color(0, 0, 0, 0)
         });
         camera.camera.requestSceneColorMap(true);
-        this.orbitCamera = new OrbitCamera(camera);
-        app.root.addChild(this.orbitCamera.entity);
+        this.flyCamera = new FlyCamera(camera);
+        this.app.root.addChild(this.flyCamera.entity);
+        // this.orbitCamera = new OrbitCamera(camera);
+        // app.root.addChild(this.orbitCamera.entity);
 
         // create the light
         const light = new Entity();
@@ -359,7 +363,8 @@ class Viewer {
                 this.camera.getWorldTransform().transformPoint(this.cursorWorld, this.cursorWorld); // world space
 
                 // focus on cursor
-                this.orbitCamera.focus(this.cursorWorld);
+                this.flyCamera.focus(this.cursorWorld);
+                // this.orbitCamera.focus(this.cursorWorld);
             }
         });
 
@@ -893,7 +898,8 @@ class Viewer {
         }
 
         // focus orbit camera on object and set focus and sceneSize
-        this.orbitCamera.focus(focus, start, sceneSize);
+        this.flyCamera.focus(focus, start, sceneSize);
+        // this.orbitCamera.focus(focus, start, sceneSize);
     }
 
     // adjust camera clipping planes to fit the scene
@@ -1391,7 +1397,8 @@ class Viewer {
     update(deltaTime: number) {
         // update the orbit camera
         if (!this.xrMode?.active) {
-            this.orbitCamera.update(deltaTime);
+            this.flyCamera.update(deltaTime);
+            // this.orbitCamera.update(deltaTime);
         }
 
         const maxdiff = (a: Mat4, b: Mat4) => {
