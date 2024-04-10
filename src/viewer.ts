@@ -67,7 +67,7 @@ import { MorphTargetData, File, HierarchyNode } from './types';
 import { DebugLines } from './debug-lines';
 import { Multiframe } from './multiframe';
 import { ReadDepth } from './read-depth';
-import { OrbitCamera } from './orbit-camera-new';
+import { OrbitCamera } from './orbit-camera';
 import { PngExporter } from './png-exporter';
 import { ProjectiveSkybox } from './projective-skybox';
 import { ShadowCatcher } from './shadow-catcher';
@@ -223,7 +223,6 @@ class Viewer {
             clearColor: new Color(0, 0, 0, 0)
         });
         camera.camera.requestSceneColorMap(true);
-
         this.orbitCamera = new OrbitCamera(camera);
         app.root.addChild(this.orbitCamera.entity);
 
