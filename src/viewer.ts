@@ -67,7 +67,8 @@ import { MorphTargetData, File, HierarchyNode } from './types';
 import { DebugLines } from './debug-lines';
 import { Multiframe } from './multiframe';
 import { ReadDepth } from './read-depth';
-import { OrbitCamera, OrbitCameraInputMouse, OrbitCameraInputTouch, OrbitCameraInputKeyboard } from './orbit-camera';
+// import { OrbitCamera, OrbitCameraInputMouse, OrbitCameraInputTouch, OrbitCameraInputKeyboard } from './orbit-camera';
+import { OrbitCamera } from './orbit-camera-new';
 import { PngExporter } from './png-exporter';
 import { ProjectiveSkybox } from './projective-skybox';
 import { ShadowCatcher } from './shadow-catcher';
@@ -94,9 +95,9 @@ class Viewer {
     prevCameraMat: Mat4;
     camera: Entity;
     orbitCamera: OrbitCamera;
-    orbitCameraInputMouse: OrbitCameraInputMouse;
-    orbitCameraInputTouch: OrbitCameraInputTouch;
-    orbitCameraInputKeyboard: OrbitCameraInputKeyboard;
+    // orbitCameraInputMouse: OrbitCameraInputMouse;
+    // orbitCameraInputTouch: OrbitCameraInputTouch;
+    // orbitCameraInputKeyboard: OrbitCameraInputKeyboard;
     initialCameraPosition: Vec3 | null;
     initialCameraFocus: Vec3 | null;
     light: Entity;
@@ -227,14 +228,15 @@ class Viewer {
         });
         camera.camera.requestSceneColorMap(true);
 
-        this.orbitCamera = new OrbitCamera(camera, 0.25);
-        this.orbitCameraInputMouse = new OrbitCameraInputMouse(this.app, this.orbitCamera);
-        this.orbitCameraInputTouch = new OrbitCameraInputTouch(this.app, this.orbitCamera);
-        this.orbitCameraInputKeyboard = new OrbitCameraInputKeyboard(this.app, this.orbitCamera);
+        this.orbitCamera = new OrbitCamera(camera);
+        app.root.addChild(this.orbitCamera.entity);
 
-        this.orbitCamera.focalPoint.snapto(new Vec3(0, 1, 0));
+        // this.orbitCamera = new OrbitCamera(camera, 0.25);
+        // this.orbitCameraInputMouse = new OrbitCameraInputMouse(this.app, this.orbitCamera);
+        // this.orbitCameraInputTouch = new OrbitCameraInputTouch(this.app, this.orbitCamera);
+        // this.orbitCameraInputKeyboard = new OrbitCameraInputKeyboard(this.app, this.orbitCamera);
 
-        app.root.addChild(camera);
+        // this.orbitCamera.focalPoint.snapto(new Vec3(0, 1, 0));
 
         // create the light
         const light = new Entity();
@@ -369,7 +371,11 @@ class Viewer {
                 this.camera.getWorldTransform().transformPoint(this.cursorWorld, this.cursorWorld); // world space
 
                 // move camera towards focal point
-                this.orbitCamera.focalPoint.goto(this.cursorWorld);
+                this.orbitCamera.entity.setPosition(this.cursorWorld);
+
+                // this.orbitCamera.focus(this.camera.getPosition(), this.cursorWorld, )
+
+                // this.orbitCamera.focalPoint.goto(this.cursorWorld);
             }
         });
 
@@ -871,8 +877,7 @@ class Viewer {
         // calculate scene bounding box
         this.calcSceneBounds(bbox, this.selectedNode as Entity);
 
-        // set orbit camera scene size
-        this.orbitCamera.sceneSize = bbox.halfExtents.length();
+        const sceneSize = bbox.halfExtents.length();
 
         const func = smoothly ? 'goto' : 'snapto';
 
@@ -892,21 +897,35 @@ class Viewer {
             }
         }
 
-        // calculate the camera azim/elev/distance
-        const aed = new Vec3();
+        const start = new Vec3();
         if (this.initialCameraPosition) {
-            // user-specified camera position
-            aed.sub2(focus, this.initialCameraPosition);
-            this.orbitCamera.vecToAzimElevDistance(aed, aed);
+            start.copy(this.initialCameraPosition);
             this.initialCameraPosition = null;
         } else {
-            // automatically placed camera position
-            aed.copy(this.orbitCamera.azimElevDistance.target);
-            aed.z = 1.4 / Math.sin(0.5 * camera.fov * camera.aspectRatio * math.DEG_TO_RAD);
+            start.copy(focus);
+            const scale = 0.8 / Math.tan(0.5 * camera.fov * math.DEG_TO_RAD);
+            start.z += 4 * scale * sceneSize;
+            start.y += 2 * scale * sceneSize;
         }
 
-        this.orbitCamera.azimElevDistance[func](aed);
-        this.orbitCamera.focalPoint[func](focus);
+        // calculate the camera azim/elev/distance
+        // const aed = new Vec3();
+        // if (this.initialCameraPosition) {
+        //     // user-specified camera position
+        //     aed.sub2(focus, this.initialCameraPosition);
+        //     // this.orbitCamera.vecToAzimElevDistance(aed, aed);
+        //     this.initialCameraPosition = null;
+        // } else {
+        //     // automatically placed camera position
+        //     // aed.copy(this.orbitCamera.azimElevDistance.target);
+        //     aed.z = 1.4 / Math.sin(0.5 * camera.fov * camera.aspectRatio * math.DEG_TO_RAD);
+        // }
+
+        // set orbit camera scene size
+        this.orbitCamera.focus(start, focus, sceneSize);
+
+        // this.orbitCamera.azimElevDistance[func](aed);
+        // this.orbitCamera.focalPoint[func](focus);
     }
 
     // adjust camera clipping planes to fit the scene
@@ -1404,7 +1423,7 @@ class Viewer {
     update(deltaTime: number) {
         // update the orbit camera
         if (!this.xrMode?.active) {
-            this.orbitCameraInputKeyboard.update(deltaTime, this.sceneBounds ? this.sceneBounds.halfExtents.length() * 2 : 1);
+            // this.orbitCameraInputKeyboard.update(deltaTime, this.sceneBounds ? this.sceneBounds.halfExtents.length() * 2 : 1);
             this.orbitCamera.update(deltaTime);
         }
 
