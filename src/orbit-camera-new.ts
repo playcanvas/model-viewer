@@ -15,6 +15,8 @@ class OrbitCamera {
 
     camera: Entity;
 
+    private _focus: Vec3 = new Vec3(0, 1, 0);
+
     private _look: Vec2 = new Vec2();
 
     private _zoom: number = 0;
@@ -78,6 +80,7 @@ class OrbitCamera {
                 // pan
                 this._pan(tmpVa.set(event.clientX, event.clientY));
             } else {
+                // orbit
                 const movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
                 const movementY = event.movementY || event.mozMovementY || event.webkitMovementY || 0;
                 this._orbit(tmpVa.set(movementX, movementY));
@@ -156,13 +159,14 @@ class OrbitCamera {
         this._lastPosition.copy(pos);
     }
 
-    focus(start: Vec3, focusPoint: Vec3, sceneSize: number) {
-        this._sceneSize = sceneSize;
-        this._focusPoint = focusPoint;
+    focus(point: Vec3, start?: Vec3, sceneSize?: number) {
+        this._focus.copy(point);
 
-        this.entity.setPosition(focusPoint);
+        if (!start || !sceneSize) {
+            return;
+        }
 
-        tmpV1.sub2(start, focusPoint);
+        tmpV1.sub2(start, point);
 
         const elev = Math.atan2(tmpV1.y, tmpV1.z) * math.RAD_TO_DEG;
         const azim = Math.atan2(tmpV1.x, tmpV1.z) * math.RAD_TO_DEG;
@@ -176,6 +180,7 @@ class OrbitCamera {
     update(dt) {
         this.camera.setLocalPosition(0, 0, this._zoom);
         this.entity.setEulerAngles(this._look.x, this._look.y, 0);
+        this.entity.setPosition(this._focus);
     }
 
     destroy() {
