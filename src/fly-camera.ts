@@ -1,4 +1,4 @@
-import { Entity, Vec3, Vec2, math } from "playcanvas";
+import { Entity, Vec3, Vec2, math, Mat4 } from "playcanvas";
 
 type PointerMoveEvent = PointerEvent & {
     mozMovementX: number;
@@ -9,6 +9,7 @@ type PointerMoveEvent = PointerEvent & {
 
 const tmpVa = new Vec2();
 const tmpV1 = new Vec3();
+const tmpM1 = new Mat4();
 
 class FlyCamera {
     entity: Entity;
@@ -22,6 +23,8 @@ class FlyCamera {
     private _sceneSize: number = 100;
 
     private _pointerDown: boolean = false;
+
+    private _zoom: number = 0;
 
     private _key = {
         forward: false,
@@ -151,7 +154,10 @@ class FlyCamera {
 
     focus(point: Vec3, start?: Vec3, sceneSize?: number) {
         if (!start || !sceneSize) {
-            this._origin.copy(point);
+            tmpM1.copy(this.entity.getWorldTransform());
+            tmpV1.copy(Vec3.BACK).mulScalar(this._zoom);
+            tmpM1.transformVector(tmpV1, tmpV1);
+            this._origin.copy(point).add(tmpV1);
             return;
         }
 
@@ -162,6 +168,8 @@ class FlyCamera {
         this._look.set(-elev, -azim);
 
         this._origin.copy(start);
+
+        this._zoom = tmpV1.length();
     }
 
     update(dt: number) {

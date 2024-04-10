@@ -892,9 +892,9 @@ class Viewer {
             this.initialCameraPosition = null;
         } else {
             start.copy(focus);
-            const scale = 0.8 / Math.tan(0.5 * camera.fov * math.DEG_TO_RAD);
-            start.z += 4 * scale * sceneSize;
-            start.y += 2 * scale * sceneSize;
+            const scale = 0.25 / Math.tan(0.25 * camera.fov * math.DEG_TO_RAD);
+            start.z += 3 * scale * sceneSize;
+            start.y += 1 * scale * sceneSize;
         }
 
         // focus orbit camera on object and set focus and sceneSize
