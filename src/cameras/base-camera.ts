@@ -10,33 +10,32 @@ type PointerMoveEvent = PointerEvent & {
 const LOOK_MAX_ANGLE = 90;
 
 abstract class BaseCamera {
-    entity: Entity;
+    entity: Entity = new Entity();
 
-    camera: Entity;
+    sceneSize: number = 100;
 
     lookSensitivity: number = 0.2;
+
+    protected _camera: Entity = null;
 
     protected _origin: Vec3 = new Vec3(0, 1, 0);
 
     protected _dir: Vec2 = new Vec2();
 
-    protected _sceneSize: number = 100;
-
     protected _zoom: number = 0;
 
-    constructor(camera: Entity) {
-        this.camera = camera;
-
+    constructor() {
         this._onPointerDown = this._onPointerDown.bind(this);
         this._onPointerMove = this._onPointerMove.bind(this);
         this._onPointerUp = this._onPointerUp.bind(this);
+    }
 
-        window.addEventListener('pointerdown', this._onPointerDown);
-        window.addEventListener('pointermove', this._onPointerMove);
-        window.addEventListener('pointerup', this._onPointerUp);
+    abstract get point(): Vec3
 
-        this.entity = new Entity();
-        this.entity.addChild(camera);
+    abstract get start(): Vec3
+
+    get dir() {
+        return this._dir;
     }
 
     protected abstract _onPointerDown(event: PointerEvent): void
@@ -52,16 +51,32 @@ abstract class BaseCamera {
         this._dir.y -= movementX * this.lookSensitivity;
     }
 
-    abstract focus(point: Vec3, start?: Vec3, sceneSize?: number): void
+    abstract focus(point: Vec3, start?: Vec3, dir?: Vec2): void
 
-    update(dt: number) {
-        this.entity.setEulerAngles(this._dir.x, this._dir.y, 0);
+    attach(camera: Entity) {
+        this._camera = camera;
+
+        window.addEventListener('pointerdown', this._onPointerDown);
+        window.addEventListener('pointermove', this._onPointerMove);
+        window.addEventListener('pointerup', this._onPointerUp);
+
+        this.entity.addChild(camera);
     }
 
-    destroy() {
+    detach() {
         window.removeEventListener('pointermove', this._onPointerMove);
         window.removeEventListener('pointerdown', this._onPointerDown);
         window.removeEventListener('pointerup', this._onPointerUp);
+
+        this.entity.removeChild(this._camera);
+        this._camera = null;
+    }
+
+    update(dt: number) {
+        if (!this._camera) {
+            return;
+        }
+        this.entity.setEulerAngles(this._dir.x, this._dir.y, 0);
     }
 }
 

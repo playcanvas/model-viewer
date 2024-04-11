@@ -3,7 +3,11 @@ import {
     BLENDMODE_ONE,
     BLENDMODE_ZERO,
     BLENDEQUATION_ADD,
+    EVENT_KEYDOWN,
+    EVENT_KEYUP,
     FILTER_NEAREST,
+    KEY_F,
+    KEY_X,
     LAYERID_DEPTH,
     LAYERID_SKYBOX,
     PIXELFORMAT_DEPTH,
@@ -67,6 +71,7 @@ import { MorphTargetData, File, HierarchyNode } from './types';
 import { DebugLines } from './debug-lines';
 import { Multiframe } from './multiframe';
 import { ReadDepth } from './read-depth';
+import { BaseCamera } from './cameras/base-camera';
 import { FlyCamera } from './cameras/fly-camera';
 import { OrbitCamera } from './cameras/orbit-camera';
 import { PngExporter } from './png-exporter';
@@ -94,8 +99,6 @@ class Viewer {
     pngExporter: PngExporter = null;
     prevCameraMat: Mat4;
     camera: Entity;
-    orbitCamera: OrbitCamera;
-    flyCamera: FlyCamera;
     initialCameraPosition: Vec3 | null;
     initialCameraFocus: Vec3 | null;
     light: Entity;
@@ -150,6 +153,10 @@ class Viewer {
     xrMode: XRObjectPlacementController;
 
     canvasResize = true;
+
+    private orbitCamera: OrbitCamera;
+    private flyCamera: FlyCamera;
+    controlCamera: BaseCamera;
 
     constructor(canvas: HTMLCanvasElement, graphicsDevice: GraphicsDevice, observer: Observer, skyboxUrls: Map<string, string>) {
         this.canvas = canvas;
@@ -217,7 +224,7 @@ class Viewer {
         app.scene.layers.remove(depthLayer);
         app.scene.layers.insertOpaque(depthLayer, 2);
 
-        // create the orbit camera
+        // create the camera
         const camera = new Entity("Camera");
         camera.addComponent("camera", {
             fov: 75,
@@ -225,10 +232,49 @@ class Viewer {
             clearColor: new Color(0, 0, 0, 0)
         });
         camera.camera.requestSceneColorMap(true);
-        // this.flyCamera = new FlyCamera(camera);
-        // this.app.root.addChild(this.flyCamera.entity);
-        this.orbitCamera = new OrbitCamera(camera);
+
+        // create camera controls
+        this.flyCamera = new FlyCamera();
+        app.root.addChild(this.flyCamera.entity);
+        this.orbitCamera = new OrbitCamera();
         app.root.addChild(this.orbitCamera.entity);
+        this.controlCamera = this.orbitCamera;
+        this.controlCamera.attach(camera);
+
+        let canToggleCamera = true;
+        app.keyboard.on(EVENT_KEYDOWN, (event) => {
+            switch (event.key) {
+                case KEY_F: {
+                    this.focusSelection();
+                    break;
+                }
+                case KEY_X: {
+                    if (canToggleCamera) {
+                        canToggleCamera = false;
+
+                        const lastControlCamera = this.controlCamera;
+                        const focus = lastControlCamera.point.clone();
+                        const start = lastControlCamera.start.clone();
+                        const dir = lastControlCamera.dir;
+
+                        this.controlCamera.detach();
+                        this.controlCamera = this.controlCamera === this.orbitCamera ? this.flyCamera : this.orbitCamera;
+                        this.controlCamera.attach(camera);
+                        this.controlCamera.focus(focus, start, dir);
+                        console.log(this.controlCamera === this.orbitCamera ? 'ORBIT' : 'FLY');
+                    }
+                    break;
+                }
+            }
+        });
+        app.keyboard.on(EVENT_KEYUP, (event) => {
+            switch (event.key) {
+                case KEY_X: {
+                    canToggleCamera = true;
+                    break;
+                }
+            }
+        });
 
         // create the light
         const light = new Entity();
@@ -363,12 +409,9 @@ class Viewer {
                 this.camera.getWorldTransform().transformPoint(this.cursorWorld, this.cursorWorld); // world space
 
                 // focus on cursor
-                // this.flyCamera.focus(this.cursorWorld);
-                this.orbitCamera.focus(this.cursorWorld);
+                this.controlCamera.focus(this.cursorWorld);
             }
         });
-
-        app.on('focuscamera', this.focusCamera, this);
 
         this.app.scene.layers.getLayerByName('World').transparentSortMode = SORTMODE_BACK2FRONT;
 
@@ -859,8 +902,7 @@ class Viewer {
         }
     }
 
-    // move the camera to view the loaded object
-    focusCamera() {
+    focusSelection() {
         const camera = this.camera.camera;
 
         // calculate scene bounding box
@@ -896,8 +938,9 @@ class Viewer {
         }
 
         // focus orbit camera on object and set focus and sceneSize
-        // this.flyCamera.focus(focus, start, sceneSize);
-        this.orbitCamera.focus(focus, start, sceneSize);
+        this.orbitCamera.sceneSize = sceneSize;
+        this.flyCamera.sceneSize = sceneSize;
+        this.controlCamera.focus(focus, start);
     }
 
     // adjust camera clipping planes to fit the scene
@@ -1395,8 +1438,7 @@ class Viewer {
     update(deltaTime: number) {
         // update the orbit camera
         if (!this.xrMode?.active) {
-            // this.flyCamera.update(deltaTime);
-            this.orbitCamera.update(deltaTime);
+            this.controlCamera.update(deltaTime);
         }
 
         const maxdiff = (a: Mat4, b: Mat4) => {
@@ -1588,7 +1630,7 @@ class Viewer {
         this.projectiveSkybox.domeRadius = this.sceneBounds.halfExtents.length() * this.observer.get('skybox.domeProjection.domeRadius');
 
         // set camera clipping planes
-        this.focusCamera();
+        this.focusSelection();
     }
 
     // rebuild the animation state graph

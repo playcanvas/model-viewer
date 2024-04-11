@@ -1,4 +1,4 @@
-import { Entity, Vec3, Vec2, math } from 'playcanvas';
+import { Entity, Vec2, Vec3, math } from 'playcanvas';
 import { BaseCamera } from './base-camera';
 
 type PointerMoveEvent = PointerEvent & {
@@ -28,14 +28,18 @@ class OrbitCamera extends BaseCamera {
 
     private _panning: boolean = false;
 
-    constructor(camera: Entity) {
-        super(camera);
-
+    constructor() {
+        super();
         this._onWheel = this._onWheel.bind(this);
         this._onContextMenu = this._onContextMenu.bind(this);
+    }
 
-        window.addEventListener('wheel', this._onWheel, { passive: false });
-        window.addEventListener('contextmenu', this._onContextMenu);
+    get point() {
+        return this._origin;
+    }
+
+    get start() {
+        return this._camera.getPosition();
     }
 
     protected _onPointerDown(event: PointerEvent) {
@@ -75,7 +79,7 @@ class OrbitCamera extends BaseCamera {
             // pinch zoom
             const pinchDist = this._getPinchDist();
             if (this._lastPinchDist > 0) {
-                this._zoom = Math.max(this._zoom - (pinchDist - this._lastPinchDist) * this._sceneSize * this.pinchSpeed, 0);
+                this._zoom = Math.max(this._zoom - (pinchDist - this._lastPinchDist) * this.sceneSize * this.pinchSpeed, 0);
             }
             this._lastPinchDist = pinchDist;
         }
@@ -95,7 +99,7 @@ class OrbitCamera extends BaseCamera {
 
     private _onWheel(event: WheelEvent) {
         event.preventDefault();
-        this._zoom = Math.max(this._zoom - event.deltaY * this._sceneSize * this.wheelSpeed, 0);
+        this._zoom = Math.max(this._zoom - event.deltaY * this.sceneSize * this.wheelSpeed, 0);
     }
 
     private _onContextMenu(event: MouseEvent) {
@@ -119,46 +123,63 @@ class OrbitCamera extends BaseCamera {
     private _pan(pos: Vec2) {
         const distance = Math.abs(this._zoom);
 
-        const last = this.camera.camera.screenToWorld(this._lastPosition.x, this._lastPosition.y, distance);
-        const current = this.camera.camera.screenToWorld(pos.x, pos.y, distance);
+        const last = this._camera.camera.screenToWorld(this._lastPosition.x, this._lastPosition.y, distance);
+        const current = this._camera.camera.screenToWorld(pos.x, pos.y, distance);
 
         tmpV1.sub2(last, current);
-        tmpV1.mulScalar(this.panSpeed * this._sceneSize);
+        tmpV1.mulScalar(this.panSpeed * this.sceneSize);
 
         this._origin.add(tmpV1);
 
         this._lastPosition.copy(pos);
     }
 
-    focus(point: Vec3, start?: Vec3, sceneSize?: number) {
-        this._origin.copy(point);
-
-        if (!start || !sceneSize) {
+    focus(point: Vec3, start?: Vec3, dir?: Vec2) {
+        if (!this._camera) {
+            return;
+        }
+        if (!start) {
+            this._origin.copy(point);
             return;
         }
 
         tmpV1.sub2(start, point);
+        if (dir) {
+            this._dir.copy(dir);
+        } else {
+            const elev = Math.atan2(tmpV1.y, tmpV1.z) * math.RAD_TO_DEG;
+            const azim = Math.atan2(tmpV1.x, tmpV1.z) * math.RAD_TO_DEG;
+            this._dir.set(-elev, -azim);
+        }
 
-        const elev = Math.atan2(tmpV1.y, tmpV1.z) * math.RAD_TO_DEG;
-        const azim = Math.atan2(tmpV1.x, tmpV1.z) * math.RAD_TO_DEG;
-        this._dir.set(-elev, -azim);
-
-        this.camera.setPosition(start);
+        this._origin.copy(point);
+        this._camera.setPosition(start);
 
         this._zoom = tmpV1.length();
     }
 
-    update(dt: number) {
-        super.update(dt);
+    attach(camera: Entity) {
+        super.attach(camera);
 
-        this.camera.setLocalPosition(0, 0, this._zoom);
-        this.entity.setPosition(this._origin);
+        window.addEventListener('wheel', this._onWheel, { passive: false });
+        window.addEventListener('contextmenu', this._onContextMenu);
     }
 
-    destroy() {
-        super.destroy();
+    detach() {
+        super.detach();
+
         window.removeEventListener('wheel', this._onWheel);
         window.removeEventListener('contextmenu', this._onContextMenu);
+    }
+
+    update(dt: number) {
+        if (!this._camera) {
+            return;
+        }
+        super.update(dt);
+
+        this._camera.setLocalPosition(0, 0, this._zoom);
+        this.entity.setPosition(this._origin);
     }
 }
 

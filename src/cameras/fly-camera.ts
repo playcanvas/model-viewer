@@ -1,4 +1,4 @@
-import { Entity, Vec3, math, Mat4 } from 'playcanvas';
+import { Entity, Vec2, Vec3, math } from 'playcanvas';
 import { BaseCamera } from './base-camera';
 
 type PointerMoveEvent = PointerEvent & {
@@ -9,12 +9,13 @@ type PointerMoveEvent = PointerEvent & {
 }
 
 const tmpV1 = new Vec3();
-const tmpM1 = new Mat4();
 
 class FlyCamera extends BaseCamera {
     lookSensitivity: number = 0.2;
 
     moveSpeed: number = 10;
+
+    sprintSpeed: number = 25;
 
     velocityDamping: number = 1e-4;
 
@@ -28,17 +29,24 @@ class FlyCamera extends BaseCamera {
         left: false,
         right: false,
         up: false,
-        down: false
+        down: false,
+        sprint: false
     };
 
-    constructor(camera: Entity) {
-        super(camera);
-
+    constructor() {
+        super();
         this._onKeyDown = this._onKeyDown.bind(this);
         this._onKeyUp = this._onKeyUp.bind(this);
+    }
 
-        window.addEventListener('keydown', this._onKeyDown, false);
-        window.addEventListener('keyup', this._onKeyUp, false);
+    get point() {
+        tmpV1.copy(this.entity.forward).mulScalar(this._zoom);
+        tmpV1.add(this._origin);
+        return tmpV1;
+    }
+
+    get start() {
+        return this._origin;
     }
 
     protected _onPointerDown() {
@@ -79,6 +87,9 @@ class FlyCamera extends BaseCamera {
             case 'e':
                 this._key.down = true;
                 break;
+            case 'shift':
+                this._key.sprint = true;
+                break;
         }
     }
 
@@ -102,6 +113,9 @@ class FlyCamera extends BaseCamera {
                 break;
             case 'e':
                 this._key.down = false;
+                break;
+            case 'shift':
+                this._key.sprint = false;
                 break;
         }
     }
@@ -127,46 +141,74 @@ class FlyCamera extends BaseCamera {
             tmpV1.sub(this.entity.up);
         }
         tmpV1.normalize();
-        tmpV1.mulScalar(this._sceneSize * this.moveSpeed * dt);
+        const speed = this._key.sprint ? this.sprintSpeed : this.moveSpeed;
+        tmpV1.mulScalar(this.sceneSize * speed * dt);
         this._velocity.add(tmpV1);
 
         tmpV1.copy(this._velocity).mulScalar(dt);
         this._origin.add(tmpV1);
         this._velocity.lerp(this._velocity, Vec3.ZERO, 1 - Math.pow(this.velocityDamping, dt));
+        this.entity.setPosition(this._origin);
     }
 
-    focus(point: Vec3, start?: Vec3, sceneSize?: number) {
-        if (!start || !sceneSize) {
-            tmpM1.copy(this.entity.getWorldTransform());
-            tmpV1.copy(Vec3.BACK).mulScalar(this._zoom);
-            tmpM1.transformVector(tmpV1, tmpV1);
+    focus(point: Vec3, start?: Vec3, dir?: Vec2) {
+        if (!this._camera) {
+            return;
+        }
+        if (!start) {
+            tmpV1.copy(this.entity.forward).mulScalar(-this._zoom);
             this._origin.copy(point).add(tmpV1);
             return;
         }
 
         tmpV1.sub2(start, point);
-
-        const elev = Math.atan2(tmpV1.y, tmpV1.z) * math.RAD_TO_DEG;
-        const azim = Math.atan2(tmpV1.x, tmpV1.z) * math.RAD_TO_DEG;
-        this._dir.set(-elev, -azim);
+        if (dir) {
+            this._dir.copy(dir);
+        } else {
+            const elev = Math.atan2(tmpV1.y, tmpV1.z) * math.RAD_TO_DEG;
+            const azim = Math.atan2(tmpV1.x, tmpV1.z) * math.RAD_TO_DEG;
+            this._dir.set(-elev, -azim);
+        }
 
         this._origin.copy(start);
+        this._camera.setLocalPosition(0, 0, 0);
+        this._velocity.set(0, 0, 0);
 
         this._zoom = tmpV1.length();
     }
 
+    attach(camera: Entity) {
+        super.attach(camera);
+
+        window.addEventListener('keydown', this._onKeyDown, false);
+        window.addEventListener('keyup', this._onKeyUp, false);
+    }
+
+    detach() {
+        super.detach();
+
+        window.removeEventListener('keydown', this._onKeyDown, false);
+        window.removeEventListener('keyup', this._onKeyUp, false);
+
+        this._key = {
+            forward: false,
+            backward: false,
+            left: false,
+            right: false,
+            up: false,
+            down: false,
+            sprint: false
+        };
+        this._velocity.set(0, 0, 0);
+    }
+
     update(dt: number) {
+        if (!this._camera) {
+            return;
+        }
         super.update(dt);
 
         this._move(dt);
-
-        this.entity.setPosition(this._origin);
-    }
-
-    destroy() {
-        super.destroy();
-        window.removeEventListener('keydown', this._onKeyDown, false);
-        window.removeEventListener('keyup', this._onKeyUp, false);
     }
 }
 
