@@ -18,6 +18,8 @@ class FlyCamera {
 
     private _origin: Vec3 = new Vec3(0, 1, 0);
 
+    private _velocity: Vec3 = new Vec3(0, 0, 0);
+
     private _look: Vec2 = new Vec2();
 
     private _sceneSize: number = 100;
@@ -148,8 +150,13 @@ class FlyCamera {
             tmpV1.sub(this.entity.up);
         }
         tmpV1.normalize();
-        tmpV1.mulScalar(this._sceneSize * dt * 5);
+        tmpV1.mulScalar(this._sceneSize * dt * 10);
+        this._velocity.add(tmpV1);
+
+        tmpV1.copy(this._velocity).mulScalar(dt);
         this._origin.add(tmpV1);
+        const f = 1e-4;
+        this._velocity.lerp(this._velocity, Vec3.ZERO, 1 - Math.pow(f, dt));
     }
 
     focus(point: Vec3, start?: Vec3, sceneSize?: number) {
@@ -173,9 +180,10 @@ class FlyCamera {
     }
 
     update(dt: number) {
+        this.entity.setEulerAngles(this._look.x, this._look.y, 0);
+
         this._move(dt);
 
-        this.entity.setEulerAngles(this._look.x, this._look.y, 0);
         this.entity.setPosition(this._origin);
     }
 
