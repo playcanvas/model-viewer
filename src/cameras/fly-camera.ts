@@ -1,4 +1,5 @@
-import { Entity, Vec3, Vec2, math, Mat4 } from "playcanvas";
+import { Entity, Vec3, math, Mat4 } from 'playcanvas';
+import { BaseCamera } from './base-camera';
 
 type PointerMoveEvent = PointerEvent & {
     mozMovementX: number;
@@ -7,34 +8,19 @@ type PointerMoveEvent = PointerEvent & {
     webkitMovementY: number;
 }
 
-const tmpVa = new Vec2();
 const tmpV1 = new Vec3();
 const tmpM1 = new Mat4();
 
-const LOOK_MAX_ANGLE = 90;
-
-class FlyCamera {
-    entity: Entity;
-
-    camera: Entity;
-
+class FlyCamera extends BaseCamera {
     lookSensitivity: number = 0.2;
 
     moveSpeed: number = 10;
 
     velocityDamping: number = 1e-4;
 
-    private _origin: Vec3 = new Vec3(0, 1, 0);
-
     private _velocity: Vec3 = new Vec3(0, 0, 0);
 
-    private _look: Vec2 = new Vec2();
-
-    private _sceneSize: number = 100;
-
     private _pointerDown: boolean = false;
-
-    private _zoom: number = 0;
 
     private _key = {
         forward: false,
@@ -46,41 +32,29 @@ class FlyCamera {
     };
 
     constructor(camera: Entity) {
-        this.camera = camera;
+        super(camera);
 
-        this._onPointerDown = this._onPointerDown.bind(this);
-        this._onPointerMove = this._onPointerMove.bind(this);
-        this._onPointerUp = this._onPointerUp.bind(this);
         this._onKeyDown = this._onKeyDown.bind(this);
         this._onKeyUp = this._onKeyUp.bind(this);
 
-        window.addEventListener('pointerdown', this._onPointerDown);
-        window.addEventListener('pointermove', this._onPointerMove);
-        window.addEventListener('pointerup', this._onPointerUp);
         window.addEventListener('keydown', this._onKeyDown, false);
         window.addEventListener('keyup', this._onKeyUp, false);
-
-        this.entity = new Entity();
-        this.entity.addChild(camera);
     }
 
-    private _onPointerDown() {
+    protected _onPointerDown() {
         this._pointerDown = true;
     }
 
-    private _onPointerMove(event: PointerMoveEvent) {
+    protected _onPointerMove(event: PointerMoveEvent) {
         if (!this._pointerDown) {
             return;
         }
 
-        // fly
-        const movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
-        const movementY = event.movementY || event.mozMovementY || event.webkitMovementY || 0;
-        this._fly(tmpVa.set(movementX, movementY));
+        this._look(event);
 
     }
 
-    private _onPointerUp() {
+    protected _onPointerUp() {
         this._pointerDown = false;
     }
 
@@ -132,11 +106,6 @@ class FlyCamera {
         }
     }
 
-    private _fly(movement: Vec2) {
-        this._look.x = math.clamp(this._look.x - movement.y * this.lookSensitivity, -LOOK_MAX_ANGLE, LOOK_MAX_ANGLE);
-        this._look.y -= movement.x * this.lookSensitivity;
-    }
-
     private _move(dt: number) {
         tmpV1.set(0, 0, 0);
         if (this._key.forward) {
@@ -179,7 +148,7 @@ class FlyCamera {
 
         const elev = Math.atan2(tmpV1.y, tmpV1.z) * math.RAD_TO_DEG;
         const azim = Math.atan2(tmpV1.x, tmpV1.z) * math.RAD_TO_DEG;
-        this._look.set(-elev, -azim);
+        this._dir.set(-elev, -azim);
 
         this._origin.copy(start);
 
@@ -187,7 +156,7 @@ class FlyCamera {
     }
 
     update(dt: number) {
-        this.entity.setEulerAngles(this._look.x, this._look.y, 0);
+        super.update(dt);
 
         this._move(dt);
 
@@ -195,9 +164,7 @@ class FlyCamera {
     }
 
     destroy() {
-        window.removeEventListener('pointermove', this._onPointerMove);
-        window.removeEventListener('pointerdown', this._onPointerDown);
-        window.removeEventListener('pointerup', this._onPointerUp);
+        super.destroy();
         window.removeEventListener('keydown', this._onKeyDown, false);
         window.removeEventListener('keyup', this._onKeyUp, false);
     }

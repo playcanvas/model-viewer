@@ -1,4 +1,5 @@
-import { Entity, Vec3, Vec2, math } from "playcanvas";
+import { Entity, Vec3, Vec2, math } from 'playcanvas';
+import { BaseCamera } from './base-camera';
 
 type PointerMoveEvent = PointerEvent & {
     mozMovementX: number;
@@ -10,13 +11,7 @@ type PointerMoveEvent = PointerEvent & {
 const tmpVa = new Vec2();
 const tmpV1 = new Vec3();
 
-const LOOK_MAX_ANGLE = 90;
-
-class OrbitCamera {
-    entity: Entity;
-
-    camera: Entity;
-
+class OrbitCamera extends BaseCamera {
     lookSensitivity: number = 0.2;
 
     panSpeed: number = 0.01;
@@ -24,14 +19,6 @@ class OrbitCamera {
     pinchSpeed: number = 0.025;
 
     wheelSpeed: number = 0.005;
-
-    private _focus: Vec3 = new Vec3(0, 1, 0);
-
-    private _look: Vec2 = new Vec2();
-
-    private _zoom: number = 0;
-
-    private _sceneSize: number = 100;
 
     private _pointerEvents: Map<number, PointerEvent> = new Map();
 
@@ -42,25 +29,16 @@ class OrbitCamera {
     private _panning: boolean = false;
 
     constructor(camera: Entity) {
-        this.camera = camera;
+        super(camera);
 
-        this._onPointerDown = this._onPointerDown.bind(this);
-        this._onPointerMove = this._onPointerMove.bind(this);
-        this._onPointerUp = this._onPointerUp.bind(this);
         this._onWheel = this._onWheel.bind(this);
         this._onContextMenu = this._onContextMenu.bind(this);
 
-        window.addEventListener('pointerdown', this._onPointerDown);
-        window.addEventListener('pointermove', this._onPointerMove);
-        window.addEventListener('pointerup', this._onPointerUp);
         window.addEventListener('wheel', this._onWheel, { passive: false });
         window.addEventListener('contextmenu', this._onContextMenu);
-
-        this.entity = new Entity();
-        this.entity.addChild(camera);
     }
 
-    private _onPointerDown(event: PointerEvent) {
+    protected _onPointerDown(event: PointerEvent) {
         this._pointerEvents.set(event.pointerId, event);
         if (this._pointerEvents.size === 2) {
             this._lastPinchDist = this._getPinchDist();
@@ -73,7 +51,7 @@ class OrbitCamera {
         }
     }
 
-    private _onPointerMove(event: PointerMoveEvent) {
+    protected _onPointerMove(event: PointerMoveEvent) {
         if (this._pointerEvents.size === 0) {
             return;
         }
@@ -85,10 +63,7 @@ class OrbitCamera {
                 // pan
                 this._pan(tmpVa.set(event.clientX, event.clientY));
             } else {
-                // orbit
-                const movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
-                const movementY = event.movementY || event.mozMovementY || event.webkitMovementY || 0;
-                this._orbit(tmpVa.set(movementX, movementY));
+                super._look(event);
             }
             return;
         }
@@ -107,7 +82,7 @@ class OrbitCamera {
 
     }
 
-    private _onPointerUp(event: PointerEvent) {
+    protected _onPointerUp(event: PointerEvent) {
         this._pointerEvents.delete(event.pointerId);
         if (this._pointerEvents.size < 2) {
             this._lastPinchDist = -1;
@@ -141,11 +116,6 @@ class OrbitCamera {
         return Math.sqrt(dx * dx + dy * dy);
     }
 
-    private _orbit(movement: Vec2) {
-        this._look.x = math.clamp(this._look.x - movement.y * this.lookSensitivity, -LOOK_MAX_ANGLE, LOOK_MAX_ANGLE);
-        this._look.y -= movement.x * this.lookSensitivity;
-    }
-
     private _pan(pos: Vec2) {
         const distance = Math.abs(this._zoom);
 
@@ -155,13 +125,13 @@ class OrbitCamera {
         tmpV1.sub2(last, current);
         tmpV1.mulScalar(this.panSpeed * this._sceneSize);
 
-        this._focus.add(tmpV1);
+        this._origin.add(tmpV1);
 
         this._lastPosition.copy(pos);
     }
 
     focus(point: Vec3, start?: Vec3, sceneSize?: number) {
-        this._focus.copy(point);
+        this._origin.copy(point);
 
         if (!start || !sceneSize) {
             return;
@@ -171,23 +141,22 @@ class OrbitCamera {
 
         const elev = Math.atan2(tmpV1.y, tmpV1.z) * math.RAD_TO_DEG;
         const azim = Math.atan2(tmpV1.x, tmpV1.z) * math.RAD_TO_DEG;
-        this._look.set(-elev, -azim);
+        this._dir.set(-elev, -azim);
 
         this.camera.setPosition(start);
 
         this._zoom = tmpV1.length();
     }
 
-    update(dt) {
+    update(dt: number) {
+        super.update(dt);
+
         this.camera.setLocalPosition(0, 0, this._zoom);
-        this.entity.setEulerAngles(this._look.x, this._look.y, 0);
-        this.entity.setPosition(this._focus);
+        this.entity.setPosition(this._origin);
     }
 
     destroy() {
-        window.removeEventListener('pointermove', this._onPointerMove);
-        window.removeEventListener('pointerdown', this._onPointerDown);
-        window.removeEventListener('pointerup', this._onPointerUp);
+        super.destroy();
         window.removeEventListener('wheel', this._onWheel);
         window.removeEventListener('contextmenu', this._onContextMenu);
     }
