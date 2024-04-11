@@ -33,6 +33,7 @@ export interface ObserverData {
         multisampleSupported: boolean,
         multisample: boolean,
         hq: boolean,
+        controls: string
     },
     skybox: {
         value: string,

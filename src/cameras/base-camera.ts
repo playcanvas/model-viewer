@@ -72,6 +72,7 @@ abstract class BaseCamera {
         this._camera = null;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     update(dt: number) {
         if (!this._camera) {
             return;
