@@ -11,10 +11,18 @@ const tmpVa = new Vec2();
 const tmpV1 = new Vec3();
 const tmpM1 = new Mat4();
 
+const LOOK_MAX_ANGLE = 90;
+
 class FlyCamera {
     entity: Entity;
 
     camera: Entity;
+
+    lookSensitivity: number = 0.2;
+
+    moveSpeed: number = 10;
+
+    velocityDamping: number = 1e-4;
 
     private _origin: Vec3 = new Vec3(0, 1, 0);
 
@@ -125,8 +133,8 @@ class FlyCamera {
     }
 
     private _fly(movement: Vec2) {
-        this._look.x = math.clamp(this._look.x - movement.y * 0.2, -90, 90);
-        this._look.y -= movement.x * 0.2;
+        this._look.x = math.clamp(this._look.x - movement.y * this.lookSensitivity, -LOOK_MAX_ANGLE, LOOK_MAX_ANGLE);
+        this._look.y -= movement.x * this.lookSensitivity;
     }
 
     private _move(dt: number) {
@@ -150,13 +158,12 @@ class FlyCamera {
             tmpV1.sub(this.entity.up);
         }
         tmpV1.normalize();
-        tmpV1.mulScalar(this._sceneSize * dt * 10);
+        tmpV1.mulScalar(this._sceneSize * this.moveSpeed * dt);
         this._velocity.add(tmpV1);
 
         tmpV1.copy(this._velocity).mulScalar(dt);
         this._origin.add(tmpV1);
-        const f = 1e-4;
-        this._velocity.lerp(this._velocity, Vec3.ZERO, 1 - Math.pow(f, dt));
+        this._velocity.lerp(this._velocity, Vec3.ZERO, 1 - Math.pow(this.velocityDamping, dt));
     }
 
     focus(point: Vec3, start?: Vec3, sceneSize?: number) {

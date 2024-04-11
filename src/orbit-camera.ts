@@ -10,10 +10,20 @@ type PointerMoveEvent = PointerEvent & {
 const tmpVa = new Vec2();
 const tmpV1 = new Vec3();
 
+const LOOK_MAX_ANGLE = 90;
+
 class OrbitCamera {
     entity: Entity;
 
     camera: Entity;
+
+    lookSensitivity: number = 0.2;
+
+    panSpeed: number = 0.01;
+
+    pinchSpeed: number = 0.025;
+
+    wheelSpeed: number = 0.005;
 
     private _focus: Vec3 = new Vec3(0, 1, 0);
 
@@ -30,8 +40,6 @@ class OrbitCamera {
     private _lastPosition = new Vec2();
 
     private _panning: boolean = false;
-
-    private _flying: boolean = false;
 
     constructor(camera: Entity) {
         this.camera = camera;
@@ -63,9 +71,6 @@ class OrbitCamera {
             this._lastPosition.set(event.clientX, event.clientY);
             this._panning = true;
         }
-        if (event.button === 2) {
-            this._flying = true;
-        }
     }
 
     private _onPointerMove(event: PointerMoveEvent) {
@@ -85,18 +90,17 @@ class OrbitCamera {
                 const movementY = event.movementY || event.mozMovementY || event.webkitMovementY || 0;
                 this._orbit(tmpVa.set(movementX, movementY));
             }
-
             return;
         }
 
         if (this._pointerEvents.size === 2) {
             // pan
-            this._pan(this._getMidPoint(tmpVa), 0.01);
+            this._pan(this._getMidPoint(tmpVa));
 
             // pinch zoom
             const pinchDist = this._getPinchDist();
             if (this._lastPinchDist > 0) {
-                this._zoom = Math.max(this._zoom - (pinchDist - this._lastPinchDist) * this._sceneSize * 0.025, 0);
+                this._zoom = Math.max(this._zoom - (pinchDist - this._lastPinchDist) * this._sceneSize * this.pinchSpeed, 0);
             }
             this._lastPinchDist = pinchDist;
         }
@@ -112,14 +116,11 @@ class OrbitCamera {
         if (event.shiftKey) {
             this._panning = false;
         }
-        if (event.button === 2) {
-            this._flying = false;
-        }
     }
 
     private _onWheel(event: WheelEvent) {
         event.preventDefault();
-        this._zoom = Math.max(this._zoom - event.deltaY * this._sceneSize * 0.005, 0);
+        this._zoom = Math.max(this._zoom - event.deltaY * this._sceneSize * this.wheelSpeed, 0);
     }
 
     private _onContextMenu(event: MouseEvent) {
@@ -141,20 +142,20 @@ class OrbitCamera {
     }
 
     private _orbit(movement: Vec2) {
-        this._look.x = math.clamp(this._look.x - movement.y * 0.2, -90, 90);
-        this._look.y -= movement.x * 0.2;
+        this._look.x = math.clamp(this._look.x - movement.y * this.lookSensitivity, -LOOK_MAX_ANGLE, LOOK_MAX_ANGLE);
+        this._look.y -= movement.x * this.lookSensitivity;
     }
 
-    private _pan(pos: Vec2, speed = 0.025) {
+    private _pan(pos: Vec2) {
         const distance = Math.abs(this._zoom);
 
         const last = this.camera.camera.screenToWorld(this._lastPosition.x, this._lastPosition.y, distance);
         const current = this.camera.camera.screenToWorld(pos.x, pos.y, distance);
 
         tmpV1.sub2(last, current);
-        tmpV1.mulScalar(speed * this._sceneSize);
+        tmpV1.mulScalar(this.panSpeed * this._sceneSize);
 
-        this.entity.translate(tmpV1);
+        this._focus.add(tmpV1);
 
         this._lastPosition.copy(pos);
     }
