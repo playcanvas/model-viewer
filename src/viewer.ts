@@ -91,7 +91,13 @@ const defaultSceneBounds = new BoundingBox(new Vec3(0, 1, 0), new Vec3(1, 1, 1))
 const vec = new Vec3();
 const bbox = new BoundingBox();
 
+const ORBIT_CONTROLS_ICON = '\ue329';
+const FLY_CONTROLS_ICON = '\ue302';
+
 class Viewer {
+    private _orbitCamera: OrbitCamera;
+    private _flyCamera: FlyCamera;
+
     canvas: HTMLCanvasElement;
     app: App;
     skyboxUrls: Map<string, string>;
@@ -154,8 +160,6 @@ class Viewer {
 
     canvasResize = true;
 
-    private orbitCamera: OrbitCamera;
-    private flyCamera: FlyCamera;
     controlCamera: BaseCamera;
 
     constructor(canvas: HTMLCanvasElement, graphicsDevice: GraphicsDevice, observer: Observer, skyboxUrls: Map<string, string>) {
@@ -234,11 +238,11 @@ class Viewer {
         camera.camera.requestSceneColorMap(true);
 
         // create camera controls
-        this.flyCamera = new FlyCamera();
-        app.root.addChild(this.flyCamera.entity);
-        this.orbitCamera = new OrbitCamera();
-        app.root.addChild(this.orbitCamera.entity);
-        this.controlCamera = this.orbitCamera;
+        this._flyCamera = new FlyCamera();
+        app.root.addChild(this._flyCamera.entity);
+        this._orbitCamera = new OrbitCamera();
+        app.root.addChild(this._orbitCamera.entity);
+        this.controlCamera = this._orbitCamera;
         this.controlCamera.attach(camera);
 
         let canToggleCamera = true;
@@ -928,8 +932,8 @@ class Viewer {
         }
 
         // focus orbit camera on object and set focus and sceneSize
-        this.orbitCamera.sceneSize = sceneSize;
-        this.flyCamera.sceneSize = sceneSize;
+        this._orbitCamera.sceneSize = sceneSize;
+        this._flyCamera.sceneSize = sceneSize;
         this.controlCamera.focus(focus, start);
     }
 
@@ -1421,8 +1425,9 @@ class Viewer {
     }
 
     toggleControls() {
-        const nextControlCamera = this.controlCamera === this.orbitCamera ? this.flyCamera : this.orbitCamera;
-        document.getElementById('controls-button').setAttribute('data-icon', nextControlCamera === this.orbitCamera ? '\ue329' : '\ue302');
+        const nextControlCamera = this.controlCamera === this._orbitCamera ? this._flyCamera : this._orbitCamera;
+        const controlsButton = document.getElementById('controls-button');
+        controlsButton?.setAttribute('data-icon', nextControlCamera === this._orbitCamera ? ORBIT_CONTROLS_ICON : FLY_CONTROLS_ICON);
 
         const focus = this.controlCamera.point.clone();
         const start = this.controlCamera.start.clone();
