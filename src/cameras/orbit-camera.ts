@@ -11,6 +11,8 @@ type PointerMoveEvent = PointerEvent & {
 const tmpVa = new Vec2();
 const tmpV1 = new Vec3();
 
+const PASSIVE: any = { passive: false };
+
 class OrbitCamera extends BaseCamera {
     lookSensitivity: number = 0.2;
 
@@ -159,13 +161,17 @@ class OrbitCamera extends BaseCamera {
     attach(camera: Entity) {
         super.attach(camera);
 
-        window.addEventListener('wheel', this._onWheel, { passive: false });
+        window.addEventListener('wheel', this._onWheel, PASSIVE);
     }
 
     detach() {
         super.detach();
 
-        window.removeEventListener('wheel', this._onWheel);
+        window.removeEventListener('wheel', this._onWheel, PASSIVE);
+
+        this._pointerEvents.clear();
+        this._lastPinchDist = -1;
+        this._panning = false;
     }
 
     update(dt: number) {

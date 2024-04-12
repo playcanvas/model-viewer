@@ -190,6 +190,7 @@ class FlyCamera extends BaseCamera {
         window.removeEventListener('keydown', this._onKeyDown, false);
         window.removeEventListener('keyup', this._onKeyUp, false);
 
+        this._pointerDown = false;
         this._key = {
             forward: false,
             backward: false,
