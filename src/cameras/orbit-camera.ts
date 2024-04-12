@@ -14,7 +14,9 @@ const tmpV1 = new Vec3();
 class OrbitCamera extends BaseCamera {
     lookSensitivity: number = 0.2;
 
-    panSpeed: number = 0.01;
+    mousePanSpeed: number = 1;
+
+    mobilePanSpeed: number = 0.025;
 
     pinchSpeed: number = 0.025;
 
@@ -65,7 +67,7 @@ class OrbitCamera extends BaseCamera {
         if (this._pointerEvents.size === 1) {
             if (this._panning) {
                 // pan
-                this._pan(tmpVa.set(event.clientX, event.clientY));
+                this._pan(tmpVa.set(event.clientX, event.clientY), this.mousePanSpeed);
             } else {
                 super._look(event);
             }
@@ -74,7 +76,7 @@ class OrbitCamera extends BaseCamera {
 
         if (this._pointerEvents.size === 2) {
             // pan
-            this._pan(this._getMidPoint(tmpVa));
+            this._pan(this._getMidPoint(tmpVa), this.mobilePanSpeed);
 
             // pinch zoom
             const pinchDist = this._getPinchDist();
@@ -102,10 +104,6 @@ class OrbitCamera extends BaseCamera {
         this._zoom = Math.max(this._zoom - event.deltaY * this.sceneSize * this.wheelSpeed, 0);
     }
 
-    private _onContextMenu(event: MouseEvent) {
-        event.preventDefault();
-    }
-
     private _getMidPoint(out: Vec2) {
         const [a, b] = this._pointerEvents.values();
         const dx = a.clientX - b.clientX;
@@ -120,14 +118,14 @@ class OrbitCamera extends BaseCamera {
         return Math.sqrt(dx * dx + dy * dy);
     }
 
-    private _pan(pos: Vec2) {
+    private _pan(pos: Vec2, speed = 1) {
         const distance = Math.abs(this._zoom);
 
         const last = this._camera.camera.screenToWorld(this._lastPosition.x, this._lastPosition.y, distance);
         const current = this._camera.camera.screenToWorld(pos.x, pos.y, distance);
 
         tmpV1.sub2(last, current);
-        tmpV1.mulScalar(this.panSpeed * this.sceneSize);
+        tmpV1.mulScalar(speed * this.sceneSize);
 
         this._origin.add(tmpV1);
 
@@ -162,14 +160,12 @@ class OrbitCamera extends BaseCamera {
         super.attach(camera);
 
         window.addEventListener('wheel', this._onWheel, { passive: false });
-        window.addEventListener('contextmenu', this._onContextMenu);
     }
 
     detach() {
         super.detach();
 
         window.removeEventListener('wheel', this._onWheel);
-        window.removeEventListener('contextmenu', this._onContextMenu);
     }
 
     update(dt: number) {

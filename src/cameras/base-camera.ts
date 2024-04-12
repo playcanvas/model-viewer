@@ -53,12 +53,17 @@ abstract class BaseCamera {
 
     abstract focus(point: Vec3, start?: Vec3, dir?: Vec2): void
 
+    private _onContextMenu(event: MouseEvent) {
+        event.preventDefault();
+    }
+
     attach(camera: Entity) {
         this._camera = camera;
 
         window.addEventListener('pointerdown', this._onPointerDown);
         window.addEventListener('pointermove', this._onPointerMove);
         window.addEventListener('pointerup', this._onPointerUp);
+        window.addEventListener('contextmenu', this._onContextMenu);
 
         this.entity.addChild(camera);
     }
@@ -67,6 +72,7 @@ abstract class BaseCamera {
         window.removeEventListener('pointermove', this._onPointerMove);
         window.removeEventListener('pointerdown', this._onPointerDown);
         window.removeEventListener('pointerup', this._onPointerUp);
+        window.removeEventListener('contextmenu', this._onContextMenu);
 
         this.entity.removeChild(this._camera);
         this._camera = null;

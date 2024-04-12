@@ -114,7 +114,7 @@ class PopupPanel extends React.Component <{ observerData: ObserverData, setPrope
                     height={40}
                     onClick={() => {
                         if (window.viewer) window.viewer.toggleControls();
-                    }
+                    }}
                 />
                 <Button
                     class='popup-button'
