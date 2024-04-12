@@ -1,4 +1,4 @@
-import { Entity, Vec3, Vec2, math } from "playcanvas";
+import { Entity, Vec3, Vec2, math } from 'playcanvas';
 
 type PointerMoveEvent = PointerEvent & {
     mozMovementX: number;
