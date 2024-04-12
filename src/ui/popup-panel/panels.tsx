@@ -61,12 +61,6 @@ class CameraPanel extends React.Component <{
                         enabled={!props.observerData.animation.playing && !props.observerData.debug.stats && props.observerData.runtime.activeDeviceType !== 'webgpu' }
                         setProperty={(value: boolean) => props.setProperty('camera.hq', value)}
                     />
-                    <Select
-                        label='Controls'
-                        type='string'
-                        options={['Orbit', 'Fly'].map(v => ({ v, t: v }))}
-                        value={props.observerData.camera.controls}
-                        setProperty={(value: number) => props.setProperty('camera.controls', value)} />
                 </Container>
             </div>
         );

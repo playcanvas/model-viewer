@@ -198,7 +198,6 @@ class Viewer {
         const multisampleSupported = app.graphicsDevice.maxSamples > 1;
         observer.set('camera.multisampleSupported', multisampleSupported);
         observer.set('camera.multisample', multisampleSupported && observer.get('camera.multisample'));
-        observer.set('camera.controls', 'Orbit');
 
         // register vox support
         // VoxParser.registerVoxParser(app);
@@ -540,7 +539,6 @@ class Viewer {
                 this.multiframe.enabled = !this.app.graphicsDevice.isWebGPU && enabled;
                 this.renderNextFrame();
             },
-            'camera.controls': this.setControls.bind(this),
 
             // skybox
             'skybox.value': (value: string) => {
@@ -1422,13 +1420,9 @@ class Viewer {
         this.renderNextFrame();
     }
 
-    setControls(controls: string) {
-        const isOrbit = controls === 'Orbit';
-        const nextControlCamera = isOrbit ? this.orbitCamera : this.flyCamera;
-        document.getElementById('controls-button').setAttribute('data-icon', isOrbit ? '\ue329' : '\ue302');
-        if (nextControlCamera === this.controlCamera) {
-            return;
-        }
+    toggleControls() {
+        const nextControlCamera = this.controlCamera === this.orbitCamera ? this.flyCamera : this.orbitCamera;
+        document.getElementById('controls-button').setAttribute('data-icon', nextControlCamera === this.orbitCamera ? '\ue329' : '\ue302');
 
         const focus = this.controlCamera.point.clone();
         const start = this.controlCamera.start.clone();
@@ -1438,11 +1432,6 @@ class Viewer {
         this.controlCamera = nextControlCamera;
         this.controlCamera.attach(this.camera);
         this.controlCamera.focus(focus, start, dir);
-        console.log(controls);
-    }
-
-    toggleControls() {
-        this.observer.set('camera.controls', this.observer.get('camera.controls') === 'Orbit' ? 'Fly' : 'Orbit');
     }
 
     setBackgroundColor(color: { r: number, g: number, b: number }) {
