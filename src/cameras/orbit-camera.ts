@@ -139,7 +139,7 @@ class OrbitCamera extends BaseCamera {
         this._lastPosition.copy(pos);
     }
 
-    focus(point: Vec3, start?: Vec3, dir?: Vec2) {
+    focus(point: Vec3, start?: Vec3, dir?: Vec2, snap?: boolean) {
         if (!this._camera) {
             return;
         }
@@ -159,6 +159,11 @@ class OrbitCamera extends BaseCamera {
 
         this._origin.copy(point);
         this._camera.setPosition(start);
+
+        if (snap) {
+            this._angles.set(this._dir.x, this._dir.y, 0);
+            this._position.copy(this._origin);
+        }
 
         this._zoom = tmpV1.length();
     }
@@ -186,7 +191,9 @@ class OrbitCamera extends BaseCamera {
         super.update(dt);
 
         this._camera.setLocalPosition(0, 0, this._zoom);
-        this.entity.setPosition(this._origin);
+
+        this._position.lerp(this._position, this._origin, 1 - Math.pow(0.98, dt * 1000));
+        this.entity.setPosition(this._position);
     }
 }
 

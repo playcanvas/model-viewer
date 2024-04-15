@@ -13,13 +13,9 @@ const tmpV1 = new Vec3();
 class FlyCamera extends BaseCamera {
     lookSensitivity: number = 0.2;
 
-    moveSpeed: number = 10;
+    moveSpeed: number = 2;
 
-    sprintSpeed: number = 25;
-
-    velocityDamping: number = 1e-4;
-
-    private _velocity: Vec3 = new Vec3(0, 0, 0);
+    sprintSpeed: number = 5;
 
     private _pointerDown: boolean = false;
 
@@ -143,15 +139,10 @@ class FlyCamera extends BaseCamera {
         tmpV1.normalize();
         const speed = this._key.sprint ? this.sprintSpeed : this.moveSpeed;
         tmpV1.mulScalar(this.sceneSize * speed * dt);
-        this._velocity.add(tmpV1);
-
-        tmpV1.copy(this._velocity).mulScalar(dt);
         this._origin.add(tmpV1);
-        this._velocity.lerp(this._velocity, Vec3.ZERO, 1 - Math.pow(this.velocityDamping, dt));
-        this.entity.setPosition(this._origin);
     }
 
-    focus(point: Vec3, start?: Vec3, dir?: Vec2) {
+    focus(point: Vec3, start?: Vec3, dir?: Vec2, snap?: boolean) {
         if (!this._camera) {
             return;
         }
@@ -172,7 +163,11 @@ class FlyCamera extends BaseCamera {
 
         this._origin.copy(start);
         this._camera.setLocalPosition(0, 0, 0);
-        this._velocity.set(0, 0, 0);
+
+        if (snap) {
+            this._angles.set(this._dir.x, this._dir.y, 0);
+            this._position.copy(this._origin);
+        }
 
         this._zoom = tmpV1.length();
     }
@@ -200,7 +195,6 @@ class FlyCamera extends BaseCamera {
             down: false,
             sprint: false
         };
-        this._velocity.set(0, 0, 0);
     }
 
     update(dt: number) {
@@ -210,6 +204,9 @@ class FlyCamera extends BaseCamera {
         super.update(dt);
 
         this._move(dt);
+
+        this._position.lerp(this._position, this._origin, 1 - Math.pow(0.98, dt * 1000));
+        this.entity.setPosition(this._position);
     }
 }
 

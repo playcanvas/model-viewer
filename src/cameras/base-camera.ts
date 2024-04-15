@@ -16,11 +16,13 @@ abstract class BaseCamera {
 
     lookSensitivity: number = 0.2;
 
-    lookDamping = 1e-4;
+    lookDamping = 0.97;
 
     protected _camera: Entity = null;
 
     protected _origin: Vec3 = new Vec3(0, 1, 0);
+
+    protected _position: Vec3 = new Vec3();
 
     protected _dir: Vec2 = new Vec2();
 
@@ -55,7 +57,7 @@ abstract class BaseCamera {
         this._dir.y -= movementX * this.lookSensitivity;
     }
 
-    abstract focus(point: Vec3, start?: Vec3, dir?: Vec2): void
+    abstract focus(point: Vec3, start?: Vec3, dir?: Vec2, snap?: boolean): void
 
     private _onContextMenu(event: MouseEvent) {
         event.preventDefault();
@@ -80,6 +82,9 @@ abstract class BaseCamera {
 
         this.entity.removeChild(this._camera);
         this._camera = null;
+
+        this._angles.set(this._dir.x, this._dir.y, 0);
+        this._position.copy(this._origin);
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -88,8 +93,9 @@ abstract class BaseCamera {
             return;
         }
 
-        this._angles.x = math.lerp(this._angles.x, this._dir.x, 1 - Math.pow(this.lookDamping, dt));
-        this._angles.y = math.lerp(this._angles.y, this._dir.y, 1 - Math.pow(this.lookDamping, dt));
+        const lerpRate = 1 - Math.pow(this.lookDamping, dt * 1000);
+        this._angles.x = math.lerp(this._angles.x, this._dir.x, lerpRate);
+        this._angles.y = math.lerp(this._angles.y, this._dir.y, lerpRate);
         this.entity.setEulerAngles(this._angles);
     }
 }

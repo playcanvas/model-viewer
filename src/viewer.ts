@@ -249,7 +249,7 @@ class Viewer {
         app.keyboard.on(EVENT_KEYDOWN, (event) => {
             switch (event.key) {
                 case KEY_F: {
-                    this.focusSelection();
+                    this.focusSelection(false);
                     break;
                 }
                 case KEY_X: {
@@ -896,7 +896,7 @@ class Viewer {
         }
     }
 
-    focusSelection() {
+    focusSelection(calcStart = true) {
         const camera = this.camera.camera;
 
         // calculate scene bounding box
@@ -920,15 +920,18 @@ class Viewer {
             }
         }
 
-        const start = new Vec3();
-        if (this.initialCameraPosition) {
-            start.copy(this.initialCameraPosition);
-            this.initialCameraPosition = null;
-        } else {
-            start.copy(focus);
-            const scale = 0.25 / Math.tan(0.25 * camera.fov * math.DEG_TO_RAD);
-            start.z += 3 * scale * sceneSize;
-            start.y += 1 * scale * sceneSize;
+        let start: Vec3 | null = null;
+        if (calcStart) {
+            start = new Vec3();
+            if (this.initialCameraPosition) {
+                start.copy(this.initialCameraPosition);
+                this.initialCameraPosition = null;
+            } else {
+                start.copy(focus);
+                const scale = 0.25 / Math.tan(0.25 * camera.fov * math.DEG_TO_RAD);
+                start.z += 3 * scale * sceneSize;
+                start.y += 1 * scale * sceneSize;
+            }
         }
 
         // focus orbit camera on object and set focus and sceneSize
@@ -1436,7 +1439,7 @@ class Viewer {
         this.controlCamera.detach();
         this.controlCamera = nextControlCamera;
         this.controlCamera.attach(this.camera);
-        this.controlCamera.focus(focus, start, dir);
+        this.controlCamera.focus(focus, start, dir, true);
     }
 
     setBackgroundColor(color: { r: number, g: number, b: number }) {
