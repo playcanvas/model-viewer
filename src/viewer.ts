@@ -4,10 +4,8 @@ import {
     BLENDMODE_ZERO,
     BLENDEQUATION_ADD,
     EVENT_KEYDOWN,
-    EVENT_KEYUP,
     FILTER_NEAREST,
     KEY_F,
-    KEY_X,
     LAYERID_DEPTH,
     LAYERID_SKYBOX,
     PIXELFORMAT_DEPTH,
@@ -72,8 +70,7 @@ import { DebugLines } from './debug-lines';
 import { Multiframe } from './multiframe';
 import { ReadDepth } from './read-depth';
 import { BaseCamera } from './cameras/base-camera';
-import { FlyCamera } from './cameras/fly-camera';
-import { OrbitCamera } from './cameras/orbit-camera';
+import { MultiCamera } from './cameras/multi-camera';
 import { PngExporter } from './png-exporter';
 import { ProjectiveSkybox } from './projective-skybox';
 import { ShadowCatcher } from './shadow-catcher';
@@ -91,13 +88,7 @@ const defaultSceneBounds = new BoundingBox(new Vec3(0, 1, 0), new Vec3(1, 1, 1))
 const vec = new Vec3();
 const bbox = new BoundingBox();
 
-const ORBIT_CONTROLS_ICON = '\ue329';
-const FLY_CONTROLS_ICON = '\ue302';
-
 class Viewer {
-    private _orbitCamera: OrbitCamera;
-    private _flyCamera: FlyCamera;
-
     canvas: HTMLCanvasElement;
     app: App;
     skyboxUrls: Map<string, string>;
@@ -238,33 +229,14 @@ class Viewer {
         camera.camera.requestSceneColorMap(true);
 
         // create camera controls
-        this._flyCamera = new FlyCamera();
-        app.root.addChild(this._flyCamera.entity);
-        this._orbitCamera = new OrbitCamera();
-        app.root.addChild(this._orbitCamera.entity);
-        this.controlCamera = this._orbitCamera;
+        this.controlCamera = new MultiCamera();
+        app.root.addChild(this.controlCamera.entity);
         this.controlCamera.attach(camera);
 
-        let canToggleCamera = true;
         app.keyboard.on(EVENT_KEYDOWN, (event) => {
             switch (event.key) {
                 case KEY_F: {
                     this.focusSelection(false);
-                    break;
-                }
-                case KEY_X: {
-                    if (canToggleCamera) {
-                        canToggleCamera = false;
-                        this.toggleControls();
-                    }
-                    break;
-                }
-            }
-        });
-        app.keyboard.on(EVENT_KEYUP, (event) => {
-            switch (event.key) {
-                case KEY_X: {
-                    canToggleCamera = true;
                     break;
                 }
             }
@@ -935,8 +907,7 @@ class Viewer {
         }
 
         // focus orbit camera on object and set focus and sceneSize
-        this._orbitCamera.sceneSize = sceneSize;
-        this._flyCamera.sceneSize = sceneSize;
+        this.controlCamera.sceneSize = sceneSize;
         this.controlCamera.focus(focus, start);
     }
 
@@ -1425,21 +1396,6 @@ class Viewer {
 
         this.app.scene.toneMapping = mapping.hasOwnProperty(tonemapping) ? mapping[tonemapping] : TONEMAP_ACES;
         this.renderNextFrame();
-    }
-
-    toggleControls() {
-        const nextControlCamera = this.controlCamera === this._orbitCamera ? this._flyCamera : this._orbitCamera;
-        const controlsButton = document.getElementById('controls-button');
-        controlsButton?.setAttribute('data-icon', nextControlCamera === this._orbitCamera ? ORBIT_CONTROLS_ICON : FLY_CONTROLS_ICON);
-
-        const focus = this.controlCamera.point.clone();
-        const start = this.controlCamera.start.clone();
-        const dir = this.controlCamera.dir;
-
-        this.controlCamera.detach();
-        this.controlCamera = nextControlCamera;
-        this.controlCamera.attach(this.camera);
-        this.controlCamera.focus(focus, start, dir, true);
     }
 
     setBackgroundColor(color: { r: number, g: number, b: number }) {

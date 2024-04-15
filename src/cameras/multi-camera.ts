@@ -13,7 +13,7 @@ const tmpV1 = new Vec3();
 
 const PASSIVE: any = { passive: false };
 
-class OrbitCamera extends BaseCamera {
+class MultiCamera extends BaseCamera {
     lookSensitivity: number = 0.2;
 
     lookDamping: number = 0.97;
@@ -200,4 +200,4 @@ class OrbitCamera extends BaseCamera {
     }
 }
 
-export { OrbitCamera };
+export { MultiCamera };

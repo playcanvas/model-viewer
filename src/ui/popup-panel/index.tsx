@@ -105,28 +105,6 @@ class PopupPanel extends React.Component <{ observerData: ObserverData, setPrope
                     }
                 } }
             />
-            <div id='floating-buttons-parent'>
-                <Button
-                    class='popup-button'
-                    id='controls-button'
-                    icon='E329'
-                    width={40}
-                    height={40}
-                    onClick={() => {
-                        if (window.viewer) window.viewer.toggleControls();
-                    }}
-                />
-                <Button
-                    class='popup-button'
-                    id='fullscreen-button'
-                    icon='E127'
-                    width={40}
-                    height={40}
-                    onClick={() => {
-                        toggleCollapsed();
-                    } }
-                />
-            </div>
         </div>);
     }
 }

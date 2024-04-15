@@ -13,9 +13,13 @@ const tmpV1 = new Vec3();
 class FlyCamera extends BaseCamera {
     lookSensitivity: number = 0.2;
 
+    lookDamping: number = 0.97;
+
+    moveDamping: number = 0.98;
+
     moveSpeed: number = 2;
 
-    sprintSpeed: number = 5;
+    sprintSpeed: number = 4;
 
     private _pointerDown: boolean = false;
 
@@ -201,12 +205,10 @@ class FlyCamera extends BaseCamera {
         if (!this._camera) {
             return;
         }
-        super.update(dt);
 
         this._move(dt);
 
-        this._position.lerp(this._position, this._origin, 1 - Math.pow(0.98, dt * 1000));
-        this.entity.setPosition(this._position);
+        super.update(dt);
     }
 }
 

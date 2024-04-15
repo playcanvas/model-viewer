@@ -16,7 +16,9 @@ abstract class BaseCamera {
 
     lookSensitivity: number = 0.2;
 
-    lookDamping = 0.97;
+    lookDamping: number = 0.97;
+
+    moveDamping: number = 0.98;
 
     protected _camera: Entity = null;
 
@@ -30,6 +32,8 @@ abstract class BaseCamera {
 
     protected _zoom: number = 0;
 
+    protected _focusDist: number = 0;
+
     constructor() {
         this._onPointerDown = this._onPointerDown.bind(this);
         this._onPointerMove = this._onPointerMove.bind(this);
@@ -42,6 +46,22 @@ abstract class BaseCamera {
 
     get dir() {
         return this._dir;
+    }
+
+    private _smoothLook(dt: number) {
+        const lerpRate = 1 - Math.pow(this.lookDamping, dt * 1000);
+        this._angles.x = math.lerp(this._angles.x, this._dir.x, lerpRate);
+        this._angles.y = math.lerp(this._angles.y, this._dir.y, lerpRate);
+        this.entity.setEulerAngles(this._angles);
+    }
+
+    private _smoothMove(dt: number) {
+        this._position.lerp(this._position, this._origin, 1 - Math.pow(this.moveDamping, dt * 1000));
+        this.entity.setPosition(this._position);
+    }
+
+    private _onContextMenu(event: MouseEvent) {
+        event.preventDefault();
     }
 
     protected abstract _onPointerDown(event: PointerEvent): void
@@ -58,10 +78,6 @@ abstract class BaseCamera {
     }
 
     abstract focus(point: Vec3, start?: Vec3, dir?: Vec2, snap?: boolean): void
-
-    private _onContextMenu(event: MouseEvent) {
-        event.preventDefault();
-    }
 
     attach(camera: Entity) {
         this._camera = camera;
@@ -93,10 +109,8 @@ abstract class BaseCamera {
             return;
         }
 
-        const lerpRate = 1 - Math.pow(this.lookDamping, dt * 1000);
-        this._angles.x = math.lerp(this._angles.x, this._dir.x, lerpRate);
-        this._angles.y = math.lerp(this._angles.y, this._dir.y, lerpRate);
-        this.entity.setEulerAngles(this._angles);
+        this._smoothLook(dt);
+        this._smoothMove(dt);
     }
 }
 
