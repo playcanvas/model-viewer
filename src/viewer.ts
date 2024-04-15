@@ -88,6 +88,10 @@ const defaultSceneBounds = new BoundingBox(new Vec3(0, 1, 0), new Vec3(1, 1, 1))
 const vec = new Vec3();
 const bbox = new BoundingBox();
 
+const FOCUS_SECTOR_MULT = 0.25;
+const FOCUS_SCALE_MULT = 0.25;
+const FOCUS_START_DIR = new Vec3(0, 1, 3);
+
 class Viewer {
     canvas: HTMLCanvasElement;
     app: App;
@@ -900,9 +904,8 @@ class Viewer {
                 this.initialCameraPosition = null;
             } else {
                 start.copy(focus);
-                const scale = 0.25 / Math.tan(0.25 * camera.fov * math.DEG_TO_RAD);
-                start.z += 3 * scale * sceneSize;
-                start.y += 1 * scale * sceneSize;
+                const scale = FOCUS_SCALE_MULT / Math.tan(FOCUS_SECTOR_MULT * camera.fov * math.DEG_TO_RAD);
+                start.add(vec.copy(FOCUS_START_DIR).mulScalar(sceneSize * scale));
             }
         }
 
