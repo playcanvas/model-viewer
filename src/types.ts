@@ -32,8 +32,7 @@ export interface ObserverData {
         pixelScale: number
         multisampleSupported: boolean,
         multisample: boolean,
-        hq: boolean,
-        controls: string
+        hq: boolean
     },
     skybox: {
         value: string,
