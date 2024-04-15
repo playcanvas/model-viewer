@@ -81,7 +81,7 @@ class MultiCamera extends BaseCamera {
             this._getMidPoint(this._lastPosition);
             this._panning = true;
         }
-        if (event.shiftKey) {
+        if (event.shiftKey || event.button === 1) {
             this._lastPosition.set(event.clientX, event.clientY);
             this._panning = true;
         }
