@@ -35,7 +35,6 @@ class OrbitCamera extends BaseCamera {
     constructor() {
         super();
         this._onWheel = this._onWheel.bind(this);
-        this._onContextMenu = this._onContextMenu.bind(this);
     }
 
     get point() {
@@ -103,7 +102,7 @@ class OrbitCamera extends BaseCamera {
 
     private _onWheel(event: WheelEvent) {
         event.preventDefault();
-        this._zoom = Math.max(this._zoom - event.deltaY * this.sceneSize * this.wheelSpeed, 0);
+        this._zoom = Math.max(this._zoom + event.deltaY * this.sceneSize * this.wheelSpeed, 0);
     }
 
     private _getMidPoint(out: Vec2) {
