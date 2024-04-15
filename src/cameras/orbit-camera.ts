@@ -24,6 +24,10 @@ class OrbitCamera extends BaseCamera {
 
     wheelSpeed: number = 0.005;
 
+    zoomThreshold: number = 0.01;
+
+    zoomExp: number = 0.5;
+
     private _pointerEvents: Map<number, PointerEvent> = new Map();
 
     private _lastPinchDist: number = -1;
@@ -82,7 +86,8 @@ class OrbitCamera extends BaseCamera {
             // pinch zoom
             const pinchDist = this._getPinchDist();
             if (this._lastPinchDist > 0) {
-                this._zoom = Math.max(this._zoom - (pinchDist - this._lastPinchDist) * this.sceneSize * this.pinchSpeed, 0);
+                const zoomMult = (this._lastPinchDist - pinchDist) * this.sceneSize * this.pinchSpeed;
+                this._zoom = Math.max(this._zoom + zoomMult * (this._zoom * this.zoomExp + this.zoomThreshold), 0);
             }
             this._lastPinchDist = pinchDist;
         }
@@ -102,7 +107,8 @@ class OrbitCamera extends BaseCamera {
 
     private _onWheel(event: WheelEvent) {
         event.preventDefault();
-        this._zoom = Math.max(this._zoom + event.deltaY * this.sceneSize * this.wheelSpeed, 0);
+        const zoomMult = event.deltaY * this.sceneSize * this.wheelSpeed;
+        this._zoom = Math.max(this._zoom + zoomMult * (this._zoom * this.zoomExp + this.zoomThreshold), 0);
     }
 
     private _getMidPoint(out: Vec2) {
