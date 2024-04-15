@@ -16,11 +16,15 @@ abstract class BaseCamera {
 
     lookSensitivity: number = 0.2;
 
+    lookDamping = 1e-4;
+
     protected _camera: Entity = null;
 
     protected _origin: Vec3 = new Vec3(0, 1, 0);
 
     protected _dir: Vec2 = new Vec2();
+
+    protected _angles: Vec3 = new Vec3();
 
     protected _zoom: number = 0;
 
@@ -83,7 +87,10 @@ abstract class BaseCamera {
         if (!this._camera) {
             return;
         }
-        this.entity.setEulerAngles(this._dir.x, this._dir.y, 0);
+
+        this._angles.x = math.lerp(this._angles.x, this._dir.x, 1 - Math.pow(this.lookDamping, dt));
+        this._angles.y = math.lerp(this._angles.y, this._dir.y, 1 - Math.pow(this.lookDamping, dt));
+        this.entity.setEulerAngles(this._angles);
     }
 }
 
