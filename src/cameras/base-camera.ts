@@ -34,7 +34,12 @@ abstract class BaseCamera {
 
     protected _focusDist: number = 0;
 
-    constructor() {
+    constructor(options: Record<string, any> = {}) {
+        this.sceneSize = options.sceneSize ?? this.sceneSize;
+        this.lookSensitivity = options.lookSensitivity ?? this.lookSensitivity;
+        this.lookDamping = options.lookDamping ?? this.lookDamping;
+        this.moveDamping = options.moveDamping ?? this.moveDamping;
+
         this._onPointerDown = this._onPointerDown.bind(this);
         this._onPointerMove = this._onPointerMove.bind(this);
         this._onPointerUp = this._onPointerUp.bind(this);

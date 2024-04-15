@@ -233,7 +233,19 @@ class Viewer {
         camera.camera.requestSceneColorMap(true);
 
         // create camera controls
-        this.controlCamera = new MultiCamera();
+        this.controlCamera = new MultiCamera({
+            lookSensitity: 0.3,
+            lookDamping: 0.97,
+            moveDamping: 0.97,
+            mousePanSpeed: 1,
+            mobilePanSpeed: 0.025,
+            pinchSpeed: 0.025,
+            wheelSpeed: 0.005,
+            zoomThreshold: 0.01,
+            zoomExp: 0.5,
+            moveSpeed: 2,
+            sprintSpeed: 4
+        });
         app.root.addChild(this.controlCamera.entity);
         this.controlCamera.attach(camera);
 

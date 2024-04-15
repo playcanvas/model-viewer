@@ -56,8 +56,18 @@ class MultiCamera extends BaseCamera {
         sprint: false
     };
 
-    constructor() {
-        super();
+    constructor(options: Record<string, any> = {}) {
+        super(options);
+
+        this.mousePanSpeed = options.mousePanSpeed ?? this.mousePanSpeed;
+        this.mobilePanSpeed = options.mobilePanSpeed ?? this.mobilePanSpeed;
+        this.pinchSpeed = options.pinchSpeed ?? this.pinchSpeed;
+        this.wheelSpeed = options.wheelSpeed ?? this.wheelSpeed;
+        this.zoomThreshold = options.zoomThreshold ?? this.zoomThreshold;
+        this.zoomExp = options.zoomExp ?? this.zoomExp;
+        this.moveSpeed = options.moveSpeed ?? this.moveSpeed;
+        this.sprintSpeed = options.sprintSpeed ?? this.sprintSpeed;
+
         this._onWheel = this._onWheel.bind(this);
         this._onKeyDown = this._onKeyDown.bind(this);
         this._onKeyUp = this._onKeyUp.bind(this);
