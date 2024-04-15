@@ -99,8 +99,10 @@ abstract class BaseCamera {
         this.entity.removeChild(this._camera);
         this._camera = null;
 
-        this._angles.set(this._dir.x, this._dir.y, 0);
-        this._position.copy(this._origin);
+        this._dir.x = this._angles.x;
+        this._dir.y = this._angles.y;
+
+        this._origin.copy(this._position);
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars

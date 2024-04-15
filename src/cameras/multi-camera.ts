@@ -32,6 +32,10 @@ class MultiCamera extends BaseCamera {
 
     zoomExp: number = 0.5;
 
+    moveSpeed: number = 2;
+
+    sprintSpeed: number = 4;
+
     private _pointerEvents: Map<number, PointerEvent> = new Map();
 
     private _lastPinchDist: number = -1;
@@ -40,9 +44,23 @@ class MultiCamera extends BaseCamera {
 
     private _panning: boolean = false;
 
+    private _flying: boolean = false;
+
+    private _key = {
+        forward: false,
+        backward: false,
+        left: false,
+        right: false,
+        up: false,
+        down: false,
+        sprint: false
+    };
+
     constructor() {
         super();
         this._onWheel = this._onWheel.bind(this);
+        this._onKeyDown = this._onKeyDown.bind(this);
+        this._onKeyUp = this._onKeyUp.bind(this);
     }
 
     get point() {
@@ -54,6 +72,9 @@ class MultiCamera extends BaseCamera {
     }
 
     protected _onPointerDown(event: PointerEvent) {
+        if (!this._camera) {
+            return;
+        }
         this._pointerEvents.set(event.pointerId, event);
         if (this._pointerEvents.size === 2) {
             this._lastPinchDist = this._getPinchDist();
@@ -63,6 +84,13 @@ class MultiCamera extends BaseCamera {
         if (event.shiftKey) {
             this._lastPosition.set(event.clientX, event.clientY);
             this._panning = true;
+        }
+        if (event.button === 2) {
+            this._zoom = this._focusDist;
+            this._origin.copy(this._camera.getPosition());
+            this._position.copy(this._origin);
+            this._camera.setLocalPosition(0, 0, 0);
+            this._flying = true;
         }
     }
 
@@ -104,8 +132,14 @@ class MultiCamera extends BaseCamera {
             this._lastPinchDist = -1;
             this._panning = false;
         }
-        if (event.shiftKey) {
+        if (this._panning) {
             this._panning = false;
+        }
+        if (event.button === 2) {
+            tmpV1.copy(this.entity.forward).mulScalar(this._zoom);
+            this._origin.add(tmpV1);
+            this._position.add(tmpV1);
+            this._flying = false;
         }
     }
 
@@ -113,6 +147,86 @@ class MultiCamera extends BaseCamera {
         event.preventDefault();
         const zoomMult = event.deltaY * this.sceneSize * this.wheelSpeed;
         this._zoom = Math.max(this._zoom + zoomMult * (this._zoom * this.zoomExp + this.zoomThreshold), 0);
+    }
+
+    private _onKeyDown(event: KeyboardEvent) {
+        event.stopPropagation();
+        switch (event.key.toLowerCase()) {
+            case 'w':
+                this._key.forward = true;
+                break;
+            case 's':
+                this._key.backward = true;
+                break;
+            case 'a':
+                this._key.left = true;
+                break;
+            case 'd':
+                this._key.right = true;
+                break;
+            case 'q':
+                this._key.up = true;
+                break;
+            case 'e':
+                this._key.down = true;
+                break;
+            case 'shift':
+                this._key.sprint = true;
+                break;
+        }
+    }
+
+    private _onKeyUp(event: KeyboardEvent) {
+        event.stopPropagation();
+        switch (event.key.toLowerCase()) {
+            case 'w':
+                this._key.forward = false;
+                break;
+            case 's':
+                this._key.backward = false;
+                break;
+            case 'a':
+                this._key.left = false;
+                break;
+            case 'd':
+                this._key.right = false;
+                break;
+            case 'q':
+                this._key.up = false;
+                break;
+            case 'e':
+                this._key.down = false;
+                break;
+            case 'shift':
+                this._key.sprint = false;
+                break;
+        }
+    }
+
+    private _move(dt: number) {
+        tmpV1.set(0, 0, 0);
+        if (this._key.forward) {
+            tmpV1.add(this.entity.forward);
+        }
+        if (this._key.backward) {
+            tmpV1.sub(this.entity.forward);
+        }
+        if (this._key.left) {
+            tmpV1.sub(this.entity.right);
+        }
+        if (this._key.right) {
+            tmpV1.add(this.entity.right);
+        }
+        if (this._key.up) {
+            tmpV1.add(this.entity.up);
+        }
+        if (this._key.down) {
+            tmpV1.sub(this.entity.up);
+        }
+        tmpV1.normalize();
+        const speed = this._key.sprint ? this.sprintSpeed : this.moveSpeed;
+        tmpV1.mulScalar(this.sceneSize * speed * dt);
+        this._origin.add(tmpV1);
     }
 
     private _getMidPoint(out: Vec2) {
@@ -176,16 +290,29 @@ class MultiCamera extends BaseCamera {
         super.attach(camera);
 
         window.addEventListener('wheel', this._onWheel, PASSIVE);
+        window.addEventListener('keydown', this._onKeyDown, false);
+        window.addEventListener('keyup', this._onKeyUp, false);
     }
 
     detach() {
         super.detach();
 
         window.removeEventListener('wheel', this._onWheel, PASSIVE);
+        window.removeEventListener('keydown', this._onKeyDown, false);
+        window.removeEventListener('keyup', this._onKeyUp, false);
 
         this._pointerEvents.clear();
         this._lastPinchDist = -1;
         this._panning = false;
+        this._key = {
+            forward: false,
+            backward: false,
+            left: false,
+            right: false,
+            up: false,
+            down: false,
+            sprint: false
+        };
     }
 
     update(dt: number) {
@@ -193,8 +320,12 @@ class MultiCamera extends BaseCamera {
             return;
         }
 
-        this._focusDist = math.lerp(this._focusDist, this._zoom, 1 - Math.pow(this.moveDamping, dt * 1000));
-        this._camera.setLocalPosition(0, 0, this._focusDist);
+        if (!this._flying) {
+            this._focusDist = math.lerp(this._focusDist, this._zoom, 1 - Math.pow(this.moveDamping, dt * 1000));
+            this._camera.setLocalPosition(0, 0, this._focusDist);
+        }
+
+        this._move(dt);
 
         super.update(dt);
     }
