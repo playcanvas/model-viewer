@@ -9,6 +9,7 @@ import {
     Entity,
     EventHandler,
     Vec3,
+    Mat4,
     XrHitTestSource,
     XrManager,
     MeshInstance,
@@ -20,6 +21,7 @@ const vec = new Vec3();
 const vec2 = new Vec3();
 const translation = new Vec3();
 const forward = new Vec3();
+const mat = new Mat4();
 
 // modulo dealing with negative numbers
 const mod = (n: number, m: number) => ((n % m) + m) % m;
@@ -361,7 +363,7 @@ class XRObjectPlacementController {
         });
 
         events.on('xr:initial-place', (position: Vec3) => {
-            const mat = xr.views.list[0]._viewInvMat;
+            mat.copy(xr.camera.camera.viewMatrix).invert();
             mat.transformPoint(hoverPos, vec);
             mat.getEulerAngles(vec2);
             pos.goto({ x: vec.x, y: vec.y, z: vec.z }, 0);
@@ -403,7 +405,7 @@ class XRObjectPlacementController {
                 return;
             }
 
-            const mat = xr.views.list[0]._viewInvMat;
+            mat.copy(xr.camera.camera.viewMatrix).invert();
             const contentRoot = this.options.content;
 
             if (hovering) {
