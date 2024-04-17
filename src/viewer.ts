@@ -228,7 +228,8 @@ class Viewer {
         camera.addComponent("camera", {
             fov: 75,
             frustumCulling: true,
-            clearColor: new Color(0, 0, 0, 0)
+            clearColor: new Color(0, 0, 0, 0),
+            nearClip: 0.001
         });
         camera.camera.requestSceneColorMap(true);
 
@@ -237,7 +238,7 @@ class Viewer {
             lookSensitity: 0.3,
             lookDamping: 0.97,
             moveDamping: 0.97,
-            mousePanSpeed: 1,
+            mousePanSpeed: 0.25,
             mobilePanSpeed: 0.025,
             pinchSpeed: 0.00025,
             wheelSpeed: 0.005,

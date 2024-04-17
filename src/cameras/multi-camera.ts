@@ -1,4 +1,4 @@
-import { Entity, Vec2, Vec3, math } from 'playcanvas';
+import { Entity, Vec2, Vec3, Quat, math } from 'playcanvas';
 import { BaseCamera } from './base-camera';
 
 type PointerMoveEvent = PointerEvent & {
@@ -10,6 +10,7 @@ type PointerMoveEvent = PointerEvent & {
 
 const tmpVa = new Vec2();
 const tmpV1 = new Vec3();
+const tmpQ1 = new Quat();
 
 const PASSIVE: any = { passive: false };
 
@@ -128,8 +129,7 @@ class MultiCamera extends BaseCamera {
             // pinch zoom
             const pinchDist = this._getPinchDist();
             if (this._lastPinchDist > 0) {
-                const zoomMult = (this._lastPinchDist - pinchDist) * this.sceneSize * this.pinchSpeed;
-                this._zoom = Math.max(this._zoom + zoomMult * (this._zoom * this.zoomExp + this.zoomThreshold), 0);
+                this._focusZoom(this._lastPinchDist - pinchDist);
             }
             this._lastPinchDist = pinchDist;
         }
@@ -155,8 +155,7 @@ class MultiCamera extends BaseCamera {
 
     private _onWheel(event: WheelEvent) {
         event.preventDefault();
-        const zoomMult = event.deltaY * this.sceneSize * this.wheelSpeed;
-        this._zoom = Math.max(this._zoom + zoomMult * (this._zoom * this.zoomExp + this.zoomThreshold), 0);
+        this._focusZoom(event.deltaY);
     }
 
     private _onKeyDown(event: KeyboardEvent) {
@@ -254,17 +253,19 @@ class MultiCamera extends BaseCamera {
     }
 
     private _pan(pos: Vec2, speed = 1) {
-        const distance = Math.abs(this._zoom);
+        tmpV1.set(0, 0, 0);
+        tmpV1.x = (this._lastPosition.x - pos.x) * speed;
+        tmpV1.y = (pos.y - this._lastPosition.y) * speed;
 
-        const last = this._camera.camera.screenToWorld(this._lastPosition.x, this._lastPosition.y, distance);
-        const current = this._camera.camera.screenToWorld(pos.x, pos.y, distance);
-
-        tmpV1.sub2(last, current);
-        tmpV1.mulScalar(speed * this.sceneSize);
-
+        tmpQ1.copy(this._camera.getRotation()).transformVector(tmpV1, tmpV1);
         this._origin.add(tmpV1);
 
         this._lastPosition.copy(pos);
+    }
+
+    private _focusZoom(delta: number) {
+        const zoomMult = delta * this.sceneSize * this.wheelSpeed;
+        this._zoom = Math.max(this._zoom + zoomMult, this.zoomThreshold);
     }
 
     focus(point: Vec3, start?: Vec3, dir?: Vec2, snap?: boolean) {
