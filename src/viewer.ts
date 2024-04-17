@@ -239,7 +239,7 @@ class Viewer {
             moveDamping: 0.97,
             mousePanSpeed: 1,
             mobilePanSpeed: 0.025,
-            pinchSpeed: 0.025,
+            pinchSpeed: 0.00025,
             wheelSpeed: 0.005,
             zoomThreshold: 0.01,
             zoomExp: 0.5,

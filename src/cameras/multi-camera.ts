@@ -24,7 +24,7 @@ class MultiCamera extends BaseCamera {
 
     mobilePanSpeed: number = 0.025;
 
-    pinchSpeed: number = 0.025;
+    pinchSpeed: number = 0.00025;
 
     wheelSpeed: number = 0.005;
 
