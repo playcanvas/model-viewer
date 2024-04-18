@@ -29,15 +29,23 @@ class MultiCamera extends BaseCamera {
 
     wheelSpeed: number = 0.005;
 
-    zoomThreshold: number = 0.01;
+    zoomAbsMin: number = 0.01;
 
-    zoomExp: number = 0.5;
+    zoomScaleMax: number = 10;
+
+    zoomSpeedMin: number = 0.01;
 
     moveSpeed: number = 2;
 
     sprintSpeed: number = 4;
 
     crouchSpeed: number = 1;
+
+    private _zoomDist: number = 0;
+
+    private _zoomStart: number = 0;
+
+    private _cameraDist: number = 0;
 
     private _pointerEvents: Map<number, PointerEvent> = new Map();
 
@@ -60,15 +68,15 @@ class MultiCamera extends BaseCamera {
         crouch: false
     };
 
-    constructor(options: Record<string, any> = {}) {
-        super(options);
+    constructor(target: HTMLElement, options: Record<string, any> = {}) {
+        super(target, options);
 
         this.mousePanSpeed = options.mousePanSpeed ?? this.mousePanSpeed;
         this.mobilePanSpeed = options.mobilePanSpeed ?? this.mobilePanSpeed;
         this.pinchSpeed = options.pinchSpeed ?? this.pinchSpeed;
         this.wheelSpeed = options.wheelSpeed ?? this.wheelSpeed;
-        this.zoomThreshold = options.zoomThreshold ?? this.zoomThreshold;
-        this.zoomExp = options.zoomExp ?? this.zoomExp;
+        this.zoomAbsMin = options.zoomAbsMin ?? this.zoomAbsMin;
+        this.zoomScaleMax = options.zoomScaleMax ?? this.zoomScaleMax;
         this.moveSpeed = options.moveSpeed ?? this.moveSpeed;
         this.sprintSpeed = options.sprintSpeed ?? this.sprintSpeed;
         this.crouchSpeed = options.crouchSpeed ?? this.crouchSpeed;
@@ -76,14 +84,6 @@ class MultiCamera extends BaseCamera {
         this._onWheel = this._onWheel.bind(this);
         this._onKeyDown = this._onKeyDown.bind(this);
         this._onKeyUp = this._onKeyUp.bind(this);
-    }
-
-    get point() {
-        return this._origin;
-    }
-
-    get start() {
-        return this._camera.getPosition();
     }
 
     protected _onPointerDown(event: PointerEvent) {
@@ -101,7 +101,7 @@ class MultiCamera extends BaseCamera {
             this._panning = true;
         }
         if (event.button === 2) {
-            this._zoom = this._focusDist;
+            this._zoomDist = this._cameraDist;
             this._origin.copy(this._camera.getPosition());
             this._position.copy(this._origin);
             this._camera.setLocalPosition(0, 0, 0);
@@ -133,7 +133,7 @@ class MultiCamera extends BaseCamera {
             // pinch zoom
             const pinchDist = this._getPinchDist();
             if (this._lastPinchDist > 0) {
-                this._focusZoom(this._lastPinchDist - pinchDist);
+                this._zoom(this._lastPinchDist - pinchDist);
             }
             this._lastPinchDist = pinchDist;
         }
@@ -150,7 +150,7 @@ class MultiCamera extends BaseCamera {
             this._panning = false;
         }
         if (event.button === 2) {
-            tmpV1.copy(this.entity.forward).mulScalar(this._zoom);
+            tmpV1.copy(this.entity.forward).mulScalar(this._zoomDist);
             this._origin.add(tmpV1);
             this._position.add(tmpV1);
             this._flying = false;
@@ -159,7 +159,7 @@ class MultiCamera extends BaseCamera {
 
     private _onWheel(event: WheelEvent) {
         event.preventDefault();
-        this._focusZoom(event.deltaY);
+        this._zoom(event.deltaY);
     }
 
     private _onKeyDown(event: KeyboardEvent) {
@@ -273,12 +273,15 @@ class MultiCamera extends BaseCamera {
         this._lastPosition.copy(pos);
     }
 
-    private _focusZoom(delta: number) {
-        const zoomMult = delta * this.sceneSize * this.wheelSpeed;
-        this._zoom = Math.max(this._zoom + zoomMult, this.zoomThreshold);
+    private _zoom(delta: number) {
+        const min = this.zoomAbsMin;
+        const max = this.zoomScaleMax * this.sceneSize;
+        const speed = math.clamp(this._zoomDist / (max - min), this.zoomSpeedMin, 1);
+        this._zoomDist += (delta * this.wheelSpeed * this.sceneSize * speed);
+        this._zoomDist = math.clamp(this._zoomDist, min, max);
     }
 
-    focus(point: Vec3, start?: Vec3, dir?: Vec2, snap?: boolean) {
+    focus(point: Vec3, start?: Vec3) {
         if (!this._camera) {
             return;
         }
@@ -288,23 +291,19 @@ class MultiCamera extends BaseCamera {
         }
 
         tmpV1.sub2(start, point);
-        if (dir) {
-            this._dir.copy(dir);
-        } else {
-            const elev = Math.atan2(tmpV1.y, tmpV1.z) * math.RAD_TO_DEG;
-            const azim = Math.atan2(tmpV1.x, tmpV1.z) * math.RAD_TO_DEG;
-            this._dir.set(-elev, -azim);
-        }
+        const elev = Math.atan2(tmpV1.y, tmpV1.z) * math.RAD_TO_DEG;
+        const azim = Math.atan2(tmpV1.x, tmpV1.z) * math.RAD_TO_DEG;
+        this._dir.set(-elev, -azim);
 
         this._origin.copy(point);
         this._camera.setPosition(start);
 
-        if (snap) {
-            this._angles.set(this._dir.x, this._dir.y, 0);
-            this._position.copy(this._origin);
-        }
+        this._zoomDist = tmpV1.length();
+        this._zoomStart = this._zoomDist;
+    }
 
-        this._zoom = tmpV1.length();
+    resetZoom() {
+        this._zoomDist = this._zoomStart;
     }
 
     attach(camera: Entity) {
@@ -343,8 +342,8 @@ class MultiCamera extends BaseCamera {
         }
 
         if (!this._flying) {
-            this._focusDist = math.lerp(this._focusDist, this._zoom, 1 - Math.pow(this.moveDamping, dt * 1000));
-            this._camera.setLocalPosition(0, 0, this._focusDist);
+            this._cameraDist = math.lerp(this._cameraDist, this._zoomDist, 1 - Math.pow(this.moveDamping, dt * 1000));
+            this._camera.setLocalPosition(0, 0, this._cameraDist);
         }
 
         this._move(dt);

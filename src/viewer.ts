@@ -69,7 +69,6 @@ import { MorphTargetData, File, HierarchyNode } from './types';
 import { DebugLines } from './debug-lines';
 import { Multiframe } from './multiframe';
 import { ReadDepth } from './read-depth';
-import { BaseCamera } from './cameras/base-camera';
 import { MultiCamera } from './cameras/multi-camera';
 import { PngExporter } from './png-exporter';
 import { ProjectiveSkybox } from './projective-skybox';
@@ -88,9 +87,9 @@ const defaultSceneBounds = new BoundingBox(new Vec3(0, 1, 0), new Vec3(1, 1, 1))
 const vec = new Vec3();
 const bbox = new BoundingBox();
 
-const FOCUS_SECTOR_MULT = 0.25;
-const FOCUS_SCALE_MULT = 0.25;
-const FOCUS_START_DIR = new Vec3(0, 1, 3);
+const FOCUS_SECTOR_MULT = 0.5;
+const FOCUS_SCALE_MULT = 1;
+const FOCUS_START_DIR = new Vec3(0, 1, 5);
 
 class Viewer {
     canvas: HTMLCanvasElement;
@@ -155,7 +154,7 @@ class Viewer {
 
     canvasResize = true;
 
-    controlCamera: BaseCamera;
+    multiCamera: MultiCamera;
 
     constructor(canvas: HTMLCanvasElement, graphicsDevice: GraphicsDevice, observer: Observer, skyboxUrls: Map<string, string>) {
         this.canvas = canvas;
@@ -234,14 +233,15 @@ class Viewer {
         camera.camera.requestSceneColorMap(true);
 
         // create camera controls
-        this.controlCamera = new MultiCamera();
-        app.root.addChild(this.controlCamera.entity);
-        this.controlCamera.attach(camera);
+        this.multiCamera = new MultiCamera(canvas);
+        app.root.addChild(this.multiCamera.entity);
+        this.multiCamera.attach(camera);
 
         app.keyboard.on(EVENT_KEYDOWN, (event) => {
             switch (event.key) {
                 case KEY_F: {
                     this.focusSelection(false);
+                    this.multiCamera.resetZoom();
                     break;
                 }
             }
@@ -380,7 +380,7 @@ class Viewer {
                 this.camera.getWorldTransform().transformPoint(this.cursorWorld, this.cursorWorld); // world space
 
                 // focus on cursor
-                this.controlCamera.focus(this.cursorWorld);
+                this.multiCamera.focus(this.cursorWorld);
             }
         });
 
@@ -701,6 +701,52 @@ class Viewer {
         };
     }
 
+    private getFocusPosition(bbox: BoundingBox) {
+        const focus = new Vec3();
+        if (this.initialCameraFocus) {
+            focus.copy(this.initialCameraFocus);
+            this.initialCameraFocus = null;
+        } else {
+            const entityAsset = this.entityAssets[0];
+            const splatData = entityAsset?.asset?.resource?.splatData;
+            if (splatData) {
+                splatData.calcFocalPoint(focus);
+                entityAsset.entity.getWorldTransform().transformPoint(focus, focus);
+            } else {
+                focus.copy(bbox.center);
+            }
+        }
+        return focus;
+    }
+
+    private focusSelection(calcStart = true) {
+        const camera = this.camera.camera;
+
+        // calculate scene bounding box
+        this.calcSceneBounds(bbox, this.selectedNode as Entity);
+
+        // calculate the camera focus point
+        const focus = this.getFocusPosition(bbox);
+
+        const sceneSize = bbox.halfExtents.length();
+        let start: Vec3 | null = null;
+        if (calcStart) {
+            start = new Vec3();
+            if (this.initialCameraPosition) {
+                start.copy(this.initialCameraPosition);
+                this.initialCameraPosition = null;
+            } else {
+                start.copy(focus);
+                const scale = FOCUS_SCALE_MULT / Math.sin(FOCUS_SECTOR_MULT * camera.fov * math.DEG_TO_RAD);
+                start.add(vec.copy(FOCUS_START_DIR).normalize().mulScalar(sceneSize * scale));
+            }
+        }
+
+        // focus orbit camera on object and set focus and sceneSize
+        this.multiCamera.sceneSize = sceneSize;
+        this.multiCamera.focus(focus, start);
+    }
+
     destroyRenderTargets() {
         const rt = this.camera.camera.renderTarget;
         if (rt) {
@@ -871,48 +917,6 @@ class Viewer {
                     this.pngExporter.export('model-viewer.png', new Uint32Array(texture.getSource().buffer.slice()), texture.width, texture.height);
                 });
         }
-    }
-
-    focusSelection(calcStart = true) {
-        const camera = this.camera.camera;
-
-        // calculate scene bounding box
-        this.calcSceneBounds(bbox, this.selectedNode as Entity);
-
-        const sceneSize = bbox.halfExtents.length();
-
-        // calculate the camera focus point
-        const focus = new Vec3();
-        if (this.initialCameraFocus) {
-            focus.copy(this.initialCameraFocus);
-            this.initialCameraFocus = null;
-        } else {
-            const entityAsset = this.entityAssets[0];
-            const splatData = entityAsset?.asset?.resource?.splatData;
-            if (splatData) {
-                splatData.calcFocalPoint(focus);
-                entityAsset.entity.getWorldTransform().transformPoint(focus, focus);
-            } else {
-                focus.copy(bbox.center);
-            }
-        }
-
-        let start: Vec3 | null = null;
-        if (calcStart) {
-            start = new Vec3();
-            if (this.initialCameraPosition) {
-                start.copy(this.initialCameraPosition);
-                this.initialCameraPosition = null;
-            } else {
-                start.copy(focus);
-                const scale = FOCUS_SCALE_MULT / Math.tan(FOCUS_SECTOR_MULT * camera.fov * math.DEG_TO_RAD);
-                start.add(vec.copy(FOCUS_START_DIR).mulScalar(sceneSize * scale));
-            }
-        }
-
-        // focus orbit camera on object and set focus and sceneSize
-        this.controlCamera.sceneSize = sceneSize;
-        this.controlCamera.focus(focus, start);
     }
 
     // adjust camera clipping planes to fit the scene
@@ -1410,7 +1414,7 @@ class Viewer {
     update(deltaTime: number) {
         // update the orbit camera
         if (!this.xrMode?.active) {
-            this.controlCamera.update(deltaTime);
+            this.multiCamera.update(deltaTime);
         }
 
         const maxdiff = (a: Mat4, b: Mat4) => {

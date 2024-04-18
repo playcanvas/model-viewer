@@ -10,6 +10,8 @@ type PointerMoveEvent = PointerEvent & {
 const LOOK_MAX_ANGLE = 90;
 
 abstract class BaseCamera {
+    target: HTMLElement = document.documentElement;
+
     entity: Entity = new Entity();
 
     sceneSize: number = 100;
@@ -30,11 +32,8 @@ abstract class BaseCamera {
 
     protected _angles: Vec3 = new Vec3();
 
-    protected _zoom: number = 0;
-
-    protected _focusDist: number = 0;
-
-    constructor(options: Record<string, any> = {}) {
+    constructor(target: HTMLElement, options: Record<string, any> = {}) {
+        this.target = target;
         this.sceneSize = options.sceneSize ?? this.sceneSize;
         this.lookSensitivity = options.lookSensitivity ?? this.lookSensitivity;
         this.lookDamping = options.lookDamping ?? this.lookDamping;
@@ -43,14 +42,6 @@ abstract class BaseCamera {
         this._onPointerDown = this._onPointerDown.bind(this);
         this._onPointerMove = this._onPointerMove.bind(this);
         this._onPointerUp = this._onPointerUp.bind(this);
-    }
-
-    abstract get point(): Vec3
-
-    abstract get start(): Vec3
-
-    get dir() {
-        return this._dir;
     }
 
     private _smoothLook(dt: number) {
@@ -76,13 +67,16 @@ abstract class BaseCamera {
     protected abstract _onPointerUp(event: PointerEvent): void
 
     protected _look(event: PointerMoveEvent) {
+        if (event.target !== this.target) {
+            return;
+        }
         const movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
         const movementY = event.movementY || event.mozMovementY || event.webkitMovementY || 0;
         this._dir.x = math.clamp(this._dir.x - movementY * this.lookSensitivity, -LOOK_MAX_ANGLE, LOOK_MAX_ANGLE);
         this._dir.y -= movementX * this.lookSensitivity;
     }
 
-    abstract focus(point: Vec3, start?: Vec3, dir?: Vec2, snap?: boolean): void
+    abstract focus(point: Vec3, start?: Vec3): void
 
     attach(camera: Entity) {
         this._camera = camera;
