@@ -67,8 +67,6 @@ class MultiCamera extends BaseCamera {
     constructor(target: HTMLElement, options: Record<string, any> = {}) {
         super(target, options);
 
-        this.mousePanSpeed = options.mousePanSpeed ?? this.mousePanSpeed;
-        this.mobilePanSpeed = options.mobilePanSpeed ?? this.mobilePanSpeed;
         this.pinchSpeed = options.pinchSpeed ?? this.pinchSpeed;
         this.wheelSpeed = options.wheelSpeed ?? this.wheelSpeed;
         this.zoomAbsMin = options.zoomAbsMin ?? this.zoomAbsMin;
