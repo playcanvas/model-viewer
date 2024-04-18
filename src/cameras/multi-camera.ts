@@ -23,9 +23,9 @@ class MultiCamera extends BaseCamera {
 
     mousePanSpeed: number = 0.0025;
 
-    mobilePanSpeed: number = 0.025;
+    mobilePanSpeed: number = 0.0025;
 
-    pinchSpeed: number = 0.00025;
+    pinchSpeed: number = 5;
 
     wheelSpeed: number = 0.005;
 
@@ -133,7 +133,7 @@ class MultiCamera extends BaseCamera {
             // pinch zoom
             const pinchDist = this._getPinchDist();
             if (this._lastPinchDist > 0) {
-                this._zoom(this._lastPinchDist - pinchDist);
+                this._zoom((this._lastPinchDist - pinchDist) * this.pinchSpeed);
             }
             this._lastPinchDist = pinchDist;
         }
@@ -264,8 +264,8 @@ class MultiCamera extends BaseCamera {
 
     private _pan(pos: Vec2, speed = 1) {
         tmpV1.set(0, 0, 0);
-        tmpV1.x = (this._lastPosition.x - pos.x) * speed;
-        tmpV1.y = (pos.y - this._lastPosition.y) * speed;
+        tmpV1.x = (this._lastPosition.x - pos.x) * speed * this.sceneSize;
+        tmpV1.y = (pos.y - this._lastPosition.y) * speed * this.sceneSize;
 
         tmpQ1.copy(this._camera.getRotation()).transformVector(tmpV1, tmpV1);
         this._origin.add(tmpV1);
