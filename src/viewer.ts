@@ -227,8 +227,7 @@ class Viewer {
         camera.addComponent("camera", {
             fov: 75,
             frustumCulling: true,
-            clearColor: new Color(0, 0, 0, 0),
-            nearClip: 0.001
+            clearColor: new Color(0, 0, 0, 0)
         });
         camera.camera.requestSceneColorMap(true);
 

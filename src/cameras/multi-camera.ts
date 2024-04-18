@@ -25,9 +25,9 @@ class MultiCamera extends BaseCamera {
 
     wheelSpeed: number = 0.005;
 
-    zoomAbsMin: number = 0.01;
+    zoomMin: number = 0.001;
 
-    zoomScaleMax: number = 10;
+    zoomMax: number = 10;
 
     zoomScaleMin: number = 0.01;
 
@@ -69,8 +69,8 @@ class MultiCamera extends BaseCamera {
 
         this.pinchSpeed = options.pinchSpeed ?? this.pinchSpeed;
         this.wheelSpeed = options.wheelSpeed ?? this.wheelSpeed;
-        this.zoomAbsMin = options.zoomAbsMin ?? this.zoomAbsMin;
-        this.zoomScaleMax = options.zoomScaleMax ?? this.zoomScaleMax;
+        this.zoomMin = options.zoomMin ?? this.zoomMin;
+        this.zoomMax = options.zoomMax ?? this.zoomMax;
         this.moveSpeed = options.moveSpeed ?? this.moveSpeed;
         this.sprintSpeed = options.sprintSpeed ?? this.sprintSpeed;
         this.crouchSpeed = options.crouchSpeed ?? this.crouchSpeed;
@@ -256,11 +256,11 @@ class MultiCamera extends BaseCamera {
         return Math.sqrt(dx * dx + dy * dy);
     }
 
-    private _screenToPan(pos: Vec2, point: Vec3) {
-        const rayOrigin = this._camera.getPosition();
+    private _screenToWorldPan(pos: Vec2, point: Vec3) {
         const mouseW = this._camera.camera.screenToWorld(pos.x, pos.y, 1);
-        const rayDir = tmpV1.sub2(mouseW, rayOrigin).normalize();
         const planeNormal = tmpV2.copy(this._camera.forward).mulScalar(-1);
+        const rayOrigin = this._camera.getPosition();
+        const rayDir = tmpV1.sub2(mouseW, rayOrigin).normalize();
 
         // ray intersection with plane
         const rayPlaneDot = planeNormal.dot(rayDir);
@@ -274,8 +274,8 @@ class MultiCamera extends BaseCamera {
         const start = new Vec3();
         const end = new Vec3();
 
-        this._screenToPan(this._lastPosition, start);
-        this._screenToPan(pos, end);
+        this._screenToWorldPan(this._lastPosition, start);
+        this._screenToWorldPan(pos, end);
 
         tmpV1.sub2(start, end);
         this._origin.add(tmpV1);
@@ -284,8 +284,8 @@ class MultiCamera extends BaseCamera {
     }
 
     private _zoom(delta: number) {
-        const min = this.zoomAbsMin;
-        const max = this.zoomScaleMax * this.sceneSize;
+        const min = this._camera.camera.nearClip + this.zoomMin * this.sceneSize;
+        const max = this.zoomMax * this.sceneSize;
         const scale = math.clamp(this._zoomDist / (max - min), this.zoomScaleMin, 1);
         this._zoomDist += (delta * this.wheelSpeed * this.sceneSize * scale);
         this._zoomDist = math.clamp(this._zoomDist, min, max);
