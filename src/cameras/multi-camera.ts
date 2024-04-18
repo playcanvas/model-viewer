@@ -1,4 +1,4 @@
-import { Entity, Vec2, Vec3, Quat, math } from 'playcanvas';
+import { Entity, Vec2, Vec3, math } from 'playcanvas';
 import { BaseCamera } from './base-camera';
 
 type PointerMoveEvent = PointerEvent & {
@@ -10,7 +10,7 @@ type PointerMoveEvent = PointerEvent & {
 
 const tmpVa = new Vec2();
 const tmpV1 = new Vec3();
-const tmpQ1 = new Quat();
+const tmpV2 = new Vec3();
 
 const PASSIVE: any = { passive: false };
 
@@ -21,10 +21,6 @@ class MultiCamera extends BaseCamera {
 
     moveDamping: number = 0.98;
 
-    mousePanSpeed: number = 0.0025;
-
-    mobilePanSpeed: number = 0.0025;
-
     pinchSpeed: number = 5;
 
     wheelSpeed: number = 0.005;
@@ -33,7 +29,7 @@ class MultiCamera extends BaseCamera {
 
     zoomScaleMax: number = 10;
 
-    zoomSpeedMin: number = 0.01;
+    zoomScaleMin: number = 0.01;
 
     moveSpeed: number = 2;
 
@@ -119,7 +115,7 @@ class MultiCamera extends BaseCamera {
         if (this._pointerEvents.size === 1) {
             if (this._panning) {
                 // pan
-                this._pan(tmpVa.set(event.clientX, event.clientY), this.mousePanSpeed);
+                this._pan(tmpVa.set(event.clientX, event.clientY));
             } else {
                 super._look(event);
             }
@@ -128,7 +124,7 @@ class MultiCamera extends BaseCamera {
 
         if (this._pointerEvents.size === 2) {
             // pan
-            this._pan(this._getMidPoint(tmpVa), this.mobilePanSpeed);
+            this._pan(this._getMidPoint(tmpVa));
 
             // pinch zoom
             const pinchDist = this._getPinchDist();
@@ -262,12 +258,28 @@ class MultiCamera extends BaseCamera {
         return Math.sqrt(dx * dx + dy * dy);
     }
 
-    private _pan(pos: Vec2, speed = 1) {
-        tmpV1.set(0, 0, 0);
-        tmpV1.x = (this._lastPosition.x - pos.x) * speed * this.sceneSize;
-        tmpV1.y = (pos.y - this._lastPosition.y) * speed * this.sceneSize;
+    private _screenToPan(pos: Vec2, point: Vec3) {
+        const rayOrigin = this._camera.getPosition();
+        const mouseW = this._camera.camera.screenToWorld(pos.x, pos.y, 1);
+        const rayDir = tmpV1.sub2(mouseW, rayOrigin).normalize();
+        const planeNormal = tmpV2.copy(this._camera.forward).mulScalar(-1);
 
-        tmpQ1.copy(this._camera.getRotation()).transformVector(tmpV1, tmpV1);
+        // ray intersection with plane
+        const rayPlaneDot = planeNormal.dot(rayDir);
+        const planeDist = this._origin.dot(planeNormal);
+        const pointPlaneDist = (planeNormal.dot(rayOrigin) - planeDist) / rayPlaneDot;
+        point.copy(rayDir.mulScalar(-pointPlaneDist).add(rayOrigin));
+    }
+
+
+    private _pan(pos: Vec2) {
+        const start = new Vec3();
+        const end = new Vec3();
+
+        this._screenToPan(this._lastPosition, start);
+        this._screenToPan(pos, end);
+
+        tmpV1.sub2(start, end);
         this._origin.add(tmpV1);
 
         this._lastPosition.copy(pos);
@@ -276,8 +288,8 @@ class MultiCamera extends BaseCamera {
     private _zoom(delta: number) {
         const min = this.zoomAbsMin;
         const max = this.zoomScaleMax * this.sceneSize;
-        const speed = math.clamp(this._zoomDist / (max - min), this.zoomSpeedMin, 1);
-        this._zoomDist += (delta * this.wheelSpeed * this.sceneSize * speed);
+        const scale = math.clamp(this._zoomDist / (max - min), this.zoomScaleMin, 1);
+        this._zoomDist += (delta * this.wheelSpeed * this.sceneSize * scale);
         this._zoomDist = math.clamp(this._zoomDist, min, max);
     }
 

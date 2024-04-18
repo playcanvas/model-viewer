@@ -76,8 +76,6 @@ abstract class BaseCamera {
         this._dir.y -= movementX * this.lookSensitivity;
     }
 
-    abstract focus(point: Vec3, start?: Vec3): void
-
     attach(camera: Entity) {
         this._camera = camera;
 
