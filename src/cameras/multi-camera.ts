@@ -1,4 +1,4 @@
-import { Entity, Vec2, Vec3, math } from 'playcanvas';
+import { Entity, Vec2, Vec3, Ray, Plane, math } from 'playcanvas';
 import { BaseCamera } from './base-camera';
 
 type PointerMoveEvent = PointerEvent & {
@@ -257,16 +257,14 @@ class MultiCamera extends BaseCamera {
     }
 
     private _screenToWorldPan(pos: Vec2, point: Vec3) {
-        const mouseW = this._camera.camera.screenToWorld(pos.x, pos.y, 1);
+        const cameraPos = this._camera.getPosition();
         const planeNormal = tmpV2.copy(this._camera.forward).mulScalar(-1);
-        const rayOrigin = this._camera.getPosition();
-        const rayDir = tmpV1.sub2(mouseW, rayOrigin).normalize();
+        const mouseW = this._camera.camera.screenToWorld(pos.x, pos.y, 1);
 
-        // ray intersection with plane
-        const rayPlaneDot = planeNormal.dot(rayDir);
-        const planeDist = this._origin.dot(planeNormal);
-        const pointPlaneDist = (planeNormal.dot(rayOrigin) - planeDist) / rayPlaneDot;
-        point.copy(rayDir.mulScalar(-pointPlaneDist).add(rayOrigin));
+        const plane = new Plane(planeNormal, planeNormal.dot(this._origin));
+        const ray = new Ray(cameraPos, mouseW.sub(cameraPos).normalize());
+
+        plane.intersectsRay(ray, point);
     }
 
 
