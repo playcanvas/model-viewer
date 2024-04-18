@@ -21,7 +21,7 @@ class MultiCamera extends BaseCamera {
 
     moveDamping: number = 0.98;
 
-    mousePanSpeed: number = 1;
+    mousePanSpeed: number = 0.0025;
 
     mobilePanSpeed: number = 0.025;
 
@@ -36,6 +36,8 @@ class MultiCamera extends BaseCamera {
     moveSpeed: number = 2;
 
     sprintSpeed: number = 4;
+
+    crouchSpeed: number = 1;
 
     private _pointerEvents: Map<number, PointerEvent> = new Map();
 
@@ -54,7 +56,8 @@ class MultiCamera extends BaseCamera {
         right: false,
         up: false,
         down: false,
-        sprint: false
+        sprint: false,
+        crouch: false
     };
 
     constructor(options: Record<string, any> = {}) {
@@ -68,6 +71,7 @@ class MultiCamera extends BaseCamera {
         this.zoomExp = options.zoomExp ?? this.zoomExp;
         this.moveSpeed = options.moveSpeed ?? this.moveSpeed;
         this.sprintSpeed = options.sprintSpeed ?? this.sprintSpeed;
+        this.crouchSpeed = options.crouchSpeed ?? this.crouchSpeed;
 
         this._onWheel = this._onWheel.bind(this);
         this._onKeyDown = this._onKeyDown.bind(this);
@@ -182,6 +186,9 @@ class MultiCamera extends BaseCamera {
             case 'shift':
                 this._key.sprint = true;
                 break;
+            case 'control':
+                this._key.crouch = true;
+                break;
         }
     }
 
@@ -209,6 +216,9 @@ class MultiCamera extends BaseCamera {
             case 'shift':
                 this._key.sprint = false;
                 break;
+            case 'control':
+                this._key.crouch = false;
+                break;
         }
     }
 
@@ -233,7 +243,7 @@ class MultiCamera extends BaseCamera {
             tmpV1.sub(this.entity.up);
         }
         tmpV1.normalize();
-        const speed = this._key.sprint ? this.sprintSpeed : this.moveSpeed;
+        const speed = this._key.crouch ? this.crouchSpeed : this._key.sprint ? this.sprintSpeed : this.moveSpeed;
         tmpV1.mulScalar(this.sceneSize * speed * dt);
         this._origin.add(tmpV1);
     }
@@ -322,7 +332,8 @@ class MultiCamera extends BaseCamera {
             right: false,
             up: false,
             down: false,
-            sprint: false
+            sprint: false,
+            crouch: false
         };
     }
 
