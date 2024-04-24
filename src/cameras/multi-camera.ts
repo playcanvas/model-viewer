@@ -112,7 +112,7 @@ class MultiCamera extends BaseCamera {
 
         if (this._pointerEvents.size === 1) {
             if (this._panning) {
-                // pan
+                // mouse pan
                 this._pan(tmpVa.set(event.clientX, event.clientY));
             } else {
                 super._look(event);
@@ -121,7 +121,7 @@ class MultiCamera extends BaseCamera {
         }
 
         if (this._pointerEvents.size === 2) {
-            // pan
+            // touch pan
             this._pan(this._getMidPoint(tmpVa));
 
             // pinch zoom
@@ -257,11 +257,14 @@ class MultiCamera extends BaseCamera {
     }
 
     private _screenToWorldPan(pos: Vec2, point: Vec3) {
-        const cameraPos = this._camera.getPosition();
-        const planeNormal = tmpV2.copy(this._camera.forward).mulScalar(-1);
         const mouseW = this._camera.camera.screenToWorld(pos.x, pos.y, 1);
+        const cameraPos = this._camera.getPosition();
 
-        const plane = new Plane(planeNormal, planeNormal.dot(this._origin));
+        const focusDirScaled = tmpV1.copy(this.entity.forward).mulScalar(this._zoomDist);
+        const focalPos = tmpV2.add2(cameraPos, focusDirScaled);
+        const planeNormal = focusDirScaled.mulScalar(-1).normalize();
+
+        const plane = new Plane(planeNormal, -planeNormal.dot(focalPos));
         const ray = new Ray(cameraPos, mouseW.sub(cameraPos).normalize());
 
         plane.intersectsRay(ray, point);
