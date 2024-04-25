@@ -422,6 +422,9 @@ class Viewer {
             this.app.scene.layers.getLayerById(LAYERID_SKYBOX).enabled = false;
 
             this.multiframe.blend = 0.5;
+
+            // detach multi camera
+            this.multiCamera.detach();
         });
 
         events.on('xr:initial-place', () => {
@@ -435,7 +438,8 @@ class Viewer {
             // background color isn't correctly restored
             this.setBackgroundColor(this.observer.get('skybox.backgroundColor'));
 
-            // focus selection
+            // attach multicamera and focus selection
+            this.multiCamera.attach(this.camera);
             this.focusSelection(true);
 
             this.multiframe.blend = 1.0;
