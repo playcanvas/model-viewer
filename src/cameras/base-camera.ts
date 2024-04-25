@@ -79,6 +79,7 @@ abstract class BaseCamera {
 
     attach(camera: Entity) {
         this._camera = camera;
+        this._camera.setLocalEulerAngles(0, 0, 0);
 
         window.addEventListener('pointerdown', this._onPointerDown);
         window.addEventListener('pointermove', this._onPointerMove);

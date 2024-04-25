@@ -438,9 +438,8 @@ class Viewer {
             // background color isn't correctly restored
             this.setBackgroundColor(this.observer.get('skybox.backgroundColor'));
 
-            // attach multicamera and focus selection
+            // attach multicamera
             this.multiCamera.attach(this.camera);
-            this.focusSelection(true);
 
             this.multiframe.blend = 1.0;
         });
