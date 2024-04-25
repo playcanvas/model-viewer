@@ -143,7 +143,7 @@ class MultiCamera extends BaseCamera {
         if (this._panning) {
             this._panning = false;
         }
-        if (event.button === 2) {
+        if (this._flying) {
             tmpV1.copy(this.entity.forward).mulScalar(this._zoomDist);
             this._origin.add(tmpV1);
             this._position.add(tmpV1);
