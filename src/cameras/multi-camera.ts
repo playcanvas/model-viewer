@@ -308,6 +308,7 @@ class MultiCamera extends BaseCamera {
 
         this._origin.copy(point);
         this._camera.setPosition(start);
+        this._camera.setLocalEulerAngles(0, 0, 0);
 
         this._zoomDist = tmpV1.length();
         this._zoomStart = this._zoomDist;

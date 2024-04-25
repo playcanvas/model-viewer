@@ -10,9 +10,9 @@ type PointerMoveEvent = PointerEvent & {
 const LOOK_MAX_ANGLE = 90;
 
 abstract class BaseCamera {
-    target: HTMLElement = document.documentElement;
+    entity: Entity;
 
-    entity: Entity = new Entity();
+    target: HTMLElement = document.documentElement;
 
     sceneSize: number = 100;
 
@@ -33,6 +33,7 @@ abstract class BaseCamera {
     protected _angles: Vec3 = new Vec3();
 
     constructor(target: HTMLElement, options: Record<string, any> = {}) {
+        this.entity = new Entity(options.name ?? 'base-camera');
         this.target = target;
         this.sceneSize = options.sceneSize ?? this.sceneSize;
         this.lookSensitivity = options.lookSensitivity ?? this.lookSensitivity;

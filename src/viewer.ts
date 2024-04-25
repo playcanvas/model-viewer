@@ -232,7 +232,9 @@ class Viewer {
         camera.camera.requestSceneColorMap(true);
 
         // create camera controls
-        this.multiCamera = new MultiCamera(canvas);
+        this.multiCamera = new MultiCamera(canvas, {
+            name: 'multi-camera'
+        });
         app.root.addChild(this.multiCamera.entity);
         this.multiCamera.attach(camera);
 
@@ -432,6 +434,9 @@ class Viewer {
 
             // background color isn't correctly restored
             this.setBackgroundColor(this.observer.get('skybox.backgroundColor'));
+
+            // focus selection
+            this.focusSelection(true);
 
             this.multiframe.blend = 1.0;
         });
@@ -736,7 +741,7 @@ class Viewer {
                 this.initialCameraPosition = null;
             } else {
                 start.copy(focus);
-                const scale = FOCUS_SCALE_MULT / Math.sin(FOCUS_SECTOR_MULT * camera.fov * math.DEG_TO_RAD);
+                const scale = FOCUS_SCALE_MULT / Math.sin(FOCUS_SECTOR_MULT * camera.fov * camera.aspectRatio * math.DEG_TO_RAD);
                 start.add(vec.copy(FOCUS_START_DIR).normalize().mulScalar(sceneSize * scale));
             }
         }
