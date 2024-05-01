@@ -39,8 +39,6 @@ class MultiCamera extends BaseCamera {
 
     private _zoomDist: number = 0;
 
-    private _zoomStart: number = 0;
-
     private _cameraDist: number = 0;
 
     private _pointerEvents: Map<number, PointerEvent> = new Map();
@@ -311,11 +309,10 @@ class MultiCamera extends BaseCamera {
         this._camera.setLocalEulerAngles(0, 0, 0);
 
         this._zoomDist = tmpV1.length();
-        this._zoomStart = this._zoomDist;
     }
 
-    resetZoom() {
-        this._zoomDist = this._zoomStart;
+    resetZoom(zoomDist: number = 0) {
+        this._zoomDist = zoomDist;
     }
 
     attach(camera: Entity) {

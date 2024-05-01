@@ -87,9 +87,7 @@ const defaultSceneBounds = new BoundingBox(new Vec3(0, 1, 0), new Vec3(1, 1, 1))
 const vec = new Vec3();
 const bbox = new BoundingBox();
 
-const FOCUS_SECTOR_MULT = 0.5;
-const FOCUS_SCALE_MULT = 1;
-const FOCUS_START_DIR = new Vec3(0, 1, 5);
+const FOCUS_FOV = 75;
 
 class Viewer {
     canvas: HTMLCanvasElement;
@@ -242,7 +240,7 @@ class Viewer {
             switch (event.key) {
                 case KEY_F: {
                     this.focusSelection(false);
-                    this.multiCamera.resetZoom();
+                    this.multiCamera.resetZoom(this.getZoomDist());
                     break;
                 }
             }
@@ -726,16 +724,23 @@ class Viewer {
         return focus;
     }
 
-    private focusSelection(calcStart = true) {
+    private getZoomDist() {
         const camera = this.camera.camera;
+        const d1 = Math.tan(0.5 * FOCUS_FOV * math.DEG_TO_RAD);
+        const d2 = Math.tan(0.5 * camera.fov * math.DEG_TO_RAD);
 
+        const scale = (d1 / d2) * (1 / camera.aspectRatio);
+        return scale * this.multiCamera.sceneSize + this.multiCamera.sceneSize;
+    }
+
+    private focusSelection(calcStart = true) {
         // calculate scene bounding box
         this.calcSceneBounds(bbox, this.selectedNode as Entity);
+        this.multiCamera.sceneSize = bbox.halfExtents.length();
 
         // calculate the camera focus point
         const focus = this.getFocusPosition(bbox);
 
-        const sceneSize = bbox.halfExtents.length();
         let start: Vec3 | null = null;
         if (calcStart) {
             start = new Vec3();
@@ -744,13 +749,12 @@ class Viewer {
                 this.initialCameraPosition = null;
             } else {
                 start.copy(focus);
-                const scale = FOCUS_SCALE_MULT / Math.sin(FOCUS_SECTOR_MULT * camera.fov * camera.aspectRatio * math.DEG_TO_RAD);
-                start.add(vec.copy(FOCUS_START_DIR).normalize().mulScalar(sceneSize * scale));
+                start.z += this.getZoomDist();
             }
         }
 
         // focus orbit camera on object and set focus and sceneSize
-        this.multiCamera.sceneSize = sceneSize;
+        this.multiCamera.sceneSize = bbox.halfExtents.length();
         this.multiCamera.focus(focus, start);
     }
 
