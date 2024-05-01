@@ -4,7 +4,7 @@ import { SetProperty, ObserverData } from '../../types';
 import AnimationControls from './animation-controls';
 import { CameraPanel, SkyboxPanel, LightPanel, DebugPanel, ViewPanel } from './panels';
 // @ts-ignore no type defs included
-import { UsdzExporter } from 'playcanvas-extras';
+import { UsdzExporter } from 'playcanvas';
 import { addEventListenerOnClickOnly } from '../../helpers';
 
 const PopupPanelControls = (props: { observerData: ObserverData, setProperty: SetProperty }) => {

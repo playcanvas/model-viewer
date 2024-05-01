@@ -67,7 +67,7 @@
     "eslint": "^8.56.0",
     "fflate": "^0.8.2",
     "handlebars": "^4.7.8",
-    "playcanvas": "^1.69.2",
+    "playcanvas": "^1.70.2",
     "prop-types": "^15.8.1",
     "qrious": "^4.0.2",
     "react": "^18.2.0",

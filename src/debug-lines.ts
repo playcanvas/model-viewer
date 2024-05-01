@@ -137,7 +137,7 @@ class DebugLines {
 
         // construct the mesh
         const mesh = new Mesh(device);
-        mesh.vertexBuffer = new VertexBuffer(device, vertexFormat, 8192, BUFFER_DYNAMIC);
+        mesh.vertexBuffer = new VertexBuffer(device, vertexFormat, 8192, { usage: BUFFER_DYNAMIC });
         mesh.primitive[0].type = PRIMITIVE_LINES;
         mesh.primitive[0].base = 0;
         mesh.primitive[0].indexed = false;
@@ -224,7 +224,7 @@ class DebugLines {
                 this.app.graphicsDevice,
                 oldVBuffer.getFormat(),
                 oldVBuffer.getNumVertices() * 2,
-                BUFFER_DYNAMIC,
+                { usage: BUFFER_DYNAMIC },
                 arrayBuffer
             );
             this.vertexData = new Float32Array(arrayBuffer);

@@ -17,8 +17,7 @@
         "noEmit": true,
         "baseUrl": ".",
         "paths": {
-            "pcui": ["node_modules/@playcanvas/pcui/react"],
-            "playcanvas-extras": ["node_modules/playcanvas/build/playcanvas-extras.mjs"]
+            "pcui": ["node_modules/@playcanvas/pcui/react"]
         }
     },
     "include": ["**/*.ts", "**/*.tsx"],
