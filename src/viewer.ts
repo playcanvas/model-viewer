@@ -60,7 +60,6 @@ import {
 import { App } from './app';
 
 import { Observer } from '@playcanvas/observer';
-// @ts-ignore: library file import
 import { MeshoptDecoder } from '../lib/meshopt_decoder.module.js';
 import { CreateDropHandler } from './drop-handler';
 import { MorphTargetData, File, HierarchyNode } from './types';
