@@ -11,6 +11,8 @@ type PointerMoveEvent = PointerEvent & {
 const tmpVa = new Vec2();
 const tmpV1 = new Vec3();
 const tmpV2 = new Vec3();
+const tmpR1 = new Ray();
+const tmpP1 = new Plane();
 
 const PASSIVE: any = { passive: false };
 
@@ -262,8 +264,8 @@ class MultiCamera extends BaseCamera {
         const focalPos = tmpV2.add2(cameraPos, focusDirScaled);
         const planeNormal = focusDirScaled.mulScalar(-1).normalize();
 
-        const plane = new Plane(planeNormal, -planeNormal.dot(focalPos));
-        const ray = new Ray(cameraPos, mouseW.sub(cameraPos).normalize());
+        const plane = tmpP1.setFromPointNormal(focalPos, planeNormal);
+        const ray = tmpR1.set(cameraPos, mouseW.sub(cameraPos).normalize());
 
         plane.intersectsRay(ray, point);
     }
