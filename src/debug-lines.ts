@@ -224,8 +224,7 @@ class DebugLines {
                 this.app.graphicsDevice,
                 oldVBuffer.getFormat(),
                 oldVBuffer.getNumVertices() * 2,
-                { usage: BUFFER_DYNAMIC },
-                arrayBuffer
+                { usage: BUFFER_DYNAMIC, data: arrayBuffer }
             );
             this.vertexData = new Float32Array(arrayBuffer);
             this.colorData = new Uint32Array(arrayBuffer);
