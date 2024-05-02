@@ -45,6 +45,7 @@ import {
     MorphInstance,
     MorphTarget,
     Mouse,
+    MiniStats,
     Quat,
     RenderComponent,
     RenderTarget,
@@ -59,10 +60,6 @@ import {
 import { App } from './app';
 
 import { Observer } from '@playcanvas/observer';
-// @ts-ignore: library file import
-import { MiniStats } from 'playcanvas-extras';
-// @ts-ignore: library file import
-// import * as VoxParser from 'playcanvas/scripts/parsers/vox-parser.js';
 import { MeshoptDecoder } from '../lib/meshopt_decoder.module.js';
 import { CreateDropHandler } from './drop-handler';
 import { MorphTargetData, File, HierarchyNode } from './types';
@@ -194,9 +191,6 @@ class Viewer {
         const multisampleSupported = app.graphicsDevice.maxSamples > 1;
         observer.set('camera.multisampleSupported', multisampleSupported);
         observer.set('camera.multisample', multisampleSupported && observer.get('camera.multisample'));
-
-        // register vox support
-        // VoxParser.registerVoxParser(app);
 
         // create the exporter
         this.pngExporter = new PngExporter();
