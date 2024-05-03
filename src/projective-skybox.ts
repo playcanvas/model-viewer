@@ -61,7 +61,7 @@ void main(void) {
 
     vec3 final_dir = mix(view_dir, env_dir, tripodParams.w) * cubeMapRotationMatrix;
 
-    vec3 linear = $DECODE(textureCube(texture_cubeMap, fixSeamsStatic(final_dir * vec3(-1.0, 1.0, 1.0), $FIXCONST)));
+    vec3 linear = SKYBOX_DECODE_FNC(textureCube(texture_cubeMap, fixSeamsStatic(final_dir * vec3(-1.0, 1.0, 1.0), SKYBOX_MIP)));
 
     gl_FragColor = vec4(gammaCorrectOutput(toneMap(processEnvironment(linear))), 1.0);
 }
