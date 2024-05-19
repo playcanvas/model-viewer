@@ -71,7 +71,7 @@ const LoadControls = (props: { setProperty: SetProperty }) => {
                     <Label class='mobile' text="Click to open files" />
                 </div>
                 <Label id='or-text' text="OR" class="centered-label" />
-                <TextInput class='secondary' id='glb-url-input'  placeholder='Enter .glb, .gltf, or .ply URL' keyChange onValidate={(value: string) => {
+                <TextInput class='secondary' id='glb-url-input' placeholder='Enter .glb, .gltf, or .ply URL' keyChange onValidate={(value: string) => {
                     const isValid = validUrl(value);
                     setUrlInputValid(isValid);
                     return isValid;
