@@ -1,7 +1,7 @@
 {
     "name": "PlayCanvas glTF Viewer",
     "short_name": "glTF Viewer",
-    "description": "Fast and lightweight glTF viewer.",
+    "description": "Fast and lightweight glTF and gaussian splat PLY viewer.",
     "display": "standalone",
     "start_url": "/model-viewer/",
     "scope": "/model-viewer/",
