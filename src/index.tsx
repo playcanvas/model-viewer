@@ -8,7 +8,6 @@ import {
 } from 'playcanvas';
 import { Observer } from '@playcanvas/observer';
 
-import { getAssetPath } from './helpers';
 import { ObserverData } from './types';
 import { initMaterials } from './material';
 import initializeUI from './ui';
@@ -214,20 +213,20 @@ const main = () => {
     initMaterials();
 
     basisInitialize({
-        glueUrl: getAssetPath('lib/basis/basis.wasm.js'),
-        wasmUrl: getAssetPath('lib/basis/basis.wasm.wasm'),
-        fallbackUrl: getAssetPath('lib/basis/basis.js'),
+        glueUrl: 'static/lib/basis/basis.wasm.js',
+        wasmUrl: 'static/lib/basis/basis.wasm.wasm',
+        fallbackUrl: 'static/lib/basis/basis.js',
         lazyInit: true
     });
 
     // @ts-ignore
     WasmModule.setConfig('DracoDecoderModule', {
-        glueUrl: getAssetPath('lib/draco/draco.wasm.js'),
-        wasmUrl: getAssetPath('lib/draco/draco.wasm.wasm'),
-        fallbackUrl: getAssetPath('lib/draco/draco.js')
+        glueUrl: 'static/lib/draco/draco.wasm.js',
+        wasmUrl: 'static/lib/draco/draco.wasm.wasm',
+        fallbackUrl: 'static/lib/draco/draco.js'
     });
 
-    const skyboxUrls = new Map(skyboxes.map(s => [s.label, getAssetPath(s.url)]));
+    const skyboxUrls = new Map(skyboxes.map(s => [s.label, `static/${s.url}`]));
 
     // hide / show spinner when loading files
     observer.on('ui.spinner:set', (value: boolean) => {
@@ -257,8 +256,8 @@ const main = () => {
     // create the graphics device
     createGraphicsDevice(canvas, {
         deviceTypes: url.searchParams.has('webgpu') || observer.get('enableWebGPU') ? ['webgpu'] : [],
-        glslangUrl: getAssetPath('lib/glslang/glslang.js'),
-        twgslUrl: getAssetPath('lib/twgsl/twgsl.js'),
+        glslangUrl: 'static/lib/glslang/glslang.js',
+        twgslUrl: 'static/lib/twgsl/twgsl.js',
         antialias: false,
         depth: false,
         stencil: false,

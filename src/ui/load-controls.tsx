@@ -1,6 +1,5 @@
 import React, { useRef, useState } from 'react';
 import { Container, Label, Button, TextInput } from 'pcui';
-import { getAssetPath } from '../helpers';
 
 import { File, SetProperty } from '../types';
 
@@ -56,7 +55,7 @@ const LoadControls = (props: { setProperty: SetProperty }) => {
         <div id='load-controls'>
             <Container class="load-button-panel" enabled flex>
                 <div className='header'>
-                    <img src={getAssetPath('playcanvas-logo.png')}/>
+                    <img src={'static/playcanvas-logo.png'}/>
                     <div>
                         <Label text='PLAYCANVAS MODEL VIEWER' />
                     </div>

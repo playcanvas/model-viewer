@@ -3,8 +3,8 @@
     "short_name": "Model Viewer",
     "description": "Fast and lightweight glTF 2.0 and gaussian splat PLY viewer.",
     "display": "fullscreen",
-    "start_url": "/viewer/",
-    "scope": "/viewer/",
+    "start_url": "/",
+    "scope": "/",
     "background_color": "black",
     "categories": ["productivity", "utilities"],
     "icons": [{
@@ -14,7 +14,7 @@
     }],
     "file_handlers": [
         {
-            "action": "/viewer/",
+            "action": "/",
             "accept": {
                 "application/ply": [".ply"],
                 "model/gltf-binary": [".glb"]

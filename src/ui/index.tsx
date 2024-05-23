@@ -3,7 +3,6 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { Container, Spinner } from 'pcui';
 
-import { getAssetPath } from '../helpers';
 import { ObserverData } from '../types';
 import LeftPanel from './left-panel';
 import SelectedNode from './selected-node';
@@ -44,12 +43,12 @@ class App extends React.Component<{ observer: Observer }> {
             <Container id="panel-left" flex resizable='right' resizeMin={220} resizeMax={800}>
                 <div className="header" style={{ display: 'none' }}>
                     <div id="title">
-                        <img src={getAssetPath('playcanvas-logo.png')}/>
+                        <img src={'static/playcanvas-logo.png'}/>
                         <div>PLAYCANVAS MODEL VIEWER</div>
                     </div>
                 </div>
                 <div id="panel-toggle">
-                    <img src={getAssetPath('playcanvas-logo.png')}/>
+                    <img src={'static/playcanvas-logo.png'}/>
                 </div>
                 <LeftPanel observerData={this.state} setProperty={this._setStateProperty} />
             </Container>
