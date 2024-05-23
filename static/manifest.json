@@ -6,19 +6,16 @@
     "start_url": "/",
     "scope": "/",
     "background_color": "black",
-    "categories": ["productivity", "utilities"],
     "icons": [{
         "src": "playcanvas-logo.png",
         "sizes": "64x64",
         "type": "image/png"
     }],
-    "file_handlers": [
-        {
-            "action": "/",
-            "accept": {
-                "application/ply": [".ply"],
-                "model/gltf-binary": [".glb"]
-            }
+    "file_handlers": [{
+        "action": "/",
+        "accept": {
+            "application/ply": [".ply"],
+            "model/gltf-binary": [".glb"]
         }
-    ]
+    }]
 }
