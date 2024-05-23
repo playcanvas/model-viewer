@@ -1,6 +1,1 @@
-<?xml version="1.0"?>
-<svg width="1010" height="1000" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg" version="1.1" style="background-color:rgba(32, 32, 32, 0.4)">
- <g class="layer">
-  <path id="svg_1" fill="white" transform="translate(205, 200)" d="m363,300l126,126l-58,58l-126,-126l-126,126l-58,-58l126,-126l-126,-126l58,-58l126,126l126,-126l58,58l-126,126z"/>
- </g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg" width="1010" height="1000" version="1.1" style="background-color:rgba(32,32,32,.4)"><g class="layer"><path id="svg_1" fill="#fff" d="m363,300l126,126l-58,58l-126,-126l-126,126l-58,-58l126,-126l-126,-126l58,-58l126,126l126,-126l58,58l-126,126z" transform="translate(205, 200)"/></g></svg>
