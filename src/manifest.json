@@ -1,0 +1,32 @@
+{
+    "name": "Model Viewer",
+    "short_name": "Model Viewer",
+    "description": "Fast and lightweight viewer of glTF 2.0 and Gaussian Splat PLY files.",
+    "display": "fullscreen",
+    "start_url": "/",
+    "scope": "/",
+    "background_color": "#000000",
+    "icons": [{
+        "src": "static/playcanvas-logo.png",
+        "sizes": "512x512",
+        "type": "image/png"
+    }],
+    "screenshots": [{
+        "src": "static/screenshot-wide.png",
+        "sizes": "3004x2060",
+        "type": "image/png",
+        "form_factor": "wide"
+    }, {
+        "src": "static/screenshot-narrow.png",
+        "sizes": "1392x2786",
+        "type": "image/png",
+        "form_factor": "narrow"
+    }],
+    "file_handlers": [{
+        "action": "/",
+        "accept": {
+            "application/ply": [".ply"],
+            "model/gltf-binary": [".glb"]
+        }
+    }]
+}

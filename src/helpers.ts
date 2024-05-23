@@ -1,13 +1,3 @@
-function getAssetPath(assetPath: string): string {
-    // @ts-ignore: path variable injected at build time
-    return (__PUBLIC_PATH__ ? __PUBLIC_PATH__ : '/static/') + assetPath;
-}
-
-function getRootPath(): string {
-    // @ts-ignore: path variable injected at build time
-    return (__PUBLIC_PATH__ ? './model-viewer' : '.');
-}
-
 const addEventListenerOnClickOnly = (element: any, callback: any, delta = 2) => {
     let startX: number;
     let startY: number;
@@ -70,4 +60,4 @@ const extract = (obj: any, paths: string[]) => {
     return result;
 };
 
-export { getAssetPath, getRootPath, addEventListenerOnClickOnly, extract };
+export { addEventListenerOnClickOnly, extract };
