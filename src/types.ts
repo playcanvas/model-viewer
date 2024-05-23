@@ -22,6 +22,7 @@ export interface HierarchyNode {
 
 export interface ObserverData {
     ui: {
+        fullscreen: boolean,
         active?: string,
         spinner: boolean,
         error?: string,

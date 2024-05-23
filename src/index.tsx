@@ -51,6 +51,7 @@ const skyboxes = [
 
 const observerData: ObserverData = {
     ui: {
+        fullscreen: false,
         active: null,
         spinner: false,
         error: null

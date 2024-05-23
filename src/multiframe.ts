@@ -42,11 +42,11 @@ void main(void) {
 `;
 
 const supportsFloat16 = (device: WebglGraphicsDevice): boolean => {
-    return device.extTextureHalfFloat && device.textureHalfFloatRenderable;
+    return device.textureHalfFloatRenderable;
 };
 
 const supportsFloat32 = (device: WebglGraphicsDevice): boolean => {
-    return device.extTextureFloat && device.textureFloatRenderable;
+    return device.textureFloatRenderable;
 };
 
 // lighting source should be stored HDR

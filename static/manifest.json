@@ -1,18 +1,24 @@
 {
+    "name": "Model Viewer",
+    "short_name": "Model Viewer",
+    "description": "Fast and lightweight glTF 2.0 and gaussian splat PLY viewer.",
+    "display": "fullscreen",
+    "start_url": "/viewer/",
+    "scope": "/viewer/",
     "background_color": "black",
     "categories": ["productivity", "utilities"],
-    "description": "Fast and lightweight glTF viewer.",
-    "dir": "auto",
-    "display": "standalone",
     "icons": [{
         "src": "playcanvas-logo.png",
         "sizes": "64x64",
         "type": "image/png"
     }],
-    "lang": "en-US",
-    "name": "PlayCanvas glTF Viewer",
-    "orientation": "any",
-    "prefer_related_applications": false,
-    "short_name": "glTF Viewer",
-    "start_url": "."
+    "file_handlers": [
+        {
+            "action": "/viewer/",
+            "accept": {
+                "application/ply": [".ply"],
+                "model/gltf-binary": [".glb"]
+            }
+        }
+    ]
 }

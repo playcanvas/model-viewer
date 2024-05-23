@@ -253,6 +253,10 @@ class DebugLines {
         const blendIndices = it.element[SEMANTIC_BLENDINDICES];
         const blendWeights = it.element[SEMANTIC_BLENDWEIGHT];
 
+        if (!positions || !normals) {
+            return;
+        }
+
         const numVertices = vertexBuffer.getNumVertices();
         const p0 = new Vec3();
         const p1 = new Vec3();
