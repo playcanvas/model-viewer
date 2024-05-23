@@ -19,7 +19,13 @@ import { version as pcuiVersion, revision as pcuiRevision } from 'pcui';
 
 // Permit some additional properties to be set on the window
 declare global {
+    interface LaunchParams {
+        readonly files: FileSystemFileHandle[];
+    }
     interface Window {
+        launchQueue: {
+            setConsumer: (callback: (launchParams: LaunchParams) => void) => void;
+        };
         pc: any;
         viewer: Viewer;
         webkit?: any;
@@ -273,7 +279,21 @@ const main = () => {
         window.viewer = viewer;
 
         // get list of files, decode them
-        const files = [];
+        const files: { url: string, filename: string }[] = [];
+
+        // handle OS-based file association in PWA mode
+        const promises: Promise<any>[] = [];
+        if ("launchQueue" in window) {
+            window.launchQueue.setConsumer(async (launchParams: LaunchParams) => {
+                for (const fileHandle of launchParams.files) {
+                    promises.push(
+                        fileHandle.getFile().then((file) => {
+                            files.push({ url: URL.createObjectURL(file), filename: file.name });
+                        })
+                    );
+                }
+            });
+        }
 
         // handle search params
         for (const [key, value] of url.searchParams) {
@@ -317,9 +337,11 @@ const main = () => {
             }
         }
 
-        if (files.length > 0) {
-            viewer.loadFiles(files);
-        }
+        Promise.all(promises).then(() => {
+            if (files.length > 0) {
+                viewer.loadFiles(files);
+            }
+        });
     });
 };
 
