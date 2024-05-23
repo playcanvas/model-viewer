@@ -37,6 +37,7 @@ export default {
                         return contents.toString().replace('__BASE_HREF__', process.env.BASE_HREF || '').replace('__')
                     }
                 },
+                { src: 'src/manifest.json' },
                 { src: 'src/fonts.css' },
                 { src: 'static/' }
             ]

@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { Container, Label, Button, TextInput } from 'pcui';
 
 import { File, SetProperty } from '../types';
+import { version as appVersion } from '../../package.json';
 
 const validUrl = (url: string) => {
     try {
@@ -57,7 +58,7 @@ const LoadControls = (props: { setProperty: SetProperty }) => {
                 <div className='header'>
                     <img src={'static/playcanvas-logo.png'}/>
                     <div>
-                        <Label text='PLAYCANVAS MODEL VIEWER' />
+                        <Label text={`MODEL VIEWER v${appVersion}`} />
                     </div>
                     <Button onClick={() => {
                         window.open('https://github.com/playcanvas/model-viewer', '_blank').focus();

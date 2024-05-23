@@ -9,6 +9,7 @@ import SelectedNode from './selected-node';
 import PopupPanel from './popup-panel';
 import LoadControls from './load-controls';
 import ErrorBox from './errors';
+import { version as appVersion } from '../../package.json';
 
 class App extends React.Component<{ observer: Observer }> {
     state: ObserverData = null;
@@ -44,7 +45,7 @@ class App extends React.Component<{ observer: Observer }> {
                 <div className="header" style={{ display: 'none' }}>
                     <div id="title">
                         <img src={'static/playcanvas-logo.png'}/>
-                        <div>PLAYCANVAS MODEL VIEWER</div>
+                        <div>{`MODEL VIEWER v${appVersion}`}</div>
                     </div>
                 </div>
                 <div id="panel-toggle">
