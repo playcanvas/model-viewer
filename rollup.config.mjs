@@ -17,7 +17,7 @@ import { copyAndWatch } from "./plugins/copy-and-watch.mjs";
 const BUILD_TYPE = process.env.BUILD_TYPE || 'release';
 const ENGINE_DIR = process.env.ENGINE_PATH || 'node_modules/playcanvas';
 
-const ENGINE_NAME = (BUILD_TYPE === 'debug') ? 'playcanvas.dbg.mjs' : 'playcanvas.mjs';
+const ENGINE_NAME = (BUILD_TYPE === 'debug') ? 'playcanvas.dbg/src/index.js' : 'playcanvas/src/index.js';
 const ENGINE_PATH = path.resolve(ENGINE_DIR, 'build', ENGINE_NAME);
 
 const BLUE_OUT = '\x1b[34m';
@@ -53,7 +53,7 @@ export default {
         format: 'esm',
         sourcemap: true
     },
-    // perf: true,
+    treeshake: 'smallest',
     plugins: [
         copyAndWatch(TARGETS),
         replace({
@@ -86,7 +86,5 @@ export default {
         }),
         json(),
         (BUILD_TYPE !== 'debug') && terser()
-    ],
-    treeshake: 'smallest',
-    cache: false
+    ]
 };
