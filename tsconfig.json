@@ -6,7 +6,8 @@
         "jsx": "react",
         "lib": [
             "es2019",
-            "dom"
+            "dom",
+            "dom.iterable",
         ],
         "allowSyntheticDefaultImports" : true,
         "esModuleInterop" : true,
@@ -15,10 +16,7 @@
         "resolveJsonModule": true,
         "inlineSources": true,
         "noEmit": true,
-        "baseUrl": ".",
-        "paths": {
-            "pcui": ["node_modules/@playcanvas/pcui/react"]
-        }
+        "baseUrl": "."
     },
     "include": ["**/*.ts", "**/*.tsx"],
     "exclude": ["node_modules", "**/*.js", "dist"]
