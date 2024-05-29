@@ -11,7 +11,7 @@ import terser from '@rollup/plugin-terser';
 import typescript from "@rollup/plugin-typescript";
 
 // custom plugins
-import copyAndWatch from "./plugins/copy-and-watch.mjs";
+import { copyAndWatch } from "./plugins/copy-and-watch.mjs";
 
 // debug, profile, release
 const BUILD_TYPE = process.env.BUILD_TYPE || 'release';
@@ -32,6 +32,20 @@ const title = [
 ].map(l => `${BLUE_OUT}${l}`).join(`\n`);
 console.log(`${BLUE_OUT}${title}${RESET_OUT}\n`);
 
+const TARGETS = [
+    {
+        src: 'src/index.html',
+        transform: (contents) => {
+            return contents.toString()
+                .replace('__BASE_HREF__', process.env.BASE_HREF || '')
+                .replace('__');
+        }
+    },
+    { src: 'src/manifest.json' },
+    { src: 'src/fonts.css' },
+    { src: 'static/' }
+];
+
 export default {
     input: 'src/index.tsx',
     output: {
@@ -39,22 +53,9 @@ export default {
         format: 'esm',
         sourcemap: true
     },
+    // perf: true,
     plugins: [
-        copyAndWatch({
-            targets: [
-                {
-                    src: 'src/index.html',
-                    transform: (contents) => {
-                        return contents.toString()
-                            .replace('__BASE_HREF__', process.env.BASE_HREF || '')
-                            .replace('__');
-                    }
-                },
-                { src: 'src/manifest.json' },
-                { src: 'src/fonts.css' },
-                { src: 'static/' }
-            ]
-        }),
+        copyAndWatch(TARGETS),
         replace({
             values: {
                 // NOTE: this is required for react (??) - see https://github.com/rollup/rollup/issues/487#issuecomment-177596512
