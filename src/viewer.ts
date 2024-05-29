@@ -503,7 +503,7 @@ class Viewer {
 
     // construct the controls interface and initialize controls
     private bindControlEvents() {
-        const controlEvents: any = {
+        const controlEvents: Record<string, (...args: any[]) => void> = {
             // camera
             'camera.fov': this.setFov.bind(this),
             'camera.tonemapping': this.setTonemapping.bind(this),
