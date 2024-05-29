@@ -21,6 +21,18 @@ const PCUI_DIR = path.resolve(process.env.PCUI_PATH || 'node_modules/@playcanvas
 const ENGINE_NAME = (BUILD_TYPE === 'debug') ? 'playcanvas.dbg.mjs' : 'playcanvas.mjs';
 const ENGINE_PATH = path.resolve(ENGINE_DIR, 'build', ENGINE_NAME);
 
+const BLUE_OUT = '\x1b[34m';
+const BOLD_OUT = `\x1b[1m`;
+const REGULAR_OUT = `\x1b[22m`;
+const RESET_OUT = `\x1b[0m`;
+
+const title = [
+    `Building PlayCanvas Model Viewer`,
+    `type ${BOLD_OUT}${BUILD_TYPE}${REGULAR_OUT}`,
+    `engine ${BOLD_OUT}${ENGINE_PATH}${REGULAR_OUT}`
+].map(l => `${BLUE_OUT}${l}`).join(`\n`);
+console.log(`${BLUE_OUT}${title}${RESET_OUT}\n`);
+
 export default {
     input: 'src/index.tsx',
     output: {
@@ -34,7 +46,9 @@ export default {
                 {
                     src: 'src/index.html',
                     transform: (contents) => {
-                        return contents.toString().replace('__BASE_HREF__', process.env.BASE_HREF || '').replace('__')
+                        return contents.toString()
+                            .replace('__BASE_HREF__', process.env.BASE_HREF || '')
+                            .replace('__');
                     }
                 },
                 { src: 'src/manifest.json' },
@@ -45,7 +59,7 @@ export default {
         replace({
             values: {
                 // NOTE: this is required for react (??) - see https://github.com/rollup/rollup/issues/487#issuecomment-177596512
-                'process.env.NODE_ENV': JSON.stringify(BUILD_TYPE === 'release' ? 'production' : 'development'),
+                'process.env.NODE_ENV': JSON.stringify(BUILD_TYPE === 'release' ? 'production' : 'development')
             },
             preventAssignment: true
         }),

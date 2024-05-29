@@ -84,7 +84,7 @@
     "build": "rollup -c",
     "watch": "rollup -c -w",
     "serve": "serve dist",
-    "develop": "concurrently --kill-others \"npm run watch\" \"npm run serve\"",
+    "develop": "cross-env BUILD_TYPE=debug concurrently --kill-others \"npm run watch\" \"npm run serve\"",
     "develop:local": "cross-env ENGINE_PATH=../engine npm run develop",
     "build:local": "cross-env ENGINE_PATH=../engine npm run build",
     "watch:local": "cross-env ENGINE_PATH=../engine npm run watch",
