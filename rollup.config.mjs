@@ -16,7 +16,6 @@ import copyAndWatch from "./plugins/copy-and-watch.mjs";
 // debug, profile, release
 const BUILD_TYPE = process.env.BUILD_TYPE || 'release';
 const ENGINE_DIR = process.env.ENGINE_PATH || 'node_modules/playcanvas';
-const PCUI_DIR = path.resolve(process.env.PCUI_PATH || 'node_modules/@playcanvas/pcui', 'react');
 
 const ENGINE_NAME = (BUILD_TYPE === 'debug') ? 'playcanvas.dbg.mjs' : 'playcanvas.mjs';
 const ENGINE_PATH = path.resolve(ENGINE_DIR, 'build', ENGINE_NAME);
@@ -71,8 +70,7 @@ export default {
         image({ dom: true }),
         alias({
             entries: {
-                'playcanvas': ENGINE_PATH,
-                'pcui': PCUI_DIR
+                'playcanvas': ENGINE_PATH
             }
         }),
         commonjs(),
@@ -81,8 +79,7 @@ export default {
             compilerOptions: {
                 baseUrl: '.',
                 paths: {
-                    'playcanvas': [ENGINE_DIR],
-                    'pcui': [PCUI_DIR]
+                    'playcanvas': [ENGINE_DIR]
                 }
             }
         }),
