@@ -100,7 +100,7 @@ class Viewer {
     sceneRoot: Entity;
     debugRoot: Entity;
     entities: Array<Entity>;
-    entityAssets: Array<{entity: Entity, asset: Asset }>;
+    entityAssets: Array<{ entity: Entity; asset: Asset }>;
     assets: Array<Asset>;
     meshInstances: Array<MeshInstance>;
     wireframeMeshInstances: Array<MeshInstance>;
@@ -129,7 +129,6 @@ class Viewer {
     debugSkeleton: DebugLines;
     debugGrid: DebugLines;
     debugNormals: DebugLines;
-    // @ts-ignore
     miniStats: MiniStats;
     observer: Observer;
     suppressAnimationProgressUpdate: boolean;
@@ -151,7 +150,12 @@ class Viewer {
 
     multiCamera: MultiCamera;
 
-    constructor(canvas: HTMLCanvasElement, graphicsDevice: GraphicsDevice, observer: Observer, skyboxUrls: Map<string, string>) {
+    constructor(
+        canvas: HTMLCanvasElement,
+        graphicsDevice: GraphicsDevice,
+        observer: Observer,
+        skyboxUrls: Map<string, string>
+    ) {
         this.canvas = canvas;
 
         // create the application
@@ -215,8 +219,8 @@ class Viewer {
         app.scene.layers.insertOpaque(depthLayer, 2);
 
         // create the camera
-        const camera = new Entity("Camera");
-        camera.addComponent("camera", {
+        const camera = new Entity('Camera');
+        camera.addComponent('camera', {
             fov: 75,
             frustumCulling: true,
             clearColor: new Color(0, 0, 0, 0)
@@ -242,8 +246,8 @@ class Viewer {
 
         // create the light
         const light = new Entity();
-        light.addComponent("light", {
-            type: "directional",
+        light.addComponent('light', {
+            type: 'directional',
             shadowBias: 0.2,
             shadowResolution: 2048
         });
@@ -259,10 +263,10 @@ class Viewer {
         app.on('frameend', this.onFrameend, this);
 
         // create the scene and debug root nodes
-        const sceneRoot = new Entity("sceneRoot", app);
+        const sceneRoot = new Entity('sceneRoot', app);
         app.root.addChild(sceneRoot);
 
-        const debugRoot = new Entity("debugRoot", app);
+        const debugRoot = new Entity('debugRoot', app);
         app.root.addChild(debugRoot);
 
         // store app things
@@ -279,7 +283,15 @@ class Viewer {
         this.wireframeMeshInstances = [];
 
         const material = new StandardMaterial();
-        material.blendState = new BlendState(true, BLENDEQUATION_ADD, BLENDMODE_ONE, BLENDMODE_ZERO, BLENDEQUATION_ADD, BLENDMODE_ZERO, BLENDMODE_ONE);
+        material.blendState = new BlendState(
+            true,
+            BLENDEQUATION_ADD,
+            BLENDMODE_ONE,
+            BLENDMODE_ZERO,
+            BLENDEQUATION_ADD,
+            BLENDMODE_ZERO,
+            BLENDMODE_ONE
+        );
         material.useLighting = false;
         material.useSkybox = false;
         material.ambient = new Color(0, 0, 0);
@@ -290,7 +302,7 @@ class Viewer {
         this.wireframeMaterial = material;
 
         this.animTracks = [];
-        this.animationMap = { };
+        this.animationMap = {};
         this.firstFrame = false;
         this.skyboxLoaded = false;
 
@@ -366,9 +378,9 @@ class Viewer {
             const depth = device.isWebGPU ? 1 : this.readDepth.read(camera.renderTarget.depthBuffer, x, y);
 
             if (depth < 1) {
-                const pos = new Vec4(x, y, depth, 1.0).mulScalar(2.0).subScalar(1.0);            // clip space
-                camera.projectionMatrix.clone().invert().transformVec4(pos, pos);                   // homogeneous view space
-                pos.mulScalar(1.0 / pos.w);                                                         // perform perspective divide
+                const pos = new Vec4(x, y, depth, 1.0).mulScalar(2.0).subScalar(1.0); // clip space
+                camera.projectionMatrix.clone().invert().transformVec4(pos, pos); // homogeneous view space
+                pos.mulScalar(1.0 / pos.w); // perform perspective divide
                 this.cursorWorld.set(pos.x, pos.y, pos.z);
                 this.camera.getWorldTransform().transformPoint(this.cursorWorld, this.cursorWorld); // world space
 
@@ -445,7 +457,7 @@ class Viewer {
     private collectMeshInstances(entity: Entity) {
         const meshInstances: Array<MeshInstance> = [];
         if (entity) {
-            const components = entity.findComponents("render");
+            const components = entity.findComponents('render');
             for (let i = 0; i < components.length; i++) {
                 const render = components[i] as RenderComponent;
                 if (render.meshInstances) {
@@ -456,7 +468,7 @@ class Viewer {
                 }
             }
 
-            const gsplatComponents = entity.findComponents("gsplat");
+            const gsplatComponents = entity.findComponents('gsplat');
             for (let i = 0; i < gsplatComponents.length; i++) {
                 const gsplat = gsplatComponents[i] as GSplatComponent;
                 if (gsplat.instance) {
@@ -489,9 +501,14 @@ class Viewer {
 
         const recurse = (node: GraphNode) => {
             const p = node.getPosition();
-            if (p.x < min_x) min_x = p.x; else if (p.x > max_x) max_x = p.x;
-            if (p.y < min_y) min_y = p.y; else if (p.y > max_y) max_y = p.y;
-            if (p.z < min_z) min_z = p.z; else if (p.z > max_z) max_z = p.z;
+            min_x = Math.min(min_x, p.x);
+            min_y = Math.min(min_y, p.y);
+            min_z = Math.min(min_z, p.z);
+
+            max_x = Math.max(max_x, p.x);
+            max_y = Math.max(max_y, p.y);
+            max_z = Math.max(max_z, p.z);
+
             for (let i = 0; i < node.children.length; ++i) {
                 recurse(node.children[i]);
             }
@@ -503,7 +520,7 @@ class Viewer {
 
     // construct the controls interface and initialize controls
     private bindControlEvents() {
-        const controlEvents: any = {
+        const controlEvents: Record<string, (...args: any[]) => void> = {
             // camera
             'camera.fov': this.setFov.bind(this),
             'camera.tonemapping': this.setTonemapping.bind(this),
@@ -579,7 +596,7 @@ class Viewer {
             'scene.selectedNode.path': this.setSelectedNode.bind(this),
             'scene.variant.selected': this.setSelectedVariant.bind(this),
 
-            'centerScene': this.setCenterScene.bind(this)
+            centerScene: this.setCenterScene.bind(this)
         };
 
         // store control event keys
@@ -665,7 +682,7 @@ class Viewer {
             const sortPred = (first: File, second: File) => {
                 const firstOrder = getOrder(first.filename);
                 const secondOrder = getOrder(second.filename);
-                return firstOrder < secondOrder ? -1 : (secondOrder < firstOrder ? 1 : 0);
+                return firstOrder < secondOrder ? -1 : secondOrder < firstOrder ? 1 : 0;
             };
 
             files.sort(sortPred);
@@ -828,7 +845,7 @@ class Viewer {
 
         // reset animation state
         this.animTracks = [];
-        this.animationMap = { };
+        this.animationMap = {};
     }
 
     updateSceneStats() {
@@ -850,7 +867,7 @@ class Viewer {
                 materialCount++;
                 primitiveCount += resource.splatData.numSplats;
                 vertexCount += resource.splatData.numSplats * 4;
-                meshVRAM += resource.splatData.numSplats * 64;      // 16 * float32
+                meshVRAM += resource.splatData.numSplats * 64; // 16 * float32
             } else {
                 variants = variants.concat(resource.getMaterialVariants() ?? []);
 
@@ -861,13 +878,27 @@ class Viewer {
 
                         const prim = mesh.primitive[0];
                         switch (prim.type) {
-                            case PRIMITIVE_POINTS: primitiveCount += prim.count; break;
-                            case PRIMITIVE_LINES: primitiveCount += prim.count / 2; break;
-                            case PRIMITIVE_LINELOOP: primitiveCount += prim.count; break;
-                            case PRIMITIVE_LINESTRIP: primitiveCount += prim.count - 1; break;
-                            case PRIMITIVE_TRIANGLES: primitiveCount += prim.count / 3; break;
-                            case PRIMITIVE_TRISTRIP: primitiveCount += prim.count - 2; break;
-                            case PRIMITIVE_TRIFAN: primitiveCount += prim.count - 2; break;
+                            case PRIMITIVE_POINTS:
+                                primitiveCount += prim.count;
+                                break;
+                            case PRIMITIVE_LINES:
+                                primitiveCount += prim.count / 2;
+                                break;
+                            case PRIMITIVE_LINELOOP:
+                                primitiveCount += prim.count;
+                                break;
+                            case PRIMITIVE_LINESTRIP:
+                                primitiveCount += prim.count - 1;
+                                break;
+                            case PRIMITIVE_TRIANGLES:
+                                primitiveCount += prim.count / 3;
+                                break;
+                            case PRIMITIVE_TRISTRIP:
+                                primitiveCount += prim.count - 2;
+                                break;
+                            case PRIMITIVE_TRIFAN:
+                                primitiveCount += prim.count - 2;
+                                break;
                         }
                         meshVRAM += mesh.vertexBuffer.numBytes + (mesh.indexBuffer?.[0]?.numBytes ?? 0);
                     });
@@ -917,10 +948,14 @@ class Viewer {
     downloadPngScreenshot() {
         if (!this.app.graphicsDevice.isWebGPU) {
             const texture = this.camera.camera.renderTarget.colorBuffer;
-            texture.downloadAsync()
-                .then(() => {
-                    this.pngExporter.export('model-viewer.png', new Uint32Array(texture.getSource().buffer.slice()), texture.width, texture.height);
-                });
+            texture.downloadAsync().then(() => {
+                this.pngExporter.export(
+                    'model-viewer.png',
+                    new Uint32Array(texture.getSource().buffer.slice()),
+                    texture.width,
+                    texture.height
+                );
+            });
         }
     }
 
@@ -943,7 +978,7 @@ class Viewer {
         const dist = -vec.dot(cameraForward);
 
         const far = dist + boundRadius;
-        const near = Math.max(0.001, (dist < boundRadius) ? far / 1024 : dist - boundRadius);
+        const near = Math.max(0.001, dist < boundRadius ? far / 1024 : dist - boundRadius);
 
         this.camera.camera.nearClip = near;
         this.camera.camera.farClip = far;
@@ -956,27 +991,37 @@ class Viewer {
         return new Promise((resolve, reject) => {
             // provide buffer view callback so we can handle models compressed with MeshOptimizer
             // https://github.com/zeux/meshoptimizer
-            const processBufferView = function (gltfBuffer: any, buffers: Array<any>, continuation: (err: string, result: any) => void) {
+            const processBufferView = function (
+                gltfBuffer: any,
+                buffers: Array<any>,
+                continuation: (err: string, result: any) => void
+            ) {
                 if (gltfBuffer.extensions && gltfBuffer.extensions.EXT_meshopt_compression) {
                     const extensionDef = gltfBuffer.extensions.EXT_meshopt_compression;
 
-                    Promise.all([MeshoptDecoder.ready, buffers[extensionDef.buffer]])
-                        .then((promiseResult) => {
-                            const buffer = promiseResult[1];
+                    Promise.all([MeshoptDecoder.ready, buffers[extensionDef.buffer]]).then((promiseResult) => {
+                        const buffer = promiseResult[1];
 
-                            const byteOffset = extensionDef.byteOffset || 0;
-                            const byteLength = extensionDef.byteLength || 0;
+                        const byteOffset = extensionDef.byteOffset || 0;
+                        const byteLength = extensionDef.byteLength || 0;
 
-                            const count = extensionDef.count;
-                            const stride = extensionDef.byteStride;
+                        const count = extensionDef.count;
+                        const stride = extensionDef.byteStride;
 
-                            const result = new Uint8Array(count * stride);
-                            const source = new Uint8Array(buffer.buffer, buffer.byteOffset + byteOffset, byteLength);
+                        const result = new Uint8Array(count * stride);
+                        const source = new Uint8Array(buffer.buffer, buffer.byteOffset + byteOffset, byteLength);
 
-                            MeshoptDecoder.decodeGltfBuffer(result, count, stride, source, extensionDef.mode, extensionDef.filter);
+                        MeshoptDecoder.decodeGltfBuffer(
+                            result,
+                            count,
+                            stride,
+                            source,
+                            extensionDef.mode,
+                            extensionDef.filter
+                        );
 
-                            continuation(null, result);
-                        });
+                        continuation(null, result);
+                    });
                 } else {
                     continuation(null, null);
                 }
@@ -984,7 +1029,7 @@ class Viewer {
 
             const processImage = function (gltfImage: any, continuation: (err: string, result: any) => void) {
                 const u: File = externalUrls.find((url) => {
-                    return url.filename === path.normalize(gltfImage.uri || "");
+                    return url.filename === path.normalize(gltfImage.uri || '');
                 });
                 if (u) {
                     const textureAsset = new Asset(u.filename, 'texture', {
@@ -1008,7 +1053,7 @@ class Viewer {
 
             const processBuffer = function (gltfBuffer: any, continuation: (err: string, result: any) => void) {
                 const u = externalUrls.find((url) => {
-                    return url.filename === path.normalize(gltfBuffer.uri || "");
+                    return url.filename === path.normalize(gltfBuffer.uri || '');
                 });
                 if (u) {
                     const bufferAsset = new Asset(u.filename, 'binary', {
@@ -1025,21 +1070,27 @@ class Viewer {
                 }
             };
 
-            const containerAsset = new Asset(gltfUrl.filename, 'container', gltfUrl, { elementFilter: () => true }, {
-                // @ts-ignore TODO no definition in pc
-                bufferView: {
-                    processAsync: processBufferView.bind(this)
-                },
-                image: {
-                    processAsync: processImage.bind(this),
-                    postprocess: postProcessImage
-                },
-                buffer: {
-                    processAsync: processBuffer.bind(this)
+            const containerAsset = new Asset(
+                gltfUrl.filename,
+                'container',
+                gltfUrl,
+                { elementFilter: () => true },
+                {
+                    // @ts-ignore TODO no definition in pc
+                    bufferView: {
+                        processAsync: processBufferView.bind(this)
+                    },
+                    image: {
+                        processAsync: processImage.bind(this),
+                        postprocess: postProcessImage
+                    },
+                    buffer: {
+                        processAsync: processBuffer.bind(this)
+                    }
                 }
-            });
+            );
             containerAsset.on('load', () => resolve(containerAsset));
-            containerAsset.on('error', (err : string) => reject(err));
+            containerAsset.on('error', (err: string) => reject(err));
             this.app.assets.add(containerAsset);
             this.app.assets.load(containerAsset);
         });
@@ -1049,7 +1100,7 @@ class Viewer {
         return new Promise((resolve, reject) => {
             const asset = new Asset(url.filename, 'gsplat', url);
             asset.on('load', () => resolve(asset));
-            asset.on('error', (err : string) => reject(err));
+            asset.on('error', (err: string) => reject(err));
             this.app.assets.add(asset);
             this.app.assets.load(asset);
         });
@@ -1064,7 +1115,7 @@ class Viewer {
 
     isGSplatFilename(filename: string) {
         const parts = filename.split('?')[0].split('/').pop().split('.');
-        const result = parts.length > 0 && (parts.pop().toLowerCase() === 'ply');
+        const result = parts.length > 0 && parts.pop().toLowerCase() === 'ply';
         return result;
     }
 
@@ -1078,7 +1129,10 @@ class Viewer {
         }
 
         // check if any file is a model
-        const hasModelFilename = files.reduce((p, f) => p || this.isModelFilename(f.filename) || this.isGSplatFilename(f.filename), false);
+        const hasModelFilename = files.reduce(
+            (p, f) => p || this.isModelFilename(f.filename) || this.isGSplatFilename(f.filename),
+            false
+        );
 
         if (hasModelFilename) {
             if (resetScene) {
@@ -1095,7 +1149,9 @@ class Viewer {
             const promises = files.map((file) => {
                 return this.isModelFilename(file.filename) ?
                     this.loadGltf(file, files) :
-                    (this.isGSplatFilename(file.filename) ? this.loadPly(file) : null);
+                    this.isGSplatFilename(file.filename) ?
+                        this.loadPly(file) :
+                        null;
             });
 
             Promise.all(promises)
@@ -1253,7 +1309,11 @@ class Viewer {
 
         // offset scene geometry to place it at the origin
         if (value) {
-            this.sceneRoot.setLocalPosition(-this.sceneBounds.center.x, -this.sceneBounds.getMin().y, -this.sceneBounds.center.z);
+            this.sceneRoot.setLocalPosition(
+                -this.sceneBounds.center.x,
+                -this.sceneBounds.getMin().y,
+                -this.sceneBounds.center.z
+            );
         }
 
         this.dirtyBounds = true;
@@ -1272,7 +1332,7 @@ class Viewer {
         this.renderNextFrame();
     }
 
-    setWireframeColor(color: { r: number, g: number, b: number }) {
+    setWireframeColor(color: { r: number; g: number; b: number }) {
         this.wireframeMaterial.emissive = new Color(color.r, color.g, color.b);
         this.wireframeMaterial.update();
         this.renderNextFrame();
@@ -1328,7 +1388,7 @@ class Viewer {
         this.renderNextFrame();
     }
 
-    setLightColor(color: { r: number, g: number, b: number }) {
+    setLightColor(color: { r: number; g: number; b: number }) {
         this.light.light.color = new Color(color.r, color.g, color.b);
         this.renderNextFrame();
     }
@@ -1372,9 +1432,9 @@ class Viewer {
     }
 
     setSkyboxBackground(background: string) {
-        this.app.scene.layers.getLayerById(LAYERID_SKYBOX).enabled = (background !== 'Solid Color');
+        this.app.scene.layers.getLayerById(LAYERID_SKYBOX).enabled = background !== 'Solid Color';
         this.app.scene.skyboxMip = background === 'Infinite Sphere' ? this.observer.get('skybox.blur') : 0;
-        this.projectiveSkybox.enabled = (background === 'Projective Dome');
+        this.projectiveSkybox.enabled = background === 'Projective Dome';
         this.renderNextFrame();
     }
 
@@ -1411,9 +1471,11 @@ class Viewer {
         this.renderNextFrame();
     }
 
-    setBackgroundColor(color: { r: number, g: number, b: number }) {
+    setBackgroundColor(color: { r: number; g: number; b: number }) {
         const cnv = (value: number) => Math.max(0, Math.min(255, Math.floor(value * 255)));
-        document.getElementById('canvas-wrapper').style.backgroundColor = `rgb(${cnv(color.r)}, ${cnv(color.g)}, ${cnv(color.b)})`;
+        document.getElementById('canvas-wrapper').style.backgroundColor = `rgb(${cnv(color.r)}, ${cnv(color.g)}, ${cnv(
+            color.b
+        )})`;
     }
 
     update(deltaTime: number) {
@@ -1432,7 +1494,7 @@ class Viewer {
 
         // if the camera has moved since the last render
         const cameraWorldTransform = this.camera.getWorldTransform();
-        if (maxdiff(cameraWorldTransform, this.prevCameraMat) > 1e-04) {
+        if (maxdiff(cameraWorldTransform, this.prevCameraMat) > 1e-4) {
             this.prevCameraMat.copy(cameraWorldTransform);
             this.renderNextFrame();
         }
@@ -1485,12 +1547,12 @@ class Viewer {
         const resource = asset.resource;
         const meshesLoaded = resource.renders && resource.renders.length > 0;
         const animsLoaded = resource.animations && resource.animations.length > 0;
-        const prevEntity : Entity = this.entities.length === 0 ? null : this.entities[this.entities.length - 1];
+        const prevEntity: Entity = this.entities.length === 0 ? null : this.entities[this.entities.length - 1];
 
         let entity: Entity;
 
         // create entity
-        if (!meshesLoaded && prevEntity && prevEntity.findComponent("render")) {
+        if (!meshesLoaded && prevEntity && prevEntity.findComponent('render')) {
             entity = prevEntity;
         } else {
             if (asset.type === 'container') {
@@ -1513,7 +1575,7 @@ class Viewer {
         // create animation component
         if (animsLoaded) {
             // append anim tracks to global list
-            resource.animations.forEach((a : any) => {
+            resource.animations.forEach((a: any) => {
                 this.animTracks.push(a.resource);
             });
         }
@@ -1525,9 +1587,11 @@ class Viewer {
     // perform post-load operations on the scene
     private postSceneLoad() {
         // construct a list of meshInstances so we can quickly access them when configuring wireframe rendering etc.
-        this.meshInstances = this.entities.map((entity) => {
-            return this.collectMeshInstances(entity);
-        }).flat();
+        this.meshInstances = this.entities
+            .map((entity) => {
+                return this.collectMeshInstances(entity);
+            })
+            .flat();
 
         // if no meshes are currently loaded, then enable skeleton rendering so user can see something
         if (this.meshInstances.length === 0) {
@@ -1543,7 +1607,7 @@ class Viewer {
         }
 
         // make a list of all the morph instance target names
-        const morphs: Record<string, { name: string, targets: Record<string, MorphTargetData> }> = {};
+        const morphs: Record<string, { name: string; targets: Record<string, MorphTargetData> }> = {};
         const morphInstances: Record<string, MorphInstance> = {};
 
         // get all morph targets
@@ -1553,7 +1617,7 @@ class Viewer {
                 morphInstances[i] = morphInstance;
 
                 // mesh name line
-                const meshName = (meshInstance && meshInstance.node && meshInstance.node.name) || "Mesh " + i;
+                const meshName = (meshInstance && meshInstance.node && meshInstance.node.name) || 'Mesh ' + i;
                 morphs[i] = {
                     name: meshName,
                     targets: {}
@@ -1608,7 +1672,8 @@ class Viewer {
         this.setCenterScene(this.observer.get('centerScene'));
 
         // set projective skybox radius
-        this.projectiveSkybox.domeRadius = this.sceneBounds.halfExtents.length() * this.observer.get('skybox.domeProjection.domeRadius');
+        this.projectiveSkybox.domeRadius =
+            this.sceneBounds.halfExtents.length() * this.observer.get('skybox.domeProjection.domeRadius');
 
         // set camera clipping planes
         this.focusSelection();
@@ -1633,9 +1698,9 @@ class Viewer {
                 // add an event to each track which transitions to the next track when it ends
                 t.events = new AnimEvents([
                     {
-                        name: "transition",
+                        name: 'transition',
                         time: t.duration,
-                        nextTrack: "track_" + (i === this.animTracks.length - 1 ? 0 : i + 1)
+                        nextTrack: 'track_' + (i === this.animTracks.length - 1 ? 0 : i + 1)
                     }
                 ]);
                 entity.anim.assignAnimation('track_' + i, t);
@@ -1697,8 +1762,8 @@ class Viewer {
         if (this.canvasResize) {
             const { width, height } = this.getCanvasSize();
             const pixelScale = this.observer.get('camera.pixelScale');
-            const widthPixels = Math.floor(width * window.devicePixelRatio / pixelScale);
-            const heightPixels = Math.floor(height * window.devicePixelRatio / pixelScale);
+            const widthPixels = Math.floor((width * window.devicePixelRatio) / pixelScale);
+            const heightPixels = Math.floor((height * window.devicePixelRatio) / pixelScale);
             this.app.graphicsDevice.setResolution(widthPixels, heightPixels);
             this.observer.set('runtime.viewportWidth', widthPixels);
             this.observer.set('runtime.viewportHeight', heightPixels);
@@ -1761,9 +1826,9 @@ class Viewer {
                 for (let i = 0; i < this.meshInstances.length; ++i) {
                     const meshInstance = this.meshInstances[i];
 
-                    const vertexBuffer = meshInstance.morphInstance ?
-                        // @ts-ignore TODO not defined in pc
-                        meshInstance.morphInstance._vertexBuffer : meshInstance.mesh.vertexBuffer;
+                    const vertexBuffer = meshInstance.morphInstance ? // @ts-ignore TODO not defined in pc
+                        meshInstance.morphInstance._vertexBuffer :
+                        meshInstance.mesh.vertexBuffer;
 
                     if (vertexBuffer) {
                         const skinMatrices = meshInstance.skinInstance ? meshInstance.skinInstance.matrices : null;
@@ -1775,10 +1840,12 @@ class Viewer {
                             meshInstance.skinInstance.updateMatrices(meshInstance.node);
                         }
 
-                        this.debugNormals.generateNormals(vertexBuffer,
-                                                          meshInstance.node.getWorldTransform(),
-                                                          this.normalLength,
-                                                          skinMatrices);
+                        this.debugNormals.generateNormals(
+                            vertexBuffer,
+                            meshInstance.node.getWorldTransform(),
+                            this.normalLength,
+                            skinMatrices
+                        );
                     }
                 }
             }
@@ -1792,8 +1859,13 @@ class Viewer {
 
             if (this.showSkeleton || this.showAxes) {
                 this.entities.forEach((entity) => {
-                    if (this.meshInstances.length === 0 || entity.findComponent("render")) {
-                        this.debugSkeleton.generateSkeleton(entity, this.showSkeleton, this.showAxes, this.selectedNode);
+                    if (this.meshInstances.length === 0 || entity.findComponent('render')) {
+                        this.debugSkeleton.generateSkeleton(
+                            entity,
+                            this.showSkeleton,
+                            this.showAxes,
+                            this.selectedNode
+                        );
                     }
                 });
             }
@@ -1822,11 +1894,11 @@ class Viewer {
 
                     v0.set(-a, y, b);
                     v1.set(a, y, b);
-                    this.debugGrid.line(v0, v1, b === 0 ? (0x80000000 >>> 0) : (0x80ffffff >>> 0));
+                    this.debugGrid.line(v0, v1, b === 0 ? 0x80000000 >>> 0 : 0x80ffffff >>> 0);
 
                     v0.set(b, y, -a);
                     v1.set(b, y, a);
-                    this.debugGrid.line(v0, v1, b === 0 ? (0x80000000 >>> 0) : (0x80ffffff >>> 0));
+                    this.debugGrid.line(v0, v1, b === 0 ? 0x80000000 >>> 0 : 0x80ffffff >>> 0);
                 }
             }
             this.debugGrid.update();

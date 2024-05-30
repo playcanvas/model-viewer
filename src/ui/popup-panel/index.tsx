@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button } from 'pcui';
+import { Button } from '@playcanvas/pcui/react';
 import { SetProperty, ObserverData } from '../../types';
 import AnimationControls from './animation-controls';
 import { CameraPanel, SkyboxPanel, LightPanel, DebugPanel, ViewPanel } from './panels';

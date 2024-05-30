@@ -15,7 +15,7 @@ import Viewer from './viewer';
 import './style.scss';
 
 import { version as modelViewerVersion } from '../package.json';
-import { version as pcuiVersion, revision as pcuiRevision } from 'pcui';
+import { version as pcuiVersion, revision as pcuiRevision } from '@playcanvas/pcui/react';
 
 // Permit some additional properties to be set on the window
 declare global {

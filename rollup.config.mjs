@@ -11,15 +11,42 @@ import terser from '@rollup/plugin-terser';
 import typescript from "@rollup/plugin-typescript";
 
 // custom plugins
-import copyAndWatch from "./plugins/copy-and-watch.mjs";
+import { copyAndWatch } from "./plugins/copy-and-watch.mjs";
 
 // debug, profile, release
 const BUILD_TYPE = process.env.BUILD_TYPE || 'release';
 const ENGINE_DIR = process.env.ENGINE_PATH || 'node_modules/playcanvas';
-const PCUI_DIR = path.resolve(process.env.PCUI_PATH || 'node_modules/@playcanvas/pcui', 'react');
 
-const ENGINE_NAME = (BUILD_TYPE === 'debug') ? 'playcanvas.dbg.mjs' : 'playcanvas.mjs';
+const ENGINE_NAME = (BUILD_TYPE === 'debug') ? 'playcanvas.dbg/src/index.js' : 'playcanvas/src/index.js';
 const ENGINE_PATH = path.resolve(ENGINE_DIR, 'build', ENGINE_NAME);
+const PCUI_DIR = path.resolve(process.env.PCUI_PATH || 'node_modules/@playcanvas/pcui');
+
+const BLUE_OUT = '\x1b[34m';
+const BOLD_OUT = `\x1b[1m`;
+const REGULAR_OUT = `\x1b[22m`;
+const RESET_OUT = `\x1b[0m`;
+
+const title = [
+    `Building PlayCanvas Model Viewer`,
+    `type ${BOLD_OUT}${BUILD_TYPE}${REGULAR_OUT}`,
+    `engine ${BOLD_OUT}${ENGINE_DIR}${REGULAR_OUT}`,
+    `pcui ${BOLD_OUT}${PCUI_DIR}${REGULAR_OUT}`
+].map(l => `${BLUE_OUT}${l}`).join(`\n`);
+console.log(`${BLUE_OUT}${title}${RESET_OUT}\n`);
+
+const TARGETS = [
+    {
+        src: 'src/index.html',
+        transform: (contents) => {
+            return contents.toString()
+                .replace('__BASE_HREF__', process.env.BASE_HREF || '')
+                .replace('__');
+        }
+    },
+    { src: 'src/manifest.json' },
+    { src: 'src/fonts.css' },
+    { src: 'static/' }
+];
 
 export default {
     input: 'src/index.tsx',
@@ -28,24 +55,13 @@ export default {
         format: 'esm',
         sourcemap: true
     },
+    treeshake: 'smallest',
     plugins: [
-        copyAndWatch({
-            targets: [
-                {
-                    src: 'src/index.html',
-                    transform: (contents) => {
-                        return contents.toString().replace('__BASE_HREF__', process.env.BASE_HREF || '').replace('__')
-                    }
-                },
-                { src: 'src/manifest.json' },
-                { src: 'src/fonts.css' },
-                { src: 'static/' }
-            ]
-        }),
+        copyAndWatch(TARGETS),
         replace({
             values: {
                 // NOTE: this is required for react (??) - see https://github.com/rollup/rollup/issues/487#issuecomment-177596512
-                'process.env.NODE_ENV': JSON.stringify(BUILD_TYPE === 'release' ? 'production' : 'development'),
+                'process.env.NODE_ENV': JSON.stringify(BUILD_TYPE === 'release' ? 'production' : 'development')
             },
             preventAssignment: true
         }),
@@ -58,7 +74,7 @@ export default {
         alias({
             entries: {
                 'playcanvas': ENGINE_PATH,
-                'pcui': PCUI_DIR
+                '@playcanvas/pcui': PCUI_DIR
             }
         }),
         commonjs(),
@@ -68,13 +84,11 @@ export default {
                 baseUrl: '.',
                 paths: {
                     'playcanvas': [ENGINE_DIR],
-                    'pcui': [PCUI_DIR]
+                    '@playcanvas/pcui': [PCUI_DIR]
                 }
             }
         }),
         json(),
         (BUILD_TYPE !== 'debug') && terser()
-    ],
-    treeshake: 'smallest',
-    cache: false
+    ]
 };
