@@ -501,12 +501,21 @@ class Viewer {
 
         const recurse = (node: GraphNode) => {
             const p = node.getPosition();
-            if (p.x < min_x) min_x = p.x;
-            else if (p.x > max_x) max_x = p.x;
-            if (p.y < min_y) min_y = p.y;
-            else if (p.y > max_y) max_y = p.y;
-            if (p.z < min_z) min_z = p.z;
-            else if (p.z > max_z) max_z = p.z;
+            if (p.x < min_x) {
+                min_x = p.x;
+            } else if (p.x > max_x) {
+                max_x = p.x;
+            }
+            if (p.y < min_y) {
+                min_y = p.y;
+            } else if (p.y > max_y) {
+                max_y = p.y;
+            }
+            if (p.z < min_z) {
+                min_z = p.z;
+            } else if (p.z > max_z) {
+                max_z = p.z;
+            }
             for (let i = 0; i < node.children.length; ++i) {
                 recurse(node.children[i]);
             }
