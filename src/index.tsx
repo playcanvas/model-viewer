@@ -167,7 +167,7 @@ const observerData: ObserverData = {
 };
 
 const saveOptions = (observer: Observer, name: string) => {
-    const options = observer.json();
+    const options = observer.json() as any;
     window.localStorage.setItem(`model-viewer-${name}`, JSON.stringify({
         camera: options.camera,
         skybox: options.skybox,
