@@ -951,6 +951,7 @@ class Viewer {
             texture.downloadAsync().then(() => {
                 this.pngExporter.export(
                     'model-viewer.png',
+                    // @ts-ignore
                     new Uint32Array(texture.getSource().buffer.slice()),
                     texture.width,
                     texture.height
@@ -1920,7 +1921,7 @@ class Viewer {
 
         // resolve the (possibly multisampled) render target
         const rt = this.camera.camera.renderTarget;
-        if (!this.app.graphicsDevice.isWebGPU && rt._samples > 1) {
+        if (!this.app.graphicsDevice.isWebGPU && rt.samples > 1) {
             rt.resolve();
         }
 

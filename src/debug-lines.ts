@@ -125,8 +125,13 @@ class DebugLines {
                 overrideClear: true
             });
 
-            app.scene.layers.pushTransparent(debugLayerBack);
-            app.scene.layers.pushTransparent(debugLayerFront);
+            const layers = app.scene.layers;
+            const worldLayer = layers.getLayerByName('World');
+            const idx = layers.getTransparentIndex(worldLayer);
+
+            layers.insert(debugLayerBack, idx);
+            layers.insert(debugLayerFront, idx + 1);
+
             camera.camera.layers = camera.camera.layers.concat([debugLayerBack.id, debugLayerFront.id]);
         }
 
