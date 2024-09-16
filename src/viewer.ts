@@ -1030,7 +1030,7 @@ class Viewer {
 
             const processImage = function (gltfImage: any, continuation: (err: string, result: any) => void) {
                 const u: File = externalUrls.find((url) => {
-                    return url.filename === path.normalize(gltfImage.uri || '');
+                    return url.filename === decodeURIComponent(path.normalize(gltfImage.uri || ''))
                 });
                 if (u) {
                     const textureAsset = new Asset(u.filename, 'texture', {
@@ -1054,7 +1054,7 @@ class Viewer {
 
             const processBuffer = function (gltfBuffer: any, continuation: (err: string, result: any) => void) {
                 const u = externalUrls.find((url) => {
-                    return url.filename === path.normalize(gltfBuffer.uri || '');
+                    return url.filename === decodeURIComponent(path.normalize(gltfBuffer.uri || ''))
                 });
                 if (u) {
                     const bufferAsset = new Asset(u.filename, 'binary', {
@@ -1557,8 +1557,10 @@ class Viewer {
             entity = prevEntity;
         } else {
             if (asset.type === 'container') {
+                // container/glb
                 entity = asset.resource.instantiateRenderEntity();
             } else {
+                // gaussian splat scene
                 entity = asset.resource.instantiate();
 
                 // render frame if gaussian splat sorter updates)
