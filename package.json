@@ -1,97 +1,101 @@
 {
-  "name": "model-viewer",
-  "version": "4.14.0",
-  "author": "PlayCanvas<support@playcanvas.com>",
-  "homepage": "https://playcanvas.com",
-  "description": "PlayCanvas glTF Viewer",
-  "keywords": [
-    "2d",
-    "3d",
-    "html5",
-    "gltf",
-    "webgl",
-    "webgl2",
-    "viewer"
-  ],
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/playcanvas/model-viewer/issues"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/playcanvas/model-viewer.git"
-  },
-  "eslintConfig": {
-    "root": true,
-    "parser": "@typescript-eslint/parser",
-    "plugins": [
-      "@typescript-eslint"
+    "name": "model-viewer",
+    "version": "4.14.0",
+    "author": "PlayCanvas<support@playcanvas.com>",
+    "homepage": "https://playcanvas.com",
+    "description": "PlayCanvas glTF Viewer",
+    "keywords": [
+        "2d",
+        "3d",
+        "html5",
+        "gltf",
+        "webgl",
+        "webgl2",
+        "viewer"
     ],
-    "extends": [
-      "@playcanvas/eslint-config",
-      "plugin:@typescript-eslint/recommended",
-      "plugin:import/typescript"
-    ],
-    "rules": {
-      "@typescript-eslint/ban-ts-comment": 0,
-      "@typescript-eslint/no-explicit-any": 0,
-      "@typescript-eslint/explicit-module-boundary-types": 0,
-      "lines-between-class-members": [
-        "error",
-        "always",
-        {
-          "exceptAfterSingleLine": true
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/playcanvas/model-viewer/issues"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/playcanvas/model-viewer.git"
+    },
+    "eslintConfig": {
+        "root": true,
+        "parser": "@typescript-eslint/parser",
+        "plugins": [
+            "@typescript-eslint"
+        ],
+        "extends": [
+            "@playcanvas/eslint-config",
+            "plugin:@typescript-eslint/recommended",
+            "plugin:import/typescript"
+        ],
+        "rules": {
+            "@typescript-eslint/ban-ts-comment": 0,
+            "@typescript-eslint/no-explicit-any": 0,
+            "@typescript-eslint/explicit-module-boundary-types": 0,
+            "lines-between-class-members": [
+                "error",
+                "always",
+                {
+                    "exceptAfterSingleLine": true
+                }
+            ],
+            "import/no-unresolved": "off",
+            "import/extensions": [
+                "error",
+                "ignorePackages",
+                {
+                    "ts": "never",
+                    "tsx": "never"
+                }
+            ],
+            "indent": [
+                "warn",
+                4
+            ]
         }
-      ],
-      "import/no-unresolved": "off",
-      "import/extensions": [
-        "error",
-        "ignorePackages",
-        {
-          "ts": "never",
-          "tsx": "never"
-        }
-      ]
+    },
+    "devDependencies": {
+        "@playcanvas/eslint-config": "^1.7.1",
+        "@playcanvas/observer": "^1.5.1",
+        "@playcanvas/pcui": "^4.4.0",
+        "@rollup/plugin-alias": "^5.1.0",
+        "@rollup/plugin-commonjs": "^26.0.1",
+        "@rollup/plugin-image": "^3.0.3",
+        "@rollup/plugin-json": "^6.1.0",
+        "@rollup/plugin-node-resolve": "^15.2.3",
+        "@rollup/plugin-replace": "^5.0.7",
+        "@rollup/plugin-terser": "^0.4.4",
+        "@rollup/plugin-typescript": "^11.1.6",
+        "@types/react": "^18.3.7",
+        "@types/react-dom": "^18.3.0",
+        "@typescript-eslint/eslint-plugin": "^7.14.1",
+        "@typescript-eslint/parser": "^7.14.1",
+        "concurrently": "^9.0.1",
+        "cross-env": "^7.0.3",
+        "eslint": "^8.56.0",
+        "playcanvas": "^1.74.0",
+        "qrious": "^4.0.2",
+        "react": "^18.3.1",
+        "react-dom": "^18.3.1",
+        "react-visibility-sensor": "^5.1.1",
+        "rollup": "^4.21.3",
+        "rollup-plugin-sass": "^1.13.2",
+        "serve": "^14.2.3",
+        "tslib": "^2.7.0",
+        "typescript": "^5.6.2"
+    },
+    "scripts": {
+        "build": "rollup -c",
+        "watch": "rollup -c -w",
+        "serve": "serve dist",
+        "develop": "cross-env concurrently --kill-others \"npm run watch\" \"npm run serve\"",
+        "develop:local": "cross-env ENGINE_PATH=../engine npm run develop",
+        "build:local": "cross-env ENGINE_PATH=../engine npm run build",
+        "watch:local": "cross-env ENGINE_PATH=../engine npm run watch",
+        "lint": "eslint --ext .ts src"
     }
-  },
-  "devDependencies": {
-    "@playcanvas/eslint-config": "^1.7.1",
-    "@playcanvas/observer": "^1.5.1",
-    "@playcanvas/pcui": "^4.4.0",
-    "@rollup/plugin-alias": "^5.1.0",
-    "@rollup/plugin-commonjs": "^26.0.1",
-    "@rollup/plugin-image": "^3.0.3",
-    "@rollup/plugin-json": "^6.1.0",
-    "@rollup/plugin-node-resolve": "^15.2.3",
-    "@rollup/plugin-replace": "^5.0.7",
-    "@rollup/plugin-terser": "^0.4.4",
-    "@rollup/plugin-typescript": "^11.1.6",
-    "@types/react": "^18.3.7",
-    "@types/react-dom": "^18.3.0",
-    "@typescript-eslint/eslint-plugin": "^7.14.1",
-    "@typescript-eslint/parser": "^7.14.1",
-    "concurrently": "^9.0.1",
-    "cross-env": "^7.0.3",
-    "eslint": "^8.56.0",
-    "playcanvas": "^1.74.0",
-    "qrious": "^4.0.2",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "react-visibility-sensor": "^5.1.1",
-    "rollup": "^4.21.3",
-    "rollup-plugin-sass": "^1.13.2",
-    "serve": "^14.2.3",
-    "tslib": "^2.7.0",
-    "typescript": "^5.6.2"
-  },
-  "scripts": {
-    "build": "rollup -c",
-    "watch": "rollup -c -w",
-    "serve": "serve dist",
-    "develop": "cross-env concurrently --kill-others \"npm run watch\" \"npm run serve\"",
-    "develop:local": "cross-env ENGINE_PATH=../engine npm run develop",
-    "build:local": "cross-env ENGINE_PATH=../engine npm run build",
-    "watch:local": "cross-env ENGINE_PATH=../engine npm run watch",
-    "lint": "eslint --ext .ts src"
-  }
 }
