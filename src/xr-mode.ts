@@ -129,7 +129,7 @@ class XRObjectPlacementController {
         };
 
         // handle xr mode availability change
-        xr.on('available:' + XRTYPE_AR, (available: boolean) => {
+        xr.on(`available: ${XRTYPE_AR}`, (available: boolean) => {
             this.events.fire('xr:available', available);
         });
 

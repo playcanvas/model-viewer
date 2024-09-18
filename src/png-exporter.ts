@@ -77,7 +77,7 @@ class PngExporter {
 
     // download the data uri
     _downloadFile(filename: string, data: any) {
-        const blob = new Blob([data], { type: "octet/stream" });
+        const blob = new Blob([data], { type: 'octet/stream' });
         const url = window.URL.createObjectURL(blob);
 
         const el = document.createElement('a');
