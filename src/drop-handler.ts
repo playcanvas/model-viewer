@@ -73,13 +73,13 @@ const CreateDropHandler = (target: HTMLElement, dropHandler: DropHandlerFunc) =>
     target.addEventListener('dragstart', (ev) => {
         ev.preventDefault();
         ev.stopPropagation();
-        ev.dataTransfer.effectAllowed = "all";
+        ev.dataTransfer.effectAllowed = 'all';
     }, false);
 
     target.addEventListener('dragover', (ev) => {
         ev.preventDefault();
         ev.stopPropagation();
-        ev.dataTransfer.effectAllowed = "all";
+        ev.dataTransfer.effectAllowed = 'all';
     }, false);
 
     target.addEventListener('drop', (ev) => {

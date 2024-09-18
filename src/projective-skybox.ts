@@ -2,7 +2,7 @@ import {
     shaderChunks,
     AppBase,
     Vec3
-} from "playcanvas";
+} from 'playcanvas';
 
 const projectiveSkyboxVS = (shaderChunks as any).skyboxVS.replace(' * cubeMapRotationMatrix', '');
 

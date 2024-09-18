@@ -1,3 +1,4 @@
+import { Observer } from '@playcanvas/observer';
 import {
     ADDRESS_CLAMP_TO_EDGE,
     BLENDMODE_ONE,
@@ -58,24 +59,19 @@ import {
 } from 'playcanvas';
 
 import { App } from './app';
-
-import { Observer } from '@playcanvas/observer';
-import { MeshoptDecoder } from '../lib/meshopt_decoder.module.js';
-import { CreateDropHandler } from './drop-handler';
-import { MorphTargetData, File, HierarchyNode } from './types';
-import { DebugLines } from './debug-lines';
-import { Multiframe } from './multiframe';
-import { ReadDepth } from './read-depth';
 import { MultiCamera } from './cameras/multi-camera';
+import { DebugLines } from './debug-lines';
+import { CreateDropHandler } from './drop-handler';
+import { Multiframe } from './multiframe';
 import { PngExporter } from './png-exporter';
 import { ProjectiveSkybox } from './projective-skybox';
+import { ReadDepth } from './read-depth';
 import { ShadowCatcher } from './shadow-catcher';
-import { XRObjectPlacementController } from './xr-mode';
-
-// @ts-ignore
-import arModeImage from './svg/ar-mode.svg';
-// @ts-ignore
 import arCloseImage from './svg/ar-close.svg';
+import arModeImage from './svg/ar-mode.svg';
+import { File, HierarchyNode, MorphTargetData } from './types';
+import { XRObjectPlacementController } from './xr-mode';
+import { MeshoptDecoder } from '../lib/meshopt_decoder.module.js';
 
 // model filename extensions
 const modelExtensions = ['gltf', 'glb', 'vox'];
@@ -671,7 +667,7 @@ class Viewer {
                 for (let i = 0; i < names.length; ++i) {
                     const nameList = names[i];
                     for (let j = 0; j < nameList.length; ++j) {
-                        if (fn.indexOf(nameList[j] + '.') !== -1) {
+                        if (fn.indexOf(`${nameList[j]}.`) !== -1) {
                             return j;
                         }
                     }
@@ -689,7 +685,7 @@ class Viewer {
 
             // construct an asset for each cubemap face
             const faceAssets = files.map((file, index) => {
-                const faceAsset = new Asset('skybox_face' + index, 'texture', file);
+                const faceAsset = new Asset(`skybox_face${index}`, 'texture', file);
                 app.assets.add(faceAsset);
                 app.assets.load(faceAsset);
                 return faceAsset;
@@ -1030,7 +1026,7 @@ class Viewer {
 
             const processImage = function (gltfImage: any, continuation: (err: string, result: any) => void) {
                 const u: File = externalUrls.find((url) => {
-                    return url.filename === decodeURIComponent(path.normalize(gltfImage.uri || ''))
+                    return url.filename === decodeURIComponent(path.normalize(gltfImage.uri || ''));
                 });
                 if (u) {
                     const textureAsset = new Asset(u.filename, 'texture', {
@@ -1054,7 +1050,7 @@ class Viewer {
 
             const processBuffer = function (gltfBuffer: any, continuation: (err: string, result: any) => void) {
                 const u = externalUrls.find((url) => {
-                    return url.filename === decodeURIComponent(path.normalize(gltfBuffer.uri || ''))
+                    return url.filename === decodeURIComponent(path.normalize(gltfBuffer.uri || ''));
                 });
                 if (u) {
                     const bufferAsset = new Asset(u.filename, 'binary', {
@@ -1620,7 +1616,7 @@ class Viewer {
                 morphInstances[i] = morphInstance;
 
                 // mesh name line
-                const meshName = (meshInstance && meshInstance.node && meshInstance.node.name) || 'Mesh ' + i;
+                const meshName = (meshInstance && meshInstance.node && meshInstance.node.name) || `Mesh ${i}`;
                 morphs[i] = {
                     name: meshName,
                     targets: {}
@@ -1703,11 +1699,12 @@ class Viewer {
                     {
                         name: 'transition',
                         time: t.duration,
-                        nextTrack: 'track_' + (i === this.animTracks.length - 1 ? 0 : i + 1)
+                        nextTrack: `track_${i === this.animTracks.length - 1 ? 0 : i + 1}`
                     }
                 ]);
-                entity.anim.assignAnimation('track_' + i, t);
-                this.animationMap[t.name] = 'track_' + i;
+                const path = `track_${i}`;
+                entity.anim.assignAnimation(path, t);
+                this.animationMap[t.name] = path;
             });
             // if the user has selected to play all tracks in succession, then transition to the next track after a set amount of loops
             entity.anim.on('transition', (e) => {

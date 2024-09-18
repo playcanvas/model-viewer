@@ -26,6 +26,7 @@ import {
     VertexIterator,
     WebglGraphicsDevice
 } from 'playcanvas';
+
 import { App } from './app';
 
 let debugLayerFront: Layer = null;
