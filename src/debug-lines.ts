@@ -11,15 +11,14 @@ import {
     SORTMODE_NONE,
     TYPE_FLOAT32,
     TYPE_UINT8,
-    createShaderFromCode,
     DepthState,
     Entity,
     GraphNode,
     Layer,
-    Material,
     Mesh,
     MeshInstance,
     Mat4,
+    ShaderMaterial,
     Vec3,
     VertexBuffer,
     VertexFormat,
@@ -101,11 +100,6 @@ class DebugLines {
     constructor(app: App, camera: Entity, backLayer = true) {
         const device = app.graphicsDevice as WebglGraphicsDevice;
 
-        const shader = createShaderFromCode(device, vshader, fshader, 'debug-lines', {
-            vertex_position: SEMANTIC_POSITION,
-            vertex_color: SEMANTIC_COLOR
-        });
-
         if (!debugLayerFront) {
             // construct the debug layer
             debugLayerBack = new Layer({
@@ -149,8 +143,17 @@ class DebugLines {
         mesh.primitive[0].indexed = false;
         mesh.primitive[0].count = 0;
 
-        const frontMaterial = new Material();
-        frontMaterial.shader = shader;
+        const shaderArgs = {
+            uniqueName: 'debug-lines',
+            attributes: {
+                vertex_position: SEMANTIC_POSITION,
+                vertex_color: SEMANTIC_COLOR
+            },
+            vertexCode: vshader,
+            fragmentCode: fshader
+        };
+
+        const frontMaterial = new ShaderMaterial(shaderArgs);
         frontMaterial.setParameter('uColor', [1, 1, 1, 0.7]);
         frontMaterial.blendType = BLEND_NORMAL;
         frontMaterial.update();
@@ -165,8 +168,7 @@ class DebugLines {
 
         // construct back
         if (backLayer) {
-            const backMaterial = new Material();
-            backMaterial.shader = shader;
+            const backMaterial = new ShaderMaterial(shaderArgs);
             backMaterial.setParameter('uColor', [0.5, 0.5, 0.5, 0.5]);
             backMaterial.blendType = BLEND_NORMAL;
             backMaterial.depthState.func = FUNC_GREATER;

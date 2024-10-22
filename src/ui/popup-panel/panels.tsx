@@ -113,7 +113,7 @@ class SkyboxPanel extends React.Component <{
                     <Select
                         label='Background'
                         type='string'
-                        options={['Solid Color', 'Infinite Sphere', 'Projective Dome'].map(v => ({ v, t: v }))}
+                        options={['Solid Color', 'Infinite Sphere', 'Projective Dome', 'Projective Box'].map(v => ({ v, t: v }))}
                         value={props.skyboxData.background}
                         setProperty={(value: string) => props.setProperty('skybox.background', value)}
                         enabled={props.skyboxData.value !== 'None'} />
@@ -134,20 +134,12 @@ class SkyboxPanel extends React.Component <{
                         precision={0}
                         step={1}/>
                     <Numeric
-                        label='Dome Radius'
+                        label='Scale'
                         value={props.skyboxData.domeProjection.domeRadius}
                         setProperty={(value: number) => props.setProperty('skybox.domeProjection.domeRadius', value)}
                         min={0}
                         max={1000}
-                        enabled={props.skyboxData.value !== 'None' && props.skyboxData.background === 'Projective Dome'} />
-                    <Slider
-                        label='Dome Offset'
-                        value={props.skyboxData.domeProjection.domeOffset}
-                        setProperty={(value: number) => props.setProperty('skybox.domeProjection.domeOffset', value)}
-                        min={-1}
-                        max={1}
-                        precision={2}
-                        enabled={props.skyboxData.value !== 'None' && props.skyboxData.background === 'Projective Dome'} />
+                        enabled={props.skyboxData.value !== 'None' && ['Projective Dome', 'Projective Box'].indexOf(props.skyboxData.background) !== -1} />
                     <Slider
                         label='Tripod Offset'
                         value={props.skyboxData.domeProjection.tripodOffset}
@@ -155,7 +147,7 @@ class SkyboxPanel extends React.Component <{
                         min={0}
                         max={1}
                         precision={2}
-                        enabled={props.skyboxData.value !== 'None' && props.skyboxData.background === 'Projective Dome'} />
+                        enabled={props.skyboxData.value !== 'None' && ['Projective Dome', 'Projective Box'].indexOf(props.skyboxData.background) !== -1} />
                 </Container>
             </div>
         );
@@ -373,7 +365,6 @@ class ViewPanel extends React.Component <{
                     <Button
                         class='secondary'
                         text='TAKE A SNAPSHOT AS PNG'
-                        enabled={props.runtimeData.activeDeviceType !== 'webgpu'}
                         onClick={() => {
                             if (window.viewer) window.viewer.downloadPngScreenshot();
                         }}

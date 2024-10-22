@@ -40,7 +40,7 @@ export interface ObserverData {
         options: string,
         exposure: number,
         rotation: number,
-        background: 'Solid Color' | 'Infinite Sphere' | 'Projective Dome',
+        background: 'Solid Color' | 'Infinite Sphere' | 'Projective Dome' | 'Projective Box',
         backgroundColor: {
             r: number,
             g: number,
@@ -49,7 +49,6 @@ export interface ObserverData {
         blur: number,
         domeProjection: {
             domeRadius: number,
-            domeOffset: number,
             tripodOffset: number
         }
     },

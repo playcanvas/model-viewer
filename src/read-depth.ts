@@ -3,36 +3,42 @@ import {
     PIXELFORMAT_RGBA8,
     SEMANTIC_POSITION,
     drawQuadWithShader,
-    shaderChunks,
     BlendState,
     RenderTarget,
     ScopeId,
     Shader,
     Texture,
-    WebglGraphicsDevice,
+    GraphicsDevice,
     createShaderFromCode
 } from 'playcanvas';
-
-// @ts-ignore
-const packDepthPS = shaderChunks.packDepthPS;
 
 const vshader = `
 attribute vec2 vertex_position;
 varying vec2 texcoord;
 void main(void) {
     gl_Position = vec4(vertex_position, 0.5, 1.0);
-    texcoord = vertex_position.xy * 0.5 + 0.5; // + texcoordOffset;
+    texcoord = vertex_position * 0.5 + 0.5;
 }
 `;
 
 const fshader = `
-varying vec2 texcoord;
-uniform sampler2D depthTex;
+uniform highp sampler2D depthTex;
 uniform vec4 texcoordRange;
-${packDepthPS}
+varying vec2 texcoord;
+
+vec4 packFloat(float depth) {
+    const vec4 bit_shift = vec4(256.0 * 256.0 * 256.0, 256.0 * 256.0, 256.0, 1.0);
+    const vec4 bit_mask  = vec4(0.0, 1.0 / 256.0, 1.0 / 256.0, 1.0 / 256.0);
+
+    // combination of mod and multiplication and division works better
+    vec4 res = mod(depth * bit_shift * vec4(255), vec4(256) ) / vec4(255);
+    res -= res.xxyz * bit_mask;
+    return res;
+}
+
 void main(void) {
     vec2 t = mix(texcoordRange.xy, texcoordRange.zw, texcoord);
-    gl_FragColor = packFloat(texture2D(depthTex, t).x);
+    gl_FragColor = packFloat(texelFetch(depthTex, ivec2(t * vec2(textureSize(depthTex, 0))), 0).x);
 }
 `;
 
@@ -40,7 +46,7 @@ const noBlend = new BlendState(false);
 
 // helper class for reading out the depth values from depth render targets.
 class ReadDepth {
-    device: WebglGraphicsDevice;
+    device: GraphicsDevice;
     shader: Shader;
     depthTexUniform: ScopeId;
     texcoordRangeUniform: ScopeId;
@@ -48,7 +54,7 @@ class ReadDepth {
     texture: Texture = null;
     renderTarget: RenderTarget = null;
 
-    constructor(device: WebglGraphicsDevice) {
+    constructor(device: GraphicsDevice) {
         this.device = device;
 
         this.shader = createShaderFromCode(device, vshader, fshader, 'read-depth', {
@@ -94,7 +100,7 @@ class ReadDepth {
         });
     }
 
-    read(depthTexture: Texture, x: number, y: number) {
+    async read(depthTexture: Texture, x: number, y: number) {
         if (!this.texture) {
             this.create();
         }
@@ -110,22 +116,13 @@ class ReadDepth {
         device.setBlendState(noBlend);
         drawQuadWithShader(this.device, this.renderTarget, this.shader);
 
-        const gl = device.gl;
-        const oldRt = device.renderTarget;
-
-        device.setRenderTarget(this.renderTarget);
-        device.updateBegin();
-        gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, this.pixels);
-
-        device.updateEnd();
-        device.setRenderTarget(oldRt);
-        device.updateBegin();
+        const pixels = await this.texture.read(0, 0, 1, 1);
 
         // unpackFloat
-        return this.pixels[0] / (255 * 256 * 256 * 256) +
-               this.pixels[1] / (255 * 256 * 256) +
-               this.pixels[2] / (255 * 256) +
-               this.pixels[3] / (255);
+        return pixels[0] / (255 * 256 * 256 * 256) +
+               pixels[1] / (255 * 256 * 256) +
+               pixels[2] / (255 * 256) +
+               pixels[3] / (255);
     }
 }
 
