@@ -258,11 +258,13 @@ const main = () => {
     // create the canvas
     const canvas = document.getElementById("application-canvas") as HTMLCanvasElement;
 
+    const absoluteUrl = (relative: string) => new URL(relative, document.baseURI).toString();
+
     // create the graphics device
     createGraphicsDevice(canvas, {
         deviceTypes: url.searchParams.has('webgpu') || observer.get('enableWebGPU') ? ['webgpu'] : [],
-        glslangUrl: 'static/lib/glslang/glslang.js',
-        twgslUrl: 'static/lib/twgsl/twgsl.js',
+        glslangUrl: absoluteUrl('static/lib/glslang/glslang.js'),
+        twgslUrl: absoluteUrl('static/lib/twgsl/twgsl.js'),
         antialias: false,
         depth: false,
         stencil: false,
