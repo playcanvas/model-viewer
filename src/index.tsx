@@ -79,7 +79,6 @@ const observerData: ObserverData = {
         blur: 1,
         domeProjection: {
             domeRadius: 20,
-            domeOffset: 0.4,
             tripodOffset: 0.1
         }
     },

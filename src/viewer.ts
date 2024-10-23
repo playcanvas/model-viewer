@@ -18,6 +18,9 @@ import {
     PRIMITIVE_TRIANGLES,
     PRIMITIVE_TRISTRIP,
     PRIMITIVE_TRIFAN,
+    SKYTYPE_BOX,
+    SKYTYPE_DOME,
+    SKYTYPE_INFINITE,
     SORTMODE_BACK2FRONT,
     TEXTURETYPE_DEFAULT,
     TEXTURETYPE_RGBM,
@@ -64,7 +67,6 @@ import { DebugLines } from './debug-lines';
 import { CreateDropHandler } from './drop-handler';
 import { Multiframe } from './multiframe';
 import { PngExporter } from './png-exporter';
-import { ProjectiveSkybox } from './projective-skybox';
 import { ReadDepth } from './read-depth';
 import { ShadowCatcher } from './shadow-catcher';
 import arCloseImage from './svg/ar-close.svg';
@@ -138,7 +140,6 @@ class Viewer {
 
     loadTimestamp?: number = null;
 
-    projectiveSkybox: ProjectiveSkybox = null;
     shadowCatcher: ShadowCatcher = null;
     xrMode: XRObjectPlacementController;
 
@@ -345,9 +346,6 @@ class Viewer {
         // multiframe
         this.multiframe = new Multiframe(device, this.camera.camera);
 
-        // projective skybox
-        this.projectiveSkybox = new ProjectiveSkybox(app);
-
         // dynamic shadow catcher
         this.shadowCatcher = new ShadowCatcher(app, this.camera.camera, this.debugRoot, this.sceneRoot);
 
@@ -371,18 +369,19 @@ class Viewer {
             const y = 1.0 - event.offsetY / canvas.clientHeight;
 
             // read depth
-            const depth = device.isWebGPU ? 1 : this.readDepth.read(camera.renderTarget.depthBuffer, x, y);
+            this.readDepth.read(camera.renderTarget.depthBuffer, x, y)
+            .then((depth: number) => {
+                if (depth < 1) {
+                    const pos = new Vec4(x, y, depth, 1.0).mulScalar(2.0).subScalar(1.0); // clip space
+                    camera.projectionMatrix.clone().invert().transformVec4(pos, pos); // homogeneous view space
+                    pos.mulScalar(1.0 / pos.w); // perform perspective divide
+                    this.cursorWorld.set(pos.x, pos.y, pos.z);
+                    this.camera.getWorldTransform().transformPoint(this.cursorWorld, this.cursorWorld); // world space
 
-            if (depth < 1) {
-                const pos = new Vec4(x, y, depth, 1.0).mulScalar(2.0).subScalar(1.0); // clip space
-                camera.projectionMatrix.clone().invert().transformVec4(pos, pos); // homogeneous view space
-                pos.mulScalar(1.0 / pos.w); // perform perspective divide
-                this.cursorWorld.set(pos.x, pos.y, pos.z);
-                this.camera.getWorldTransform().transformPoint(this.cursorWorld, this.cursorWorld); // world space
-
-                // focus on cursor
-                this.multiCamera.focus(this.cursorWorld);
-            }
+                    // focus on cursor
+                    this.multiCamera.focus(this.cursorWorld);
+                }
+            });
         });
 
         this.app.scene.layers.getLayerByName('World').transparentSortMode = SORTMODE_BACK2FRONT;
@@ -550,7 +549,6 @@ class Viewer {
             'skybox.background': this.setSkyboxBackground.bind(this),
             'skybox.backgroundColor': this.setBackgroundColor.bind(this),
             'skybox.domeProjection.domeRadius': this.setSkyboxDomeRadius.bind(this),
-            'skybox.domeProjection.domeOffset': this.setSkyboxDomeOffset.bind(this),
             'skybox.domeProjection.tripodOffset': this.setSkyboxTripodOffset.bind(this),
 
             // light
@@ -776,7 +774,7 @@ class Viewer {
     }
 
     rebuildRenderTargets() {
-        const device = this.app.graphicsDevice as WebglGraphicsDevice;
+        const device = this.app.graphicsDevice;
 
         // get the canvas UI size
         const widthPixels = device.width;
@@ -804,15 +802,18 @@ class Viewer {
             });
         };
 
+        // @ts-ignore
+        const maxSamples = device.maxSamples;
+
         // in with the new
         const colorBuffer = createTexture(widthPixels, heightPixels, PIXELFORMAT_RGBA8);
-        const depthBuffer = device.isWebGPU ? null : createTexture(widthPixels, heightPixels, PIXELFORMAT_DEPTH);
+        const depthBuffer = createTexture(widthPixels, heightPixels, PIXELFORMAT_DEPTH);
         const renderTarget = new RenderTarget({
             name: 'viewer-rt',
             colorBuffer: colorBuffer,
             depthBuffer: depthBuffer,
             flipY: false,
-            samples: this.observer.get('camera.multisample') ? device.maxSamples : 1,
+            samples: this.observer.get('camera.multisample') ? maxSamples : 1,
             autoResolve: false
         });
         this.camera.camera.renderTarget = renderTarget;
@@ -942,18 +943,15 @@ class Viewer {
     }
 
     downloadPngScreenshot() {
-        if (!this.app.graphicsDevice.isWebGPU) {
-            const texture = this.camera.camera.renderTarget.colorBuffer;
-            texture.downloadAsync().then(() => {
-                this.pngExporter.export(
-                    'model-viewer.png',
-                    // @ts-ignore
-                    new Uint32Array(texture.getSource().buffer.slice()),
-                    texture.width,
-                    texture.height
-                );
-            });
-        }
+        const texture = this.camera.camera.renderTarget.colorBuffer;
+        texture.read(0, 0, texture.width, texture.height).then((typedArray: Uint32Array) => {
+            this.pngExporter.export(
+                'model-viewer.png',
+                new Uint32Array(typedArray.buffer.slice(0)),
+                texture.width,
+                texture.height
+            );
+        });
     }
 
     // adjust camera clipping planes to fit the scene
@@ -1067,12 +1065,7 @@ class Viewer {
                 }
             };
 
-            const containerAsset = new Asset(
-                gltfUrl.filename,
-                'container',
-                gltfUrl,
-                { elementFilter: () => true },
-                {
+            const containerAsset = new Asset(gltfUrl.filename, 'container', gltfUrl, null, {
                     // @ts-ignore TODO no definition in pc
                     bufferView: {
                         processAsync: processBufferView.bind(this)
@@ -1429,9 +1422,26 @@ class Viewer {
     }
 
     setSkyboxBackground(background: string) {
+        const { scene } = this.app;
+
         this.app.scene.layers.getLayerById(LAYERID_SKYBOX).enabled = background !== 'Solid Color';
+
+        switch (background) {
+            case 'Solid Color':
+                break;
+            case 'Infinite Sphere':
+                scene.sky.type = SKYTYPE_INFINITE;
+                break;
+            case 'Projective Dome':
+                scene.sky.type = SKYTYPE_DOME;
+                break;
+            case 'Projective Box':
+                scene.sky.type = SKYTYPE_BOX;
+                break;
+        }
+
         this.app.scene.skyboxMip = background === 'Infinite Sphere' ? this.observer.get('skybox.blur') : 0;
-        this.projectiveSkybox.enabled = background === 'Projective Dome';
+
         this.renderNextFrame();
     }
 
@@ -1441,17 +1451,13 @@ class Viewer {
     }
 
     setSkyboxDomeRadius(radius: number) {
-        this.projectiveSkybox.domeRadius = (this.sceneBounds?.halfExtents.length() ?? 1) * radius;
-        this.renderNextFrame();
-    }
-
-    setSkyboxDomeOffset(offset: number) {
-        this.projectiveSkybox.domeOffset = offset;
+        const scale = (this.sceneBounds?.halfExtents.length() ?? 1) * radius;
+        this.app.scene.sky.node.setLocalScale(scale, scale, scale);
         this.renderNextFrame();
     }
 
     setSkyboxTripodOffset(offset: number) {
-        this.projectiveSkybox.tripodOffset = offset;
+        this.app.scene.sky.center = new Vec3(0, offset, 0);
         this.renderNextFrame();
     }
 
@@ -1464,7 +1470,7 @@ class Viewer {
             ACES2: TONEMAP_ACES2
         };
 
-        this.app.scene.toneMapping = mapping.hasOwnProperty(tonemapping) ? mapping[tonemapping] : TONEMAP_ACES;
+        this.app.scene.rendering.toneMapping = mapping.hasOwnProperty(tonemapping) ? mapping[tonemapping] : TONEMAP_ACES;
         this.renderNextFrame();
     }
 
@@ -1671,8 +1677,7 @@ class Viewer {
         this.setCenterScene(this.observer.get('centerScene'));
 
         // set projective skybox radius
-        this.projectiveSkybox.domeRadius =
-            this.sceneBounds.halfExtents.length() * this.observer.get('skybox.domeProjection.domeRadius');
+        this.setSkyboxDomeRadius(this.observer.get('skybox.domeProjection.domeRadius'));
 
         // set camera clipping planes
         this.focusSelection();
