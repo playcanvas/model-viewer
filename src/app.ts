@@ -15,7 +15,8 @@ import {
     TextureHandler,
     XrManager,
     GSplatComponentSystem,
-    GSplatHandler
+    GSplatHandler,
+    ScriptComponentSystem
 } from 'playcanvas';
 
 class App extends AppBase {
@@ -38,9 +39,7 @@ class App extends AppBase {
         appOptions.assetPrefix = options.assetPrefix;
         appOptions.scriptsOrder = options.scriptsOrder;
 
-        // @ts-ignore
         appOptions.lightmapper = Lightmapper;
-        // @ts-ignore
         appOptions.xr = XrManager;
 
         this.init(appOptions);
@@ -52,27 +51,20 @@ class App extends AppBase {
             RenderComponentSystem,
             CameraComponentSystem,
             LightComponentSystem,
-            GSplatComponentSystem
+            GSplatComponentSystem,
+            ScriptComponentSystem
         ];
     }
 
     addResourceHandles(appOptions: AppOptions) {
         appOptions.resourceHandlers = [
-            // @ts-ignore
             RenderHandler,
-            // @ts-ignore
             AnimClipHandler,
-            // @ts-ignore
             AnimStateGraphHandler,
-            // @ts-ignore
             TextureHandler,
-            // @ts-ignore
             CubemapHandler,
-            // @ts-ignore
             BinaryHandler,
-            // @ts-ignore
             ContainerHandler,
-            // @ts-ignore
             GSplatHandler
         ];
     }

@@ -60,9 +60,10 @@ import {
     Vec4,
     WebglGraphicsDevice
 } from 'playcanvas';
+// @ts-ignore
+import { MultiCamera } from 'playcanvas/scripts/camera/multi-camera.js';
 
 import { App } from './app';
-import { MultiCamera } from './cameras/multi-camera';
 import { DebugLines } from './debug-lines';
 import { CreateDropHandler } from './drop-handler';
 import { Multiframe } from './multiframe';
@@ -222,14 +223,10 @@ class Viewer {
             frustumCulling: true,
             clearColor: new Color(0, 0, 0, 0)
         });
+        camera.addComponent('script');
+        console.log(camera.script);
+        this.multiCamera = camera.script.create(MultiCamera);
         camera.camera.requestSceneColorMap(true);
-
-        // create camera controls
-        this.multiCamera = new MultiCamera(canvas, {
-            name: 'multi-camera'
-        });
-        app.root.addChild(this.multiCamera.entity);
-        this.multiCamera.attach(camera);
 
         app.keyboard.on(EVENT_KEYDOWN, (event) => {
             switch (event.key) {
