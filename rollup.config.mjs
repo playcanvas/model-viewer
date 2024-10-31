@@ -1,17 +1,18 @@
 // official rollup plugins
-import alias from '@rollup/plugin-alias';
-import image from '@rollup/plugin-image';
-import commonjs from "@rollup/plugin-commonjs";
-import json from "@rollup/plugin-json";
 import path from 'path';
-import resolve from "@rollup/plugin-node-resolve";
+
+import alias from '@rollup/plugin-alias';
+import commonjs from '@rollup/plugin-commonjs';
+import image from '@rollup/plugin-image';
+import json from '@rollup/plugin-json';
+import resolve from '@rollup/plugin-node-resolve';
 import replace from '@rollup/plugin-replace';
-import sass from 'rollup-plugin-sass';
 import terser from '@rollup/plugin-terser';
-import typescript from "@rollup/plugin-typescript";
+import typescript from '@rollup/plugin-typescript';
+import sass from 'rollup-plugin-sass';
 
 // custom plugins
-import { copyAndWatch } from "./plugins/copy-and-watch.mjs";
+import { copyAndWatch } from './plugins/copy-and-watch.mjs';
 
 // debug, profile, release
 const BUILD_TYPE = process.env.BUILD_TYPE || 'release';
@@ -22,16 +23,16 @@ const ENGINE_PATH = path.resolve(ENGINE_DIR, 'build', ENGINE_NAME);
 const PCUI_DIR = path.resolve(process.env.PCUI_PATH || 'node_modules/@playcanvas/pcui');
 
 const BLUE_OUT = '\x1b[34m';
-const BOLD_OUT = `\x1b[1m`;
-const REGULAR_OUT = `\x1b[22m`;
-const RESET_OUT = `\x1b[0m`;
+const BOLD_OUT = '\x1b[1m';
+const REGULAR_OUT = '\x1b[22m';
+const RESET_OUT = '\x1b[0m';
 
 const title = [
-    `Building PlayCanvas Model Viewer`,
+    'Building PlayCanvas Model Viewer',
     `type ${BOLD_OUT}${BUILD_TYPE}${REGULAR_OUT}`,
     `engine ${BOLD_OUT}${ENGINE_DIR}${REGULAR_OUT}`,
     `pcui ${BOLD_OUT}${PCUI_DIR}${REGULAR_OUT}`
-].map(l => `${BLUE_OUT}${l}`).join(`\n`);
+].map(l => `${BLUE_OUT}${l}`).join('\n');
 console.log(`${BLUE_OUT}${title}${RESET_OUT}\n`);
 
 const TARGETS = [
@@ -73,6 +74,7 @@ export default {
         image({ dom: true }),
         alias({
             entries: {
+                'playcanvas/scripts': path.resolve(ENGINE_DIR, 'scripts'),
                 'playcanvas': ENGINE_PATH,
                 '@playcanvas/pcui': PCUI_DIR
             }
