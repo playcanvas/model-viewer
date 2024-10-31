@@ -224,7 +224,6 @@ class Viewer {
             clearColor: new Color(0, 0, 0, 0)
         });
         camera.addComponent('script');
-        console.log(camera.script);
         this.multiCamera = camera.script.create(MultiCamera);
         camera.camera.requestSceneColorMap(true);
 
