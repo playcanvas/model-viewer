@@ -31,9 +31,13 @@ type TweenValue = {[key: string]: number};
 // helper tween class
 class Tween {
     value: TweenValue;
+
     source: TweenValue;
+
     target: TweenValue;
+
     timer = 0;
+
     transitionTime = 0;
 
     constructor(value: any) {
@@ -89,9 +93,13 @@ interface XRObjectPlacementOptions {
 
 class XRObjectPlacementController {
     options: XRObjectPlacementOptions;
+
     dom: HTMLDivElement;
+
     events = new EventHandler();
+
     active = false;
+
     rotating = false;
 
     constructor(options: XRObjectPlacementOptions) {
@@ -346,15 +354,15 @@ class XRObjectPlacementController {
             hovering = true;
 
             meshInstances = this.options.content.findComponents('render')
-                .map((render: RenderComponent) => {
-                    return render.meshInstances;
-                })
-                .flat()
-                .concat(this.options.content.findComponents('gsplat')
-                    .map((gsplat: GSplatComponent) => {
-                        return gsplat.instance.meshInstance;
-                    })
-                );
+            .map((render: RenderComponent) => {
+                return render.meshInstances;
+            })
+            .flat()
+            .concat(this.options.content.findComponents('gsplat')
+            .map((gsplat: GSplatComponent) => {
+                return gsplat.instance.meshInstance;
+            })
+            );
 
             updateBound();
 

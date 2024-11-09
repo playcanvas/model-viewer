@@ -1,18 +1,19 @@
 import { Observer } from '@playcanvas/observer';
+import { Container, Spinner } from '@playcanvas/pcui/react';
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { Container, Spinner } from '@playcanvas/pcui/react';
 
 import { ObserverData } from '../types';
-import LeftPanel from './left-panel';
-import SelectedNode from './selected-node';
-import PopupPanel from './popup-panel';
-import LoadControls from './load-controls';
 import ErrorBox from './errors';
+import LeftPanel from './left-panel';
+import LoadControls from './load-controls';
+import PopupPanel from './popup-panel';
+import SelectedNode from './selected-node';
 import { version as appVersion } from '../../package.json';
 
 class App extends React.Component<{ observer: Observer }> {
     state: ObserverData = null;
+
     canvasRef: any;
 
     constructor(props: any) {

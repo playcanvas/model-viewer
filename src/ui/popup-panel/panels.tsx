@@ -1,24 +1,25 @@
-import React from 'react';
 import { Container, Button, Label, TextInput } from '@playcanvas/pcui/react';
-import { SetProperty, ObserverData } from '../../types';
-import { extract } from '../../helpers';
 // @ts-ignore no type defs included
 import QRious from 'qrious';
+import React from 'react';
 
+import { extract } from '../../helpers';
+import { SetProperty, ObserverData } from '../../types';
 import { Slider, Toggle, Select, ColorPickerControl, ToggleColor, Numeric } from '../components';
 
 const rgbToArr = (rgb: { r: number, g: number, b: number }) => [rgb.r, rgb.g, rgb.b, 1];
-const arrToRgb = (arr: number[]) => { return { r: arr[0], g: arr[1], b: arr[2] } };
+const arrToRgb = (arr: number[]) => {
+    return { r: arr[0], g: arr[1], b: arr[2] };
+};
 
 class CameraPanel extends React.Component <{
     observerData: ObserverData,
     setProperty: SetProperty }> {
-
     shouldComponentUpdate(nextProps: Readonly<{
         observerData: ObserverData;
         setProperty: SetProperty; }>): boolean {
 
-        const keys = [ 'ui', 'debug', 'animation.playing' ];
+        const keys = ['ui', 'debug', 'animation.playing'];
         const a = extract(nextProps.observerData, keys);
         const b = extract(this.props.observerData, keys);
         return JSON.stringify(a) !== JSON.stringify(b);
@@ -71,7 +72,6 @@ class SkyboxPanel extends React.Component <{
     skyboxData: ObserverData['skybox'],
     uiData: ObserverData['ui'],
     setProperty: SetProperty }> {
-
     shouldComponentUpdate(nextProps: Readonly<{
         skyboxData: ObserverData['skybox'];
         uiData: ObserverData['ui'];
@@ -159,7 +159,6 @@ class LightPanel extends React.Component <{
     uiData: ObserverData['ui'],
     shadowCatcherData: ObserverData['shadowCatcher'],
     setProperty: SetProperty }> {
-
     shouldComponentUpdate(nextProps: Readonly<{
         lightData: ObserverData['light'];
         uiData: ObserverData['ui'];
@@ -215,12 +214,10 @@ class DebugPanel extends React.Component <{
     debugData: ObserverData['debug'],
     uiData: ObserverData['ui'],
     setProperty: SetProperty }> {
-
     shouldComponentUpdate(nextProps: Readonly<{
         debugData: ObserverData['debug'];
         uiData: ObserverData['ui'];
-        setProperty: SetProperty; }>): boolean
-    {
+        setProperty: SetProperty; }>): boolean {
         return JSON.stringify(nextProps.debugData) !== JSON.stringify(this.props.debugData) ||
                JSON.stringify(nextProps.uiData) !== JSON.stringify(this.props.uiData);
     }
@@ -296,7 +293,6 @@ class ViewPanel extends React.Component <{
     uiData: ObserverData['ui'],
     runtimeData: ObserverData['runtime'],
     setProperty: SetProperty }> {
-
     isMobile: boolean;
 
     get shareUrl() {

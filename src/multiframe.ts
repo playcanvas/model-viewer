@@ -67,20 +67,35 @@ const noBlend = new BlendState(false);
 // generate multiframe, supersampled AA
 class Multiframe {
     device: WebglGraphicsDevice;
+
     camera: CameraComponent;
+
     textureBias: number;
+
     shader: Shader = null;
+
     pixelFormat: number;
+
     texcoordModUniform: ScopeId = null;
+
     multiframeTexUniform: ScopeId = null;
+
     powerUniform: ScopeId = null;
+
     textureBiasUniform: ScopeId = null;
+
     accumTexture: Texture = null;
+
     accumRenderTarget: RenderTarget = null;
+
     sampleArray: Vec3[] = [];
+
     sampleId = 0;
+
     sampleAccum = 0;
+
     enabled = true;
+
     blend = 1.0;
 
     constructor(device: WebglGraphicsDevice, camera: CameraComponent, samples?: Vec3[]) {

@@ -27,9 +27,9 @@ const resolveDirectories = (entries: Array<FileSystemEntry>): Promise<Array<File
                             read();
                         } else {
                             Promise.all(p)
-                                .then((children: Array<Array<FileSystemFileEntry>>) => {
-                                    resolve(children.flat());
-                                });
+                            .then((children: Array<Array<FileSystemFileEntry>>) => {
+                                resolve(children.flat());
+                            });
                         }
                     });
                 };
@@ -39,9 +39,9 @@ const resolveDirectories = (entries: Array<FileSystemEntry>): Promise<Array<File
     });
 
     return Promise.all(promises)
-        .then((children: Array<Array<FileSystemFileEntry>>) => {
-            return result.concat(...children);
-        });
+    .then((children: Array<Array<FileSystemFileEntry>>) => {
+        return result.concat(...children);
+    });
 };
 
 const removeCommonPrefix = (urls: Array<File>) => {
@@ -87,27 +87,27 @@ const CreateDropHandler = (target: HTMLElement, dropHandler: DropHandlerFunc) =>
 
         const entries =
             Array.from(ev.dataTransfer.items)
-                .map(item => item.webkitGetAsEntry());
+            .map(item => item.webkitGetAsEntry());
 
         resolveDirectories(entries)
-            .then((entries: Array<FileSystemFileEntry>) => {
-                return Promise.all(entries.map((entry) => {
-                    return new Promise((resolve) => {
-                        entry.file((entryFile: any) => {
-                            resolve({
-                                url: URL.createObjectURL(entryFile),
-                                filename: entry.fullPath.substring(1)
-                            });
+        .then((entries: Array<FileSystemFileEntry>) => {
+            return Promise.all(entries.map((entry) => {
+                return new Promise((resolve) => {
+                    entry.file((entryFile: any) => {
+                        resolve({
+                            url: URL.createObjectURL(entryFile),
+                            filename: entry.fullPath.substring(1)
                         });
                     });
-                }));
-            })
-            .then((files: Array<File>) => {
-                if (files.length > 1) {
-                    removeCommonPrefix(files);
-                }
-                dropHandler(files, !ev.shiftKey);
-            });
+                });
+            }));
+        })
+        .then((files: Array<File>) => {
+            if (files.length > 1) {
+                removeCommonPrefix(files);
+            }
+            dropHandler(files, !ev.shiftKey);
+        });
     }, false);
 };
 

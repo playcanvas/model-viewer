@@ -54,6 +54,7 @@ class PngExporter {
     }.toString();
 
     worker: Worker;
+
     receiveCallback: (resolve: (result: Uint8Array) => void) => void;
 
     constructor() {

@@ -1,9 +1,9 @@
-import React from 'react';
 import { Panel, Container, TreeViewItem, TreeView } from '@playcanvas/pcui/react';
-import { HierarchyNode, SetProperty, ObserverData } from '../../types';
+import React from 'react';
 
-import { Detail, Select, Toggle, Vector } from '../components';
 import { addEventListenerOnClickOnly } from '../../helpers';
+import { HierarchyNode, SetProperty, ObserverData } from '../../types';
+import { Detail, Select, Toggle, Vector } from '../components';
 import MorphTargetPanel from './morph-target-panel';
 
 declare global {
@@ -140,6 +140,7 @@ class DevicePanel extends React.Component <{ observerData: ObserverData, setProp
 
 class LeftPanel extends React.Component <{ observerData: ObserverData, setProperty: SetProperty }> {
     isMobile: boolean;
+
     constructor(props: any) {
         super(props);
         this.isMobile = (/Android|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
@@ -152,10 +153,10 @@ class LeftPanel extends React.Component <{ observerData: ObserverData, setProper
 
     componentDidMount(): void {
         // set up the control panel toggle button
-        document.getElementById('panel-toggle').addEventListener('click', function () {
+        document.getElementById('panel-toggle').addEventListener('click', () => {
             toggleCollapsed();
         });
-        document.getElementById('title').addEventListener('click', function () {
+        document.getElementById('title').addEventListener('click', () => {
             toggleCollapsed();
         });
         // we require this setTimeout because panel isn't yet created and so fails

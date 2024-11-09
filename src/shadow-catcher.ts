@@ -20,10 +20,15 @@ const endPS = `
 
 class ShadowCatcher {
     layer: Layer;
+
     material: StandardMaterial;
+
     plane: Entity;
+
     light: Entity;
+
     sceneRoot: Entity;
+
     camera: CameraComponent;
 
     constructor(app: AppBase, camera: CameraComponent, parent: Entity, sceneRoot: Entity) {
