@@ -740,20 +740,6 @@ input {
     top: calc(50% - 15px);
 }
 
-::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-}
-::-webkit-scrollbar-track {
-    background: #202020;
-}
-::-webkit-scrollbar-thumb {
-    background: #aaaaaa;
-}
-/* ::-webkit-scrollbar-corner {
-    background: $editor-tooltip-bg;
-} */
-
 #panel-left.collapsed #scene-container, #panel-left.collapsed .header {
     display: none !important;
 }
