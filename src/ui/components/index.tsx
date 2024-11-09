@@ -1,4 +1,3 @@
-import React from 'react';
 import {
     BooleanInput,
     ColorPicker,
@@ -9,6 +8,8 @@ import {
     VectorInput,
     NumericInput
 } from '@playcanvas/pcui/react';
+import React from 'react';
+
 import { Option } from '../../types';
 
 export const Detail = (props: { label: string, value:string|number}) => {
@@ -123,7 +124,7 @@ export const Slider = (props: {
         <Label
             class='panel-label'
             text={props.label}
-            />
+        />
         <SliderInput
             class='panel-value'
             min={props.min}
@@ -295,4 +296,3 @@ export const NakedSlider = (props: {
         }}
     />;
 };
-

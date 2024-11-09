@@ -1,7 +1,7 @@
-import React from 'react';
 import { Button } from '@playcanvas/pcui/react';
-import { SetProperty, ObserverData } from '../../types';
+import React from 'react';
 
+import { SetProperty, ObserverData } from '../../types';
 import { NakedSelect, NakedSlider } from '../components';
 
 class AnimationTrackSelect extends React.Component <{ animationData: ObserverData['animation'], setProperty: SetProperty }> {
@@ -58,6 +58,7 @@ class AnimationSpeedSelect extends React.Component <{ animationData: ObserverDat
 
 class AnimationControls extends React.Component <{ animationData: ObserverData['animation'], setProperty: SetProperty }> {
     animationState: ObserverData['animation'];
+
     shouldComponentUpdate(nextProps: Readonly<{ animationData: ObserverData['animation']; setProperty: SetProperty; }>): boolean {
         return JSON.stringify(nextProps.animationData) !== JSON.stringify(this.props.animationData);
     }

@@ -1,11 +1,12 @@
-import React, { useRef, useState } from 'react';
 import { Container, Label, Button, TextInput } from '@playcanvas/pcui/react';
+import React, { useRef, useState } from 'react';
 
-import { File, SetProperty } from '../types';
 import { version as appVersion } from '../../package.json';
+import { File, SetProperty } from '../types';
 
 const validUrl = (url: string) => {
     try {
+        /* eslint-disable-next-line no-new */
         new URL(url);
         return true;
     } catch {

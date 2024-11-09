@@ -1,11 +1,11 @@
-import React from 'react';
 import { Button } from '@playcanvas/pcui/react';
-import { SetProperty, ObserverData } from '../../types';
+import { UsdzExporter } from 'playcanvas';
+import React from 'react';
+
 import AnimationControls from './animation-controls';
 import { CameraPanel, SkyboxPanel, LightPanel, DebugPanel, ViewPanel } from './panels';
-// @ts-ignore no type defs included
-import { UsdzExporter } from 'playcanvas';
 import { addEventListenerOnClickOnly } from '../../helpers';
+import { SetProperty, ObserverData } from '../../types';
 
 const PopupPanelControls = (props: { observerData: ObserverData, setProperty: SetProperty }) => {
     return (<>
@@ -19,6 +19,7 @@ const PopupPanelControls = (props: { observerData: ObserverData, setProperty: Se
 
 class PopupButtonControls extends React.Component <{ observerData: ObserverData, setProperty: SetProperty }> {
     popupPanelElement: any;
+
     render() {
         let removeDeselectEvents: any;
         const handleClick = (value: string) => {
@@ -64,6 +65,7 @@ const toggleCollapsed = () => {
 
 class PopupPanel extends React.Component <{ observerData: ObserverData, setProperty: SetProperty }> {
     link: HTMLAnchorElement;
+
     usdzExporter: any;
 
     get hasArSupport() {
@@ -73,7 +75,7 @@ class PopupPanel extends React.Component <{ observerData: ObserverData, setPrope
     constructor(props: any) {
         super(props);
         this.link = (document.getElementById('ar-link') as HTMLAnchorElement);
-        if (this.link.relList.supports("ar") || (Boolean(window.webkit?.messageHandlers) && Boolean(/CriOS\/|EdgiOS\/|FxiOS\/|GSA\/|DuckDuckGo\//.test(navigator.userAgent)))) {
+        if (this.link.relList.supports('ar') || (Boolean(window.webkit?.messageHandlers) && Boolean(/CriOS\/|EdgiOS\/|FxiOS\/|GSA\/|DuckDuckGo\//.test(navigator.userAgent)))) {
             // @ts-ignore
             this.usdzExporter = new UsdzExporter();
         }
