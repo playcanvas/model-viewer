@@ -31,9 +31,7 @@ export default [
             'import/extensions': ['error', 'ignorePackages', {
                 'ts': 'never',
                 'tsx': 'never'
-            }],
-            'jsdoc/require-param-type': 'off',
-            'jsdoc/require-returns-type': 'off'
+            }]
         }
     }
 ];
