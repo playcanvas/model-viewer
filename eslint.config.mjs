@@ -28,7 +28,10 @@ export default [
             '@typescript-eslint/ban-ts-comment': 'off',
             '@typescript-eslint/no-explicit-any': 'off',
             '@typescript-eslint/no-unused-vars': 'off',
-            'import/extensions': 'off',
+            'import/extensions': ['error', 'ignorePackages', {
+                'ts': 'never',
+                'tsx': 'never'
+            }],
             'jsdoc/require-param-type': 'off',
             'jsdoc/require-returns-type': 'off'
         }
