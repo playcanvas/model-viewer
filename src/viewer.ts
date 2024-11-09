@@ -87,61 +87,109 @@ const FOCUS_FOV = 75;
 
 class Viewer {
     canvas: HTMLCanvasElement;
+
     app: App;
+
     skyboxUrls: Map<string, string>;
+
     controlEventKeys: string[] = null;
+
     pngExporter: PngExporter = null;
+
     prevCameraMat: Mat4;
+
     camera: Entity;
+
     initialCameraPosition: Vec3 | null;
+
     initialCameraFocus: Vec3 | null;
+
     light: Entity;
+
     sceneRoot: Entity;
+
     debugRoot: Entity;
+
     entities: Array<Entity>;
+
     entityAssets: Array<{ entity: Entity; asset: Asset }>;
+
     assets: Array<Asset>;
+
     meshInstances: Array<MeshInstance>;
+
     wireframeMeshInstances: Array<MeshInstance>;
+
     wireframeMaterial: StandardMaterial;
+
     animTracks: Array<AnimTrack>;
+
     animationMap: Record<string, string>;
+
     firstFrame: boolean;
+
     skyboxLoaded: boolean;
+
     animSpeed: number;
+
     animTransition: number;
+
     animLoops: number;
+
     showWireframe: boolean;
+
     showBounds: boolean;
+
     showSkeleton: boolean;
+
     showAxes: boolean;
+
     showGrid: boolean;
+
     normalLength: number;
+
     dirtyWireframe: boolean;
+
     dirtyBounds: boolean;
+
     dirtySkeleton: boolean;
+
     dirtyGrid: boolean;
+
     dirtyNormals: boolean;
+
     sceneBounds: BoundingBox;
+
     dynamicSceneBounds: BoundingBox;
+
     debugBounds: DebugLines;
+
     debugSkeleton: DebugLines;
+
     debugGrid: DebugLines;
+
     debugNormals: DebugLines;
+
     miniStats: MiniStats;
+
     observer: Observer;
+
     suppressAnimationProgressUpdate: boolean;
 
     selectedNode: GraphNode | null;
 
     multiframe: Multiframe | null;
+
     multiframeBusy = false;
+
     readDepth: ReadDepth = null;
+
     cursorWorld = new Vec3();
 
     loadTimestamp?: number = null;
 
     shadowCatcher: ShadowCatcher = null;
+
     xrMode: XRObjectPlacementController;
 
     canvasResize = true;
@@ -1062,18 +1110,18 @@ class Viewer {
             };
 
             const containerAsset = new Asset(gltfUrl.filename, 'container', gltfUrl, null, {
-                    // @ts-ignore TODO no definition in pc
-                    bufferView: {
-                        processAsync: processBufferView.bind(this)
-                    },
-                    image: {
-                        processAsync: processImage.bind(this),
-                        postprocess: postProcessImage
-                    },
-                    buffer: {
-                        processAsync: processBuffer.bind(this)
-                    }
+                // @ts-ignore TODO no definition in pc
+                bufferView: {
+                    processAsync: processBufferView.bind(this)
+                },
+                image: {
+                    processAsync: processImage.bind(this),
+                    postprocess: postProcessImage
+                },
+                buffer: {
+                    processAsync: processBuffer.bind(this)
                 }
+            }
             );
             containerAsset.on('load', () => resolve(containerAsset));
             containerAsset.on('error', (err: string) => reject(err));
@@ -1141,37 +1189,37 @@ class Viewer {
             });
 
             Promise.all(promises)
-                .then((assets: Asset[]) => {
-                    this.loadTimestamp = loadTimestamp;
+            .then((assets: Asset[]) => {
+                this.loadTimestamp = loadTimestamp;
 
-                    // add assets to the scene
-                    assets.forEach((asset) => {
-                        if (asset) {
-                            this.addToScene(asset);
-                        }
-                    });
-
-                    // prepare scene post load
-                    this.postSceneLoad();
-
-                    // update scene urls
-                    const urls = files.map(f => f.url);
-                    const filenames = files.map(f => f.filename.split('/').pop());
-                    if (resetScene) {
-                        this.observer.set('scene.urls', urls);
-                        this.observer.set('scene.filenames', filenames);
-                    } else {
-                        this.observer.set('scene.urls', this.observer.get('scene.urls').concat(urls));
-                        this.observer.set('scene.filenames', this.observer.get('scene.filenames').concat(filenames));
+                // add assets to the scene
+                assets.forEach((asset) => {
+                    if (asset) {
+                        this.addToScene(asset);
                     }
-                })
-                .catch((err) => {
-                    console.log(err);
-                    this.observer.set('ui.error', err?.toString() || err);
-                })
-                .finally(() => {
-                    this.observer.set('ui.spinner', false);
                 });
+
+                // prepare scene post load
+                this.postSceneLoad();
+
+                // update scene urls
+                const urls = files.map(f => f.url);
+                const filenames = files.map(f => f.filename.split('/').pop());
+                if (resetScene) {
+                    this.observer.set('scene.urls', urls);
+                    this.observer.set('scene.filenames', filenames);
+                } else {
+                    this.observer.set('scene.urls', this.observer.get('scene.urls').concat(urls));
+                    this.observer.set('scene.filenames', this.observer.get('scene.filenames').concat(filenames));
+                }
+            })
+            .catch((err) => {
+                console.log(err);
+                this.observer.set('ui.error', err?.toString() || err);
+            })
+            .finally(() => {
+                this.observer.set('ui.spinner', false);
+            });
         } else {
             // load skybox
             this.loadSkybox(files);
@@ -1589,10 +1637,10 @@ class Viewer {
     private postSceneLoad() {
         // construct a list of meshInstances so we can quickly access them when configuring wireframe rendering etc.
         this.meshInstances = this.entities
-            .map((entity) => {
-                return this.collectMeshInstances(entity);
-            })
-            .flat();
+        .map((entity) => {
+            return this.collectMeshInstances(entity);
+        })
+        .flat();
 
         // if no meshes are currently loaded, then enable skeleton rendering so user can see something
         if (this.meshInstances.length === 0) {

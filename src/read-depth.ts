@@ -47,11 +47,17 @@ const noBlend = new BlendState(false);
 // helper class for reading out the depth values from depth render targets.
 class ReadDepth {
     device: GraphicsDevice;
+
     shader: Shader;
+
     depthTexUniform: ScopeId;
+
     texcoordRangeUniform: ScopeId;
+
     pixels = new Uint8Array(4);
+
     texture: Texture = null;
+
     renderTarget: RenderTarget = null;
 
     constructor(device: GraphicsDevice) {

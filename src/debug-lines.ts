@@ -89,12 +89,19 @@ void main(void) {
 
 class DebugLines {
     app: App;
+
     mesh: Mesh;
+
     meshInstances: MeshInstance[];
+
     vertexFormat: VertexFormat;
+
     vertexCursor: number;
+
     vertexData: Float32Array;
+
     colorData: Uint32Array;
+
     depthState = new DepthState();
 
     constructor(app: App, camera: Entity, backLayer = true) {
