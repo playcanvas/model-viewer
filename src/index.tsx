@@ -223,7 +223,6 @@ const main = () => {
         lazyInit: true
     });
 
-    // @ts-ignore
     WasmModule.setConfig('DracoDecoderModule', {
         glueUrl: 'static/lib/draco/draco.wasm.js',
         wasmUrl: 'static/lib/draco/draco.wasm.wasm',
