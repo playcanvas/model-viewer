@@ -61,7 +61,7 @@ import {
     WebglGraphicsDevice
 } from 'playcanvas';
 // @ts-ignore
-import { MultiCamera } from 'playcanvas/scripts/camera/multi-camera.js';
+import { CameraControls } from 'playcanvas/scripts/esm/camera-controls.mjs';
 
 import { App } from './app';
 import { DebugLines } from './debug-lines';
@@ -194,7 +194,7 @@ class Viewer {
 
     canvasResize = true;
 
-    multiCamera: MultiCamera;
+    cameraControls: CameraControls;
 
     constructor(
         canvas: HTMLCanvasElement,
@@ -266,20 +266,27 @@ class Viewer {
 
         // create the camera
         const camera = new Entity('Camera');
+        camera.setPosition(0, 1, 10);
+        this.app.root.addChild(camera);
         camera.addComponent('camera', {
             fov: 75,
             frustumCulling: true,
             clearColor: new Color(0, 0, 0, 0)
         });
         camera.addComponent('script');
-        this.multiCamera = camera.script.create(MultiCamera);
+        this.cameraControls = camera.script.create(CameraControls, {
+            attributes: {
+                zoomMin: 0.001,
+                zoomMax: 10
+            }
+        });
         camera.camera.requestSceneColorMap(true);
 
         app.keyboard.on(EVENT_KEYDOWN, (event) => {
             switch (event.key) {
                 case KEY_F: {
                     this.focusSelection(false);
-                    this.multiCamera.resetZoom(this.getZoomDist());
+                    this.cameraControls.resetZoom(this.getZoomDist());
                     break;
                 }
             }
@@ -423,7 +430,7 @@ class Viewer {
                     this.camera.getWorldTransform().transformPoint(this.cursorWorld, this.cursorWorld); // world space
 
                     // focus on cursor
-                    this.multiCamera.focus(this.cursorWorld);
+                    this.cameraControls.focus(this.cursorWorld);
                 }
             });
         });
@@ -467,7 +474,7 @@ class Viewer {
             this.multiframe.blend = 0.5;
 
             // detach multi camera
-            this.multiCamera.detach();
+            this.cameraControls.detach();
         });
 
         events.on('xr:initial-place', () => {
@@ -482,7 +489,7 @@ class Viewer {
             this.setBackgroundColor(this.observer.get('skybox.backgroundColor'));
 
             // attach multicamera
-            this.multiCamera.attach(this.camera);
+            this.cameraControls.attach(this.camera);
 
             this.multiframe.blend = 1.0;
         });
@@ -779,13 +786,13 @@ class Viewer {
         const d2 = Math.tan(0.5 * camera.fov * math.DEG_TO_RAD);
 
         const scale = (d1 / d2) * (1 / camera.aspectRatio);
-        return scale * this.multiCamera.sceneSize + this.multiCamera.sceneSize;
+        return scale * this.cameraControls.sceneSize + this.cameraControls.sceneSize;
     }
 
     private focusSelection(calcStart = true) {
         // calculate scene bounding box
         this.calcSceneBounds(bbox, this.selectedNode as Entity);
-        this.multiCamera.sceneSize = bbox.halfExtents.length();
+        this.cameraControls.sceneSize = bbox.halfExtents.length();
 
         // calculate the camera focus point
         const focus = this.getFocusPosition(bbox);
@@ -800,11 +807,15 @@ class Viewer {
                 start.copy(focus);
                 start.z += this.getZoomDist();
             }
-        }
 
-        // focus orbit camera on object and set focus and sceneSize
-        this.multiCamera.sceneSize = bbox.halfExtents.length();
-        this.multiCamera.focus(focus, start);
+            // set initial camera position
+            this.camera.setPosition(start);
+
+            // refit camera clip planes
+            this.fitCameraClipPlanes();
+        }
+        
+        this.cameraControls.focus(focus, start);
     }
 
     destroyRenderTargets() {
@@ -1514,7 +1525,7 @@ class Viewer {
             ACES2: TONEMAP_ACES2
         };
 
-        this.app.scene.rendering.toneMapping = mapping.hasOwnProperty(tonemapping) ? mapping[tonemapping] : TONEMAP_ACES;
+        this.camera.camera.toneMapping = mapping.hasOwnProperty(tonemapping) ? mapping[tonemapping] : TONEMAP_ACES;
         this.renderNextFrame();
     }
 
@@ -1528,7 +1539,7 @@ class Viewer {
     update(deltaTime: number) {
         // update the orbit camera
         if (!this.xrMode?.active) {
-            this.multiCamera.update(deltaTime);
+            this.cameraControls.update(deltaTime);
         }
 
         const maxdiff = (a: Mat4, b: Mat4) => {
@@ -1723,7 +1734,7 @@ class Viewer {
         // set projective skybox radius
         this.setSkyboxDomeRadius(this.observer.get('skybox.domeProjection.domeRadius'));
 
-        // set camera clipping planes
+        // focus the camera on the scene
         this.focusSelection();
     }
 
