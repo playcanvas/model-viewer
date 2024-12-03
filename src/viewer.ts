@@ -58,7 +58,8 @@ import {
     TouchDevice,
     Vec3,
     Vec4,
-    WebglGraphicsDevice
+    WebglGraphicsDevice,
+    Vec2
 } from 'playcanvas';
 // @ts-ignore
 import { CameraControls } from 'playcanvas/scripts/esm/camera-controls.mjs';
@@ -277,7 +278,8 @@ class Viewer {
         this.cameraControls = camera.script.create(CameraControls, {
             attributes: {
                 zoomMin: 0.001,
-                zoomMax: 10
+                zoomMax: 10,
+                pitchRange: new Vec2(-90, 90)
             }
         });
         camera.camera.requestSceneColorMap(true);
