@@ -1,4 +1,4 @@
-import { AppBase } from "playcanvas";
+import { AppBase } from 'playcanvas';
 
 class DummyWebGPU {
     constructor(app: AppBase) {
@@ -61,7 +61,7 @@ class DummyWebGPU {
                 device.queue.submit([commandEncoder.finish()]);
             });
         })();
-    };
-};
+    }
+}
 
 export { DummyWebGPU };

@@ -816,7 +816,7 @@ class Viewer {
             // refit camera clip planes
             this.fitCameraClipPlanes();
         }
-        
+
         this.cameraControls.focus(focus, start);
     }
 
