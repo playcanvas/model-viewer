@@ -15,6 +15,7 @@ import initializeUI from './ui';
 import Viewer from './viewer';
 import './style.scss';
 import { version as modelViewerVersion } from '../package.json';
+import { DummyWebGPU } from './dummy-webgpu';
 
 // Permit some additional properties to be set on the window
 declare global {
@@ -315,6 +316,10 @@ const main = () => {
                     if (pos.length === 3) {
                         viewer.initialCameraFocus = new Vec3(pos);
                     }
+                    break;
+                }
+                case 'dummyWebGPU': {
+                    const dummy = new DummyWebGPU(viewer.app);
                     break;
                 }
                 default: {
