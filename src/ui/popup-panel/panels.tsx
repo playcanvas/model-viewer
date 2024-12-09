@@ -41,7 +41,7 @@ class CameraPanel extends React.Component <{
                     <Select
                         label='Tonemap'
                         type='string'
-                        options={['Linear', 'Filmic', 'Hejl', 'ACES', 'ACES2'].map(v => ({ v, t: v }))}
+                        options={['None', 'Linear', 'Neutral', 'Filmic', 'Hejl', 'ACES', 'ACES2'].map(v => ({ v, t: v }))}
                         value={props.observerData.camera.tonemapping}
                         setProperty={(value: number) => props.setProperty('camera.tonemapping', value)} />
                     <Select

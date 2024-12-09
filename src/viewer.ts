@@ -24,7 +24,9 @@ import {
     SORTMODE_BACK2FRONT,
     TEXTURETYPE_DEFAULT,
     TEXTURETYPE_RGBM,
+    TONEMAP_NONE,
     TONEMAP_LINEAR,
+    TONEMAP_NEUTRAL,
     TONEMAP_FILMIC,
     TONEMAP_HEJL,
     TONEMAP_ACES,
@@ -1520,7 +1522,9 @@ class Viewer {
 
     setTonemapping(tonemapping: string) {
         const mapping: Record<string, number> = {
+            None: TONEMAP_NONE,
             Linear: TONEMAP_LINEAR,
+            Neutral: TONEMAP_NEUTRAL,
             Filmic: TONEMAP_FILMIC,
             Hejl: TONEMAP_HEJL,
             ACES: TONEMAP_ACES,
