@@ -111,8 +111,6 @@ class ReadDepth {
             this.create();
         }
 
-        console.log(`tex=${this.texture.width}x${this.texture.height} depth=${depthTexture.width}x${depthTexture.height}`);
-
         const device = this.device;
         const tx = x + 0.5 / depthTexture.width;
         const ty = y + 0.5 / depthTexture.height;

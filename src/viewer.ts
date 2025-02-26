@@ -39,6 +39,7 @@ import {
     BlendState,
     BoundingBox,
     Color,
+    ContainerResource,
     Entity,
     EnvLighting,
     GraphicsDevice,
@@ -61,7 +62,9 @@ import {
     Vec3,
     Vec4,
     WebglGraphicsDevice,
-    Vec2
+    Vec2,
+    GSplatData,
+    GSplatResource
 } from 'playcanvas';
 // @ts-ignore
 import { CameraControls } from 'playcanvas/scripts/esm/camera-controls.mjs';
@@ -278,12 +281,13 @@ class Viewer {
         });
         camera.addComponent('script');
         this.cameraControls = camera.script.create(CameraControls, {
-            attributes: {
+            properties: {
                 zoomMin: 0.001,
                 zoomMax: 10,
                 pitchRange: new Vec2(-90, 90)
             }
         });
+
         camera.camera.requestSceneColorMap(true);
 
         app.keyboard.on(EVENT_KEYDOWN, (event) => {
@@ -696,7 +700,7 @@ class Viewer {
                 filename: files[0].filename
             });
             textureAsset.ready(() => {
-                const texture = textureAsset.resource;
+                const texture = textureAsset.resource as Texture;
                 if (texture.type === TEXTURETYPE_DEFAULT && texture.format === PIXELFORMAT_RGBA8) {
                     // assume RGBA data (pngs) are RGBM
                     texture.type = TEXTURETYPE_RGBM;
@@ -750,7 +754,7 @@ class Viewer {
             });
             cubemapAsset.loadFaces = true;
             cubemapAsset.on('load', () => {
-                this.initSkybox(cubemapAsset.resource);
+                this.initSkybox(cubemapAsset.resource as Texture);
             });
             app.assets.add(cubemapAsset);
             app.assets.load(cubemapAsset);
@@ -773,9 +777,9 @@ class Viewer {
             this.initialCameraFocus = null;
         } else {
             const entityAsset = this.entityAssets[0];
-            const splatData = entityAsset?.asset?.resource?.splatData;
+            const splatData = (entityAsset?.asset?.resource as GSplatResource)?.splatData as GSplatData;
             if (splatData) {
-                splatData.calcFocalPoint(focus);
+                splatData.calcFocalPoint(focus, () => true);
                 entityAsset.entity.getWorldTransform().transformPoint(focus, focus);
             } else {
                 focus.copy(bbox.center);
@@ -916,20 +920,24 @@ class Viewer {
 
         // update mesh stats
         this.assets.forEach((asset) => {
-            const resource = asset.resource;
+            if ((asset.resource as any).splatData) {
+                const resource = asset.resource as GSplatResource;
 
-            if (resource.splatData) {
                 meshCount++;
                 materialCount++;
                 primitiveCount += resource.splatData.numSplats;
                 vertexCount += resource.splatData.numSplats * 4;
                 meshVRAM += resource.splatData.numSplats * 64; // 16 * float32
             } else {
+                // ContainerResource type isn't picked up correctly for some reason
+                const resource = asset.resource as any;
+
                 variants = variants.concat(resource.getMaterialVariants() ?? []);
 
                 resource.renders.forEach((renderAsset: Asset) => {
-                    meshCount += renderAsset.resource.meshes.length;
-                    renderAsset.resource.meshes.forEach((mesh: Mesh) => {
+                    const res = renderAsset.resource as any;
+                    meshCount += res.meshes.length;
+                    res.meshes.forEach((mesh: Mesh) => {
                         vertexCount += mesh.vertexBuffer.getNumVertices();
 
                         const prim = mesh.primitive[0];
@@ -963,7 +971,7 @@ class Viewer {
                 materialCount += resource.materials.length ?? 0;
                 textureCount += resource.textures.length ?? 0;
                 (resource.textures ?? []).forEach((texture: Asset) => {
-                    textureVRAM += texture.resource.gpuSize;
+                    textureVRAM += (texture.resource as Texture).gpuSize;
                 });
             }
         });
@@ -1102,7 +1110,7 @@ class Viewer {
 
             const postProcessImage = (gltfImage: any, textureAsset: Asset) => {
                 // max anisotropy on all textures
-                textureAsset.resource.anisotropy = this.app.graphicsDevice.maxAnisotropy;
+                (textureAsset.resource as Texture).anisotropy = this.app.graphicsDevice.maxAnisotropy;
             };
 
             const processBuffer = function (gltfBuffer: any, continuation: (err: string, result: any) => void) {
@@ -1115,7 +1123,7 @@ class Viewer {
                         filename: u.filename
                     });
                     bufferAsset.on('load', () => {
-                        continuation(null, new Uint8Array(bufferAsset.resource));
+                        continuation(null, new Uint8Array(bufferAsset.resource as ArrayBuffer));
                     });
                     this.app.assets.add(bufferAsset);
                     this.app.assets.load(bufferAsset);
@@ -1342,8 +1350,9 @@ class Viewer {
     setSelectedVariant(variant: string) {
         if (variant) {
             this.entityAssets.forEach((entityAsset) => {
-                if (entityAsset.asset.resource.getMaterialVariants().indexOf(variant) !== -1) {
-                    entityAsset.asset.resource.applyMaterialVariant(entityAsset.entity, variant);
+                const resource = entityAsset.asset.resource as ContainerResource;
+                if (resource.getMaterialVariants().indexOf(variant) !== -1) {
+                    resource.applyMaterialVariant(entityAsset.entity, variant);
                 }
             });
             this.renderNextFrame();
@@ -1608,7 +1617,7 @@ class Viewer {
     // add a loaded asset to the scene
     // asset is a container asset with renders and/or animations
     private addToScene(asset: Asset) {
-        const resource = asset.resource;
+        const resource = asset.resource as any;
         const meshesLoaded = resource.renders && resource.renders.length > 0;
         const animsLoaded = resource.animations && resource.animations.length > 0;
         const prevEntity: Entity = this.entities.length === 0 ? null : this.entities[this.entities.length - 1];
@@ -1621,10 +1630,10 @@ class Viewer {
         } else {
             if (asset.type === 'container') {
                 // container/glb
-                entity = asset.resource.instantiateRenderEntity();
+                entity = resource.instantiateRenderEntity();
             } else {
                 // gaussian splat scene
-                entity = asset.resource.instantiate();
+                entity = resource.instantiate();
 
                 // render frame if gaussian splat sorter updates)
                 entity.gsplat.instance.sorter.on('updated', () => {
