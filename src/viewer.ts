@@ -291,8 +291,7 @@ class Viewer {
         app.keyboard.on(EVENT_KEYDOWN, (event) => {
             switch (event.key) {
                 case KEY_F: {
-                    this.focusSelection(false);
-                    // this.cameraControls.resetZoom(this.getZoomDist());
+                    this.focus(false);
                     break;
                 }
             }
@@ -768,50 +767,55 @@ class Viewer {
         };
     }
 
-    private getFocusPosition(bbox: BoundingBox) {
-        const focus = new Vec3();
+    private calcFocalPoint(bbox: BoundingBox) {
+        const point = new Vec3();
         if (this.initialCameraFocus) {
-            focus.copy(this.initialCameraFocus);
+            point.copy(this.initialCameraFocus);
             this.initialCameraFocus = null;
         } else {
             const entityAsset = this.entityAssets[0];
             const splatData = (entityAsset?.asset?.resource as GSplatResource)?.splatData as GSplatData;
             if (splatData) {
-                splatData.calcFocalPoint(focus, () => true);
-                entityAsset.entity.getWorldTransform().transformPoint(focus, focus);
+                splatData.calcFocalPoint(point, () => true);
+                entityAsset.entity.getWorldTransform().transformPoint(point, point);
             } else {
-                focus.copy(bbox.center);
+                point.copy(bbox.center);
             }
         }
-        return focus;
+        return point;
     }
 
-    private getZoomDist() {
+    private calcZoom(sceneSize: number) {
         const camera = this.camera.camera;
         const d1 = Math.tan(0.5 * FOCUS_FOV * math.DEG_TO_RAD);
         const d2 = Math.tan(0.5 * camera.fov * math.DEG_TO_RAD);
 
         const scale = (d1 / d2) * (1 / camera.aspectRatio);
-        return scale * this.cameraControls.sceneSize + this.cameraControls.sceneSize;
+        return scale * sceneSize + sceneSize;
     }
 
-    private focusSelection(calcStart = true) {
+    private focus(init: boolean) {
         // calculate scene bounding box
         this.calcSceneBounds(bbox, this.selectedNode as Entity);
+
+        // set scene size
         this.cameraControls.sceneSize = bbox.halfExtents.length();
 
-        // calculate the camera focus point
-        const focus = this.getFocusPosition(bbox);
+        // calculate the camera focal point
+        const focus = this.calcFocalPoint(bbox);
 
-        let start: Vec3 | null = null;
-        if (calcStart) {
-            start = new Vec3();
+        // calculate zoom
+        const zoom = this.calcZoom(this.cameraControls.sceneSize);
+
+        // calculate start position
+        const start = new Vec3();
+        if (init) {
             if (this.initialCameraPosition) {
                 start.copy(this.initialCameraPosition);
                 this.initialCameraPosition = null;
             } else {
                 start.copy(focus);
-                start.z += this.getZoomDist();
+                start.z += zoom;
             }
 
             // set initial camera position
@@ -819,6 +823,8 @@ class Viewer {
 
             // refit camera clip planes
             this.fitCameraClipPlanes();
+        } else {
+            start.copy(this.camera.forward).mulScalar(-zoom).add(focus);
         }
 
         this.cameraControls.reset(focus, start);
@@ -1748,7 +1754,7 @@ class Viewer {
         this.setSkyboxDomeRadius(this.observer.get('skybox.domeProjection.domeRadius'));
 
         // focus the camera on the scene
-        this.focusSelection();
+        this.focus(true);
     }
 
     // rebuild the animation state graph
