@@ -259,28 +259,9 @@ class CameraControls {
 
     /**
      * @param point - The focus point.
-     * @param resetZoom - Whether to reset the zoom.
-     */
-    focus(point: Vec3, resetZoom: boolean = false) {
-        this.mode = CameraControlsMode.ORBIT;
-
-        if (this._model instanceof OrbitModel) {
-            if (resetZoom) {
-                const start = tmpV1.copy(this._camera.entity.forward)
-                .mulScalar(-this._startZoomDist)
-                .add(point);
-                this._model.focus(point, start);
-            } else {
-                this._model.focus(point);
-            }
-        }
-    }
-
-    /**
-     * @param point - The focus point.
      * @param start - The start point.
      */
-    reset(point: Vec3, start: Vec3) {
+    focus(point: Vec3, start?: Vec3) {
         this.mode = CameraControlsMode.ORBIT;
 
         if (this._model instanceof OrbitModel) {

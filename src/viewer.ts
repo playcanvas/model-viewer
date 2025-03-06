@@ -476,9 +476,6 @@ class Viewer {
             this.app.scene.layers.getLayerById(LAYERID_SKYBOX).enabled = false;
 
             this.multiframe.blend = 0.5;
-
-            // detach multi camera
-            // this.cameraControls.detach();
         });
 
         events.on('xr:initial-place', () => {
@@ -491,9 +488,6 @@ class Viewer {
 
             // background color isn't correctly restored
             this.setBackgroundColor(this.observer.get('skybox.backgroundColor'));
-
-            // attach multicamera
-            // this.cameraControls.attach(this.camera);
 
             this.multiframe.blend = 1.0;
         });
@@ -826,7 +820,7 @@ class Viewer {
             start.copy(this.camera.forward).mulScalar(-zoom).add(focus);
         }
 
-        this.cameraControls.reset(focus, start);
+        this.cameraControls.focus(focus, start);
     }
 
     destroyRenderTargets() {
