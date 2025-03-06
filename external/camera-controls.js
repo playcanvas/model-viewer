@@ -180,7 +180,7 @@ class CameraControls {
      * @param {Object} options - The options.
      * @param {AppBase} options.app - The application.
      * @param {CameraComponent} options.camera - The camera.
-     * @param {string} options.mode - The mode.
+     * @param {string} [options.mode] - The mode.
      * @param {Vec3} [options.focus] - The focus.
      * @param {number} [options.sceneSize] - The scene size.
      * @param {boolean} [options.doubleStick] - Whether to use double stick.
