@@ -66,8 +66,6 @@ import {
     GSplatData,
     GSplatResource
 } from 'playcanvas';
-// @ts-ignore
-import { CameraControls } from 'playcanvas/scripts/esm/camera-controls.mjs';
 
 import { App } from './app';
 import { DebugLines } from './debug-lines';
@@ -80,6 +78,7 @@ import arCloseImage from './svg/ar-close.svg';
 import arModeImage from './svg/ar-mode.svg';
 import { File, HierarchyNode, MorphTargetData } from './types';
 import { XRObjectPlacementController } from './xr-mode';
+import { CameraControls } from '../external/camera-controls.js';
 import { MeshoptDecoder } from '../lib/meshopt_decoder.module.js';
 
 // model filename extensions
@@ -279,14 +278,13 @@ class Viewer {
             frustumCulling: true,
             clearColor: new Color(0, 0, 0, 0)
         });
-        camera.addComponent('script');
-        this.cameraControls = camera.script.create(CameraControls, {
-            properties: {
-                zoomMin: 0.001,
-                zoomMax: 10,
-                pitchRange: new Vec2(-90, 90)
-            }
+        this.cameraControls = new CameraControls({
+            app,
+            camera: camera.camera,
+            mode: CameraControls.MODE_ORBIT
         });
+        this.cameraControls.zoomRange = new Vec2(0.001, 10);
+        this.cameraControls.pitchRange = new Vec2(-90, 90);
 
         camera.camera.requestSceneColorMap(true);
 
@@ -294,7 +292,7 @@ class Viewer {
             switch (event.key) {
                 case KEY_F: {
                     this.focusSelection(false);
-                    this.cameraControls.resetZoom(this.getZoomDist());
+                    // this.cameraControls.resetZoom(this.getZoomDist());
                     break;
                 }
             }
@@ -482,7 +480,7 @@ class Viewer {
             this.multiframe.blend = 0.5;
 
             // detach multi camera
-            this.cameraControls.detach();
+            // this.cameraControls.detach();
         });
 
         events.on('xr:initial-place', () => {
@@ -497,7 +495,7 @@ class Viewer {
             this.setBackgroundColor(this.observer.get('skybox.backgroundColor'));
 
             // attach multicamera
-            this.cameraControls.attach(this.camera);
+            // this.cameraControls.attach(this.camera);
 
             this.multiframe.blend = 1.0;
         });
@@ -823,7 +821,7 @@ class Viewer {
             this.fitCameraClipPlanes();
         }
 
-        this.cameraControls.focus(focus, start);
+        this.cameraControls.reset(focus, start);
     }
 
     destroyRenderTargets() {
