@@ -278,16 +278,7 @@ class CameraControls {
         // desktop input
         if (this._input instanceof KeyboardMouseInput) {
             const { key, button, mouse, wheel } = this._input.frame();
-            const [
-                forward,
-                back,
-                left,
-                right,
-                up,
-                down,
-                shift,
-                ctrl
-            ] = key;
+            const [forward, back, left, right, up, down, shift, ctrl] = key;
 
             // left mouse button, middle mouse button, mouse wheel
             const switchToOrbit = button[0] === 1 || button[1] === 1 || wheel[0] !== 0;
