@@ -82,13 +82,11 @@ export default {
         resolve(),
         typescript({
             compilerOptions: {
-                allowJs: false,
                 baseUrl: '.',
-                esModuleInterop: true,
                 paths: {
                     'playcanvas': [ENGINE_DIR],
                     '@playcanvas/pcui': [PCUI_DIR]
-                },
+                }
             }
         }),
         json(),

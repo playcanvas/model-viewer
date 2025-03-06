@@ -68,6 +68,7 @@ import {
 } from 'playcanvas';
 
 import { App } from './app';
+import { CameraControls } from './camera-controls';
 import { DebugLines } from './debug-lines';
 import { CreateDropHandler } from './drop-handler';
 import { Multiframe } from './multiframe';
@@ -78,7 +79,6 @@ import arCloseImage from './svg/ar-close.svg';
 import arModeImage from './svg/ar-mode.svg';
 import { File, HierarchyNode, MorphTargetData } from './types';
 import { XRObjectPlacementController } from './xr-mode';
-import { CameraControls } from '../external/camera-controls.js';
 import { MeshoptDecoder } from '../lib/meshopt_decoder.module.js';
 
 // model filename extensions
@@ -280,8 +280,7 @@ class Viewer {
         });
         this.cameraControls = new CameraControls({
             app,
-            camera: camera.camera,
-            mode: CameraControls.MODE_ORBIT
+            camera: camera.camera
         });
         this.cameraControls.zoomRange = new Vec2(0.001, 10);
         this.cameraControls.pitchRange = new Vec2(-90, 90);

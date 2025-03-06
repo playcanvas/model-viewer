@@ -3,7 +3,10 @@ import {
     Mat4,
     Vec2,
     Vec3,
-    math
+    math,
+    type AppBase,
+    type CameraComponent,
+    type EventHandler
 } from 'playcanvas';
 
 import {
@@ -13,9 +16,8 @@ import {
     KeyboardMouseInput,
     MultiTouchInput,
     OrbitModel
-} from './extras/index.js';
-
-/** @import { AppBase, CameraComponent, EventHandler } from 'playcanvas' */
+// @ts-ignore
+} from '../extras/index.js';
 
 const tmpM1 = new Mat4();
 const tmpVa = new Vec2();
@@ -25,167 +27,91 @@ const ZOOM_SCALE_MULT = 10;
 const JOYSTICK_BASE_SIZE = 100;
 const JOYSTICK_STICK_SIZE = 60;
 
+enum CameraControlsMode {
+    FLY = 'fly',
+    ORBIT = 'orbit'
+}
+
+type CameraControlsOptions = {
+    app: AppBase,
+    camera: CameraComponent,
+    mode?: CameraControlsMode
+    focus?: Vec3,
+    sceneSize?: number,
+    doubleStick?: boolean
+};
+
 class CameraControls {
-    /**
-     * @type {string}
-     * @static
-     */
-    static MODE_FLY = 'fly';
+    private _app: AppBase;
+
+    private _camera: CameraComponent;
+
+    private _startZoomDist: number = 0;
+
+    private _desktopInput: KeyboardMouseInput;
+
+    private _orbitMobileInput: MultiTouchInput;
+
+    private _flyMobileInput: JoystickTouchInput | JoystickDoubleInput;
+
+    private _input: KeyboardMouseInput | JoystickDoubleInput | JoystickTouchInput | MultiTouchInput;
+
+    private _flyModel: FlyModel;
+
+    private _orbitModel: OrbitModel;
+
+    private _model: FlyModel | OrbitModel;
+
+    private _mode: CameraControlsMode;
+
+    private _state: {
+        axis: Vec3,
+        shift: number,
+        ctrl: number,
+        mouse: number[],
+        touches: number
+    } = {
+            axis: new Vec3(),
+            shift: 0,
+            ctrl: 0,
+            mouse: [0, 0, 0],
+            touches: 0
+        };
+
+    enableFly: boolean = true;
+
+    enableOrbit: boolean = true;
+
+    enablePanning: boolean = true;
+
+    sceneSize: number = 100;
+
+    rotateSpeed: number = 0.2;
+
+    rotateJoystickSens: number = 2;
+
+    moveSpeed: number = 2;
+
+    moveFastSpeed: number = 4;
+
+    moveSlowSpeed: number = 1;
+
+    zoomSpeed: number = 0.005;
+
+    zoomPinchSens: number = 5;
+
+    zoomScaleMin: number;
 
     /**
-     * @type {string}
-     * @static
+     * @param options - The options.
+     * @param options.app - The application.
+     * @param options.camera - The camera.
+     * @param options.mode - The mode.
+     * @param options.focus - The focus.
+     * @param options.sceneSize - The scene size.
+     * @param options.doubleStick - Whether to use double stick.
      */
-    static MODE_ORBIT = 'orbit';
-
-    /**
-     * @type {AppBase}
-     * @private
-     */
-    _app;
-
-    /**
-     * @type {CameraComponent}
-     * @private
-     */
-    _camera;
-
-    /**
-     * @type {number}
-     * @private
-     */
-    _startZoomDist = 0;
-
-    /**
-     * @type {KeyboardMouseInput}
-     * @private
-     */
-    _desktopInput;
-
-    /**
-     * @type {MultiTouchInput}
-     * @private
-     */
-    _orbitMobileInput;
-
-    /**
-     * @type {JoystickTouchInput | JoystickDoubleInput}
-     * @private
-     */
-    _flyMobileInput;
-
-    /**
-     * @type {KeyboardMouseInput|JoystickDoubleInput|JoystickTouchInput|MultiTouchInput}
-     * @private
-     */
-    _input;
-
-    /**
-     * @type {FlyModel}
-     * @private
-     */
-    _flyModel;
-
-    /**
-     * @type {OrbitModel}
-     * @private
-     */
-    _orbitModel;
-
-    /**
-     * @type {FlyModel|OrbitModel}
-     * @private
-     */
-    _model;
-
-    /**
-     * @type {string}
-     * @private
-     */
-    _mode;
-
-    /**
-     * @type {{ axis: Vec3, shift: number, ctrl: number, mouse: number[], touches: 0 }}
-     * @private
-     */
-    _state = {
-        axis: new Vec3(),
-        shift: 0,
-        ctrl: 0,
-        mouse: [0, 0, 0],
-        touches: 0
-    };
-
-    /**
-     * @type {boolean}
-     */
-    enableFly = true;
-
-    /**
-     * @type {boolean}
-     */
-    enableOrbit = true;
-
-    /**
-     * @type {boolean}
-     */
-    enablePanning = true;
-
-    /**
-     * @type {number}
-     */
-    sceneSize = 100;
-
-    /**
-     * @type {number}
-     */
-    rotateSpeed = 0.2;
-
-    /**
-     * @type {number}
-     */
-    rotateJoystickSens = 2;
-
-    /**
-     * @type {number}
-     */
-    moveSpeed = 2;
-
-    /**
-     * @type {number}
-     */
-    moveFastSpeed = 4;
-
-    /**
-     * @type {number}
-     */
-    moveSlowSpeed = 1;
-
-    /**
-     * @type {number}
-     */
-    zoomSpeed = 0.005;
-
-    /**
-     * @type {number}
-     */
-    zoomPinchSens = 5;
-
-    /**
-     * @type {number}
-     */
-    zoomScaleMin;
-
-    /**
-     * @param {Object} options - The options.
-     * @param {AppBase} options.app - The application.
-     * @param {CameraComponent} options.camera - The camera.
-     * @param {string} [options.mode] - The mode.
-     * @param {Vec3} [options.focus] - The focus.
-     * @param {number} [options.sceneSize] - The scene size.
-     * @param {boolean} [options.doubleStick] - Whether to use double stick.
-     */
-    constructor({ app, camera, mode, focus, sceneSize, doubleStick }) {
+    constructor({ app, camera, mode, focus, sceneSize, doubleStick }: CameraControlsOptions) {
         this._app = app;
         this._camera = camera;
 
@@ -211,7 +137,7 @@ class CameraControls {
         this.sceneSize = sceneSize ?? this.sceneSize;
 
         // mode
-        this.mode = mode ?? CameraControls.MODE_ORBIT;
+        this.mode = mode ?? CameraControlsMode.ORBIT;
 
         // ui
         if (this._flyMobileInput instanceof JoystickDoubleInput) {
@@ -223,7 +149,7 @@ class CameraControls {
     }
 
     set focusPoint(point) {
-        this.mode = CameraControls.MODE_ORBIT;
+        this.mode = CameraControlsMode.ORBIT;
 
         if (this._model instanceof OrbitModel) {
             const start = this._camera.entity.getPosition();
@@ -233,7 +159,7 @@ class CameraControls {
     }
 
     get focusPoint() {
-        this.mode = CameraControls.MODE_ORBIT;
+        this.mode = CameraControlsMode.ORBIT;
 
         if (this._model instanceof OrbitModel) {
             return this._model.point;
@@ -248,10 +174,10 @@ class CameraControls {
 
         // mode validation
         if (this.mode) {
-            if (mode === CameraControls.MODE_FLY && !this.enableFly) {
+            if (mode === CameraControlsMode.FLY && !this.enableFly) {
                 return;
             }
-            if (mode === CameraControls.MODE_ORBIT && !this.enableOrbit) {
+            if (mode === CameraControlsMode.ORBIT && !this.enableOrbit) {
                 return;
             }
 
@@ -263,11 +189,11 @@ class CameraControls {
                     break;
                 }
                 case this.enableFly && !this.enableOrbit: {
-                    this._mode = CameraControls.MODE_FLY;
+                    this._mode = CameraControlsMode.FLY;
                     break;
                 }
                 case !this.enableFly && this.enableOrbit: {
-                    this._mode = CameraControls.MODE_ORBIT;
+                    this._mode = CameraControlsMode.ORBIT;
                     break;
                 }
                 case !this.enableFly && !this.enableOrbit: {
@@ -279,7 +205,7 @@ class CameraControls {
 
         // determine input and model
         let input, model;
-        if (this._mode === CameraControls.MODE_FLY) {
+        if (this._mode === CameraControlsMode.FLY) {
             input = platform.mobile ? this._flyMobileInput : this._desktopInput;
             model = this._flyModel;
         } else {
@@ -379,12 +305,11 @@ class CameraControls {
     }
 
     /**
-     * @param {EventHandler} joystick - The joystick.
-     * @param {number} baseSize - The base size.
-     * @param {number} stickSize - The stick size.
-     * @private
+     * @param joystick - The joystick.
+     * @param baseSize - The base size.
+     * @param stickSize - The stick size.
      */
-    _createJoystickUI(joystick, baseSize, stickSize) {
+    private _createJoystickUI(joystick: EventHandler, baseSize: number, stickSize: number) {
         const base = document.createElement('div');
         Object.assign(base.style, {
             display: 'none',
@@ -432,11 +357,11 @@ class CameraControls {
     }
 
     /**
-     * @param {Vec3} move - The move delta.
-     * @returns {Vec3} The scaled delta.
+     * @param move - The move delta.
+     * @returns The scaled delta.
      * @private
      */
-    _scaleMove(move) {
+    private _scaleMove(move: Vec3) {
         const speed = this._state.shift ?
             this.moveFastSpeed : this._state.ctrl ?
                 this.moveSlowSpeed : this.moveSpeed;
@@ -444,11 +369,11 @@ class CameraControls {
     }
 
     /**
-     * @param {number} zoom - The delta.
-     * @returns {number} The scaled delta.
+     * @param zoom - The delta.
+     * @returns The scaled delta.
      * @private
      */
-    _scaleZoom(zoom) {
+    private _scaleZoom(zoom: number) {
         if (!(this._model instanceof OrbitModel)) {
             return 0;
         }
@@ -458,11 +383,11 @@ class CameraControls {
     }
 
     /**
-     * @param {Vec3} point - The focus point.
-     * @param {boolean} [resetZoom] - Whether to reset the zoom.
+     * @param point - The focus point.
+     * @param resetZoom - Whether to reset the zoom.
      */
-    focus(point, resetZoom = false) {
-        this.mode = CameraControls.MODE_ORBIT;
+    focus(point: Vec3, resetZoom: boolean = false) {
+        this.mode = CameraControlsMode.ORBIT;
 
         if (this._model instanceof OrbitModel) {
             if (resetZoom) {
@@ -477,11 +402,11 @@ class CameraControls {
     }
 
     /**
-     * @param {Vec3} point - The focus point.
-     * @param {boolean} [resetZoom] - Whether to reset the zoom.
+     * @param point - The focus point.
+     * @param resetZoom - Whether to reset the zoom.
      */
-    look(point, resetZoom = false) {
-        this.mode = CameraControls.MODE_ORBIT;
+    look(point: Vec3, resetZoom: boolean = false) {
+        this.mode = CameraControlsMode.ORBIT;
 
         if (this._model instanceof OrbitModel) {
             if (resetZoom) {
@@ -498,11 +423,11 @@ class CameraControls {
     }
 
     /**
-     * @param {Vec3} point - The focus point.
-     * @param {Vec3} start - The start point.
+     * @param point - The focus point.
+     * @param start - The start point.
      */
-    reset(point, start) {
-        this.mode = CameraControls.MODE_ORBIT;
+    reset(point: Vec3, start: Vec3) {
+        this.mode = CameraControlsMode.ORBIT;
 
         if (this._model instanceof OrbitModel) {
             this._model.focus(point, start);
@@ -510,9 +435,9 @@ class CameraControls {
     }
 
     /**
-     * @param {number} dt - The time delta.
+     * @param dt - The time delta.
      */
-    update(dt) {
+    update(dt: number) {
         if (this._app.xr?.active) {
             return;
         }
@@ -539,9 +464,9 @@ class CameraControls {
                 forward === 1 || back === 1 || left === 1 || right === 1 || up === 1 || down === 1;
 
             if (switchToOrbit) {
-                this.mode = CameraControls.MODE_ORBIT;
+                this.mode = CameraControlsMode.ORBIT;
             } else if (switchToFly) {
-                this.mode = CameraControls.MODE_FLY;
+                this.mode = CameraControlsMode.FLY;
             }
 
             // update state
