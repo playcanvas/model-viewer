@@ -119,17 +119,17 @@ class CameraControls {
         // determine input and model
         let input, model;
         if (platform.mobile) {
+            this._mode = CameraControlsMode.ORBIT;
             input = this._mobileInput;
             model = this._orbitModel;
-            this._mode = CameraControlsMode.ORBIT;
         } else {
+            this._mode = mode;
             input = this._desktopInput;
             if (this._mode === CameraControlsMode.FLY) {
                 model = this._flyModel;
             } else {
                 model = this._orbitModel;
             }
-            this._mode = mode;
         }
 
         // NOTE: save zoom as attach will reset it
@@ -234,7 +234,6 @@ class CameraControls {
     /**
      * @param move - The move delta.
      * @returns The scaled delta.
-     * @private
      */
     private _scaleMove(move: Vec3) {
         const speed = this._state.shift ?
@@ -246,7 +245,6 @@ class CameraControls {
     /**
      * @param zoom - The delta.
      * @returns The scaled delta.
-     * @private
      */
     private _scaleZoom(zoom: number) {
         if (!(this._model instanceof OrbitModel)) {

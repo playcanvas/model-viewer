@@ -800,26 +800,18 @@ class Viewer {
         // calculate zoom
         const zoom = this.calcZoom(this.cameraControls.sceneSize);
 
-        // calculate start position
-        const start = new Vec3();
-        if (init) {
-            if (this.initialCameraPosition) {
-                start.copy(this.initialCameraPosition);
-                this.initialCameraPosition = null;
-            } else {
-                start.copy(focus);
-                start.z += zoom;
-            }
+        // check for initial camera position
+        if (this.initialCameraPosition) {
+            const start = this.initialCameraPosition.clone();
+            this.initialCameraPosition = null;
 
-            // set initial camera position
-            this.camera.setPosition(start);
-
-            // refit camera clip planes
-            this.fitCameraClipPlanes();
-        } else {
-            start.copy(this.camera.forward).mulScalar(-zoom).add(focus);
+            this.cameraControls.focus(focus, start);
+            return;
         }
 
+        // focus the camera
+        const forward = init ? Vec3.FORWARD : this.camera.forward;
+        const start = forward.clone().mulScalar(-zoom).add(focus);
         this.cameraControls.focus(focus, start);
     }
 
@@ -1748,6 +1740,9 @@ class Viewer {
 
         // focus the camera on the scene
         this.focus(true);
+
+        // refit camera clip planes
+        this.fitCameraClipPlanes();
     }
 
     // rebuild the animation state graph
