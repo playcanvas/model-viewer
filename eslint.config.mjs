@@ -6,7 +6,7 @@ import globals from 'globals';
 export default [
     ...playcanvasConfig,
     {
-        files: ['**/*.ts', '**/*.tsx', '**/*.js'],
+        files: ['**/*.ts', '**/*.tsx'],
         languageOptions: {
             parser: tsParser,
             globals: {
@@ -29,11 +29,11 @@ export default [
         }
     },
     {
-        files: ['**/*.mjs'],
+        files: ['**/*.js', '**/*.mjs'],
         languageOptions: {
             parser: 'babel-eslint',
-            parserOptions: {
-                sourceType: 'module'
+            globals: {
+                ...globals.browser
             }
         }
     }
