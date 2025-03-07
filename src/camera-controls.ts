@@ -325,22 +325,19 @@ class CameraControls {
             }
         }
 
-        // orbit only input
-        if (this._model instanceof OrbitModel) {
-            // orbit mobile
-            if (this._input instanceof MultiTouchInput) {
-                const { touch, pinch, count } = this._input.frame();
-                this._state.touches += count[0];
+        // orbit mobile
+        if (this._input instanceof MultiTouchInput && this._model instanceof OrbitModel) {
+            const { touch, pinch, count } = this._input.frame();
+            this._state.touches += count[0];
 
-                const pan = this._state.touches > 1;
-                tmpM1.copy(this._model.update({
-                    drag: tmpVa.fromArray(touch).mulScalar(pan ? 1 : this.rotateSpeed),
-                    zoom: this._scaleZoom(pinch[0]) * this.zoomPinchSens,
-                    pan
-                }, this._camera, dt));
+            const pan = this._state.touches > 1;
+            tmpM1.copy(this._model.update({
+                drag: tmpVa.fromArray(touch).mulScalar(pan ? 1 : this.rotateSpeed),
+                zoom: this._scaleZoom(pinch[0]) * this.zoomPinchSens,
+                pan
+            }, this._camera, dt));
 
-                this._updateTransform(tmpM1);
-            }
+            this._updateTransform(tmpM1);
         }
     }
 
