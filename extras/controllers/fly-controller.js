@@ -1,6 +1,6 @@
 import { math, Vec2, Vec3, Quat } from 'playcanvas';
 
-import { Model } from './model.js';
+import { Controller } from './controller.js';
 
 /** @import { Mat4 } from '../../core/math/mat4.js'; */
 
@@ -23,7 +23,7 @@ const tmpQ1 = new Quat();
  */
 const lerpRate = (damping, dt) => 1 - Math.pow(damping, dt * 1000);
 
-class FlyModel extends Model {
+class FlyController extends Controller {
     /**
      * @private
      * @type {Vec3}
@@ -194,4 +194,4 @@ class FlyModel extends Model {
     }
 }
 
-export { FlyModel };
+export { FlyController };

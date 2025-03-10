@@ -9,10 +9,10 @@ import {
 } from 'playcanvas';
 
 import {
-    FlyModel,
     KeyboardMouseInput,
     MultiTouchInput,
-    OrbitModel
+    FlyController,
+    OrbitController
 // @ts-ignore
 } from '../extras/index.js';
 
@@ -32,12 +32,18 @@ type CameraControlsOptions = {
     camera: CameraComponent,
 };
 
+type CameraControlsState = {
+    axis: Vec3,
+    shift: number,
+    ctrl: number,
+    mouse: number[],
+    touches: number
+}
+
 class CameraControls {
     private _app: AppBase;
 
     private _camera: CameraComponent;
-
-    private _startZoomDist: number = 0;
 
     private _desktopInput: KeyboardMouseInput;
 
@@ -45,27 +51,21 @@ class CameraControls {
 
     private _input: KeyboardMouseInput | MultiTouchInput;
 
-    private _flyModel: FlyModel;
+    private _flyModel: FlyController;
 
-    private _orbitModel: OrbitModel;
+    private _orbitModel: OrbitController;
 
-    private _model: FlyModel | OrbitModel;
+    private _model: FlyController | OrbitController;
 
     private _mode: CameraControlsMode;
 
-    private _state: {
-        axis: Vec3,
-        shift: number,
-        ctrl: number,
-        mouse: number[],
-        touches: number
-    } = {
-            axis: new Vec3(),
-            shift: 0,
-            ctrl: 0,
-            mouse: [0, 0, 0],
-            touches: 0
-        };
+    private _state: CameraControlsState = {
+        axis: new Vec3(),
+        shift: 0,
+        ctrl: 0,
+        mouse: [0, 0, 0],
+        touches: 0
+    };
 
     sceneSize: number = 100;
 
@@ -104,8 +104,8 @@ class CameraControls {
         this._mobileInput = new MultiTouchInput();
 
         // models
-        this._flyModel = new FlyModel();
-        this._orbitModel = new OrbitModel();
+        this._flyModel = new FlyController();
+        this._orbitModel = new OrbitController();
 
         // mode
         this.mode = CameraControlsMode.ORBIT;
@@ -161,7 +161,7 @@ class CameraControls {
         }
 
         // refocus if orbit mode
-        if (this._model instanceof OrbitModel) {
+        if (this._model instanceof OrbitController) {
             const start = this._camera.entity.getPosition();
             const point = tmpV1.copy(this._camera.entity.forward).mulScalar(currZoomDist).add(start);
             this._model.focus(point, start, false);
@@ -247,7 +247,7 @@ class CameraControls {
      * @returns The scaled delta.
      */
     private _scaleZoom(zoom: number) {
-        if (!(this._model instanceof OrbitModel)) {
+        if (!(this._model instanceof OrbitController)) {
             return 0;
         }
         const norm = this._model.zoom / (ZOOM_SCALE_MULT * this.sceneSize);
@@ -262,7 +262,7 @@ class CameraControls {
     focus(point: Vec3, start?: Vec3) {
         this.mode = CameraControlsMode.ORBIT;
 
-        if (this._model instanceof OrbitModel) {
+        if (this._model instanceof OrbitController) {
             this._model.focus(point, start);
         }
     }
@@ -301,7 +301,7 @@ class CameraControls {
                 this._state.mouse[i] += button[i];
             }
 
-            if (this._model instanceof OrbitModel) {
+            if (this._model instanceof OrbitController) {
                 // pan shift or middle mouse button
                 const pan = !!this._state.shift || !!this._state.mouse[1];
                 tmpM1.copy(this._model.update({
@@ -314,7 +314,7 @@ class CameraControls {
                 return;
             }
 
-            if (this._model instanceof FlyModel) {
+            if (this._model instanceof FlyController) {
                 tmpM1.copy(this._model.update({
                     rotate: tmpVa.fromArray(mouse).mulScalar(this.rotateSpeed),
                     move: this._scaleMove(tmpV1.copy(this._state.axis).normalize())
@@ -326,7 +326,7 @@ class CameraControls {
         }
 
         // orbit mobile
-        if (this._input instanceof MultiTouchInput && this._model instanceof OrbitModel) {
+        if (this._input instanceof MultiTouchInput && this._model instanceof OrbitController) {
             const { touch, pinch, count } = this._input.frame();
             this._state.touches += count[0];
 

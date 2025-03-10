@@ -1,6 +1,6 @@
 import { math, Vec2, Vec3, Quat, Mat4, Plane, Ray } from 'playcanvas';
 
-import { Model } from './model.js';
+import { Controller } from './controller.js';
 
 /**
  * @import { CameraComponent } from '../../framework/components/camera/component.js'
@@ -29,7 +29,7 @@ const EPSILON = 0.001;
  */
 const lerpRate = (damping, dt) => 1 - Math.pow(damping, dt * 1000);
 
-class OrbitModel extends Model {
+class OrbitController extends Controller {
     /**
      * @type {boolean}
      * @private
@@ -384,4 +384,4 @@ class OrbitModel extends Model {
     }
 }
 
-export { OrbitModel };
+export { OrbitController };
