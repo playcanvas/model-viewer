@@ -89,6 +89,7 @@ const vec = new Vec3();
 const bbox = new BoundingBox();
 
 const FOCUS_FOV = 75;
+const ZOOM_SCALE_MIN = 0.01;
 
 class Viewer {
     canvas: HTMLCanvasElement;
@@ -282,7 +283,7 @@ class Viewer {
             app,
             camera: camera.camera
         });
-        this.cameraControls.zoomRange = new Vec2(0.01, 10);
+        this.cameraControls.zoomRange = new Vec2(ZOOM_SCALE_MIN, Infinity);
         this.cameraControls.pitchRange = new Vec2(-90, 90);
 
         camera.camera.requestSceneColorMap(true);
@@ -793,6 +794,7 @@ class Viewer {
 
         // set scene size
         this.cameraControls.sceneSize = bbox.halfExtents.length();
+        this.cameraControls.zoomRange = new Vec2(ZOOM_SCALE_MIN, 10 * this.cameraControls.sceneSize);
 
         // calculate the camera focal point
         const focus = this.calcFocalPoint(bbox);
