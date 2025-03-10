@@ -115,7 +115,9 @@ class CameraControls {
 
         // input
         this._desktopInput = new KeyboardMouseInput();
+        this._desktopInput.attach(this._app.graphicsDevice.canvas);
         this._mobileInput = new MultiTouchInput();
+        this._mobileInput.attach(this._app.graphicsDevice.canvas);
 
         // models
         this._flyController = new FlyController();
@@ -129,20 +131,7 @@ class CameraControls {
         if (this._mode === mode) {
             return;
         }
-
-        if (this.mode) {
-            // validate mode switch
-            this._mode = mode;
-        } else {
-            // set initial mode
-            this._mode = mode;
-
-            // desktop input attach
-            this._desktopInput.attach(this._app.graphicsDevice.canvas);
-
-            // mobile input attach
-            this._mobileInput.attach(this._app.graphicsDevice.canvas);
-        }
+        this._mode = mode;
 
         // controller reattach
         const controller = this._mode === CameraControlsMode.FLY ? this._flyController : this._orbitController;
