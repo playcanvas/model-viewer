@@ -33,7 +33,6 @@ export default [
     {
         files: ['**/*.js', '**/*.mjs'],
         languageOptions: {
-            parser: 'babel-eslint',
             globals: {
                 ...globals.browser
             }
