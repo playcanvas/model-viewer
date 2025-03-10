@@ -74,7 +74,6 @@ export default {
         image({ dom: true }),
         alias({
             entries: {
-                'playcanvas/scripts': path.resolve(ENGINE_DIR, 'scripts'),
                 'playcanvas': ENGINE_PATH,
                 '@playcanvas/pcui': PCUI_DIR
             }

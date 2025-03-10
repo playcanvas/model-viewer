@@ -66,10 +66,9 @@ import {
     GSplatData,
     GSplatResource
 } from 'playcanvas';
-// @ts-ignore
-import { CameraControls } from 'playcanvas/scripts/esm/camera-controls.mjs';
 
 import { App } from './app';
+import { CameraControls } from './camera-controls';
 import { DebugLines } from './debug-lines';
 import { CreateDropHandler } from './drop-handler';
 import { Multiframe } from './multiframe';
@@ -90,6 +89,7 @@ const vec = new Vec3();
 const bbox = new BoundingBox();
 
 const FOCUS_FOV = 75;
+const ZOOM_SCALE_MIN = 0.01;
 
 class Viewer {
     canvas: HTMLCanvasElement;
@@ -279,22 +279,19 @@ class Viewer {
             frustumCulling: true,
             clearColor: new Color(0, 0, 0, 0)
         });
-        camera.addComponent('script');
-        this.cameraControls = camera.script.create(CameraControls, {
-            properties: {
-                zoomMin: 0.001,
-                zoomMax: 10,
-                pitchRange: new Vec2(-90, 90)
-            }
+        this.cameraControls = new CameraControls({
+            app,
+            camera: camera.camera
         });
+        this.cameraControls.zoomRange = new Vec2(ZOOM_SCALE_MIN, Infinity);
+        this.cameraControls.pitchRange = new Vec2(-90, 90);
 
         camera.camera.requestSceneColorMap(true);
 
         app.keyboard.on(EVENT_KEYDOWN, (event) => {
             switch (event.key) {
                 case KEY_F: {
-                    this.focusSelection(false);
-                    this.cameraControls.resetZoom(this.getZoomDist());
+                    this.focus(false);
                     break;
                 }
             }
@@ -480,9 +477,6 @@ class Viewer {
             this.app.scene.layers.getLayerById(LAYERID_SKYBOX).enabled = false;
 
             this.multiframe.blend = 0.5;
-
-            // detach multi camera
-            this.cameraControls.detach();
         });
 
         events.on('xr:initial-place', () => {
@@ -495,9 +489,6 @@ class Viewer {
 
             // background color isn't correctly restored
             this.setBackgroundColor(this.observer.get('skybox.backgroundColor'));
-
-            // attach multicamera
-            this.cameraControls.attach(this.camera);
 
             this.multiframe.blend = 1.0;
         });
@@ -770,59 +761,59 @@ class Viewer {
         };
     }
 
-    private getFocusPosition(bbox: BoundingBox) {
-        const focus = new Vec3();
+    private calcFocalPoint(bbox: BoundingBox) {
+        const point = new Vec3();
         if (this.initialCameraFocus) {
-            focus.copy(this.initialCameraFocus);
+            point.copy(this.initialCameraFocus);
             this.initialCameraFocus = null;
         } else {
             const entityAsset = this.entityAssets[0];
             const splatData = (entityAsset?.asset?.resource as GSplatResource)?.splatData as GSplatData;
             if (splatData) {
-                splatData.calcFocalPoint(focus, () => true);
-                entityAsset.entity.getWorldTransform().transformPoint(focus, focus);
+                splatData.calcFocalPoint(point, () => true);
+                entityAsset.entity.getWorldTransform().transformPoint(point, point);
             } else {
-                focus.copy(bbox.center);
+                point.copy(bbox.center);
             }
         }
-        return focus;
+        return point;
     }
 
-    private getZoomDist() {
+    private calcZoom(sceneSize: number) {
         const camera = this.camera.camera;
         const d1 = Math.tan(0.5 * FOCUS_FOV * math.DEG_TO_RAD);
         const d2 = Math.tan(0.5 * camera.fov * math.DEG_TO_RAD);
 
         const scale = (d1 / d2) * (1 / camera.aspectRatio);
-        return scale * this.cameraControls.sceneSize + this.cameraControls.sceneSize;
+        return scale * sceneSize + sceneSize;
     }
 
-    private focusSelection(calcStart = true) {
+    private focus(init: boolean) {
         // calculate scene bounding box
         this.calcSceneBounds(bbox, this.selectedNode as Entity);
+
+        // set scene size
         this.cameraControls.sceneSize = bbox.halfExtents.length();
+        this.cameraControls.zoomRange = new Vec2(ZOOM_SCALE_MIN, 10 * this.cameraControls.sceneSize);
 
-        // calculate the camera focus point
-        const focus = this.getFocusPosition(bbox);
+        // calculate the camera focal point
+        const focus = this.calcFocalPoint(bbox);
 
-        let start: Vec3 | null = null;
-        if (calcStart) {
-            start = new Vec3();
-            if (this.initialCameraPosition) {
-                start.copy(this.initialCameraPosition);
-                this.initialCameraPosition = null;
-            } else {
-                start.copy(focus);
-                start.z += this.getZoomDist();
-            }
+        // calculate zoom
+        const zoom = this.calcZoom(this.cameraControls.sceneSize);
 
-            // set initial camera position
-            this.camera.setPosition(start);
+        // check for initial camera position
+        if (this.initialCameraPosition) {
+            const start = this.initialCameraPosition.clone();
+            this.initialCameraPosition = null;
 
-            // refit camera clip planes
-            this.fitCameraClipPlanes();
+            this.cameraControls.focus(focus, start);
+            return;
         }
 
+        // focus the camera
+        const forward = init ? Vec3.FORWARD : this.camera.forward;
+        const start = forward.clone().mulScalar(-zoom).add(focus);
         this.cameraControls.focus(focus, start);
     }
 
@@ -1750,7 +1741,10 @@ class Viewer {
         this.setSkyboxDomeRadius(this.observer.get('skybox.domeProjection.domeRadius'));
 
         // focus the camera on the scene
-        this.focusSelection();
+        this.focus(true);
+
+        // refit camera clip planes
+        this.fitCameraClipPlanes();
     }
 
     // rebuild the animation state graph
