@@ -131,11 +131,7 @@ class OrbitController extends Controller {
     zoomDamping = 0.98;
 
     get point() {
-        return this._rootTransform.getTranslation();
-    }
-
-    get view() {
-        return this._transform.getTranslation();
+        return this._targetPosition;
     }
 
     get zoom() {
