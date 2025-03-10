@@ -32,13 +32,21 @@ type CameraControlsOptions = {
     camera: CameraComponent,
 };
 
+type CameraControlsFrame = {
+    move: Vec3,
+    rotate: Vec2,
+    drag: Vec2,
+    zoom: number,
+    pan: boolean
+};
+
 type CameraControlsState = {
     axis: Vec3,
     shift: number,
     ctrl: number,
     mouse: number[],
     touches: number
-}
+};
 
 class CameraControls {
     private _app: AppBase;
@@ -49,15 +57,21 @@ class CameraControls {
 
     private _mobileInput: MultiTouchInput;
 
-    private _input: KeyboardMouseInput | MultiTouchInput;
+    private _flyController: FlyController;
 
-    private _flyModel: FlyController;
+    private _orbitController: OrbitController;
 
-    private _orbitModel: OrbitController;
-
-    private _model: FlyController | OrbitController;
+    private _controller: FlyController | OrbitController;
 
     private _mode: CameraControlsMode;
+
+    private _frame: CameraControlsFrame = {
+        move: new Vec3(),
+        rotate: new Vec2(),
+        drag: new Vec2(),
+        zoom: 0,
+        pan: false
+    };
 
     private _state: CameraControlsState = {
         axis: new Vec3(),
@@ -104,8 +118,8 @@ class CameraControls {
         this._mobileInput = new MultiTouchInput();
 
         // models
-        this._flyModel = new FlyController();
-        this._orbitModel = new OrbitController();
+        this._flyController = new FlyController();
+        this._orbitController = new OrbitController();
 
         // mode
         this.mode = CameraControlsMode.ORBIT;
@@ -116,55 +130,36 @@ class CameraControls {
             return;
         }
 
-        // determine input and model
-        let input, model;
-        if (platform.mobile) {
-            this._mode = CameraControlsMode.ORBIT;
-            input = this._mobileInput;
-            model = this._orbitModel;
-        } else {
+        if (this.mode) {
+            // validate mode switch
             this._mode = mode;
-            input = this._desktopInput;
-            if (this._mode === CameraControlsMode.FLY) {
-                model = this._flyModel;
-            } else {
-                model = this._orbitModel;
-            }
+        } else {
+            // set initial mode
+            this._mode = mode;
+
+            // desktop input attach
+            this._desktopInput.attach(this._app.graphicsDevice.canvas);
+
+            // mobile input attach
+            this._mobileInput.attach(this._app.graphicsDevice.canvas);
         }
 
-        // NOTE: save zoom as attach will reset it
-        const currZoomDist = this._orbitModel.zoom;
-
-        // input reattach
-        if (input !== this._input) {
-            if (this._input) {
-                this._input.detach();
+        // controller reattach
+        const controller = this._mode === CameraControlsMode.FLY ? this._flyController : this._orbitController;
+        const currZoomDist = this._orbitController.zoom;
+        if (controller !== this._controller) {
+            if (this._controller) {
+                this._controller.detach();
             }
-            this._input = input;
-            this._input.attach(this._app.graphicsDevice.canvas);
-
-            // reset state
-            this._state.axis.set(0, 0, 0);
-            this._state.shift = 0;
-            this._state.ctrl = 0;
-            this._state.mouse.fill(0);
-            this._state.touches = 0;
-        }
-
-        // model reattach
-        if (model !== this._model) {
-            if (this._model) {
-                this._model.detach();
-            }
-            this._model = model;
-            this._model.attach(this._camera.entity.getWorldTransform());
+            this._controller = controller;
+            this._controller.attach(this._camera.entity.getWorldTransform());
         }
 
         // refocus if orbit mode
-        if (this._model instanceof OrbitController) {
+        if (this._controller instanceof OrbitController) {
             const start = this._camera.entity.getPosition();
             const point = tmpV1.copy(this._camera.entity.forward).mulScalar(currZoomDist).add(start);
-            this._model.focus(point, start, false);
+            this._controller.focus(point, start, false);
         }
     }
 
@@ -173,62 +168,62 @@ class CameraControls {
     }
 
     set rotateDamping(damping) {
-        this._flyModel.rotateDamping = damping;
-        this._orbitModel.rotateDamping = damping;
+        this._flyController.rotateDamping = damping;
+        this._orbitController.rotateDamping = damping;
     }
 
     get rotateDamping() {
-        return this._model.rotateDamping;
+        return this._controller.rotateDamping;
     }
 
     set moveDamping(damping) {
-        this._flyModel.moveDamping = damping;
+        this._flyController.moveDamping = damping;
     }
 
     get moveDamping() {
-        return this._flyModel.moveDamping;
+        return this._flyController.moveDamping;
     }
 
     set zoomDamping(damping) {
-        this._orbitModel.zoomDamping = damping;
+        this._orbitController.zoomDamping = damping;
     }
 
     get zoomDamping() {
-        return this._orbitModel.zoomDamping;
+        return this._orbitController.zoomDamping;
     }
 
     set pitchRange(range) {
-        this._flyModel.pitchRange = range;
-        this._orbitModel.pitchRange = range;
+        this._flyController.pitchRange = range;
+        this._orbitController.pitchRange = range;
     }
 
     get pitchRange() {
-        return this._model.pitchRange;
+        return this._controller.pitchRange;
     }
 
     set yawRange(range) {
-        this._flyModel.yawRange = range;
-        this._orbitModel.yawRange = range;
+        this._flyController.yawRange = range;
+        this._orbitController.yawRange = range;
     }
 
     get yawRange() {
-        return this._model.yawRange;
+        return this._controller.yawRange;
     }
 
     set zoomRange(range) {
-        this._orbitModel.zoomRange = range;
+        this._orbitController.zoomRange = range;
     }
 
     get zoomRange() {
-        return this._orbitModel.zoomRange;
+        return this._orbitController.zoomRange;
     }
 
-    /**
-     * @param transform - The transform.
-     */
-    private _updateTransform(transform: Mat4) {
-        this._camera.entity.setPosition(transform.getTranslation());
-        this._camera.entity.setEulerAngles(transform.getEulerAngles());
+    private _resetFrame() {
+        this._frame.move.set(0, 0, 0);
+        this._frame.rotate.set(0, 0);
+        this._frame.drag.set(0, 0);
+        this._frame.zoom = 0;
+        this._frame.pan = false;
     }
 
     /**
@@ -247,12 +242,72 @@ class CameraControls {
      * @returns The scaled delta.
      */
     private _scaleZoom(zoom: number) {
-        if (!(this._model instanceof OrbitController)) {
+        if (!(this._controller instanceof OrbitController)) {
             return 0;
         }
-        const norm = this._model.zoom / (ZOOM_SCALE_MULT * this.sceneSize);
+        const norm = this._controller.zoom / (ZOOM_SCALE_MULT * this.sceneSize);
         const scale = math.clamp(norm, this.zoomScaleMin, 1);
         return zoom * scale * this.zoomSpeed * this.sceneSize;
+    }
+
+    private _addDesktopInputs() {
+        const { key, button, mouse, wheel } = this._desktopInput.frame();
+        const [forward, back, left, right, up, down, shift, ctrl] = key;
+
+        // left mouse button, middle mouse button, mouse wheel
+        const switchToOrbit = button[0] === 1 || button[1] === 1 || wheel[0] !== 0;
+
+        // right mouse button or any key
+        const switchToFly = button[2] === 1 ||
+            forward === 1 || back === 1 || left === 1 || right === 1 || up === 1 || down === 1;
+
+        if (switchToOrbit) {
+            this.mode = CameraControlsMode.ORBIT;
+        } else if (switchToFly) {
+            this.mode = CameraControlsMode.FLY;
+        }
+
+        // update state
+        this._state.axis.add(tmpV1.set(right - left, up - down, forward - back));
+        this._state.shift += shift;
+        this._state.ctrl += ctrl;
+        for (let i = 0; i < 3; i++) {
+            this._state.mouse[i] += button[i];
+        }
+
+        this._frame.move.add(this._scaleMove(tmpV1.copy(this._state.axis).normalize()));
+        this._frame.rotate.add(tmpVa.fromArray(mouse).mulScalar(this.rotateSpeed));
+
+        const _pan = !!this._state.shift || !!this._state.mouse[1];
+        this._frame.drag.add(tmpVa.fromArray(mouse).mulScalar(_pan ? 1 : this.rotateSpeed));
+        this._frame.zoom += this._scaleZoom(wheel[0]);
+        this._frame.pan ||= _pan;
+    }
+
+    private _addMobileInputs() {
+        if (this._mobileInput instanceof MultiTouchInput) {
+            const { touch, pinch, count } = this._mobileInput.frame();
+            this._state.touches += count[0];
+
+            const _pan = this._state.touches > 1;
+            this._frame.drag.add(tmpVa.fromArray(touch).mulScalar(_pan ? 1 : this.rotateSpeed));
+            this._frame.zoom += this._scaleZoom(pinch[0]) * this.zoomPinchSens;
+            this._frame.pan ||= _pan;
+        }
+    }
+
+    private _updateController(dt: number) {
+        if (this._controller instanceof OrbitController) {
+            tmpM1.copy(this._controller.update(this._frame, this._camera, dt));
+            this._camera.entity.setPosition(tmpM1.getTranslation());
+            this._camera.entity.setEulerAngles(tmpM1.getEulerAngles());
+        }
+
+        if (this._controller instanceof FlyController) {
+            tmpM1.copy(this._controller.update(this._frame, dt));
+            this._camera.entity.setPosition(tmpM1.getTranslation());
+            this._camera.entity.setEulerAngles(tmpM1.getEulerAngles());
+        }
     }
 
     /**
@@ -262,8 +317,8 @@ class CameraControls {
     focus(point: Vec3, start?: Vec3) {
         this.mode = CameraControlsMode.ORBIT;
 
-        if (this._model instanceof OrbitController) {
-            this._model.focus(point, start);
+        if (this._controller instanceof OrbitController) {
+            this._controller.focus(point, start);
         }
     }
 
@@ -275,78 +330,22 @@ class CameraControls {
             return;
         }
 
-        // desktop input
-        if (this._input instanceof KeyboardMouseInput) {
-            const { key, button, mouse, wheel } = this._input.frame();
-            const [forward, back, left, right, up, down, shift, ctrl] = key;
+        this._resetFrame();
 
-            // left mouse button, middle mouse button, mouse wheel
-            const switchToOrbit = button[0] === 1 || button[1] === 1 || wheel[0] !== 0;
+        // accumulate inputs
+        this._addDesktopInputs();
+        this._addMobileInputs();
 
-            // right mouse button or any key
-            const switchToFly = button[2] === 1 ||
-                forward === 1 || back === 1 || left === 1 || right === 1 || up === 1 || down === 1;
-
-            if (switchToOrbit) {
-                this.mode = CameraControlsMode.ORBIT;
-            } else if (switchToFly) {
-                this.mode = CameraControlsMode.FLY;
-            }
-
-            // update state
-            this._state.axis.add(tmpV1.set(right - left, up - down, forward - back));
-            this._state.shift += shift;
-            this._state.ctrl += ctrl;
-            for (let i = 0; i < 3; i++) {
-                this._state.mouse[i] += button[i];
-            }
-
-            if (this._model instanceof OrbitController) {
-                // pan shift or middle mouse button
-                const pan = !!this._state.shift || !!this._state.mouse[1];
-                tmpM1.copy(this._model.update({
-                    drag: tmpVa.fromArray(mouse).mulScalar(pan ? 1 : this.rotateSpeed),
-                    zoom: this._scaleZoom(wheel[0]),
-                    pan
-                }, this._camera, dt));
-
-                this._updateTransform(tmpM1);
-                return;
-            }
-
-            if (this._model instanceof FlyController) {
-                tmpM1.copy(this._model.update({
-                    rotate: tmpVa.fromArray(mouse).mulScalar(this.rotateSpeed),
-                    move: this._scaleMove(tmpV1.copy(this._state.axis).normalize())
-                }, dt));
-
-                this._updateTransform(tmpM1);
-                return;
-            }
-        }
-
-        // orbit mobile
-        if (this._input instanceof MultiTouchInput && this._model instanceof OrbitController) {
-            const { touch, pinch, count } = this._input.frame();
-            this._state.touches += count[0];
-
-            const pan = this._state.touches > 1;
-            tmpM1.copy(this._model.update({
-                drag: tmpVa.fromArray(touch).mulScalar(pan ? 1 : this.rotateSpeed),
-                zoom: this._scaleZoom(pinch[0]) * this.zoomPinchSens,
-                pan
-            }, this._camera, dt));
-
-            this._updateTransform(tmpM1);
-        }
+        // update controller
+        this._updateController(dt);
     }
 
     destroy() {
         this._desktopInput.destroy();
         this._mobileInput.destroy();
 
-        this._flyModel.destroy();
-        this._orbitModel.destroy();
+        this._flyController.destroy();
+        this._orbitController.destroy();
     }
 }
 
