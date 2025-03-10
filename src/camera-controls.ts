@@ -97,7 +97,7 @@ class CameraControls {
 
     zoomPinchSens: number = 5;
 
-    zoomScaleMin: number;
+    zoomScaleMin: number = 0.001;
 
     /**
      * @param options - The options.
@@ -109,9 +109,6 @@ class CameraControls {
     constructor({ app, camera }: CameraControlsOptions) {
         this._app = app;
         this._camera = camera;
-
-        // zoom scale min
-        this.zoomScaleMin = this._camera.nearClip;
 
         // input
         this._desktopInput = new KeyboardMouseInput();
@@ -231,11 +228,7 @@ class CameraControls {
      * @returns The scaled delta.
      */
     private _scaleZoom(zoom: number) {
-        if (!(this._controller instanceof OrbitController)) {
-            return 0;
-        }
-        const norm = this._controller.zoom / (ZOOM_SCALE_MULT * this.sceneSize);
-        const scale = math.clamp(norm, this.zoomScaleMin, 1);
+        const scale = math.clamp(this._orbitController.zoom / (ZOOM_SCALE_MULT * this.sceneSize), this.zoomScaleMin, 1);
         return zoom * scale * this.zoomSpeed * this.sceneSize;
     }
 

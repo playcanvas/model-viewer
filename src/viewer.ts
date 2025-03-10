@@ -282,8 +282,7 @@ class Viewer {
             app,
             camera: camera.camera
         });
-        this.cameraControls.zoomScaleMin = camera.camera.nearClip;
-        this.cameraControls.zoomRange = new Vec2(0.001, 10);
+        this.cameraControls.zoomRange = new Vec2(0.01, 10);
         this.cameraControls.pitchRange = new Vec2(-90, 90);
 
         camera.camera.requestSceneColorMap(true);
@@ -1036,8 +1035,6 @@ class Viewer {
         this.camera.camera.farClip = far;
         this.light.light.shadowDistance = far;
         this.light.light.normalOffsetBias = far / 1024;
-
-        this.cameraControls.zoomScaleMin = near;
     }
 
     // load gltf model given its url and list of external urls
