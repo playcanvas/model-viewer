@@ -45,8 +45,6 @@ class Picker {
         }
         const depth = float32[0];
 
-        console.log(`depth: ${depth}, pixels: ${pixels}, x: ${x}, y: ${y}`);
-
         // 255, 255, 255, 255 === NaN
         if (!isFinite(depth)) {
             return null;
