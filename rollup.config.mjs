@@ -93,6 +93,7 @@ export default {
         json(),
         (BUILD_TYPE !== 'debug') && terser({
             mangle: {
+                // script classes can't be mangeled
                 reserved: ['CameraControls']
             }
         })
