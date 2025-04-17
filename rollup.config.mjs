@@ -91,6 +91,6 @@ export default {
             }
         }),
         json(),
-        (BUILD_TYPE !== 'debug') && terser()
+        // (BUILD_TYPE !== 'debug') && terser()
     ]
 };
