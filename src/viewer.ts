@@ -7,6 +7,7 @@ import {
     EVENT_KEYDOWN,
     FILTER_NEAREST,
     KEY_F,
+    KEY_R,
     LAYERID_DEPTH,
     LAYERID_SKYBOX,
     PIXELFORMAT_DEPTH,
@@ -33,6 +34,7 @@ import {
     TONEMAP_ACES2,
     math,
     path,
+    shaderChunks,
     AnimEvents,
     AnimTrack,
     Asset,
@@ -60,8 +62,6 @@ import {
     Texture,
     TouchDevice,
     Vec3,
-    Vec4,
-    WebglGraphicsDevice,
     Vec2,
     GSplatData,
     GSplatResource
@@ -73,8 +73,8 @@ import { App } from './app';
 import { DebugLines } from './debug-lines';
 import { CreateDropHandler } from './drop-handler';
 import { Multiframe } from './multiframe';
+import { Picker } from './picker';
 import { PngExporter } from './png-exporter';
-import { ReadDepth } from './read-depth';
 import { ShadowCatcher } from './shadow-catcher';
 import arCloseImage from './svg/ar-close.svg';
 import arModeImage from './svg/ar-mode.svg';
@@ -90,6 +90,17 @@ const vec = new Vec3();
 const bbox = new BoundingBox();
 
 const FOCUS_FOV = 75;
+
+// override global pick to pack depth instead of meshInstance id
+const pickDepthPS = /* glsl */ `
+vec4 packFloat(float depth) {
+    uvec4 u = (uvec4(floatBitsToUint(depth)) >> uvec4(0u, 8u, 16u, 24u)) & 0xffu;
+    return vec4(u) / 255.0;
+}
+vec4 getPickOutput() {
+    return packFloat(gl_FragCoord.z);
+}
+`;
 
 class Viewer {
     canvas: HTMLCanvasElement;
@@ -188,7 +199,7 @@ class Viewer {
 
     multiframeBusy = false;
 
-    readDepth: ReadDepth = null;
+    picker: Picker = null;
 
     cursorWorld = new Vec3();
 
@@ -219,6 +230,9 @@ class Viewer {
         });
         this.app = app;
         this.skyboxUrls = skyboxUrls;
+
+        // global override depth
+        shaderChunks.pickPS = pickDepthPS;
 
         // clustered not needed and has faster startup on windows
         this.app.scene.clusteredLightingEnabled = false;
@@ -280,13 +294,15 @@ class Viewer {
             clearColor: new Color(0, 0, 0, 0)
         });
         camera.addComponent('script');
-        this.cameraControls = camera.script.create(CameraControls, {
+        camera.script.create(CameraControls, {
             properties: {
                 zoomMin: 0.001,
                 zoomMax: 10,
                 pitchRange: new Vec2(-90, 90)
             }
         });
+
+        this.cameraControls = (camera.script as any).cameraControls as CameraControls;
 
         camera.camera.requestSceneColorMap(true);
 
@@ -295,6 +311,10 @@ class Viewer {
                 case KEY_F: {
                     this.focusSelection(false);
                     this.cameraControls.resetZoom(this.getZoomDist());
+                    break;
+                }
+                case KEY_R: {
+                    this.cameraControls.focus(Vec3.ZERO, new Vec3(2, 2, 2));
                     break;
                 }
             }
@@ -395,7 +415,7 @@ class Viewer {
 
         this.observer = observer;
 
-        const device = this.app.graphicsDevice as WebglGraphicsDevice;
+        const device = this.app.graphicsDevice;
 
         // render frame after device restored
         device.on('devicerestored', () => {
@@ -418,29 +438,15 @@ class Viewer {
         this.reloadSettings();
 
         // construct the depth reader
-        this.readDepth = new ReadDepth(device);
+        this.picker = new Picker(app, camera);
         this.cursorWorld = new Vec3();
 
         // double click handler
-        canvas.addEventListener('dblclick', (event) => {
-            const camera = this.camera.camera;
-            const x = event.offsetX / canvas.clientWidth;
-            const y = 1.0 - event.offsetY / canvas.clientHeight;
-
-            // read depth
-            this.readDepth.read(camera.renderTarget.depthBuffer, x, y)
-            .then((depth: number) => {
-                if (depth < 1) {
-                    const pos = new Vec4(x, y, depth, 1.0).mulScalar(2.0).subScalar(1.0); // clip space
-                    camera.projectionMatrix.clone().invert().transformVec4(pos, pos); // homogeneous view space
-                    pos.mulScalar(1.0 / pos.w); // perform perspective divide
-                    this.cursorWorld.set(pos.x, pos.y, pos.z);
-                    this.camera.getWorldTransform().transformPoint(this.cursorWorld, this.cursorWorld); // world space
-
-                    // focus on cursor
-                    this.cameraControls.focus(this.cursorWorld);
-                }
-            });
+        canvas.addEventListener('dblclick', async (event) => {
+            const result = await this.picker.pick(event.offsetX, event.offsetY);
+            if (result) {
+                this.cameraControls.focus(result, this.camera.getPosition());
+            }
         });
 
         this.app.scene.layers.getLayerByName('World').transparentSortMode = SORTMODE_BACK2FRONT;
@@ -497,7 +503,7 @@ class Viewer {
             this.setBackgroundColor(this.observer.get('skybox.backgroundColor'));
 
             // attach multicamera
-            this.cameraControls.attach(this.camera);
+            this.cameraControls.attach(this.camera.camera);
 
             this.multiframe.blend = 1.0;
         });
@@ -1153,9 +1159,16 @@ class Viewer {
         });
     }
 
-    private loadPly(url: File) {
+    private loadPly(url: File, externalUrls: Array<File>) {
+        const urls: any = {};
+        externalUrls.forEach((url) => {
+            urls[url.filename] = url.url;
+        });
         return new Promise((resolve, reject) => {
-            const asset = new Asset(url.filename, 'gsplat', url);
+            const asset = new Asset(url.filename, 'gsplat', url, null, {
+                // @ts-ignore TODO no definition in pc
+                mapUrl: mapUrl => urls[mapUrl]
+            });
             asset.on('load', () => resolve(asset));
             asset.on('error', (err: string) => reject(err));
             this.app.assets.add(asset);
@@ -1172,7 +1185,7 @@ class Viewer {
 
     isGSplatFilename(filename: string) {
         const parts = filename.split('?')[0].split('/').pop().split('.');
-        const result = parts.length > 0 && parts.pop().toLowerCase() === 'ply';
+        const result = parts.length > 0 && ['ply', 'json'].includes(parts.pop().toLowerCase());
         return result;
     }
 
@@ -1207,7 +1220,7 @@ class Viewer {
                 return this.isModelFilename(file.filename) ?
                     this.loadGltf(file, files) :
                     this.isGSplatFilename(file.filename) ?
-                        this.loadPly(file) :
+                        this.loadPly(file, files) :
                         null;
             });
 
@@ -1554,6 +1567,13 @@ class Viewer {
     update(deltaTime: number) {
         // update the orbit camera
         if (!this.xrMode?.active) {
+            // @ts-ignore _zoomDist is currently flagged as private
+            const speed = this.cameraControls._zoomDist / this.cameraControls.sceneSize;
+
+            // make fly speed based on orbit zoom distance
+            this.cameraControls.moveSpeed = speed;
+            this.cameraControls.moveFastSpeed = speed * 4;
+            this.cameraControls.moveSlowSpeed = speed * 0.25;
             this.cameraControls.update(deltaTime);
         }
 

@@ -204,7 +204,6 @@ const loadOptions = (observer: Observer, name: string, skyboxUrls: Map<string, s
     }
 };
 
-
 // print out versions of dependent packages
 console.log(`Model Viewer v${modelViewerVersion} | PCUI v${pcuiVersion} (${pcuiRevision}) | PlayCanvas Engine v${engineVersion} (${engineRevision})`);
 

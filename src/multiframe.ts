@@ -18,6 +18,7 @@ import {
     Shader,
     Texture,
     Vec3,
+    GraphicsDevice,
     WebglGraphicsDevice
 } from 'playcanvas';
 
@@ -43,16 +44,16 @@ void main(void) {
 }
 `;
 
-const supportsFloat16 = (device: WebglGraphicsDevice): boolean => {
+const supportsFloat16 = (device: GraphicsDevice): boolean => {
     return device.textureHalfFloatRenderable;
 };
 
-const supportsFloat32 = (device: WebglGraphicsDevice): boolean => {
+const supportsFloat32 = (device: GraphicsDevice): boolean => {
     return device.textureFloatRenderable;
 };
 
 // lighting source should be stored HDR
-const choosePixelFormat = (device: WebglGraphicsDevice): number => {
+const choosePixelFormat = (device: GraphicsDevice): number => {
     return supportsFloat16(device) ? PIXELFORMAT_RGBA16F :
         supportsFloat32(device) ? PIXELFORMAT_RGBA32F :
             PIXELFORMAT_RGBA8;
@@ -68,7 +69,7 @@ const noBlend = new BlendState(false);
 
 // generate multiframe, supersampled AA
 class Multiframe {
-    device: WebglGraphicsDevice;
+    device: GraphicsDevice;
 
     camera: CameraComponent;
 
@@ -100,7 +101,7 @@ class Multiframe {
 
     blend = 1.0;
 
-    constructor(device: WebglGraphicsDevice, camera: CameraComponent, samples?: Vec3[]) {
+    constructor(device: GraphicsDevice, camera: CameraComponent, samples?: Vec3[]) {
         this.device = device;
         this.camera = camera;
         this.samples = samples || Multiframe.generateSamples(5, false, 2, 0);
@@ -249,10 +250,11 @@ class Multiframe {
     private activateBackbuffer() {
         const device = this.device;
         if (!device.isWebGPU) {
-            device.setRenderTarget(null);
-            device.updateBegin();
-            device.setViewport(0, 0, device.width, device.height);
-            device.setScissor(0, 0, device.width, device.height);
+            const glDevice = device as WebglGraphicsDevice;
+            glDevice.setRenderTarget(null);
+            glDevice.updateBegin();
+            glDevice.setViewport(0, 0, device.width, device.height);
+            glDevice.setScissor(0, 0, device.width, device.height);
         }
     }
 
