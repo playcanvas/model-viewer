@@ -36,8 +36,9 @@ class Picker {
         const { picker } = this;
         picker.resize(width, height);
         picker.prepare(camera.camera, app.scene, [app.scene.layers.getLayerByName('World')]);
-        const pixels = await picker.renderTarget.colorBuffer.read(x, y, 1, 1, {
-            renderTarget: picker.renderTarget
+        const pixels = await picker.renderTarget.colorBuffer.read(x, graphicsDevice.isWebGL2 ? height - y - 1 : y, 1, 1, {
+            renderTarget: picker.renderTarget,
+            immediate: true
         });
 
         for (let i = 0; i < 4; ++i) {
