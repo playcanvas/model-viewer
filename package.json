@@ -1,6 +1,6 @@
 {
     "name": "model-viewer",
-    "version": "5.3.4",
+    "version": "5.3.5",
     "author": "PlayCanvas<support@playcanvas.com>",
     "homepage": "https://playcanvas.com",
     "description": "PlayCanvas glTF Viewer",
