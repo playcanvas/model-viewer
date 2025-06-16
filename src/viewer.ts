@@ -225,12 +225,6 @@ class Viewer {
 
     cameraControls: CameraControls;
 
-    updateId = 0;
-
-    renderId = 0;
-
-    appTime = 0;
-
     constructor(
         canvas: HTMLCanvasElement,
         graphicsDevice: GraphicsDevice,
@@ -1583,9 +1577,6 @@ class Viewer {
     }
 
     update(deltaTime: number) {
-        this.updateId++;
-        this.appTime += deltaTime;
-
         // update the orbit camera
         if (!this.xrMode?.active) {
             // @ts-ignore _zoomDist is currently flagged as private
@@ -1897,11 +1888,6 @@ class Viewer {
         if (this.firstFrame) {
             return;
         }
-
-        const { scope } = this.app.graphicsDevice;
-        scope.resolve('updateId').setValue(this.updateId);
-        scope.resolve('renderId').setValue(this.renderId);
-        scope.resolve('appTime').setValue(this.appTime);
 
         // wireframe
         if (this.dirtyWireframe) {
