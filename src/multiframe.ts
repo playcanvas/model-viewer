@@ -104,7 +104,7 @@ const gauss = (x: number, sigma: number): number => {
 const accumBlend = new BlendState(true, BLENDEQUATION_ADD, BLENDMODE_CONSTANT, BLENDMODE_ONE_MINUS_CONSTANT);
 const noBlend = new BlendState(false);
 
-class MyRenderPassShaderQuad extends RenderPassShaderQuad {
+class CustomRenderPass extends RenderPassShaderQuad {
     events = new EventHandler();
 
     execute() {
@@ -133,9 +133,9 @@ class Multiframe {
 
     accumRenderTarget: RenderTarget = null;
 
-    updateRenderPass: MyRenderPassShaderQuad;
+    updateRenderPass: CustomRenderPass;
 
-    finalRenderPass: MyRenderPassShaderQuad;
+    finalRenderPass: CustomRenderPass;
 
     sampleArray: Vec3[] = [];
 
@@ -221,7 +221,7 @@ class Multiframe {
         });
 
         // render pass for blending into the accumulation texture
-        this.updateRenderPass = new MyRenderPassShaderQuad(device);
+        this.updateRenderPass = new CustomRenderPass(device);
         this.updateRenderPass.init(this.accumRenderTarget, {});
         this.updateRenderPass.shader = this.shader;
         this.updateRenderPass.blendState = accumBlend;
@@ -240,7 +240,7 @@ class Multiframe {
         });
 
         // render pass for final blit to backbuffer
-        this.finalRenderPass = new MyRenderPassShaderQuad(device);
+        this.finalRenderPass = new CustomRenderPass(device);
         this.finalRenderPass.init(null, {});
         this.finalRenderPass.shader = this.shader;
         this.finalRenderPass.events.on('execute', () => {
