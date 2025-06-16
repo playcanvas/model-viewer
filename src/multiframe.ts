@@ -9,39 +9,76 @@ import {
     PIXELFORMAT_RGBA16F,
     PIXELFORMAT_RGBA32F,
     SEMANTIC_POSITION,
-    drawQuadWithShader,
     BlendState,
     CameraComponent,
+    RenderPassShaderQuad,
     RenderTarget,
-    ScopeId,
+    ScopeSpace,
     Shader,
     ShaderUtils,
     Texture,
     Vec3,
     GraphicsDevice,
-    WebglGraphicsDevice
+    EventHandler
 } from 'playcanvas';
 
 const gamma = 2.2;
 
-const vshader = `
-attribute vec2 vertex_position;
-varying vec2 texcoord;
-uniform vec4 texcoordMod;
-void main(void) {
-    gl_Position = vec4(vertex_position, 0.5, 1.0);
-    texcoord = (vertex_position.xy * 0.5 + 0.5) * texcoordMod.xy + texcoordMod.zw;
-}
+const vertexGLSL = `
+    attribute vec2 vertex_position;
+    varying vec2 texcoord;
+    uniform vec4 texcoordMod;
+    void main(void) {
+        gl_Position = vec4(vertex_position, 0.5, 1.0);
+        texcoord = (vertex_position.xy * 0.5 + 0.5) * texcoordMod.xy + texcoordMod.zw;
+    }
 `;
 
-const fshader = `
-varying vec2 texcoord;
-uniform sampler2D multiframeTex;
-uniform float power;
-void main(void) {
-    vec4 t = texture2D(multiframeTex, texcoord);
-    gl_FragColor = pow(t, vec4(power));
-}
+const fragmentGLSL = `
+    varying vec2 texcoord;
+    uniform sampler2D multiframeTex;
+    uniform float power;
+    void main(void) {
+        vec4 t = texture2D(multiframeTex, texcoord);
+        gl_FragColor = pow(t, vec4(power));
+    }
+`;
+
+const vertexWGSL = /* wgsl */`
+    attribute vertex_position: vec2f;
+
+    varying texcoord: vec2f;
+
+    uniform texcoordMod: vec4f;
+
+    @vertex
+    fn vertexMain(input: VertexInput) -> VertexOutput {
+        var output: VertexOutput;
+
+        output.position = vec4f(vertex_position, 0.5, 1.0);
+        output.texcoord = (vertex_position.xy * 0.5 + 0.5) * uniform.texcoordMod.xy + uniform.texcoordMod.zw;
+
+        return output;
+    }
+`;
+
+const fragmentWGSL = /* wgsl */`
+    varying texcoord: vec2f;
+
+    var multiframeTex: texture_2d<f32>;
+    var multiframeSampler: sampler;
+
+    uniform power: f32;
+
+    @fragment
+    fn fragmentMain(input: FragmentInput) -> FragmentOutput {
+        var output: FragmentOutput;
+
+        let t: vec4f = textureSample(multiframeTex, multiframeSampler, input.texcoord);
+        output.color = pow(t, vec4f(uniform.power));
+
+        return output;
+    }
 `;
 
 const supportsFloat16 = (device: GraphicsDevice): boolean => {
@@ -67,6 +104,21 @@ const gauss = (x: number, sigma: number): number => {
 const accumBlend = new BlendState(true, BLENDEQUATION_ADD, BLENDMODE_CONSTANT, BLENDMODE_ONE_MINUS_CONSTANT);
 const noBlend = new BlendState(false);
 
+class MyRenderPassShaderQuad extends RenderPassShaderQuad {
+    events = new EventHandler();
+
+    execute() {
+        this.events.fire('execute');
+        super.execute();
+    }
+};
+
+const resolve = (scope: ScopeSpace, values: any) => {
+    for (const key in values) {
+        scope.resolve(key).setValue(values[key]);
+    }
+};
+
 // generate multiframe, supersampled AA
 class Multiframe {
     device: GraphicsDevice;
@@ -77,19 +129,13 @@ class Multiframe {
 
     shader: Shader = null;
 
-    pixelFormat: number;
-
-    texcoordModUniform: ScopeId = null;
-
-    multiframeTexUniform: ScopeId = null;
-
-    powerUniform: ScopeId = null;
-
-    textureBiasUniform: ScopeId = null;
-
     accumTexture: Texture = null;
 
     accumRenderTarget: RenderTarget = null;
+
+    updateRenderPass: MyRenderPassShaderQuad;
+
+    finalRenderPass: MyRenderPassShaderQuad;
 
     sampleArray: Vec3[] = [];
 
@@ -108,7 +154,7 @@ class Multiframe {
 
         // just before rendering the scene we apply a subpixel jitter
         // to the camera's projection matrix.
-        this.camera.system.app.scene.on(EVENT_PRERENDER, (c: CameraComponent) => {
+        const preRender = (c: CameraComponent) => {
             if (c !== this.camera) {
                 return;
             }
@@ -120,40 +166,100 @@ class Multiframe {
                 const sample = this.sampleArray[this.sampleId];
                 pmat.data[8] = sample.x / this.accumTexture.width;
                 pmat.data[9] = sample.y / this.accumTexture.height;
-                this.textureBiasUniform.setValue(this.sampleId === 0 ? 0.0 : this.textureBias);
+                resolve(device.scope, {
+                    textureBias: this.sampleId === 0 ? 0.0 : this.textureBias
+                });
             } else {
                 pmat.data[8] = 0;
                 pmat.data[9] = 0;
-                this.textureBiasUniform.setValue(0.0);
+                resolve(device.scope, {
+                    textureBias: 0
+                });
             }
 
-            // look away
+            // look away now
             camera._viewProjMatDirty = true;
-        });
+        };
 
-        this.camera.system.app.scene.on(EVENT_POSTRENDER, (c: CameraComponent) => {
+        const postRender = (c: CameraComponent) => {
             if (c !== this.camera) {
                 return;
             }
             const pmat = camera.projectionMatrix;
             pmat.data[8] = 0;
             pmat.data[9] = 0;
-        });
+        };
 
-        this.shader =  ShaderUtils.createShader(device, {
-            uniqueName: 'multiframe',
+        this.camera.system.app.scene.on(EVENT_PRERENDER, preRender);
+        this.camera.system.app.scene.on(EVENT_POSTRENDER, postRender);
+
+        this.shader = ShaderUtils.createShader(device, {
+            uniqueName: 'multiframe-shader',
             attributes: {
                 vertex_position: SEMANTIC_POSITION
             },
-            vertexGLSL: vshader,
-            fragmentGLSL: fshader
+            vertexGLSL,
+            fragmentGLSL,
+            vertexWGSL,
+            fragmentWGSL
         });
 
-        this.pixelFormat = choosePixelFormat(device);
-        this.texcoordModUniform = device.scope.resolve('texcoordMod');
-        this.multiframeTexUniform = device.scope.resolve('multiframeTex');
-        this.powerUniform = device.scope.resolve('power');
-        this.textureBiasUniform = device.scope.resolve('textureBias');
+        this.accumTexture = new Texture(device, {
+            name: 'multiframe-texture',
+            width: device.width,
+            height: device.height,
+            format: choosePixelFormat(device),
+            mipmaps: false,
+            minFilter: FILTER_NEAREST,
+            magFilter: FILTER_NEAREST
+        });
+
+        this.accumRenderTarget = new RenderTarget({
+            name: 'multiframe-target',
+            colorBuffer: this.accumTexture,
+            depth: false
+        });
+
+        // render pass for blending into the accumulation texture
+        this.updateRenderPass = new MyRenderPassShaderQuad(device);
+        this.updateRenderPass.init(this.accumRenderTarget, {});
+        this.updateRenderPass.shader = this.shader;
+        this.updateRenderPass.blendState = accumBlend;
+        this.updateRenderPass.events.on('execute', () => {
+            const sampleWeight = this.sampleArray[this.sampleId++].z;
+            const blend = sampleWeight / (this.sampleAccum + sampleWeight);
+            this.sampleAccum += sampleWeight;
+
+            device.setBlendColor(blend, blend, blend, blend);
+
+            resolve(device.scope, {
+                texcoordMod: [1, 1, 0, 0],
+                multiframeTex:  this.sourceTex,
+                power: gamma
+            })
+        });
+
+        // render pass for final blit to backbuffer
+        this.finalRenderPass = new MyRenderPassShaderQuad(device);
+        this.finalRenderPass.init(null, {});
+        this.finalRenderPass.shader = this.shader;
+        this.finalRenderPass.events.on('execute', () => {
+            const blending = this.enabled && this.sampleId > 0;
+
+            if (this.blend !== 1.0) {
+                device.setBlendColor(this.blend, this.blend, this.blend, this.blend);
+                this.finalRenderPass.blendState = accumBlend;
+            } else {
+                this.finalRenderPass.blendState = noBlend;
+            }
+
+            // we must flip the image upside-down on webgpu
+            resolve(device.scope, {
+                texcoordMod: !blending && device.isWebGPU ? [1, -1, 0, 1] : [1, 1, 0, 0],
+                multiframeTex: blending ? this.accumTexture : this.sourceTex,
+                power: blending ? (1.0 / gamma) : 1.0
+            });
+        });
 
         const handler = () => {
             this.destroy();
@@ -161,6 +267,10 @@ class Multiframe {
 
         device.once('destroy', handler);
         device.on('devicelost', handler);
+    }
+
+    get sourceTex() {
+        return this.camera.renderTarget.colorBuffer;
     }
 
     // set the samples array which contains one Vec3 per multiframe sample
@@ -231,38 +341,6 @@ class Multiframe {
         }
     }
 
-    private create() {
-        const source = this.camera.renderTarget.colorBuffer;
-
-        this.accumTexture = new Texture(this.device, {
-            name: 'multiframe-texture',
-            width: source.width,
-            height: source.height,
-            format: this.pixelFormat,
-            mipmaps: false,
-            minFilter: FILTER_NEAREST,
-            magFilter: FILTER_NEAREST
-        });
-
-        this.accumRenderTarget = new RenderTarget({
-            name: 'multiframe-target',
-            colorBuffer: this.accumTexture,
-            depth: false
-        });
-    }
-
-    // activate the backbuffer for upcoming rendering
-    private activateBackbuffer() {
-        const device = this.device;
-        if (!device.isWebGPU) {
-            const glDevice = device as WebglGraphicsDevice;
-            glDevice.setRenderTarget(null);
-            glDevice.updateBegin();
-            glDevice.setViewport(0, 0, device.width, device.height);
-            glDevice.setScissor(0, 0, device.width, device.height);
-        }
-    }
-
     // flag the camera as moved
     moved() {
         this.sampleId = 0;
@@ -273,74 +351,20 @@ class Multiframe {
     // blend the camera's render target colour buffer with the multiframe accumulation buffer.
     // writes results to the backbuffer.
     update() {
-        const device = this.device;
         const sampleCnt = this.sampleArray.length;
-        const sourceTex = this.camera.renderTarget.colorBuffer;
+        const { sourceTex } = this;
+
+        // update accumulation texture
+        this.accumRenderTarget.resize(sourceTex.width, sourceTex.height);
 
         // in disabled state we resolve directly from source to backbuffer
-        if (!this.enabled) {
-            this.copyFinal();
-            return false;
+        if (this.enabled && this.sampleId < sampleCnt) {
+            this.updateRenderPass.render();
         }
 
-        if (this.accumTexture && (this.accumTexture.width !== sourceTex.width ||
-                                  this.accumTexture.height !== sourceTex.height)) {
-            this.destroy();
-        }
-
-        if (!this.accumTexture) {
-            this.create();
-        }
-
-        if (this.sampleId < sampleCnt) {
-            const sampleWeight = this.sampleArray[this.sampleId].z;
-            const blend = sampleWeight / (this.sampleAccum + sampleWeight);
-            device.setBlendState(accumBlend);
-            device.setBlendColor(blend, blend, blend, blend);
-
-            this.texcoordModUniform.setValue([1, 1, 0, 0]);
-            this.multiframeTexUniform.setValue(sourceTex);
-            this.powerUniform.setValue(gamma);
-            drawQuadWithShader(device, this.accumRenderTarget, this.shader, null, null);
-
-            this.sampleAccum += sampleWeight;
-        }
-
-        this.copyFinal();
-
-        if (this.sampleId < sampleCnt) {
-            this.sampleId++;
-        }
+        this.finalRenderPass.render();
 
         return this.sampleId < sampleCnt;
-    }
-
-    // perform final copy to backbuffer
-    copyFinal() {
-        const device = this.device;
-
-        if (this.blend !== 1.0) {
-            device.setBlendState(accumBlend);
-            device.setBlendColor(this.blend, this.blend, this.blend, this.blend);
-        } else {
-            device.setBlendState(noBlend);
-        }
-
-        // we must flip the image upside-down on webgpu
-        this.texcoordModUniform.setValue(device.isWebGPU ? [1, -1, 0, 1] : [1, 1, 0, 0]);
-
-        if (!this.enabled || this.sampleId === 0) {
-            // first frame - copy the camera render target directly to the back buffer
-            this.multiframeTexUniform.setValue(this.camera.renderTarget.colorBuffer);
-            this.powerUniform.setValue(1.0);
-        } else {
-            this.multiframeTexUniform.setValue(this.accumTexture);
-            this.powerUniform.setValue(1.0 / gamma);
-        }
-
-        drawQuadWithShader(device, null, this.shader);
-
-        this.activateBackbuffer();
     }
 }
 
