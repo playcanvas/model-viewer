@@ -105,7 +105,7 @@ class DebugLines {
     depthState = new DepthState();
 
     constructor(app: App, camera: Entity, backLayer = true) {
-        const device = app.graphicsDevice as WebglGraphicsDevice;
+        const device = app.graphicsDevice;
 
         if (!debugLayerFront) {
             // construct the debug layer
@@ -156,8 +156,8 @@ class DebugLines {
                 vertex_position: SEMANTIC_POSITION,
                 vertex_color: SEMANTIC_COLOR
             },
-            vertexCode: vshader,
-            fragmentCode: fshader
+            vertexGLSL: vshader,
+            fragmentGLSL: fshader
         };
 
         const frontMaterial = new ShaderMaterial(shaderArgs);
