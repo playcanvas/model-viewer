@@ -34,7 +34,7 @@ import {
     TONEMAP_ACES2,
     math,
     path,
-    shaderChunks,
+    ShaderChunks,
     AnimEvents,
     AnimTrack,
     Asset,
@@ -47,6 +47,9 @@ import {
     GraphicsDevice,
     GraphNode,
     GSplatComponent,
+    GSplatData,
+    GSplatResource,
+    GSplatResourceBase,
     Keyboard,
     Mat4,
     Mesh,
@@ -62,9 +65,7 @@ import {
     Texture,
     TouchDevice,
     Vec3,
-    Vec2,
-    GSplatData,
-    GSplatResource
+    Vec2
 } from 'playcanvas';
 // @ts-ignore
 import { CameraControls } from 'playcanvas/scripts/esm/camera-controls.mjs';
@@ -92,7 +93,7 @@ const bbox = new BoundingBox();
 const FOCUS_FOV = 75;
 
 // override global pick to pack depth instead of meshInstance id
-const pickDepthPS = /* glsl */ `
+const pickDepthGlsl = /* glsl */ `
 vec4 packFloat(float depth) {
     uvec4 u = (uvec4(floatBitsToUint(depth)) >> uvec4(0u, 8u, 16u, 24u)) & 0xffu;
     return vec4(u) / 255.0;
@@ -100,6 +101,17 @@ vec4 packFloat(float depth) {
 vec4 getPickOutput() {
     return packFloat(gl_FragCoord.z);
 }
+`;
+
+const pickDepthWgsl = /* wgsl */ `
+    fn packFloat(depth: f32) -> vec4f {
+        let u: vec4<u32> = (vec4<u32>(bitcast<u32>(depth)) >> vec4<u32>(0u, 8u, 16u, 24u)) & vec4<u32>(0xffu);
+        return vec4f(u) / 255.0;
+    }
+
+    fn getPickOutput() -> vec4f {
+        return packFloat(pcPosition.z);
+    }
 `;
 
 class Viewer {
@@ -232,7 +244,8 @@ class Viewer {
         this.skyboxUrls = skyboxUrls;
 
         // global override depth
-        shaderChunks.pickPS = pickDepthPS;
+        ShaderChunks.get(this.app.graphicsDevice, 'glsl').set('pickPS', pickDepthGlsl);
+        ShaderChunks.get(this.app.graphicsDevice, 'wgsl').set('pickPS', pickDepthWgsl);
 
         // clustered not needed and has faster startup on windows
         this.app.scene.clusteredLightingEnabled = false;
@@ -783,7 +796,7 @@ class Viewer {
             this.initialCameraFocus = null;
         } else {
             const entityAsset = this.entityAssets[0];
-            const splatData = (entityAsset?.asset?.resource as GSplatResource)?.splatData as GSplatData;
+            const splatData = (entityAsset?.asset?.resource as GSplatResource)?.gsplatData as GSplatData;
             if (splatData) {
                 splatData.calcFocalPoint(focus, () => true);
                 entityAsset.entity.getWorldTransform().transformPoint(focus, focus);
@@ -898,7 +911,6 @@ class Viewer {
             entity.destroy();
         });
         this.entities = [];
-        this.entityAssets = [];
 
         this.assets.forEach((asset) => {
             app.assets.remove(asset);
@@ -926,14 +938,14 @@ class Viewer {
 
         // update mesh stats
         this.assets.forEach((asset) => {
-            if ((asset.resource as any).splatData) {
+            if (asset.resource instanceof GSplatResourceBase) {
                 const resource = asset.resource as GSplatResource;
 
                 meshCount++;
                 materialCount++;
-                primitiveCount += resource.splatData.numSplats;
-                vertexCount += resource.splatData.numSplats * 4;
-                meshVRAM += resource.splatData.numSplats * 64; // 16 * float32
+                primitiveCount += resource.gsplatData.numSplats;
+                vertexCount += resource.gsplatData.numSplats * 4;
+                meshVRAM += resource.gsplatData.numSplats * 64; // 16 * float32
             } else {
                 // ContainerResource type isn't picked up correctly for some reason
                 const resource = asset.resource as any;
@@ -1653,7 +1665,9 @@ class Viewer {
                 entity = resource.instantiateRenderEntity();
             } else {
                 // gaussian splat scene
-                entity = resource.instantiate();
+                entity = new Entity();
+                entity.setEulerAngles(0, 0, 180);
+                entity.addComponent('gsplat', { asset });
 
                 // render frame if gaussian splat sorter updates)
                 entity.gsplat.instance.sorter.on('updated', () => {

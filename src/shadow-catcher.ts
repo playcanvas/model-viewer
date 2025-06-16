@@ -49,10 +49,7 @@ class ShadowCatcher {
         this.material.depthWrite = false;
         this.material.diffuse.set(0, 0, 0);
         this.material.specular.set(0, 0, 0);
-        this.material.chunks = {
-            APIVersion: CHUNKAPI_1_65,
-            endPS: endPS
-        };
+        this.material.shaderChunks.glsl.set('endPS', endPS);
         this.material.update();
 
         // create shadow catcher geometry

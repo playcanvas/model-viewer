@@ -9,13 +9,13 @@ import {
     PIXELFORMAT_RGBA16F,
     PIXELFORMAT_RGBA32F,
     SEMANTIC_POSITION,
-    createShaderFromCode,
     drawQuadWithShader,
     BlendState,
     CameraComponent,
     RenderTarget,
     ScopeId,
     Shader,
+    ShaderUtils,
     Texture,
     Vec3,
     GraphicsDevice,
@@ -140,8 +140,13 @@ class Multiframe {
             pmat.data[9] = 0;
         });
 
-        this.shader = createShaderFromCode(device, vshader, fshader, 'multiframe', {
-            vertex_position: SEMANTIC_POSITION
+        this.shader =  ShaderUtils.createShader(device, {
+            uniqueName: 'multiframe',
+            attributes: {
+                vertex_position: SEMANTIC_POSITION
+            },
+            vertexGLSL: vshader,
+            fragmentGLSL: fshader
         });
 
         this.pixelFormat = choosePixelFormat(device);
