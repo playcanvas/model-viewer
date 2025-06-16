@@ -606,7 +606,7 @@ class Viewer {
                 this.renderNextFrame();
             },
             'camera.hq': (enabled: boolean) => {
-                this.multiframe.enabled = !this.app.graphicsDevice.isWebGPU && enabled;
+                this.multiframe.enabled = enabled;
                 this.renderNextFrame();
             },
 
@@ -2029,7 +2029,7 @@ class Viewer {
 
         // resolve the (possibly multisampled) render target
         const rt = this.camera.camera.renderTarget;
-        if (!this.app.graphicsDevice.isWebGPU && rt.samples > 1) {
+        if (rt.samples > 1) {
             rt.resolve();
         }
 
