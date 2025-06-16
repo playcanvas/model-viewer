@@ -104,14 +104,14 @@ vec4 getPickOutput() {
 `;
 
 const pickDepthWgsl = /* wgsl */ `
-	fn packFloat(depth: f32) -> vec4f {
-	    let u: vec4<u32> = (vec4<u32>(bitcast<u32>(depth)) >> vec4<u32>(0u, 8u, 16u, 24u)) & vec4<u32>(0xffu);
-	    return vec4f(u) / 255.0;
-	}
+    fn packFloat(depth: f32) -> vec4f {
+        let u: vec4<u32> = (vec4<u32>(bitcast<u32>(depth)) >> vec4<u32>(0u, 8u, 16u, 24u)) & vec4<u32>(0xffu);
+        return vec4f(u) / 255.0;
+    }
 
-	fn getPickOutput() -> vec4f {
-	    return packFloat(pcPosition.z);
-	}
+    fn getPickOutput() -> vec4f {
+        return packFloat(pcPosition.z);
+    }
 `;
 
 class Viewer {
