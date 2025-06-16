@@ -22,8 +22,7 @@ import {
     Vec3,
     VertexBuffer,
     VertexFormat,
-    VertexIterator,
-    WebglGraphicsDevice
+    VertexIterator
 } from 'playcanvas';
 
 import { App } from './app';
@@ -51,7 +50,7 @@ const unitBone = [
     [[-0.5, 0, 0.3], [0, -0.5, 0.3]]
 ];
 
-const vshader = /* glsl */`
+const vertexGLSL = /* glsl */`
 attribute vec3 vertex_position;
 attribute vec4 vertex_color;
 
@@ -73,7 +72,7 @@ void main(void) {
     gl_Position.z = 0.0;
 }`;
 
-const fshader = /* glsl */`
+const fragmentGLSL = /* glsl */`
 precision highp float;
 
 varying vec2 zw;
@@ -86,6 +85,52 @@ void main(void) {
     // clamp depth in Z to [0, 1] range
     gl_FragDepth = max(0.0, min(1.0, (zw.x / zw.y + 1.0) * 0.5));
 }`;
+
+const vertexWGSL = /* wgsl */`
+attribute vertex_position: vec3f;
+attribute vertex_color: vec4f;
+
+varying zw: vec2f;
+varying vColor: vec4f;
+
+uniform matrix_model: mat4x4f;
+uniform matrix_viewProjection: mat4x4f;
+
+@vertex
+fn vertexMain(input: VertexInput) -> VertexOutput {
+    var output: VertexOutput;
+
+    output.vColor = vertex_color;
+    output.position = uniform.matrix_viewProjection * uniform.matrix_model * vec4(vertex_position, 1.0);
+
+    // store z/w for later use in fragment shader
+    output.zw = output.position.zw;
+
+    // disable depth clipping
+    output.position.z = 0.0;
+
+    return output;
+}
+`;
+
+const fragmentWGSL = /* wgsl */`
+varying zw: vec2f;
+varying vColor: vec4f;
+
+uniform uColor: vec4f;
+
+@fragment
+fn fragmentMain(input: FragmentInput) -> FragmentOutput {
+    var output: FragmentOutput;
+
+    output.color = input.vColor * uniform.uColor;
+
+    // clamp depth in Z to [0, 1] range
+    output.fragDepth = max(0.0, min(1.0, (zw.x / zw.y + 1.0) * 0.5));
+
+    return output;
+}
+`;
 
 class DebugLines {
     app: App;
@@ -156,8 +201,10 @@ class DebugLines {
                 vertex_position: SEMANTIC_POSITION,
                 vertex_color: SEMANTIC_COLOR
             },
-            vertexGLSL: vshader,
-            fragmentGLSL: fshader
+            vertexGLSL: vertexGLSL,
+            fragmentGLSL: fragmentGLSL,
+            vertexWGSL: vertexWGSL,
+            fragmentWGSL: fragmentWGSL
         };
 
         const frontMaterial = new ShaderMaterial(shaderArgs);
