@@ -1,5 +1,5 @@
 import {
-    BLEND_MULTIPLICATIVE,
+    BLEND_PREMULTIPLIED,
     SHADOW_VSM_16F,
     SHADOWUPDATE_REALTIME as SHADOWUPDATE,
     AppBase,
@@ -11,6 +11,14 @@ import {
     RenderComponent,
     StandardMaterial
 } from 'playcanvas';
+
+const litUserMainEndGLSL = `
+    gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0 - gl_FragColor.r);
+`;
+
+const litUserMainEndWGSL = `
+    output.color = vec4f(0.0, 0.0, 0.0, 1.0 - output.color.r);
+`;
 
 class ShadowCatcher {
     layer: Layer;
@@ -38,12 +46,16 @@ class ShadowCatcher {
 
         // create shadow catcher material
         this.material = new StandardMaterial();
+        this.material.blendType = BLEND_PREMULTIPLIED;
         this.material.shadowCatcher = true;
         this.material.useSkybox = false;
-        this.material.blendType = BLEND_MULTIPLICATIVE;
         this.material.depthWrite = false;
         this.material.diffuse.set(0, 0, 0);
         this.material.specular.set(0, 0, 0);
+
+        this.material.shaderChunks.glsl.set('litUserMainEndPS', litUserMainEndGLSL);
+        this.material.shaderChunks.wgsl.set('litUserMainEndPS', litUserMainEndWGSL);
+
         this.material.update();
 
         // create shadow catcher geometry

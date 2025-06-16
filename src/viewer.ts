@@ -725,6 +725,11 @@ class Viewer {
                     texture.type = TEXTURETYPE_RGBM;
                 }
                 this.initSkybox(texture);
+
+                // if we don't unload the texture asset and user selects it a second time, the
+                // brightness is completely wrong.
+                textureAsset.unload();
+                app.assets.remove(textureAsset);
             });
             app.assets.add(textureAsset);
             app.assets.load(textureAsset);
