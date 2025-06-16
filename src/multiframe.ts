@@ -111,7 +111,7 @@ class MyRenderPassShaderQuad extends RenderPassShaderQuad {
         this.events.fire('execute');
         super.execute();
     }
-};
+}
 
 const resolve = (scope: ScopeSpace, values: any) => {
     for (const key in values) {
@@ -234,9 +234,9 @@ class Multiframe {
 
             resolve(device.scope, {
                 texcoordMod: [1, 1, 0, 0],
-                multiframeTex:  this.sourceTex,
+                multiframeTex: this.sourceTex,
                 power: gamma
-            })
+            });
         });
 
         // render pass for final blit to backbuffer
