@@ -93,7 +93,7 @@ const bbox = new BoundingBox();
 const FOCUS_FOV = 75;
 
 // override global pick to pack depth instead of meshInstance id
-const pickDepthPS = /* glsl */ `
+const pickDepthGlsl = /* glsl */ `
 vec4 packFloat(float depth) {
     uvec4 u = (uvec4(floatBitsToUint(depth)) >> uvec4(0u, 8u, 16u, 24u)) & 0xffu;
     return vec4(u) / 255.0;
@@ -101,6 +101,17 @@ vec4 packFloat(float depth) {
 vec4 getPickOutput() {
     return packFloat(gl_FragCoord.z);
 }
+`;
+
+const pickDepthWgsl = /* wgsl */ `
+	fn packFloat(depth: f32) -> vec4f {
+	    let u: vec4<u32> = (vec4<u32>(bitcast<u32>(depth)) >> vec4<u32>(0u, 8u, 16u, 24u)) & vec4<u32>(0xffu);
+	    return vec4f(u) / 255.0;
+	}
+
+	fn getPickOutput() -> vec4f {
+	    return packFloat(pcPosition.z);
+	}
 `;
 
 class Viewer {
@@ -239,7 +250,8 @@ class Viewer {
         this.skyboxUrls = skyboxUrls;
 
         // global override depth
-        ShaderChunks.get(this.app.graphicsDevice, 'glsl').set('pickPS', pickDepthPS);
+        ShaderChunks.get(this.app.graphicsDevice, 'glsl').set('pickPS', pickDepthGlsl);
+        ShaderChunks.get(this.app.graphicsDevice, 'wgsl').set('pickPS', pickDepthWgsl);
 
         // clustered not needed and has faster startup on windows
         this.app.scene.clusteredLightingEnabled = false;

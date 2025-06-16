@@ -25,7 +25,7 @@ class Picker {
         const width = canvas.clientWidth;
         const height = canvas.clientHeight;
 
-        y = height - y - 1;
+        y = graphicsDevice.isWebGL2 ? height - y - 1 : y;
 
         // construct picker on demand
         if (!this.picker) {
@@ -36,7 +36,7 @@ class Picker {
         const { picker } = this;
         picker.resize(width, height);
         picker.prepare(camera.camera, app.scene, [app.scene.layers.getLayerByName('World')]);
-        const pixels = await picker.renderTarget.colorBuffer.read(x, graphicsDevice.isWebGL2 ? height - y - 1 : y, 1, 1, {
+        const pixels = await picker.renderTarget.colorBuffer.read(x, y, 1, 1, {
             renderTarget: picker.renderTarget,
             immediate: true
         });
@@ -53,6 +53,10 @@ class Picker {
 
         // clip space
         const pos = new Vec4(x / width, y / height, depth, 1).mul(two).sub(one);
+
+        if (!graphicsDevice.isWebGL2) {
+            pos.y *= -1;
+        }
 
         // homogeneous view space
         camera.camera.projectionMatrix.clone().invert().transformVec4(pos, pos);
