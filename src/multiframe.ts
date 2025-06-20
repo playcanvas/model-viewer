@@ -351,6 +351,11 @@ class Multiframe {
     // blend the camera's render target colour buffer with the multiframe accumulation buffer.
     // writes results to the backbuffer.
     update() {
+        if (!this.enabled) {
+            this.finalRenderPass.render();
+            return false;
+        }
+
         const sampleCnt = this.sampleArray.length;
         const { sourceTex } = this;
 
