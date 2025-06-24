@@ -311,7 +311,6 @@ class Viewer {
             camera: camera.camera
         });
         this.cameraControls.zoomRange = new Vec2(ZOOM_SCALE_MIN, Infinity);
-        this.cameraControls.pitchRange = new Vec2(-90, 90);
 
         camera.camera.requestSceneColorMap(true);
 

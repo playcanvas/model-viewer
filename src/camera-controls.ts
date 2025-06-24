@@ -102,12 +102,6 @@ class CameraControls {
 
     private _camera: CameraComponent;
 
-    private _startZoomDist: number = 0;
-
-    private _pitchRange: Vec2 = new Vec2(-360, 360);
-
-    private _yawRange: Vec2 = new Vec2(-360, 360);
-
     private _zoomRange: Vec2 = new Vec2();
 
     private _desktopInput: KeyboardMouseSource = new KeyboardMouseSource();
@@ -187,71 +181,6 @@ class CameraControls {
         this._setMode('orbit');
     }
 
-    set focusPoint(point: Vec3) {
-        const position = this._camera.entity.getPosition();
-        this._startZoomDist = position.distance(point);
-        this._controller.attach(this._pose.look(position, point), false);
-    }
-
-    get focusPoint() {
-        return this._pose.getFocus(tmpV1);
-    }
-
-    set focusDamping(damping: number) {
-        this._focusController.focusDamping = damping;
-    }
-
-    get focusDamping() {
-        return this._focusController.focusDamping;
-    }
-
-    set rotateDamping(damping: number) {
-        this._flyController.rotateDamping = damping;
-        this._orbitController.rotateDamping = damping;
-    }
-
-    get rotateDamping() {
-        return this._orbitController.rotateDamping;
-    }
-
-    set moveDamping(damping: number) {
-        this._flyController.moveDamping = damping;
-    }
-
-    get moveDamping() {
-        return this._flyController.moveDamping;
-    }
-
-    set zoomDamping(damping: number) {
-        this._orbitController.zoomDamping = damping;
-    }
-
-    get zoomDamping() {
-        return this._orbitController.zoomDamping;
-    }
-
-    set pitchRange(range: Vec2) {
-        this._pitchRange.x = math.clamp(range.x, -360, 360);
-        this._pitchRange.y = math.clamp(range.y, -360, 360);
-        this._flyController.pitchRange = this._pitchRange;
-        this._orbitController.pitchRange = this._pitchRange;
-    }
-
-    get pitchRange() {
-        return this._pitchRange;
-    }
-
-    set yawRange(range: Vec2) {
-        this._yawRange.x = math.clamp(range.x, -360, 360);
-        this._yawRange.y = math.clamp(range.y, -360, 360);
-        this._flyController.yawRange = this._yawRange;
-        this._orbitController.yawRange = this._yawRange;
-    }
-
-    get yawRange() {
-        return this._yawRange;
-    }
-
     set zoomRange(range: Vec2) {
         this._zoomRange.x = range.x;
         this._zoomRange.y = range.y <= range.x ? Infinity : range.y;
@@ -260,18 +189,6 @@ class CameraControls {
 
     get zoomRange() {
         return this._zoomRange;
-    }
-
-    set mobileInputLayout(layout: `${'joystick' | 'touch'}-${'joystick' | 'touch'}`) {
-        if (!/(?:joystick|touch)-(?:joystick|touch)/.test(layout)) {
-            console.warn(`CameraControls: invalid mobile input layout: ${layout}`);
-            return;
-        }
-        this._flyMobileInput.layout = layout;
-    }
-
-    get mobileInputLayout() {
-        return this._flyMobileInput.layout;
     }
 
     get zoom() {
@@ -306,27 +223,6 @@ class CameraControls {
             }
         }
         this._controller.attach(this._pose, false);
-    }
-
-    focus(focus: Vec3, resetZoom: boolean = false) {
-        this._setMode('focus');
-        const zoomDist = resetZoom ?
-            this._startZoomDist : this._camera.entity.getPosition().distance(focus);
-        const position = tmpV1.copy(this._camera.entity.forward)
-        .mulScalar(-zoomDist)
-        .add(focus);
-        this._controller.attach(pose.look(position, focus));
-    }
-
-    look(focus: Vec3, resetZoom: boolean = false) {
-        this._setMode('focus');
-        const position = resetZoom ?
-            tmpV1.copy(this._camera.entity.getPosition())
-            .sub(focus)
-            .normalize()
-            .mulScalar(this._startZoomDist)
-            .add(focus) : this._camera.entity.getPosition();
-        this._controller.attach(pose.look(position, focus));
     }
 
     reset(focus: Vec3, position: Vec3) {
