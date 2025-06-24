@@ -19,9 +19,9 @@ import {
 
 type CameraControlsState = {
     axis: Vec3;
+    mouse: number[];
     shift: number;
     ctrl: number;
-    mouse: number[];
     touches: number;
 };
 
@@ -126,9 +126,9 @@ class CameraControls {
 
     private _state: CameraControlsState = {
         axis: new Vec3(),
+        mouse: [0, 0, 0],
         shift: 0,
         ctrl: 0,
-        mouse: [0, 0, 0],
         touches: 0
     };
 
