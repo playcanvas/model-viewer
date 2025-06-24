@@ -1,7 +1,6 @@
 import {
-    BLEND_NORMAL,
-    CHUNKAPI_1_65,
-    SHADOW_VSM16 as SHADOW_TYPE,
+    BLEND_PREMULTIPLIED,
+    SHADOW_VSM_16F,
     SHADOWUPDATE_REALTIME as SHADOWUPDATE,
     AppBase,
     BoundingBox,
@@ -13,9 +12,12 @@ import {
     StandardMaterial
 } from 'playcanvas';
 
-const endPS = `
-    litArgs_opacity = mix(light0_shadowIntensity, 0.0, shadow0);
-    gl_FragColor.rgb = vec3(0.0);
+const litUserMainEndGLSL = `
+    gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0 - gl_FragColor.r);
+`;
+
+const litUserMainEndWGSL = `
+    output.color = vec4f(0.0, 0.0, 0.0, 1.0 - output.color.r);
 `;
 
 class ShadowCatcher {
@@ -44,15 +46,16 @@ class ShadowCatcher {
 
         // create shadow catcher material
         this.material = new StandardMaterial();
+        this.material.blendType = BLEND_PREMULTIPLIED;
+        this.material.shadowCatcher = true;
         this.material.useSkybox = false;
-        this.material.blendType = BLEND_NORMAL;
         this.material.depthWrite = false;
         this.material.diffuse.set(0, 0, 0);
         this.material.specular.set(0, 0, 0);
-        this.material.chunks = {
-            APIVersion: CHUNKAPI_1_65,
-            endPS: endPS
-        };
+
+        this.material.shaderChunks.glsl.set('litUserMainEndPS', litUserMainEndGLSL);
+        this.material.shaderChunks.wgsl.set('litUserMainEndPS', litUserMainEndWGSL);
+
         this.material.update();
 
         // create shadow catcher geometry
@@ -71,7 +74,7 @@ class ShadowCatcher {
             normalOffsetBias: 0,
             shadowBias: 0.0,
             shadowResolution: 1024,
-            shadowType: SHADOW_TYPE,
+            shadowType: SHADOW_VSM_16F,
             shadowUpdateMode: SHADOWUPDATE,
             vsmBlurSize: 64,
             enabled: true,

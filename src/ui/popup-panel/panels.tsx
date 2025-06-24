@@ -59,7 +59,7 @@ class CameraPanel extends React.Component <{
                     <Toggle
                         label='High Quality'
                         value={props.observerData.camera.hq}
-                        enabled={!props.observerData.animation.playing && !props.observerData.debug.stats && props.observerData.runtime.activeDeviceType !== 'webgpu' }
+                        enabled={!props.observerData.animation.playing && !props.observerData.debug.stats }
                         setProperty={(value: boolean) => props.setProperty('camera.hq', value)}
                     />
                 </Container>
