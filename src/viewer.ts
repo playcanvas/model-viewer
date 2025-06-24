@@ -449,7 +449,7 @@ class Viewer {
         canvas.addEventListener('dblclick', async (event) => {
             const result = await this.picker.pick(event.offsetX, event.offsetY);
             if (result) {
-                this.cameraControls.focus(result, this.camera.getPosition());
+                this.cameraControls.reset(result, this.camera.getPosition());
             }
         });
 
@@ -825,14 +825,14 @@ class Viewer {
             const start = this.initialCameraPosition.clone();
             this.initialCameraPosition = null;
 
-            this.cameraControls.focus(focus, start);
+            this.cameraControls.reset(focus, start);
             return;
         }
 
         // focus the camera
         const forward = init ? Vec3.FORWARD : this.camera.forward;
         const start = forward.clone().mulScalar(-zoom).add(focus);
-        this.cameraControls.focus(focus, start);
+        this.cameraControls.reset(focus, start);
     }
 
     destroyRenderTargets() {
@@ -1569,10 +1569,8 @@ class Viewer {
     update(deltaTime: number) {
         // update the orbit camera
         if (!this.xrMode?.active) {
-            // @ts-ignore _zoomDist is currently flagged as private
-            const speed = this.cameraControls._zoomDist / this.cameraControls.sceneSize;
-
             // make fly speed based on orbit zoom distance
+            const speed = this.cameraControls.zoom / this.cameraControls.sceneSize;
             this.cameraControls.moveSpeed = speed;
             this.cameraControls.moveFastSpeed = speed * 4;
             this.cameraControls.moveSlowSpeed = speed * 0.25;
