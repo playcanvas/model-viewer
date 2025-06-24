@@ -320,6 +320,10 @@ class Viewer {
                     this.focus(false);
                     break;
                 }
+                case KEY_R: {
+                    this.cameraControls.reset(Vec3.ZERO, new Vec3(2, 2, 2));
+                    break;
+                }
             }
         });
 
