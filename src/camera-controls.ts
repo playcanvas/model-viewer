@@ -159,9 +159,15 @@ class CameraControls {
         // set orbit controller defaults
         this._orbitController.zoomRange = new Vec2(0, Infinity);
         this._orbitController.pitchRange = new Vec2(-90, 90);
+        this._orbitController.rotateDamping = 0.97;
+        this._orbitController.zoomDamping = 0.97;
 
         // set fly controller defaults
         this._flyController.pitchRange = new Vec2(-90, 90);
+        this._flyController.rotateDamping = 0.97;
+
+        // set focus controller defaults
+        this._focusController.focusDamping = 0.97;
 
         // attach input
         this._desktopInput.attach(this._app.graphicsDevice.canvas);
