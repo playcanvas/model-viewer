@@ -42,7 +42,7 @@
         "eslint": "^9.29.0",
         "eslint-import-resolver-typescript": "^4.4.3",
         "globals": "^16.2.0",
-        "playcanvas": "^2.8.2",
+        "playcanvas": "2.9.0-beta.1",
         "qrious": "^4.0.2",
         "react": "^18.3.1",
         "react-dom": "^18.3.1",

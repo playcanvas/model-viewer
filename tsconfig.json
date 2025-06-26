@@ -16,7 +16,7 @@
         "noImplicitAny": true,
         "resolveJsonModule": true,
         "sourceMap": true,
-        "target": "es2022",
+        "target": "es2022"
     },
     "include": ["**/*.ts", "**/*.tsx"],
     "exclude": ["node_modules", "**/*.js", "dist"]
