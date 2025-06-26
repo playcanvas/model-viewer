@@ -311,6 +311,7 @@ class Viewer {
             camera: camera.camera
         });
         this.cameraControls.zoomRange = new Vec2(ZOOM_SCALE_MIN, Infinity);
+        this.cameraControls.reset(Vec3.ZERO, camera.getPosition());
 
         camera.camera.requestSceneColorMap(true);
 
