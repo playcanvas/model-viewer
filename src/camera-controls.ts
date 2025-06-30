@@ -14,7 +14,7 @@ import {
     Vec2,
     Vec3,
     type CameraComponent,
-    type InputController,
+    type InputController
 } from 'playcanvas';
 
 type CameraControlsState = {
