@@ -3,7 +3,6 @@ import {
     AppBase,
     DualGestureSource,
     FlyController,
-    FocusController,
     GamepadSource,
     InputFrame,
     KeyboardMouseSource,
@@ -114,13 +113,11 @@ class CameraControls {
 
     private _orbitController: OrbitController = new OrbitController();
 
-    private _focusController: FocusController = new FocusController();
-
     private _controller: InputController;
 
     private _pose: Pose = new Pose();
 
-    private _mode: 'orbit' | 'fly' | 'focus';
+    private _mode: 'orbit' | 'fly';
 
     private _state: CameraControlsState = {
         axis: new Vec3(),
@@ -160,9 +157,6 @@ class CameraControls {
         this._flyController.rotateDamping = 0.97;
         this._flyController.moveDamping = 0.97;
 
-        // set focus controller defaults
-        this._focusController.focusDamping = 0.97;
-
         // attach input
         this._desktopInput.attach(this._app.graphicsDevice.canvas);
         this._orbitMobileInput.attach(this._app.graphicsDevice.canvas);
@@ -186,7 +180,7 @@ class CameraControls {
         return this._zoomRange;
     }
 
-    private _setMode(mode: 'orbit' | 'fly' | 'focus') {
+    private _setMode(mode: 'orbit' | 'fly') {
         // check if mode is the same
         if (this._mode === mode) {
             return;
@@ -208,16 +202,12 @@ class CameraControls {
                 this._controller = this._flyController;
                 break;
             }
-            case 'focus': {
-                this._controller = this._focusController;
-                break;
-            }
         }
         this._controller.attach(this._pose, false);
     }
 
     reset(focus: Vec3, position: Vec3) {
-        this._setMode('focus');
+        this._setMode('orbit');
         this._controller.attach(pose.look(position, focus));
     }
 
@@ -311,15 +301,6 @@ class CameraControls {
         if (this._app.xr?.active) {
             frame.read();
             return;
-        }
-
-        // check focus end
-        if (this._mode === 'focus') {
-            const focusInterrupt = deltas.move.length() + deltas.rotate.length() > 0;
-            const focusComplete = this._focusController.complete();
-            if (focusInterrupt || focusComplete) {
-                this._setMode('orbit');
-            }
         }
 
         // update controller by consuming frame
