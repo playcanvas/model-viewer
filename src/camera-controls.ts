@@ -40,8 +40,6 @@ const frame = new InputFrame({
     rotate: [0, 0, 0]
 });
 
-const ZOOM_SCALE_MULT = 10;
-
 export const damp = (damping: number, dt: number) => 1 - Math.pow(damping, dt * 1000);
 
 const applyDeadZone = (stick: number[], low: number, high: number) => {
@@ -132,23 +130,17 @@ class CameraControls {
         touches: 0
     };
 
-    sceneSize: number = 100;
+    // this gets overridden by the viewer based on scene size
+    moveSpeed = 1;
 
-    rotateSpeed: number = 0.2;
+    orbitSpeed = 18;
 
-    rotateJoystickSens: number = 2;
+    pinchSpeed = 0.4;
 
-    moveSpeed: number = 2;
+    wheelSpeed = 0.06;
 
-    moveFastSpeed: number = 4;
-
-    moveSlowSpeed: number = 1;
-
-    zoomSpeed: number = 0.005;
-
-    zoomPinchSens: number = 5;
-
-    zoomScaleMin: number = 0.001;
+    // sensitivity tweak for input touch devices
+    touchSensitivity = 0.5;
 
     gamepadDeadZone: Vec2 = new Vec2(0.3, 0.6);
 
@@ -160,11 +152,13 @@ class CameraControls {
         this._orbitController.zoomRange = new Vec2(0, Infinity);
         this._orbitController.pitchRange = new Vec2(-90, 90);
         this._orbitController.rotateDamping = 0.97;
+        this._orbitController.moveDamping = 0.97;
         this._orbitController.zoomDamping = 0.97;
 
         // set fly controller defaults
         this._flyController.pitchRange = new Vec2(-90, 90);
         this._flyController.rotateDamping = 0.97;
+        this._flyController.moveDamping = 0.97;
 
         // set focus controller defaults
         this._focusController.focusDamping = 0.97;
@@ -176,12 +170,7 @@ class CameraControls {
         this._gamepadInput.attach(this._app.graphicsDevice.canvas);
 
         // pose
-        const position = this._camera.entity.getPosition();
-        const focus = this._camera.entity.getRotation()
-        .transformVector(Vec3.FORWARD, tmpV1)
-        .mulScalar(this._pose.distance)
-        .add(position);
-        this._pose.look(position, focus);
+        this._pose.look(this._camera.entity.getPosition(), Vec3.ZERO);
 
         // mode
         this._setMode('orbit');
@@ -195,10 +184,6 @@ class CameraControls {
 
     get zoomRange() {
         return this._zoomRange;
-    }
-
-    get zoom() {
-        return this._pose.distance;
     }
 
     private _setMode(mode: 'orbit' | 'fly' | 'focus') {
@@ -261,77 +246,65 @@ class CameraControls {
         this._state.ctrl += key[keyCode.CTRL];
         this._state.touches += count[0];
 
-        if (button[0] === 1 || button[1] === 1 || wheel[0] !== 0) {
-            // left mouse button, middle mouse button, mouse wheel
-            this._setMode('orbit');
-        } else if (button[2] === 1 || this._state.axis.length() > 0) {
-            // right mouse button or any movement
+        if (this._mode !== 'fly' && this._state.axis.length() > 0) {
+            // if we have any axis input, switch to fly mode
             this._setMode('fly');
         }
 
         const orbit = +(this._mode === 'orbit');
         const fly = +(this._mode === 'fly');
-        const pan = +((orbit && this._state.shift) || this._state.mouse[1] || this._state.touches > 1);
-        const mobileJoystick = +(this._flyMobileInput.layout.endsWith('joystick'));
-
-        // multipliers
-        const moveMult = (this._state.shift ? this.moveFastSpeed : this._state.ctrl ?
-            this.moveSlowSpeed : this.moveSpeed) * this.sceneSize * dt;
-        const zoomMult = math.clamp(
-            this._pose.distance / (ZOOM_SCALE_MULT * this.sceneSize),
-            this.zoomScaleMin,
-            1
-        ) * this.zoomSpeed * this.sceneSize * 60 * dt;
-        const zoomTouchMult = zoomMult * this.zoomPinchSens;
-        const rotateMult = this.rotateSpeed * 60 * dt;
-        const rotateJoystickMult = this.rotateSpeed * this.rotateJoystickSens * 60 * dt;
+        const pan = +(this._state.touches > 1);
+        const distance = this._pose.distance;
 
         const { deltas } = frame;
 
         // desktop move
         const v = tmpV1.set(0, 0, 0);
         const keyMove = this._state.axis.clone().normalize();
-        v.add(keyMove.mulScalar(fly * (1 - pan) * moveMult));
-        const panMove = screenToWorld(this._camera, mouse[0], mouse[1], this._pose.distance);
-        v.add(panMove.mulScalar(orbit * pan));
-        const wheelMove = new Vec3(0, 0, wheel[0]);
-        v.add(wheelMove.mulScalar(orbit * zoomMult));
-        deltas.move.append([v.x, v.y, v.z]);
+        v.add(keyMove.mulScalar(fly * this.moveSpeed * (this._state.shift ? 2 : this._state.ctrl ? 0.5 : 1) * dt));
+        const panMove = screenToWorld(this._camera, mouse[0], mouse[1], distance);
+        v.add(panMove.mulScalar(this._state.mouse[2]));
+        const wheelMove = new Vec3(0, 0, -wheel[0]);
+        v.add(wheelMove.mulScalar(this.wheelSpeed * dt));
+        // FIXME: need to flip z axis for orbit camera
+        deltas.move.append([v.x, v.y, orbit ? -v.z : v.z]);
 
         // desktop rotate
         v.set(0, 0, 0);
         const mouseRotate = new Vec3(mouse[0], mouse[1], 0);
-        v.add(mouseRotate.mulScalar((1 - pan) * rotateMult));
+        v.add(mouseRotate.mulScalar((1 - this._state.mouse[2]) * this.orbitSpeed * dt));
         deltas.rotate.append([v.x, v.y, v.z]);
 
         // mobile move
         v.set(0, 0, 0);
-        const flyMove = new Vec3(leftInput[0], 0, -leftInput[1]);
-        v.add(flyMove.mulScalar(fly * (1 - pan) * moveMult));
-        const orbitMove = screenToWorld(this._camera, touch[0], touch[1], this._pose.distance);
+        const orbitMove = screenToWorld(this._camera, touch[0], touch[1], distance);
         v.add(orbitMove.mulScalar(orbit * pan));
+        const flyMove = new Vec3(leftInput[0], 0, -leftInput[1]);
+        v.add(flyMove.mulScalar(fly * this.moveSpeed * dt));
         const pinchMove = new Vec3(0, 0, pinch[0]);
-        v.add(pinchMove.mulScalar(orbit * zoomTouchMult));
+        v.add(pinchMove.mulScalar(orbit * pan * this.pinchSpeed * dt));
+        v.mulScalar(this.touchSensitivity);
         deltas.move.append([v.x, v.y, v.z]);
 
         // mobile rotate
         v.set(0, 0, 0);
         const orbitRotate = new Vec3(touch[0], touch[1], 0);
-        v.add(orbitRotate.mulScalar(orbit * (1 - pan) * rotateMult));
+        v.add(orbitRotate.mulScalar(orbit * (1 - pan) * this.orbitSpeed * dt));
         const flyRotate = new Vec3(rightInput[0], rightInput[1], 0);
-        v.add(flyRotate.mulScalar(fly * (1 - pan) * (mobileJoystick ? rotateJoystickMult : rotateMult)));
+        v.add(flyRotate.mulScalar(fly * this.orbitSpeed * dt));
+        v.mulScalar(this.touchSensitivity);
         deltas.rotate.append([v.x, v.y, v.z]);
 
         // gamepad move
         v.set(0, 0, 0);
         const stickMove = new Vec3(leftStick[0], 0, -leftStick[1]);
-        v.add(stickMove.mulScalar(fly * (1 - pan) * moveMult));
+        v.add(stickMove.mulScalar(this.moveSpeed * dt));
         deltas.move.append([v.x, v.y, v.z]);
 
         // gamepad rotate
         v.set(0, 0, 0);
         const stickRotate = new Vec3(rightStick[0], rightStick[1], 0);
-        v.add(stickRotate.mulScalar(fly * (1 - pan) * rotateJoystickMult));
+        v.add(stickRotate.mulScalar(this.orbitSpeed * dt));
         deltas.rotate.append([v.x, v.y, v.z]);
 
         // check if XR is active, just read frame to clear it

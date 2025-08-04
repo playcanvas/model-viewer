@@ -814,15 +814,16 @@ class Viewer {
         // calculate scene bounding box
         this.calcSceneBounds(bbox, this.selectedNode as Entity);
 
-        // set scene size
-        this.cameraControls.sceneSize = bbox.halfExtents.length();
-        this.cameraControls.zoomRange = new Vec2(ZOOM_SCALE_MIN, 10 * this.cameraControls.sceneSize);
+        // calculate scene size
+        const sceneSize = bbox.halfExtents.length();
+        this.cameraControls.moveSpeed = Math.max(0.05, Math.min(1, sceneSize * 0.0001)) * 200;
+        this.cameraControls.zoomRange = new Vec2(ZOOM_SCALE_MIN, 10 * sceneSize);
 
         // calculate the camera focal point
         const focus = this.calcFocalPoint(bbox);
 
         // calculate zoom
-        const zoom = this.calcZoom(this.cameraControls.sceneSize);
+        const zoom = this.calcZoom(sceneSize);
 
         // check for initial camera position
         if (this.initialCameraPosition) {
@@ -1573,11 +1574,6 @@ class Viewer {
     update(deltaTime: number) {
         // update the orbit camera
         if (!this.xrMode?.active) {
-            // make fly speed based on orbit zoom distance
-            const speed = this.cameraControls.zoom / this.cameraControls.sceneSize;
-            this.cameraControls.moveSpeed = speed;
-            this.cameraControls.moveFastSpeed = speed * 4;
-            this.cameraControls.moveSlowSpeed = speed * 0.25;
             this.cameraControls.update(deltaTime);
         }
 
