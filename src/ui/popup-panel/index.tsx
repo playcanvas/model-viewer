@@ -107,9 +107,8 @@ class PopupPanel extends React.Component <{ observerData: ObserverData, setPrope
             />
             <div id='floating-buttons-parent'>
                 <Button
-                    class='popup-button'
+                    class={['popup-button', 'camera-mode-button', this.props.observerData.camera.mode]}
                     id='camera-mode-button'
-                    icon={this.props.observerData.camera.mode === 'orbit' ? 'E304' : 'E302'}
                     width={40}
                     height={40}
                     onClick={() => {

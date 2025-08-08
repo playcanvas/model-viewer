@@ -260,6 +260,20 @@ input {
     font-size: 16px !important;
 }
 
+.camera-mode-button {
+    background-repeat: no-repeat;
+    background-size: 24px;
+    background-position: center;
+
+    &.orbit {
+        background-image: url(./static/icons/orbit-mode.svg);
+    }
+
+    &.fly {
+        background-image: url(./static/icons/fly-mode.svg);
+    }
+}
+
 #github-button {
     margin: 0px;
     padding: 0px;
