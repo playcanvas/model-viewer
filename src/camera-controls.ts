@@ -270,19 +270,17 @@ class CameraControls {
         const orbitMove = screenToWorld(this._camera, touch[0], touch[1], distance);
         v.add(orbitMove.mulScalar(orbit * pan));
         const flyMove = new Vec3(leftInput[0], 0, -leftInput[1]);
-        v.add(flyMove.mulScalar(fly * this.moveSpeed * dt));
+        v.add(flyMove.mulScalar(fly * this.moveSpeed * this.touchSensitivity * dt));
         const pinchMove = new Vec3(0, 0, pinch[0]);
         v.add(pinchMove.mulScalar(orbit * pan * this.pinchSpeed * dt));
-        v.mulScalar(this.touchSensitivity);
         deltas.move.append([v.x, v.y, v.z]);
 
         // mobile rotate
         v.set(0, 0, 0);
         const orbitRotate = new Vec3(touch[0], touch[1], 0);
-        v.add(orbitRotate.mulScalar(orbit * (1 - pan) * this.orbitSpeed * dt));
+        v.add(orbitRotate.mulScalar(orbit * (1 - pan) * this.orbitSpeed * this.touchSensitivity * dt));
         const flyRotate = new Vec3(rightInput[0], rightInput[1], 0);
-        v.add(flyRotate.mulScalar(fly * this.orbitSpeed * dt));
-        v.mulScalar(this.touchSensitivity);
+        v.add(flyRotate.mulScalar(fly * this.orbitSpeed * this.touchSensitivity * dt));
         deltas.rotate.append([v.x, v.y, v.z]);
 
         // gamepad move
