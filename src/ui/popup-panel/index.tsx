@@ -105,7 +105,7 @@ class PopupPanel extends React.Component <{ observerData: ObserverData, setPrope
                     }
                 } }
             />
-            <div id='floating-buttons-parent'>
+            <div id='floating-top-parent'>
                 <Button
                     class='popup-button'
                     id='fullscreen-button'
@@ -114,6 +114,18 @@ class PopupPanel extends React.Component <{ observerData: ObserverData, setPrope
                     height={40}
                     onClick={() => {
                         toggleCollapsed();
+                    } }
+                />
+            </div>
+            <div id='floating-bottom-parent'>
+                <Button
+                    class={['popup-button', 'camera-mode-button', this.props.observerData.camera.mode]}
+                    id='camera-mode-button'
+                    width={40}
+                    height={40}
+                    onClick={() => {
+                        const mode = this.props.observerData.camera.mode === 'orbit' ? 'fly' : 'orbit';
+                        this.props.setProperty('camera.mode', mode);
                     } }
                 />
             </div>
