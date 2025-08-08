@@ -306,10 +306,7 @@ class Viewer {
             frustumCulling: true,
             clearColor: new Color(0, 0, 0, 0)
         });
-        this.cameraControls = new CameraControls({
-            app,
-            camera: camera.camera
-        });
+        this.cameraControls = new CameraControls(app, camera.camera, observer);
         this.cameraControls.zoomRange = new Vec2(ZOOM_SCALE_MIN, Infinity);
 
         camera.camera.requestSceneColorMap(true);
@@ -596,6 +593,9 @@ class Viewer {
             'camera.hq': (enabled: boolean) => {
                 this.multiframe.enabled = enabled;
                 this.renderNextFrame();
+            },
+            'camera.mode': (mode: 'orbit' | 'fly') => {
+                this.cameraControls.mode = mode;
             },
 
             // skybox

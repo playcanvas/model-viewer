@@ -67,7 +67,8 @@ const observerData: ObserverData = {
         pixelScale: 1,
         multisampleSupported: true,
         multisample: true,
-        hq: true
+        hq: true,
+        mode: 'orbit'
     },
     skybox: {
         value: 'Paul Lobe Haus',

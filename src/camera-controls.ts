@@ -1,3 +1,4 @@
+import { type Observer } from '@playcanvas/observer';
 import {
     math,
     AppBase,
@@ -22,11 +23,6 @@ type CameraControlsState = {
     shift: number;
     ctrl: number;
     touches: number;
-};
-
-type CameraControlsOptions = {
-    app: AppBase,
-    camera: CameraComponent,
 };
 
 const tmpV1 = new Vec3();
@@ -99,6 +95,8 @@ class CameraControls {
 
     private _camera: CameraComponent;
 
+    private _observer: Observer;
+
     private _zoomRange: Vec2 = new Vec2();
 
     private _desktopInput: KeyboardMouseSource = new KeyboardMouseSource();
@@ -141,9 +139,10 @@ class CameraControls {
 
     gamepadDeadZone: Vec2 = new Vec2(0.3, 0.6);
 
-    constructor({ app, camera }: CameraControlsOptions) {
+    constructor(app: AppBase, camera: CameraComponent, observer: Observer) {
         this._app = app;
         this._camera = camera;
+        this._observer = observer;
 
         // set orbit controller defaults
         this._orbitController.zoomRange = new Vec2(0, Infinity);
@@ -167,7 +166,7 @@ class CameraControls {
         this._pose.look(this._camera.entity.getPosition(), Vec3.ZERO);
 
         // mode
-        this._setMode('orbit');
+        this.mode = 'orbit';
     }
 
     set zoomRange(range: Vec2) {
@@ -180,7 +179,7 @@ class CameraControls {
         return this._zoomRange;
     }
 
-    private _setMode(mode: 'orbit' | 'fly') {
+    set mode(mode: 'orbit' | 'fly') {
         // check if mode is the same
         if (this._mode === mode) {
             return;
@@ -204,10 +203,17 @@ class CameraControls {
             }
         }
         this._controller.attach(this._pose, false);
+
+        // fire observer event
+        this._observer.set('camera.mode', this._mode);
+    }
+
+    get mode() {
+        return this._mode;
     }
 
     reset(focus: Vec3, position: Vec3) {
-        this._setMode('orbit');
+        this.mode = 'orbit';
         this._controller.attach(pose.look(position, focus));
     }
 
@@ -238,7 +244,7 @@ class CameraControls {
 
         if (this._mode !== 'fly' && this._state.axis.length() > 0) {
             // if we have any axis input, switch to fly mode
-            this._setMode('fly');
+            this.mode = 'fly';
         }
 
         const orbit = +(this._mode === 'orbit');
