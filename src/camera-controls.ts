@@ -249,7 +249,8 @@ class CameraControls {
 
         const orbit = +(this._mode === 'orbit');
         const fly = +(this._mode === 'fly');
-        const pan = +(this._state.touches > 1);
+        const double = +(this._state.touches > 1);
+        const pan = this._state.mouse[2] || +(button[2] === -1) || double;
         const distance = this._pose.distance;
 
         const { deltas } = frame;
@@ -259,7 +260,7 @@ class CameraControls {
         const keyMove = this._state.axis.clone().normalize();
         v.add(keyMove.mulScalar(fly * this.moveSpeed * (this._state.shift ? 2 : this._state.ctrl ? 0.5 : 1) * dt));
         const panMove = screenToWorld(this._camera, mouse[0], mouse[1], distance);
-        v.add(panMove.mulScalar(this._state.mouse[2]));
+        v.add(panMove.mulScalar(pan));
         const wheelMove = new Vec3(0, 0, -wheel[0]);
         v.add(wheelMove.mulScalar(this.wheelSpeed * dt));
         // FIXME: need to flip z axis for orbit camera
@@ -268,7 +269,7 @@ class CameraControls {
         // desktop rotate
         v.set(0, 0, 0);
         const mouseRotate = new Vec3(mouse[0], mouse[1], 0);
-        v.add(mouseRotate.mulScalar((1 - this._state.mouse[2]) * this.orbitSpeed * dt));
+        v.add(mouseRotate.mulScalar((1 - pan) * this.orbitSpeed * dt));
         deltas.rotate.append([v.x, v.y, v.z]);
 
         // mobile move
@@ -278,7 +279,7 @@ class CameraControls {
         const flyMove = new Vec3(leftInput[0], 0, -leftInput[1]);
         v.add(flyMove.mulScalar(fly * this.moveSpeed * this.touchSensitivity * dt));
         const pinchMove = new Vec3(0, 0, pinch[0]);
-        v.add(pinchMove.mulScalar(orbit * pan * this.pinchSpeed * dt));
+        v.add(pinchMove.mulScalar(orbit * double * this.pinchSpeed * dt));
         deltas.move.append([v.x, v.y, v.z]);
 
         // mobile rotate
