@@ -258,8 +258,8 @@ input {
 
 #launch-ar-button {
     position: absolute;
-    right: 20px;
-    top: 20px;
+    bottom: 20px;
+    left: 20px;
 }
 
 .download-button::before, .fullscreen-button::before {
@@ -615,12 +615,15 @@ input {
     #popup > #popup-buttons-parent {
         left: 50%;
         transform: translateX(-50%);
-        bottom: 11px;
+        bottom: 20px;
     }
 
     #popup > #floating-buttons-parent > .pcui-button,
     #popup > #popup-buttons-parent > .pcui-button {
         margin: 4px !important;
+    }
+    #popup > #popup-buttons-parent {
+        margin: 8px 0 !important;
     }
 
     #popup > #floating-buttons-parent > #fullscreen-button {
