@@ -815,7 +815,7 @@ class Viewer {
 
         // calculate scene size
         const sceneSize = bbox.halfExtents.length();
-        this.cameraControls.moveSpeed = Math.max(0.05, Math.min(1, sceneSize * 0.0001)) * 200;
+        this.cameraControls.moveSpeed = sceneSize * 2.5;
         this.cameraControls.zoomRange = new Vec2(ZOOM_SCALE_MIN, 10 * sceneSize);
 
         // calculate the camera focal point
