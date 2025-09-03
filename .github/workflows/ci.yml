@@ -24,7 +24,7 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
-      - name: Build PlayCanvas Template
+      - name: Build PlayCanvas Model Viewer
         run: npm run build
 
   lint:
