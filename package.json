@@ -62,5 +62,8 @@
         "serve": "serve --cors dist",
         "watch": "rollup -c -w",
         "watch:local": "cross-env ENGINE_PATH=../engine npm run watch"
+    },
+    "engines": {
+        "node": ">=18.0.0"
     }
 }
