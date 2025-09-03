@@ -55,14 +55,11 @@
     },
     "scripts": {
         "build": "rollup -c",
-        "build:local": "cross-env ENGINE_PATH=../engine npm run build",
         "develop": "cross-env BUILD_TYPE=debug concurrently --kill-others \"npm run watch\" \"npm run serve\"",
-        "develop:local": "cross-env ENGINE_PATH=../engine npm run develop",
         "lint": "eslint src rollup.config.mjs eslint.config.mjs",
         "lint:fix": "eslint src rollup.config.mjs eslint.config.mjs --fix",
         "serve": "serve --cors dist",
-        "watch": "rollup -c -w",
-        "watch:local": "cross-env ENGINE_PATH=../engine npm run watch"
+        "watch": "rollup -c -w"
     },
     "engines": {
         "node": ">=18.0.0"
