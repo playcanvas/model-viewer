@@ -36,10 +36,12 @@ class PngExporter {
             return result;
         };
 
-        const main = async () => {
-            const lodepng = await initLodepng();
+        const main = () => {
+            const init = initLodepng();
 
-            self.onmessage = (message) => {
+            self.onmessage = async (message) => {
+                const lodepng = await init;
+
                 const data = message.data;
 
                 // compress

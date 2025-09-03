@@ -16,11 +16,7 @@ import { copyAndWatch } from './plugins/copy-and-watch.mjs';
 
 // debug, profile, release
 const BUILD_TYPE = process.env.BUILD_TYPE || 'release';
-const ENGINE_DIR = process.env.ENGINE_PATH || 'node_modules/playcanvas';
-
-const ENGINE_NAME = (BUILD_TYPE === 'debug') ? 'playcanvas.dbg/src/index.js' : 'playcanvas/src/index.js';
-const ENGINE_PATH = path.resolve(ENGINE_DIR, 'build', ENGINE_NAME);
-const PCUI_DIR = path.resolve(process.env.PCUI_PATH || 'node_modules/@playcanvas/pcui');
+const ENGINE_DIR = path.resolve(`node_modules/playcanvas/build/playcanvas${BUILD_TYPE === 'debug' ? '.dbg' : ''}/src/index.js`);
 
 const BLUE_OUT = '\x1b[34m';
 const BOLD_OUT = '\x1b[1m';
@@ -31,7 +27,6 @@ const title = [
     'Building PlayCanvas Model Viewer',
     `type ${BOLD_OUT}${BUILD_TYPE}${REGULAR_OUT}`,
     `engine ${BOLD_OUT}${ENGINE_DIR}${REGULAR_OUT}`,
-    `pcui ${BOLD_OUT}${PCUI_DIR}${REGULAR_OUT}`
 ].map(l => `${BLUE_OUT}${l}`).join('\n');
 console.log(`${BLUE_OUT}${title}${RESET_OUT}\n`);
 
@@ -74,20 +69,13 @@ export default {
         image({ dom: true }),
         alias({
             entries: {
-                'playcanvas': ENGINE_PATH,
-                '@playcanvas/pcui': PCUI_DIR
+                'playcanvas': ENGINE_DIR
             }
         }),
         commonjs(),
         resolve(),
         typescript({
-            compilerOptions: {
-                baseUrl: '.',
-                paths: {
-                    'playcanvas': [ENGINE_DIR],
-                    '@playcanvas/pcui': [PCUI_DIR]
-                }
-            }
+            tsconfig: './tsconfig.json'
         }),
         json(),
         (BUILD_TYPE !== 'debug') && terser({
