@@ -69,8 +69,7 @@ export default {
         image({ dom: true }),
         alias({
             entries: {
-                'playcanvas': ENGINE_DIR,
-                '@playcanvas/pcui': PCUI_DIR
+                'playcanvas': ENGINE_DIR
             }
         }),
         commonjs(),
