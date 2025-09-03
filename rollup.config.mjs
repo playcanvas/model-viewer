@@ -26,7 +26,7 @@ const RESET_OUT = '\x1b[0m';
 const title = [
     'Building PlayCanvas Model Viewer',
     `type ${BOLD_OUT}${BUILD_TYPE}${REGULAR_OUT}`,
-    `engine ${BOLD_OUT}${ENGINE_DIR}${REGULAR_OUT}`,
+    `engine ${BOLD_OUT}${ENGINE_DIR}${REGULAR_OUT}`
 ].map(l => `${BLUE_OUT}${l}`).join('\n');
 console.log(`${BLUE_OUT}${title}${RESET_OUT}\n`);
 
@@ -35,8 +35,8 @@ const TARGETS = [
         src: 'src/index.html',
         transform: (contents) => {
             return contents.toString()
-                .replace('__BASE_HREF__', process.env.BASE_HREF || '')
-                .replace('__');
+            .replace('__BASE_HREF__', process.env.BASE_HREF || '')
+            .replace('__');
         }
     },
     { src: 'src/manifest.json' },
