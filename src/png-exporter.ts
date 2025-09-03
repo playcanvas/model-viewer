@@ -36,7 +36,7 @@ class PngExporter {
             return result;
         };
 
-        const main = async () => {
+        const main = () => {
             const init = initLodepng();
 
             self.onmessage = async (message) => {
