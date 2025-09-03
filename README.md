@@ -1,4 +1,12 @@
-# PlayCanvas glTF Viewer
+# PlayCanvas Model Viewer
+
+[![Github Release](https://img.shields.io/github/v/release/playcanvas/model-viewer)](https://github.com/playcanvas/model-viewer/releases)
+[![License](https://img.shields.io/github/license/playcanvas/model-viewer)](https://github.com/playcanvas/model-viewer/blob/main/LICENSE)
+[![Discord](https://img.shields.io/badge/Discord-5865F2?style=flat&logo=discord&logoColor=white&color=black)](https://discord.gg/RSaMRzg)
+[![Reddit](https://img.shields.io/badge/Reddit-FF4500?style=flat&logo=reddit&logoColor=white&color=black)](https://www.reddit.com/r/PlayCanvas)
+[![X](https://img.shields.io/badge/X-000000?style=flat&logo=x&logoColor=white&color=black)](https://x.com/intent/follow?screen_name=playcanvas)
+
+| [User Manual](https://developer.playcanvas.com) | [API Reference](https://api.playcanvas.com) | [Blog](https://blog.playcanvas.com) | [Forum](https://forum.playcanvas.com) |
 
 The PlayCanvas glTF scene viewer is blazingly fast and 100% compliant with the glTF 2.0 spec.
 
@@ -38,18 +46,16 @@ Some URL query parameters are available to override certain aspects of the viewe
 
 Ensure you have [Node.js](https://nodejs.org) installed (v18.0+). Then, from a command prompt, run:
 
-    npm install
-    npm run build
+```
+npm install
+npm run build
+```
 
 This will invoke Rollup and output the built viewer to the `dist` folder. To invoke Rollup with the `--watch` flag (which rebuilds the viewer on saving any source file), do:
 
-    npm run watch
-
-## How to build with local PlayCanvas engine
-
-You can set the npm build scripts to use local versions of the PlayCanvas engine & PlayCanvas extras builds by setting the following environment variables when launching the npm build scripts:
-
-    ENGINE_PATH=./path/to/engine npm run build
+```
+npm run watch
+```
 
 ## How to run
 
@@ -68,3 +74,29 @@ Run:
 Open a browser and navigate to http://localhost:3000.
 
 N.B. To load local models run `npx server --cors` in the directory containing the model (disables CORS).
+
+## Library integration testing
+
+The Model Viewer is built on the following open source libraries:
+
+| Library                                                       | Details                                     |
+| ------------------------------------------------------------- | ------------------------------------------- |
+| [PlayCanvas Engine](https://github.com/playcanvas/engine)     | Powers the Editor's 3D View and Launch Page |
+| [Observer](https://github.com/playcanvas/playcanvas-observer) | Data binding and history                    |
+| [PCUI](https://github.com/playcanvas/pcui)                    | Front-end component library                 |
+
+To test the integration of these libraries use [npm link](https://docs.npmjs.com/cli/v9/commands/npm-link). Follow these steps:
+
+1. Create a global link from source
+
+    ```sh
+    cd <library>
+    npm link
+    ```
+
+2. Create a link to the global link
+
+    ```sh
+    cd model-viewer
+    npm link <library>
+    ```
