@@ -275,9 +275,6 @@ class Viewer {
         observer.set('camera.multisampleSupported', multisampleSupported);
         observer.set('camera.multisample', multisampleSupported && observer.get('camera.multisample'));
 
-        // create the exporter
-        this.pngExporter = new PngExporter();
-
         // create drop handler
         CreateDropHandler(document.getElementById('app'), (files: Array<File>, resetScene: boolean) => {
             this.loadFiles(files, resetScene);
@@ -1023,6 +1020,12 @@ class Viewer {
 
     downloadPngScreenshot() {
         const texture = this.camera.camera.renderTarget.colorBuffer;
+
+        // construct exporter on demand
+        if (!this.pngExporter) {
+            this.pngExporter = new PngExporter();
+        }
+
         texture.read(0, 0, texture.width, texture.height).then((typedArray: Uint32Array) => {
             this.pngExporter.export(
                 'model-viewer.png',
@@ -1156,8 +1159,7 @@ class Viewer {
                 buffer: {
                     processAsync: processBuffer.bind(this)
                 }
-            }
-            );
+            });
             containerAsset.on('load', () => resolve(containerAsset));
             containerAsset.on('error', (err: string) => reject(err));
             this.app.assets.add(containerAsset);
@@ -1191,7 +1193,7 @@ class Viewer {
 
     isGSplatFilename(filename: string) {
         const parts = filename.split('?')[0].split('/').pop().split('.');
-        const result = parts.length > 0 && ['ply', 'json'].includes(parts.pop().toLowerCase());
+        const result = parts.length > 0 && ['ply', 'json', 'sog'].includes(parts.pop().toLowerCase());
         return result;
     }
 
