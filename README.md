@@ -77,7 +77,7 @@ N.B. To load local models run `npx server --cors` in the directory containing th
 
 ## Library integration testing
 
-The Editor is built on the following open source libraries:
+The Model Viewer is built on the following open source libraries:
 
 | Library                                                       | Details                                     |
 | ------------------------------------------------------------- | ------------------------------------------- |
