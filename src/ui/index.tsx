@@ -1,7 +1,8 @@
 import { Observer } from '@playcanvas/observer';
 import { Container, Spinner } from '@playcanvas/pcui/react';
 import React from 'react';
-import ReactDOM from 'react-dom';
+import { createRoot } from "react-dom/client";
+import { flushSync } from "react-dom";
 
 import { ObserverData } from '../types';
 import ErrorBox from './errors';
@@ -67,9 +68,11 @@ class App extends React.Component<{ observer: Observer }> {
 }
 
 export default (observer: Observer) => {
-    // render out the app
-    ReactDOM.render(
-        <App observer={observer}/>,
-        document.getElementById('app')
-    );
+    const root = createRoot(document.getElementById('app'));
+    root.render(<App observer={observer}/>);
+
+    // Commit the initial mount synchronously
+    flushSync(() => {
+        root.render(<App observer={observer} />);
+    });
 };
