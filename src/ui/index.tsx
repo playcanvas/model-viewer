@@ -1,8 +1,8 @@
 import { Observer } from '@playcanvas/observer';
 import { Container, Spinner } from '@playcanvas/pcui/react';
 import React from 'react';
-import { createRoot } from "react-dom/client";
-import { flushSync } from "react-dom";
+import { flushSync } from 'react-dom';
+import { createRoot } from 'react-dom/client';
 
 import { ObserverData } from '../types';
 import ErrorBox from './errors';
