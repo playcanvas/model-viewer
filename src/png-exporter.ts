@@ -1,10 +1,12 @@
 class PngExporter {
-    static WORKER_STR = function (href: string) {
+    static WORKER_STR = function () {
         const initLodepng = () => {
+            // This function will be invoked after receiving the base href via an 'init' message
             return new Promise((resolve) => {
-                (self as any).importScripts(`${href}static/lib/lodepng/lodepng.js`);
+                const baseHref = (self as any).__baseHref as string;
+                (self as any).importScripts(`${baseHref}static/lib/lodepng/lodepng.js`);
                 resolve((self as any).lodepng({
-                    locateFile: () => `${href}static/lib/lodepng/lodepng.wasm`
+                    locateFile: () => `${baseHref}static/lib/lodepng/lodepng.wasm`
                 }));
             });
         };
@@ -37,12 +39,22 @@ class PngExporter {
         };
 
         const main = () => {
-            const init = initLodepng();
+            let lodepngPromise: Promise<any> | null = null;
 
             self.onmessage = async (message) => {
-                const lodepng = await init;
-
                 const data = message.data;
+
+                if (data && data.type === 'init') {
+                    (self as any).__baseHref = data.baseHref as string;
+                    lodepngPromise = initLodepng();
+                    return;
+                }
+
+                if (!lodepngPromise) {
+                    return;
+                }
+
+                const lodepng = await lodepngPromise;
 
                 // compress
                 const result = compress(lodepng, data.words, data.width, data.height);
@@ -62,13 +74,16 @@ class PngExporter {
     constructor() {
         let receiver: (message: MessageEvent) => void = null;
 
-        const workerBlob = new Blob([`(${PngExporter.WORKER_STR})('${window.location.href.split('?')[0]}')\n\n`], {
+        const workerBlob = new Blob([`(${PngExporter.WORKER_STR})()\n\n`], {
             type: 'application/javascript'
         });
         this.worker = new Worker(URL.createObjectURL(workerBlob));
         this.worker.addEventListener('message', (message) => {
             receiver(message);
         });
+
+        const baseHref = new URL('.', window.location.href).toString();
+        this.worker.postMessage({ type: 'init', baseHref });
 
         this.receiveCallback = (resolve) => {
             receiver = (message) => {
@@ -93,6 +108,7 @@ class PngExporter {
 
     async export(filename: string, words: Uint32Array, width: number, height: number) {
         this.worker.postMessage({
+            type: 'encode',
             words: words,
             width: width,
             height: height
