@@ -82,7 +82,8 @@ class PngExporter {
             receiver(message);
         });
 
-        const baseHref = new URL('.', window.location.href).toString();
+        const url = new URL(window.location.href);
+        const baseHref = url.origin + url.pathname;
         this.worker.postMessage({ type: 'init', baseHref });
 
         this.receiveCallback = (resolve) => {
