@@ -929,21 +929,22 @@ class Viewer {
 
         // update mesh stats
         this.assets.forEach((asset) => {
-            if (asset.type === 'gsplat' && asset.resource instanceof GSplatResource) {
+            if (asset.type === 'gsplat') {
                 const resource = asset.resource;
 
-                meshCount++;
-                materialCount++;
-                primitiveCount += resource.gsplatData.numSplats;
-                vertexCount += resource.gsplatData.numSplats * 4;
-                meshVRAM += resource.gsplatData.numSplats * 64; // 16 * float32
+                if (resource instanceof GSplatResource) {
+                    meshCount++;
+                    materialCount++;
+                    primitiveCount += resource.gsplatData.numSplats;
+                    vertexCount += resource.gsplatData.numSplats * 4;
+                }
             } else {
                 // ContainerResource type isn't picked up correctly for some reason
                 const resource = asset.resource as any;
 
-                variants = variants.concat(resource.getMaterialVariants?.() ?? []);
+                variants = variants.concat(resource.getMaterialVariants() ?? []);
 
-                resource.renders?.forEach((renderAsset: Asset) => {
+                resource.renders.forEach((renderAsset: Asset) => {
                     const res = renderAsset.resource as any;
                     meshCount += res.meshes.length;
                     res.meshes.forEach((mesh: Mesh) => {
@@ -977,8 +978,8 @@ class Viewer {
                     });
                 });
 
-                materialCount += resource.materials?.length ?? 0;
-                textureCount += resource.textures?.length ?? 0;
+                materialCount += resource.materials.length ?? 0;
+                textureCount += resource.textures.length ?? 0;
                 (resource.textures ?? []).forEach((texture: Asset) => {
                     textureVRAM += (texture.resource as Texture).gpuSize;
                 });
