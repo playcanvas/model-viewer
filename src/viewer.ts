@@ -1836,25 +1836,26 @@ class Viewer {
         let first = true;
 
         const renderComponents = entities.map(e => e.findComponents('render') as RenderComponent[]).flat().map(rc => rc.meshInstances).flat();
-
         if (renderComponents.length) {
-            result.copy(renderComponents[0].aabb);
             for (let i = 0; i < renderComponents.length; ++i) {
-                result.add(renderComponents[i].aabb);
+                if (first) {
+                    result.copy(renderComponents[i].aabb);
+                    first = false;
+                } else {
+                    result.add(renderComponents[i].aabb);
+                }
             }
-            first = false;
         }
 
         const gsplatComponents = entities.map(e => e.findComponents('gsplat') as GSplatComponent[]).flat().filter(gc => !!gc.customAabb);
-        const tmpBox = new BoundingBox();
         if (gsplatComponents.length) {
             for (let i = 0; i < gsplatComponents.length; ++i) {
-                tmpBox.setFromTransformedAabb(gsplatComponents[i].customAabb, gsplatComponents[i].entity.getWorldTransform());
+                bbox.setFromTransformedAabb(gsplatComponents[i].customAabb, gsplatComponents[i].entity.getWorldTransform());
                 if (first) {
-                    result.copy(tmpBox);
+                    result.copy(bbox);
                     first = false;
                 } else {
-                    result.add(tmpBox);
+                    result.add(bbox);
                 }
             }
         }
