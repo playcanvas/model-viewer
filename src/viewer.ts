@@ -929,8 +929,8 @@ class Viewer {
 
         // update mesh stats
         this.assets.forEach((asset) => {
-            if (asset.resource instanceof GSplatResourceBase) {
-                const resource = asset.resource as GSplatResource;
+            if (asset.type === 'gsplat' && asset.resource instanceof GSplatResource) {
+                const resource = asset.resource;
 
                 meshCount++;
                 materialCount++;
@@ -941,9 +941,9 @@ class Viewer {
                 // ContainerResource type isn't picked up correctly for some reason
                 const resource = asset.resource as any;
 
-                variants = variants.concat(resource.getMaterialVariants() ?? []);
+                variants = variants.concat(resource.getMaterialVariants?.() ?? []);
 
-                resource.renders.forEach((renderAsset: Asset) => {
+                resource.renders?.forEach((renderAsset: Asset) => {
                     const res = renderAsset.resource as any;
                     meshCount += res.meshes.length;
                     res.meshes.forEach((mesh: Mesh) => {
@@ -977,8 +977,8 @@ class Viewer {
                     });
                 });
 
-                materialCount += resource.materials.length ?? 0;
-                textureCount += resource.textures.length ?? 0;
+                materialCount += resource.materials?.length ?? 0;
+                textureCount += resource.textures?.length ?? 0;
                 (resource.textures ?? []).forEach((texture: Asset) => {
                     textureVRAM += (texture.resource as Texture).gpuSize;
                 });
@@ -1653,15 +1653,19 @@ class Viewer {
                 // container/glb
                 entity = resource.instantiateRenderEntity();
             } else {
+                const unified = (asset.file as any).filename.endsWith('lod-meta.json');
+
                 // gaussian splat scene
                 entity = new Entity();
                 entity.setEulerAngles(0, 0, 180);
-                entity.addComponent('gsplat', { asset });
+                entity.addComponent('gsplat', { unified, asset });
 
                 // render frame if gaussian splat sorter updates)
-                entity.gsplat.instance.sorter.on('updated', () => {
-                    this.renderNextFrame();
-                });
+                if (!unified) {
+                    entity.gsplat.instance.sorter.on('updated', () => {
+                        this.renderNextFrame();
+                    });
+                }
             }
 
             this.entities.push(entity);
@@ -1826,16 +1830,36 @@ class Viewer {
     }
 
     private calcSceneBounds(result: BoundingBox, root: Entity | null = null) {
-        const meshInstances = root ? this.collectMeshInstances(root) : this.meshInstances;
-        if (meshInstances.length) {
-            Viewer.calcMeshBoundingBox(result, meshInstances);
-        } else {
-            root = root ?? this.sceneRoot;
-            if (root.children.length) {
-                Viewer.calcHierBoundingBox(result, root);
-            } else {
-                result.copy(defaultSceneBounds);
+        const entities = root ? [root] : this.entities;
+
+        let first = true;
+
+        const renderComponents = entities.map(e => e.findComponents('render') as RenderComponent[]).flat().map(rc => rc.meshInstances).flat();
+
+        if (renderComponents.length) {
+            result.copy(renderComponents[0].aabb);
+            for (let i = 0; i < renderComponents.length; ++i) {
+                result.add(renderComponents[i].aabb);
             }
+            first = false;
+        }
+
+        const gsplatComponents = entities.map(e => e.findComponents('gsplat') as GSplatComponent[]).flat().filter(gc => !!gc.customAabb);
+        const tmpBox = new BoundingBox();
+        if (gsplatComponents.length) {
+            for (let i = 0; i < gsplatComponents.length; ++i) {
+                tmpBox.setFromTransformedAabb(gsplatComponents[i].customAabb, gsplatComponents[i].entity.getWorldTransform());
+                if (first) {
+                    result.copy(tmpBox);
+                    first = false;
+                } else {
+                    result.add(tmpBox);
+                }
+            }
+        }
+
+        if (first) {
+            result.copy(defaultSceneBounds);
         }
     }
 
