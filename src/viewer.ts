@@ -1654,7 +1654,7 @@ class Viewer {
                 // container/glb
                 entity = resource.instantiateRenderEntity();
             } else {
-                const unified = (asset.file as any).filename.endsWith('lod-meta.json');
+                const unified = ((asset.file as any)?.filename ?? '').endsWith('lod-meta.json');
 
                 // gaussian splat scene
                 entity = new Entity();
