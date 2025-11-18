@@ -929,14 +929,15 @@ class Viewer {
 
         // update mesh stats
         this.assets.forEach((asset) => {
-            if (asset.resource instanceof GSplatResourceBase) {
-                const resource = asset.resource as GSplatResource;
+            if (asset.type === 'gsplat') {
+                const resource = asset.resource;
 
-                meshCount++;
-                materialCount++;
-                primitiveCount += resource.gsplatData.numSplats;
-                vertexCount += resource.gsplatData.numSplats * 4;
-                meshVRAM += resource.gsplatData.numSplats * 64; // 16 * float32
+                if (resource instanceof GSplatResource) {
+                    meshCount++;
+                    materialCount++;
+                    primitiveCount += resource.gsplatData.numSplats;
+                    vertexCount += resource.gsplatData.numSplats * 4;
+                }
             } else {
                 // ContainerResource type isn't picked up correctly for some reason
                 const resource = asset.resource as any;
@@ -1653,15 +1654,19 @@ class Viewer {
                 // container/glb
                 entity = resource.instantiateRenderEntity();
             } else {
+                const unified = ((asset.file as any)?.filename ?? '').endsWith('lod-meta.json');
+
                 // gaussian splat scene
                 entity = new Entity();
                 entity.setEulerAngles(0, 0, 180);
-                entity.addComponent('gsplat', { asset });
+                entity.addComponent('gsplat', { unified, asset });
 
                 // render frame if gaussian splat sorter updates)
-                entity.gsplat.instance.sorter.on('updated', () => {
-                    this.renderNextFrame();
-                });
+                if (!unified) {
+                    entity.gsplat.instance.sorter.on('updated', () => {
+                        this.renderNextFrame();
+                    });
+                }
             }
 
             this.entities.push(entity);
@@ -1826,16 +1831,37 @@ class Viewer {
     }
 
     private calcSceneBounds(result: BoundingBox, root: Entity | null = null) {
-        const meshInstances = root ? this.collectMeshInstances(root) : this.meshInstances;
-        if (meshInstances.length) {
-            Viewer.calcMeshBoundingBox(result, meshInstances);
-        } else {
-            root = root ?? this.sceneRoot;
-            if (root.children.length) {
-                Viewer.calcHierBoundingBox(result, root);
-            } else {
-                result.copy(defaultSceneBounds);
+        const entities = root ? [root] : this.entities;
+
+        let first = true;
+
+        const renderComponents = entities.map(e => e.findComponents('render') as RenderComponent[]).flat().map(rc => rc.meshInstances).flat();
+        if (renderComponents.length) {
+            for (let i = 0; i < renderComponents.length; ++i) {
+                if (first) {
+                    result.copy(renderComponents[i].aabb);
+                    first = false;
+                } else {
+                    result.add(renderComponents[i].aabb);
+                }
             }
+        }
+
+        const gsplatComponents = entities.map(e => e.findComponents('gsplat') as GSplatComponent[]).flat().filter(gc => !!gc.customAabb);
+        if (gsplatComponents.length) {
+            for (let i = 0; i < gsplatComponents.length; ++i) {
+                bbox.setFromTransformedAabb(gsplatComponents[i].customAabb, gsplatComponents[i].entity.getWorldTransform());
+                if (first) {
+                    result.copy(bbox);
+                    first = false;
+                } else {
+                    result.add(bbox);
+                }
+            }
+        }
+
+        if (first) {
+            result.copy(defaultSceneBounds);
         }
     }
 
