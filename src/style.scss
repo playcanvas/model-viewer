@@ -1,4 +1,4 @@
-@import '../node_modules/@playcanvas/pcui/dist/pcui-theme-grey.scss';
+@use '../node_modules/@playcanvas/pcui/dist/pcui-theme-grey.scss' as *;
 
 html {
     height: 100%;
