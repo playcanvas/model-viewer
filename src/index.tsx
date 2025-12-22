@@ -152,7 +152,9 @@ const observerData: ObserverData = {
         variants: {
             list: '[]'
         },
-        loadTime: null
+        loadTime: null,
+        cameras: '[]',
+        selectedCamera: ''
     },
     runtime: {
         activeDeviceType: '',

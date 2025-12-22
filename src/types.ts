@@ -20,6 +20,11 @@ export interface HierarchyNode {
     children: Array<HierarchyNode>
 }
 
+export interface SceneCamera {
+    name: string,
+    path: string
+}
+
 export interface ObserverData {
     ui: {
         fullscreen: boolean,
@@ -130,7 +135,9 @@ export interface ObserverData {
         variants: {
             list: string
         },
-        loadTime?: number
+        loadTime?: number,
+        cameras: string,
+        selectedCamera: string
     },
     morphs?: Record<string, {
         name: string,
