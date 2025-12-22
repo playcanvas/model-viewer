@@ -3,7 +3,7 @@ import { UsdzExporter } from 'playcanvas';
 import React from 'react';
 
 import AnimationControls from './animation-controls';
-import { CameraPanel, SkyboxPanel, LightPanel, DebugPanel, ViewPanel } from './panels';
+import { CameraPanel, SkyboxPanel, LightPanel, SettingsPanel, ViewPanel } from './panels';
 import { addEventListenerOnClickOnly } from '../../helpers';
 import { SetProperty, ObserverData } from '../../types';
 
@@ -12,7 +12,7 @@ const PopupPanelControls = (props: { observerData: ObserverData, setProperty: Se
         <CameraPanel setProperty={props.setProperty} observerData={props.observerData} />
         <SkyboxPanel setProperty={props.setProperty} skyboxData={props.observerData.skybox} uiData={props.observerData.ui} />
         <LightPanel setProperty={props.setProperty} lightData={props.observerData.light} uiData={props.observerData.ui} shadowCatcherData={props.observerData.shadowCatcher}/>
-        <DebugPanel setProperty={props.setProperty} debugData={props.observerData.debug} uiData={props.observerData.ui} />
+        <SettingsPanel setProperty={props.setProperty} observerData={props.observerData} />
         <ViewPanel setProperty={props.setProperty} sceneData={props.observerData.scene} uiData={props.observerData.ui} runtimeData={props.observerData.runtime}/>
     </>);
 };
@@ -52,7 +52,7 @@ class PopupButtonControls extends React.Component <{ observerData: ObserverData,
                 <Button class={buildClass('camera')} icon='E212' width={40} height={40} onClick={() => handleClick('camera')} />
                 <Button class={buildClass('skybox')} icon='E200' width={40} height={40} onClick={() => handleClick('skybox')} />
                 <Button class={buildClass('light')} icon='E194' width={40} height={40} onClick={() => handleClick('light')} />
-                <Button class={buildClass('debug')} icon='E134' width={40} height={40} onClick={() => handleClick('debug')} />
+                <Button class={buildClass('settings')} icon='E134' width={40} height={40} onClick={() => handleClick('settings')} />
                 <Button class={buildClass('view')} icon='E301' width={40} height={40} onClick={() => handleClick('view')} />
             </div>
         );
