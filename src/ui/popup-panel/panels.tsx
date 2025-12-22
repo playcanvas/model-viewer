@@ -262,17 +262,11 @@ class SettingsPanel extends React.Component <{
                                 'Enable WebGPU? The page will refresh to apply this change.' :
                                 'Disable WebGPU? The page will refresh to apply this change.';
                             // eslint-disable-next-line no-alert
-                            if (window.confirm(message)) {
-                                props.setProperty('enableWebGPU', value);
-                                setTimeout(() => window.location.reload(), 100);
-                            } else {
-                                // Force toggle to reset: set to new value first so React processes it,
-                                // then reset to original value on next frame
-                                props.setProperty('enableWebGPU', value);
-                                requestAnimationFrame(() => {
-                                    props.setProperty('enableWebGPU', !value);
-                                });
+                            if (!window.confirm(message)) {
+                                return;
                             }
+                            props.setProperty('enableWebGPU', value);
+                            setTimeout(() => window.location.reload(), 100);
                         }}
                     />
                     <Select
