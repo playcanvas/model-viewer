@@ -5,7 +5,13 @@ import React from 'react';
 
 import { extract } from '../../helpers';
 import { SetProperty, ObserverData } from '../../types';
-import { Slider, Toggle, Select, ColorPickerControl, ToggleColor, Numeric } from '../components';
+import { Detail, Slider, Toggle, Select, ColorPickerControl, ToggleColor, Numeric } from '../components';
+
+declare global {
+    interface Navigator {
+      readonly gpu: any;
+    }
+}
 
 const rgbToArr = (rgb: { r: number, g: number, b: number }) => [rgb.r, rgb.g, rgb.b, 1];
 const arrToRgb = (arr: number[]) => {
@@ -19,7 +25,7 @@ class CameraPanel extends React.Component <{
         observerData: ObserverData;
         setProperty: SetProperty; }>): boolean {
 
-        const keys = ['ui', 'debug', 'animation.playing'];
+        const keys = ['ui', 'debug', 'animation.playing', 'runtime'];
         const a = extract(nextProps.observerData, keys);
         const b = extract(this.props.observerData, keys);
         return JSON.stringify(a) !== JSON.stringify(b);
@@ -50,6 +56,7 @@ class CameraPanel extends React.Component <{
                         type='number'
                         options={[1, 2, 4, 8, 16].map(v => ({ v: v, t: Number(v).toString() }))}
                         setProperty={(value: number) => props.setProperty('camera.pixelScale', value)} />
+                    <Detail label='Viewport' value={`${props.observerData.runtime.viewportWidth} x ${props.observerData.runtime.viewportHeight}`} />
                     <Toggle
                         label='Multisample'
                         value={props.observerData.camera.multisample}
@@ -210,16 +217,16 @@ class LightPanel extends React.Component <{
     }
 }
 
-class DebugPanel extends React.Component <{
-    debugData: ObserverData['debug'],
-    uiData: ObserverData['ui'],
+class SettingsPanel extends React.Component <{
+    observerData: ObserverData,
     setProperty: SetProperty }> {
     shouldComponentUpdate(nextProps: Readonly<{
-        debugData: ObserverData['debug'];
-        uiData: ObserverData['ui'];
+        observerData: ObserverData;
         setProperty: SetProperty; }>): boolean {
-        return JSON.stringify(nextProps.debugData) !== JSON.stringify(this.props.debugData) ||
-               JSON.stringify(nextProps.uiData) !== JSON.stringify(this.props.uiData);
+        return JSON.stringify(nextProps.observerData.debug) !== JSON.stringify(this.props.observerData.debug) ||
+               JSON.stringify(nextProps.observerData.ui) !== JSON.stringify(this.props.observerData.ui) ||
+               nextProps.observerData.enableWebGPU !== this.props.observerData.enableWebGPU ||
+               nextProps.observerData.runtime.activeDeviceType !== this.props.observerData.runtime.activeDeviceType;
     }
 
     render() {
@@ -238,37 +245,62 @@ class DebugPanel extends React.Component <{
         ];
 
         const props = this.props;
+        const debugData = props.observerData.debug;
+        const activeDevice = props.observerData.runtime.activeDeviceType;
         return (
             <div className='popup-panel-parent'>
-                <Container class='popup-panel' flex hidden={props.uiData.active !== 'debug'}>
-                    <Label text='Debug' class='popup-panel-heading' />
+                <Container class='popup-panel' flex hidden={props.observerData.ui.active !== 'settings'}>
+                    <Label text='Settings' class='popup-panel-heading' />
+                    <Detail label='Current Device' value={activeDevice === 'webgpu' ? 'WebGPU' : 'WebGL 2'} />
+                    <Toggle
+                        label='Use WebGPU'
+                        value={props.observerData.enableWebGPU}
+                        enabled={navigator.gpu !== undefined}
+                        setProperty={(value: boolean) => {
+                            if (value === props.observerData.enableWebGPU) return;
+                            const message = value
+                                ? 'Enable WebGPU? The page will refresh to apply this change.'
+                                : 'Disable WebGPU? The page will refresh to apply this change.';
+                            if (window.confirm(message)) {
+                                props.setProperty('enableWebGPU', value);
+                                setTimeout(() => window.location.reload(), 100);
+                            } else {
+                                // Force toggle to reset: set to new value first so React processes it,
+                                // then reset to original value on next frame
+                                props.setProperty('enableWebGPU', value);
+                                requestAnimationFrame(() => {
+                                    props.setProperty('enableWebGPU', !value);
+                                });
+                            }
+                        }}
+                    />
                     <Select
                         label='Render Mode'
                         type='string'
                         options={renderModeOptions}
-                        value={props.debugData.renderMode}
+                        value={debugData.renderMode}
                         setProperty={(value: string) => props.setProperty('debug.renderMode', value)} />
                     <ToggleColor
                         label='Wireframe'
-                        booleanValue={props.debugData.wireframe}
+                        booleanValue={debugData.wireframe}
                         setBooleanProperty={(value: boolean) => props.setProperty('debug.wireframe', value)}
-                        colorValue={rgbToArr(props.debugData.wireframeColor)}
+                        colorValue={rgbToArr(debugData.wireframeColor)}
                         setColorProperty={(value: number[]) => props.setProperty('debug.wireframeColor', arrToRgb(value))} />
                     <Toggle
                         label='Grid'
-                        value={props.debugData.grid}
+                        value={debugData.grid}
                         setProperty={(value: boolean) => props.setProperty('debug.grid', value)}/>
                     <Toggle
                         label='Axes'
-                        value={props.debugData.axes}
+                        value={debugData.axes}
                         setProperty={(value: boolean) => props.setProperty('debug.axes', value)} />
                     <Toggle
                         label='Skeleton'
-                        value={props.debugData.skeleton}
+                        value={debugData.skeleton}
                         setProperty={(value: boolean) => props.setProperty('debug.skeleton', value)} />
                     <Toggle
                         label='Bounds'
-                        value={props.debugData.bounds}
+                        value={debugData.bounds}
                         setProperty={(value: boolean) => props.setProperty('debug.bounds', value)} />
                     <Slider
                         label='Normals'
@@ -276,10 +308,10 @@ class DebugPanel extends React.Component <{
                         min={0}
                         max={1}
                         setProperty={(value: number) => props.setProperty('debug.normals', value)}
-                        value={props.debugData.normals} />
+                        value={debugData.normals} />
                     <Toggle
                         label='Stats'
-                        value={props.debugData.stats}
+                        value={debugData.stats}
                         setProperty={(value: boolean) => props.setProperty('debug.stats', value)}
                     />
                 </Container>
@@ -375,6 +407,6 @@ export {
     CameraPanel,
     SkyboxPanel,
     LightPanel,
-    DebugPanel,
+    SettingsPanel,
     ViewPanel
 };
