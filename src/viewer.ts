@@ -1124,9 +1124,13 @@ class Viewer {
                 }
             };
 
-            const postProcessImage = (gltfImage: any, textureAsset: Asset) => {
-                // max anisotropy on all textures
-                (textureAsset.resource as Texture).anisotropy = this.app.graphicsDevice.maxAnisotropy;
+            const postProcessTexture = (gltfTexture: any, textureAsset: Asset) => {
+                // Set max anisotropy only for textures that use linear filtering, as anisotropic
+                // filtering only makes sense with linear filtering modes
+                const texture = textureAsset.resource as Texture;
+                if (texture.minFilter !== FILTER_NEAREST && texture.magFilter !== FILTER_NEAREST) {
+                    texture.anisotropy = this.app.graphicsDevice.maxAnisotropy;
+                }
             };
 
             const processBuffer = function (gltfBuffer: any, continuation: (err: string, result: any) => void) {
@@ -1154,8 +1158,10 @@ class Viewer {
                     processAsync: processBufferView.bind(this)
                 },
                 image: {
-                    processAsync: processImage.bind(this),
-                    postprocess: postProcessImage
+                    processAsync: processImage.bind(this)
+                },
+                texture: {
+                    postprocess: postProcessTexture
                 },
                 buffer: {
                     processAsync: processBuffer.bind(this)
