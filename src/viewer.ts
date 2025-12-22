@@ -1034,18 +1034,16 @@ class Viewer {
         this.observer.set('scene.variant.selected', variants[0]);
 
         // detect cameras in the loaded scene
-        this.sceneCameras = [];
         const cameras: Array<SceneCamera> = [];
 
         this.entities.forEach((entity) => {
-            const cameraComponents = entity.findComponents('camera') as CameraComponent[];
-            cameraComponents.forEach((cameraComponent) => {
-                this.sceneCameras.push(cameraComponent);
-                cameras.push({
-                    name: cameraComponent.entity.name || `Camera ${cameras.length + 1}`,
-                    path: cameraComponent.entity.path
-                });
-            });
+           const cameraComponents = entity.findComponents('camera') as CameraComponent[];
+           cameraComponents.forEach((cameraComponent) => {
+               cameras.push({
+                   name: cameraComponent.entity.name || `Camera ${cameras.length + 1}`,
+                   path: cameraComponent.entity.path
+               });
+           });
         });
 
         this.observer.set('scene.cameras', JSON.stringify(cameras));
