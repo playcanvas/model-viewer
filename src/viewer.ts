@@ -1436,6 +1436,10 @@ class Viewer {
                 cameraEntity.camera.layers = this.camera.camera.layers;
                 cameraEntity.camera.clearColor = this.camera.camera.clearColor;
                 cameraEntity.camera.toneMapping = this.camera.camera.toneMapping;
+            } else {
+                // if the specified camera is not found or invalid, fall back to the viewer camera
+                this.camera.camera.enabled = true;
+                this.cameraControls.enabled = true;
             }
         } else {
             // switch back to viewer camera
