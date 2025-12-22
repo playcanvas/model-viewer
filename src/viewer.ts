@@ -1069,11 +1069,11 @@ class Viewer {
         return new Promise((resolve, reject) => {
             // provide buffer view callback so we can handle models compressed with MeshOptimizer
             // https://github.com/zeux/meshoptimizer
-            const processBufferView = function (
+            const processBufferView = (
                 gltfBuffer: any,
                 buffers: Array<any>,
                 continuation: (err: string, result: any) => void
-            ) {
+            ) => {
                 if (gltfBuffer.extensions && gltfBuffer.extensions.EXT_meshopt_compression) {
                     const extensionDef = gltfBuffer.extensions.EXT_meshopt_compression;
 
@@ -1105,7 +1105,7 @@ class Viewer {
                 }
             };
 
-            const processImage = function (gltfImage: any, continuation: (err: string, result: any) => void) {
+            const processImage = (gltfImage: any, continuation: (err: string, result: any) => void) => {
                 const u: File = externalUrls.find((url) => {
                     return url.filename === decodeURIComponent(path.normalize(gltfImage.uri || ''));
                 });
@@ -1133,7 +1133,7 @@ class Viewer {
                 }
             };
 
-            const processBuffer = function (gltfBuffer: any, continuation: (err: string, result: any) => void) {
+            const processBuffer = (gltfBuffer: any, continuation: (err: string, result: any) => void) => {
                 const u = externalUrls.find((url) => {
                     return url.filename === decodeURIComponent(path.normalize(gltfBuffer.uri || ''));
                 });
@@ -1155,16 +1155,16 @@ class Viewer {
             const containerAsset = new Asset(gltfUrl.filename, 'container', gltfUrl, null, {
                 // @ts-ignore TODO no definition in pc
                 bufferView: {
-                    processAsync: processBufferView.bind(this)
+                    processAsync: processBufferView
                 },
                 image: {
-                    processAsync: processImage.bind(this)
+                    processAsync: processImage
                 },
                 texture: {
                     postprocess: postProcessTexture
                 },
                 buffer: {
-                    processAsync: processBuffer.bind(this)
+                    processAsync: processBuffer
                 }
             });
             containerAsset.on('load', () => resolve(containerAsset));
