@@ -1186,8 +1186,10 @@ class Viewer {
                     this.app.assets.load(bufferAsset);
                 } else if (gltfBuffer.uri && !gltfBuffer.uri.startsWith('data:')) {
                     // External buffer file referenced but not provided
-                    // Check if only the .gltf file was dragged (no other files provided)
-                    const onlyGltfFile = externalUrls.length === 1 && this.isModelFilename(externalUrls[0].filename);
+                    // Check if only the current .gltf file was dragged (no other files provided)
+                    const onlyGltfFile = externalUrls.length === 1 &&
+                        this.isModelFilename(externalUrls[0].filename) &&
+                        externalUrls[0].filename === gltfUrl.filename;
                     if (onlyGltfFile) {
                         continuation(`External buffer file '${gltfBuffer.uri}' not found. Try dragging the folder containing the .gltf file instead of the file itself.`, null);
                     } else {
