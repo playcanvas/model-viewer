@@ -1126,6 +1126,7 @@ class Viewer {
                 const asset = new Asset(name, 'texture', null, null);
                 asset.resource = texture;
                 asset.loaded = true;
+                this.app.assets.add(asset);
                 return asset;
             };
 
