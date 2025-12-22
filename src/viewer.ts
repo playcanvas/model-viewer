@@ -1065,7 +1065,7 @@ class Viewer {
     }
 
     // load gltf model given its url and list of external urls
-    private loadGltf(gltfUrl: File, externalUrls: Array<File>) {
+    private loadGltf(gltfUrl: File, externalUrls: Array<File>, warnings: string[]) {
         return new Promise((resolve, reject) => {
             // provide buffer view callback so we can handle models compressed with MeshOptimizer
             // https://github.com/zeux/meshoptimizer
@@ -1105,6 +1105,30 @@ class Viewer {
                 }
             };
 
+            const createPlaceholderTexture = (name: string) => {
+                // Create a small placeholder texture (magenta to indicate missing texture)
+                const texture = new Texture(this.app.graphicsDevice, {
+                    name: `placeholder-${name}`,
+                    width: 2,
+                    height: 2,
+                    format: PIXELFORMAT_RGBA8
+                });
+                // Fill with magenta color to indicate missing texture
+                const pixels = texture.lock();
+                for (let i = 0; i < 4; i++) {
+                    pixels[i * 4 + 0] = 255; // R
+                    pixels[i * 4 + 1] = 0;   // G
+                    pixels[i * 4 + 2] = 255; // B
+                    pixels[i * 4 + 3] = 255; // A
+                }
+                texture.unlock();
+
+                const asset = new Asset(name, 'texture', null, null);
+                asset.resource = texture;
+                asset.loaded = true;
+                return asset;
+            };
+
             const processImage = (gltfImage: any, continuation: (err: string, result: any) => void) => {
                 const u: File = externalUrls.find((url) => {
                     return url.filename === decodeURIComponent(path.normalize(gltfImage.uri || ''));
@@ -1117,8 +1141,17 @@ class Viewer {
                     textureAsset.on('load', () => {
                         continuation(null, textureAsset);
                     });
+                    textureAsset.on('error', (err: string) => {
+                        // Texture failed to load - warn but continue with placeholder
+                        warnings.push(`Failed to load texture '${u.filename}': ${err}`);
+                        continuation(null, createPlaceholderTexture(u.filename));
+                    });
                     this.app.assets.add(textureAsset);
                     this.app.assets.load(textureAsset);
+                } else if (gltfImage.uri && !gltfImage.uri.startsWith('data:')) {
+                    // External texture referenced but not provided - warn but continue with placeholder
+                    warnings.push(`External texture not found: '${gltfImage.uri}'`);
+                    continuation(null, createPlaceholderTexture(gltfImage.uri));
                 } else {
                     continuation(null, null);
                 }
@@ -1145,8 +1178,20 @@ class Viewer {
                     bufferAsset.on('load', () => {
                         continuation(null, new Uint8Array(bufferAsset.resource as ArrayBuffer));
                     });
+                    bufferAsset.on('error', (err: string) => {
+                        continuation(`Failed to load buffer file '${u.filename}': ${err}`, null);
+                    });
                     this.app.assets.add(bufferAsset);
                     this.app.assets.load(bufferAsset);
+                } else if (gltfBuffer.uri && !gltfBuffer.uri.startsWith('data:')) {
+                    // External buffer file referenced but not provided
+                    // Check if only the .gltf file was dragged (no other files provided)
+                    const onlyGltfFile = externalUrls.length === 1 && this.isModelFilename(externalUrls[0].filename);
+                    if (onlyGltfFile) {
+                        continuation(`External buffer file '${gltfBuffer.uri}' not found. Try dragging the folder containing the .gltf file instead of the file itself.`, null);
+                    } else {
+                        continuation(`External buffer file not found: '${gltfBuffer.uri}'. Make sure to include the associated .bin file(s).`, null);
+                    }
                 } else {
                     continuation(null, null);
                 }
@@ -1228,12 +1273,16 @@ class Viewer {
 
             this.observer.set('ui.spinner', true);
             this.observer.set('ui.error', null);
+            this.observer.set('ui.warnings', []);
             this.clearCta();
+
+            // Collect warnings during load (e.g., missing textures)
+            const warnings: string[] = [];
 
             // load asset files
             const promises = files.map((file) => {
                 return this.isModelFilename(file.filename) ?
-                    this.loadGltf(file, files) :
+                    this.loadGltf(file, files, warnings) :
                     this.isGSplatFilename(file.filename) ?
                         this.loadPly(file, files) :
                         null;
@@ -1262,6 +1311,14 @@ class Viewer {
                 } else {
                     this.observer.set('scene.urls', this.observer.get('scene.urls').concat(urls));
                     this.observer.set('scene.filenames', this.observer.get('scene.filenames').concat(filenames));
+                }
+
+                // Show any warnings that occurred during loading
+                if (warnings.length > 0) {
+                    // Log all warnings to console for full details
+                    console.warn(`Model loaded with ${warnings.length} warning(s):`);
+                    warnings.forEach(w => console.warn(`  - ${w}`));
+                    this.observer.set('ui.warnings', warnings);
                 }
             })
             .catch((err) => {
