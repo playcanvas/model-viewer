@@ -258,9 +258,10 @@ class SettingsPanel extends React.Component <{
                         enabled={navigator.gpu !== undefined}
                         setProperty={(value: boolean) => {
                             if (value === props.observerData.enableWebGPU) return;
-                            const message = value
-                                ? 'Enable WebGPU? The page will refresh to apply this change.'
-                                : 'Disable WebGPU? The page will refresh to apply this change.';
+                            const message = value ?
+                                'Enable WebGPU? The page will refresh to apply this change.' :
+                                'Disable WebGPU? The page will refresh to apply this change.';
+                            // eslint-disable-next-line no-alert
                             if (window.confirm(message)) {
                                 props.setProperty('enableWebGPU', value);
                                 setTimeout(() => window.location.reload(), 100);
