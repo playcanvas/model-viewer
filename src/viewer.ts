@@ -1810,6 +1810,8 @@ class Viewer {
 
     // rebuild the animation state graph
     private rebuildAnimTracks() {
+        // reset animation map to avoid stale entries when rebuilding
+        this.animationMap = {};
         // Build unique display names for animations (handle duplicate names)
         const nameCounts = new Map<string, number>();
         this.animTracks.forEach((t: any) => {
