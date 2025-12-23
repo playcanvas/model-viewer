@@ -1020,20 +1020,38 @@ class Viewer {
     }
 
     downloadPngScreenshot() {
-        const texture = this.camera.camera.renderTarget.colorBuffer;
-
         // construct exporter on demand
         if (!this.pngExporter) {
             this.pngExporter = new PngExporter();
         }
 
-        texture.read(0, 0, texture.width, texture.height).then((typedArray: Uint32Array) => {
-            this.pngExporter.export(
-                'model-viewer.png',
-                new Uint32Array(typedArray.buffer.slice(0)),
-                texture.width,
-                texture.height
-            );
+        // derive filename from loaded model, fallback to 'model-viewer'
+        const filenames = this.observer.get('scene.filenames') as string[];
+        let filename = 'model-viewer';
+        if (filenames && filenames.length > 0) {
+            // remove extension from the first loaded model's filename
+            const baseName = filenames[0].replace(/\.[^/.]+$/, '');
+            // ensure we have a valid filename after removing extension
+            if (baseName) {
+                filename = baseName;
+            }
+        }
+
+        // request a frame render and wait for it to complete (including resolve for MSAA)
+        // before reading the texture
+        this.renderNextFrame();
+        this.app.once('postrender', () => {
+            const texture = this.camera.camera.renderTarget.colorBuffer;
+            texture.read(0, 0, texture.width, texture.height).then((typedArray: Uint32Array) => {
+                this.pngExporter.export(
+                    `${filename}.png`,
+                    new Uint32Array(typedArray.buffer.slice(0)),
+                    texture.width,
+                    texture.height
+                );
+            }).catch((err: unknown) => {
+                console.error('Failed to capture PNG screenshot from render target:', err);
+            });
         });
     }
 
