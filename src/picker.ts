@@ -31,7 +31,7 @@ class Picker {
         picker.prepare(camera.camera, app.scene, [app.scene.layers.getLayerByName('World')]);
 
         // use the public API to get world position at screen coordinates
-        return picker.getWorldPointAsync(x, y);
+        return await picker.getWorldPointAsync(x, y);
     }
 }
 
