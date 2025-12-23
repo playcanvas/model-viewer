@@ -46,7 +46,7 @@
         "qrious": "^4.0.2",
         "react": "^18.3.1",
         "react-dom": "^18.3.1",
-        "react-visibility-sensor": "^5.1.1",
+        "react-intersection-observer": "^10.0.0",
         "rollup": "^4.52.4",
         "rollup-plugin-sass": "^1.15.3",
         "serve": "^14.2.5",
