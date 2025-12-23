@@ -24,7 +24,7 @@ class MorphTargetPanel extends React.Component <{ morphs: ObserverData['morphs']
                                 {Object.keys(morph.targets).map((targetIndex: string) => {
                                     const morphTarget: MorphTargetData = morph.targets[targetIndex];
                                     return <div key={targetIndex}>
-                                        <InView rootMargin="750px">
+                                        <InView rootMargin="750px 0px">
                                             {({ inView, ref }) => (
                                                 <div ref={ref}>{
                                                     inView ?
