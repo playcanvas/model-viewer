@@ -1045,6 +1045,8 @@ class Viewer {
                     texture.width,
                     texture.height
                 );
+            }).catch((err: unknown) => {
+                console.error('Failed to capture PNG screenshot from render target:', err);
             });
         });
     }
