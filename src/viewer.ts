@@ -1810,6 +1810,24 @@ class Viewer {
 
     // rebuild the animation state graph
     private rebuildAnimTracks() {
+        // Build unique display names for animations (handle duplicate names)
+        const nameCounts = new Map<string, number>();
+        this.animTracks.forEach((t: any) => {
+            nameCounts.set(t.name, (nameCounts.get(t.name) ?? 0) + 1);
+        });
+
+        // If there are duplicates, append index to make names unique
+        const nameIndices = new Map<string, number>();
+        const uniqueDisplayNames: string[] = this.animTracks.map((t: any) => {
+            const name = t.name;
+            if (nameCounts.get(name) > 1) {
+                const index = nameIndices.get(name) ?? 0;
+                nameIndices.set(name, index + 1);
+                return `${name} (${index + 1})`;
+            }
+            return name;
+        });
+
         this.entities.forEach((entity) => {
             // create the anim component if there isn't one already
             if (!entity.anim) {
@@ -1834,7 +1852,8 @@ class Viewer {
                 ]);
                 const path = `track_${i}`;
                 entity.anim.assignAnimation(path, t);
-                this.animationMap[t.name] = path;
+                // Use unique display name as key to avoid overwriting animations with the same name
+                this.animationMap[uniqueDisplayNames[i]] = path;
             });
             // if the user has selected to play all tracks in succession, then transition to the next track after a set amount of loops
             entity.anim.on('transition', (e) => {
