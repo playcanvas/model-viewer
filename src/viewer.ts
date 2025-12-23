@@ -1030,7 +1030,11 @@ class Viewer {
         let filename = 'model-viewer';
         if (filenames && filenames.length > 0) {
             // remove extension from the first loaded model's filename
-            filename = filenames[0].replace(/\.[^/.]+$/, '');
+            const baseName = filenames[0].replace(/\.[^/.]+$/, '');
+            // ensure we have a valid filename after removing extension
+            if (baseName) {
+                filename = baseName;
+            }
         }
 
         // request a frame render and wait for it to complete (including resolve for MSAA)
