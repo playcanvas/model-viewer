@@ -1,6 +1,6 @@
 import { Panel } from '@playcanvas/pcui/react';
 import React from 'react';
-import VisibilitySensor from 'react-visibility-sensor';
+import { InView } from 'react-intersection-observer';
 
 import { MorphTargetData, SetProperty, ObserverData } from '../../types';
 import { MorphSlider } from '../components';
@@ -24,18 +24,18 @@ class MorphTargetPanel extends React.Component <{ morphs: ObserverData['morphs']
                                 {Object.keys(morph.targets).map((targetIndex: string) => {
                                     const morphTarget: MorphTargetData = morph.targets[targetIndex];
                                     return <div key={targetIndex}>
-                                        <VisibilitySensor offset={{ top: -750, bottom: -750 }}>
-                                            {({ isVisible }: any) => {
-                                                return <div>{
-                                                    isVisible ?
+                                        <InView rootMargin="750px">
+                                            {({ inView, ref }) => (
+                                                <div ref={ref}>{
+                                                    inView ?
                                                         <MorphSlider name={`${morphTarget.name}`} precision={2} min={0} max={1}
                                                             value={morphTarget.weight}
                                                             setProperty={(value: number) => this.props.setProperty(`morphs.${morphIndex}.targets.${targetIndex}.weight`, value)}
                                                         /> :
                                                         <div style={{ width: 30, height: 30 }}></div>
-                                                }</div>;
-                                            }}
-                                        </VisibilitySensor>
+                                                }</div>
+                                            )}
+                                        </InView>
                                     </div>;
                                 })}
                             </Panel>

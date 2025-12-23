@@ -52,6 +52,13 @@ export default {
         sourcemap: true
     },
     treeshake: 'smallest',
+    onwarn(warning, warn) {
+        // Suppress "use client" directive warnings from react-intersection-observer
+        if (warning.code === 'MODULE_LEVEL_DIRECTIVE' && warning.message.includes('"use client"')) {
+            return;
+        }
+        warn(warning);
+    },
     plugins: [
         copyAndWatch(TARGETS),
         replace({
