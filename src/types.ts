@@ -26,6 +26,7 @@ export interface ObserverData {
         active?: string,
         spinner: boolean,
         error?: string,
+        warnings?: string[],
     },
     camera: {
         fov: number,

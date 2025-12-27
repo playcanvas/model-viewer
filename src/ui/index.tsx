@@ -5,7 +5,7 @@ import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 
 import { ObserverData } from '../types';
-import ErrorBox from './errors';
+import { ErrorBox, WarningsBox } from './errors';
 import LeftPanel from './left-panel';
 import LoadControls from './load-controls';
 import PopupPanel from './popup-panel';
@@ -60,7 +60,8 @@ class App extends React.Component<{ observer: Observer }> {
                 <LoadControls setProperty={this._setStateProperty}/>
                 <SelectedNode sceneData={this.state.scene} />
                 <PopupPanel observerData={this.state} setProperty={this._setStateProperty} />
-                <ErrorBox observerData={this.state} />
+                <ErrorBox observerData={this.state} setProperty={this._setStateProperty} />
+                <WarningsBox observerData={this.state} setProperty={this._setStateProperty} />
                 <Spinner id="spinner" size={30} hidden={true} />
             </div>
         </div>;

@@ -194,8 +194,42 @@ input {
     -ms-user-select: none;
 }
 
-.pcui-infobox.pcui-error {
+.pcui-error-container {
     position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translateY(-50%) translateX(-50%);
+    max-width: 500px;
+    background-color: #333333;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+}
+
+.pcui-error-container > .pcui-infobox.pcui-error {
+    position: relative;
+    left: auto;
+    top: auto;
+    transform: none;
+    border: none;
+    background: none;
+    padding: 0;
+    white-space: pre-wrap;
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 0.4px;
+}
+
+.pcui-error-container > .pcui-infobox.pcui-error .pcui-infobox-title {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.pcui-error-container > .pcui-button {
+    min-width: 80px;
 }
 
 #popup-buttons-parent {
@@ -471,12 +505,58 @@ input {
     display: none !important;
 }
 
-.pcui-infobox.pcui-error :first-child {
+.pcui-infobox.pcui-error .pcui-infobox-title {
     color: red;
 }
 
 .pcui-infobox.pcui-error:before {
     color: red;
+}
+
+.pcui-warning-container {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translateY(-50%) translateX(-50%);
+    max-width: 500px;
+    background-color: #333333;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+}
+
+.pcui-warning-container > .pcui-infobox.pcui-warning {
+    position: relative;
+    left: auto;
+    top: auto;
+    transform: none;
+    border: none;
+    background: none;
+    padding: 0;
+    white-space: pre-wrap;
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 0.4px;
+}
+
+.pcui-warning-container > .pcui-infobox.pcui-warning .pcui-infobox-title {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.pcui-warning-container > .pcui-button {
+    min-width: 80px;
+}
+
+.pcui-infobox.pcui-warning .pcui-infobox-title {
+    color: #ffa500;
+}
+
+.pcui-infobox.pcui-warning:before {
+    color: #ffa500;
 }
 
 .controls {
