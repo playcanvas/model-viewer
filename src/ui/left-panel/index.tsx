@@ -3,14 +3,8 @@ import React from 'react';
 
 import { addEventListenerOnClickOnly } from '../../helpers';
 import { HierarchyNode, SetProperty, ObserverData } from '../../types';
-import { Detail, Select, Toggle, Vector } from '../components';
+import { Detail, Select, Vector } from '../components';
 import MorphTargetPanel from './morph-target-panel';
-
-declare global {
-    interface Navigator {
-      readonly gpu: any;
-    }
-}
 
 const toggleCollapsed = () => {
     const leftPanel = document.getElementById('panel-left');
@@ -115,29 +109,6 @@ class HierarchyPanel extends React.Component <{ sceneData: ObserverData['scene']
     }
 }
 
-class DevicePanel extends React.Component <{ observerData: ObserverData, setProperty: SetProperty }> {
-    shouldComponentUpdate(nextProps: Readonly<{ observerData: ObserverData, setProperty: SetProperty}>): boolean {
-        return JSON.stringify(nextProps.observerData.runtime) !== JSON.stringify(this.props.observerData.runtime) ||
-               nextProps.observerData.enableWebGPU !== this.props.observerData.enableWebGPU;
-    }
-
-    render() {
-        const runtime = this.props.observerData.runtime;
-        return (
-            <Panel headerText='DEVICE' id='device-panel' collapsible={false}>
-                <Toggle
-                    label="Use WebGPU"
-                    value={this.props.observerData.enableWebGPU}
-                    enabled={navigator.gpu !== undefined}
-                    setProperty={(value: boolean) => this.props.setProperty('enableWebGPU', value)}
-                />
-                <Detail label='Active Device' value={runtime.activeDeviceType === 'webgpu' ? 'webgpu (beta)' : runtime.activeDeviceType} />
-                <Detail label='Viewport' value={`${runtime.viewportWidth} x ${runtime.viewportHeight}`} />
-            </Panel>
-        );
-    }
-}
-
 class LeftPanel extends React.Component <{ observerData: ObserverData, setProperty: SetProperty }> {
     isMobile: boolean;
 
@@ -147,8 +118,7 @@ class LeftPanel extends React.Component <{ observerData: ObserverData, setProper
     }
 
     shouldComponentUpdate(nextProps: Readonly<{ observerData: ObserverData; setProperty: SetProperty; }>): boolean {
-        return JSON.stringify(nextProps.observerData.scene) !== JSON.stringify(this.props.observerData.scene) ||
-               JSON.stringify(nextProps.observerData.runtime) !== JSON.stringify(this.props.observerData.runtime);
+        return JSON.stringify(nextProps.observerData.scene) !== JSON.stringify(this.props.observerData.scene);
     }
 
     componentDidMount(): void {
@@ -183,7 +153,6 @@ class LeftPanel extends React.Component <{ observerData: ObserverData, setProper
                     <HierarchyPanel sceneData={scene} setProperty={this.props.setProperty} />
                     <MorphTargetPanel progress={this.props.observerData.animation.progress} morphs={morphs} setProperty={this.props.setProperty} />
                 </div>
-                <DevicePanel observerData={this.props.observerData} setProperty={this.props.setProperty} />
             </Container>
         );
     }
