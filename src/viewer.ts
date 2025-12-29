@@ -65,7 +65,8 @@ import {
     Texture,
     TouchDevice,
     Vec3,
-    Vec2
+    Vec2,
+    CameraComponent
 } from 'playcanvas';
 
 import { App } from './app';
@@ -78,7 +79,7 @@ import { PngExporter } from './png-exporter';
 import { ShadowCatcher } from './shadow-catcher';
 import arCloseImage from './svg/ar-close.svg';
 import arModeImage from './svg/ar-mode.svg';
-import { File, HierarchyNode, MorphTargetData } from './types';
+import { File, HierarchyNode, MorphTargetData, SceneCamera } from './types';
 import { XRObjectPlacementController } from './xr-mode';
 import { MeshoptDecoder } from '../lib/meshopt_decoder.module.js';
 
@@ -224,6 +225,10 @@ class Viewer {
     canvasResize = true;
 
     cameraControls: CameraControls;
+
+    sceneCameras: Array<CameraComponent> = [];
+
+    activeSceneCamera: CameraComponent | null = null;
 
     constructor(
         canvas: HTMLCanvasElement,
@@ -652,6 +657,7 @@ class Viewer {
 
             'scene.selectedNode.path': this.setSelectedNode.bind(this),
             'scene.variant.selected': this.setSelectedVariant.bind(this),
+            'scene.selectedCamera': this.setSelectedCamera.bind(this),
 
             centerScene: this.setCenterScene.bind(this)
         };
@@ -896,6 +902,15 @@ class Viewer {
     resetScene() {
         const app = this.app;
 
+        // reset camera state first - switch back to viewer camera before destroying entities
+        if (this.activeSceneCamera) {
+            this.activeSceneCamera.enabled = false;
+            this.activeSceneCamera = null;
+            this.camera.camera.enabled = true;
+            this.cameraControls.enabled = true;
+        }
+        this.sceneCameras = [];
+
         this.entities.forEach((entity) => {
             this.sceneRoot.removeChild(entity);
             this.shadowCatcher.onEntityRemoved(entity);
@@ -1017,23 +1032,57 @@ class Viewer {
         // variant stats
         this.observer.set('scene.variants.list', JSON.stringify(variants));
         this.observer.set('scene.variant.selected', variants[0]);
+
+        // detect cameras in the loaded scene
+        const cameras: Array<SceneCamera> = [];
+
+        this.entities.forEach((entity) => {
+            const cameraComponents = entity.findComponents('camera') as CameraComponent[];
+            cameraComponents.forEach((cameraComponent) => {
+                cameras.push({
+                    name: cameraComponent.entity.name || `Camera ${cameras.length + 1}`,
+                    path: cameraComponent.entity.path
+                });
+            });
+        });
+
+        this.observer.set('scene.cameras', JSON.stringify(cameras));
+        this.observer.set('scene.selectedCamera', '');
     }
 
     downloadPngScreenshot() {
-        const texture = this.camera.camera.renderTarget.colorBuffer;
-
         // construct exporter on demand
         if (!this.pngExporter) {
             this.pngExporter = new PngExporter();
         }
 
-        texture.read(0, 0, texture.width, texture.height).then((typedArray: Uint32Array) => {
-            this.pngExporter.export(
-                'model-viewer.png',
-                new Uint32Array(typedArray.buffer.slice(0)),
-                texture.width,
-                texture.height
-            );
+        // derive filename from loaded model, fallback to 'model-viewer'
+        const filenames = this.observer.get('scene.filenames') as string[];
+        let filename = 'model-viewer';
+        if (filenames && filenames.length > 0) {
+            // remove extension from the first loaded model's filename
+            const baseName = filenames[0].replace(/\.[^/.]+$/, '');
+            // ensure we have a valid filename after removing extension
+            if (baseName) {
+                filename = baseName;
+            }
+        }
+
+        // request a frame render and wait for it to complete (including resolve for MSAA)
+        // before reading the texture
+        this.renderNextFrame();
+        this.app.once('postrender', () => {
+            const texture = this.camera.camera.renderTarget.colorBuffer;
+            texture.read(0, 0, texture.width, texture.height).then((typedArray: Uint32Array) => {
+                this.pngExporter.export(
+                    `${filename}.png`,
+                    new Uint32Array(typedArray.buffer.slice(0)),
+                    texture.width,
+                    texture.height
+                );
+            }).catch((err: unknown) => {
+                console.error('Failed to capture PNG screenshot from render target:', err);
+            });
         });
     }
 
@@ -1065,7 +1114,7 @@ class Viewer {
     }
 
     // load gltf model given its url and list of external urls
-    private loadGltf(gltfUrl: File, externalUrls: Array<File>) {
+    private loadGltf(gltfUrl: File, externalUrls: Array<File>, warnings: string[]) {
         return new Promise((resolve, reject) => {
             // provide buffer view callback so we can handle models compressed with MeshOptimizer
             // https://github.com/zeux/meshoptimizer
@@ -1105,6 +1154,31 @@ class Viewer {
                 }
             };
 
+            const createPlaceholderTexture = (name: string) => {
+                // Create a small placeholder texture (magenta to indicate missing texture)
+                const texture = new Texture(this.app.graphicsDevice, {
+                    name: `placeholder-${name}`,
+                    width: 2,
+                    height: 2,
+                    format: PIXELFORMAT_RGBA8
+                });
+                // Fill with magenta color to indicate missing texture
+                const pixels = texture.lock();
+                for (let i = 0; i < 4; i++) {
+                    pixels[i * 4 + 0] = 255; // R
+                    pixels[i * 4 + 1] = 0;   // G
+                    pixels[i * 4 + 2] = 255; // B
+                    pixels[i * 4 + 3] = 255; // A
+                }
+                texture.unlock();
+
+                const asset = new Asset(name, 'texture', null, null);
+                asset.resource = texture;
+                asset.loaded = true;
+                this.app.assets.add(asset);
+                return asset;
+            };
+
             const processImage = (gltfImage: any, continuation: (err: string, result: any) => void) => {
                 const u: File = externalUrls.find((url) => {
                     return url.filename === decodeURIComponent(path.normalize(gltfImage.uri || ''));
@@ -1117,8 +1191,17 @@ class Viewer {
                     textureAsset.on('load', () => {
                         continuation(null, textureAsset);
                     });
+                    textureAsset.on('error', (err: string) => {
+                        // Texture failed to load - warn but continue with placeholder
+                        warnings.push(`Failed to load texture '${u.filename}': ${err}`);
+                        continuation(null, createPlaceholderTexture(u.filename));
+                    });
                     this.app.assets.add(textureAsset);
                     this.app.assets.load(textureAsset);
+                } else if (gltfImage.uri && !gltfImage.uri.startsWith('data:')) {
+                    // External texture referenced but not provided - warn but continue with placeholder
+                    warnings.push(`External texture not found: '${gltfImage.uri}'`);
+                    continuation(null, createPlaceholderTexture(gltfImage.uri));
                 } else {
                     continuation(null, null);
                 }
@@ -1145,8 +1228,22 @@ class Viewer {
                     bufferAsset.on('load', () => {
                         continuation(null, new Uint8Array(bufferAsset.resource as ArrayBuffer));
                     });
+                    bufferAsset.on('error', (err: string) => {
+                        continuation(`Failed to load buffer file '${u.filename}': ${err}`, null);
+                    });
                     this.app.assets.add(bufferAsset);
                     this.app.assets.load(bufferAsset);
+                } else if (gltfBuffer.uri && !gltfBuffer.uri.startsWith('data:')) {
+                    // External buffer file referenced but not provided
+                    // Check if only the current .gltf file was dragged (no other files provided)
+                    const onlyGltfFile = externalUrls.length === 1 &&
+                        this.isModelFilename(externalUrls[0].filename) &&
+                        externalUrls[0].filename === gltfUrl.filename;
+                    if (onlyGltfFile) {
+                        continuation(`External buffer file '${gltfBuffer.uri}' not found. Try dragging the folder containing the .gltf file instead of the file itself.`, null);
+                    } else {
+                        continuation(`External buffer file not found: '${gltfBuffer.uri}'. Make sure to include the associated .bin file(s).`, null);
+                    }
                 } else {
                     continuation(null, null);
                 }
@@ -1228,12 +1325,16 @@ class Viewer {
 
             this.observer.set('ui.spinner', true);
             this.observer.set('ui.error', null);
+            this.observer.set('ui.warnings', []);
             this.clearCta();
+
+            // Collect warnings during load (e.g., missing textures)
+            const warnings: string[] = [];
 
             // load asset files
             const promises = files.map((file) => {
                 return this.isModelFilename(file.filename) ?
-                    this.loadGltf(file, files) :
+                    this.loadGltf(file, files, warnings) :
                     this.isGSplatFilename(file.filename) ?
                         this.loadPly(file, files) :
                         null;
@@ -1262,6 +1363,14 @@ class Viewer {
                 } else {
                     this.observer.set('scene.urls', this.observer.get('scene.urls').concat(urls));
                     this.observer.set('scene.filenames', this.observer.get('scene.filenames').concat(filenames));
+                }
+
+                // Show any warnings that occurred during loading
+                if (warnings.length > 0) {
+                    // Log all warnings to console for full details
+                    console.warn(`Model loaded with ${warnings.length} warning(s):`);
+                    warnings.forEach(w => console.warn(`  - ${w}`));
+                    this.observer.set('ui.warnings', warnings);
                 }
             })
             .catch((err) => {
@@ -1385,6 +1494,44 @@ class Viewer {
             });
             this.renderNextFrame();
         }
+    }
+
+    setSelectedCamera(cameraPath: string) {
+        // disable any previously active scene camera
+        if (this.activeSceneCamera) {
+            this.activeSceneCamera.enabled = false;
+            this.activeSceneCamera = null;
+        }
+
+        if (cameraPath) {
+            // find the camera entity by path
+            const cameraEntity = this.app.root.findByPath(cameraPath) as Entity;
+            if (cameraEntity && cameraEntity.camera) {
+                // disable the viewer camera and its controls
+                this.camera.camera.enabled = false;
+                this.cameraControls.enabled = false;
+
+                // enable the scene camera
+                cameraEntity.camera.enabled = true;
+                this.activeSceneCamera = cameraEntity.camera;
+
+                // transfer render target and layers to scene camera
+                cameraEntity.camera.renderTarget = this.camera.camera.renderTarget;
+                cameraEntity.camera.layers = this.camera.camera.layers;
+                cameraEntity.camera.clearColor = this.camera.camera.clearColor;
+                cameraEntity.camera.toneMapping = this.camera.camera.toneMapping;
+            } else {
+                // if the specified camera is not found or invalid, fall back to the viewer camera
+                this.camera.camera.enabled = true;
+                this.cameraControls.enabled = true;
+            }
+        } else {
+            // switch back to viewer camera
+            this.camera.camera.enabled = true;
+            this.cameraControls.enabled = true;
+        }
+
+        this.renderNextFrame();
     }
 
     setCenterScene(value: boolean) {
@@ -1792,6 +1939,26 @@ class Viewer {
 
     // rebuild the animation state graph
     private rebuildAnimTracks() {
+        // reset animation map to avoid stale entries when rebuilding
+        this.animationMap = {};
+        // Build unique display names for animations (handle duplicate names)
+        const nameCounts = new Map<string, number>();
+        this.animTracks.forEach((t: any) => {
+            nameCounts.set(t.name, (nameCounts.get(t.name) ?? 0) + 1);
+        });
+
+        // If there are duplicates, append index to make names unique
+        const nameIndices = new Map<string, number>();
+        const uniqueDisplayNames: string[] = this.animTracks.map((t: any) => {
+            const name = t.name;
+            if (nameCounts.get(name) > 1) {
+                const index = nameIndices.get(name) ?? 0;
+                nameIndices.set(name, index + 1);
+                return `${name} (${index + 1})`;
+            }
+            return name;
+        });
+
         this.entities.forEach((entity) => {
             // create the anim component if there isn't one already
             if (!entity.anim) {
@@ -1816,7 +1983,8 @@ class Viewer {
                 ]);
                 const path = `track_${i}`;
                 entity.anim.assignAnimation(path, t);
-                this.animationMap[t.name] = path;
+                // Use unique display name as key to avoid overwriting animations with the same name
+                this.animationMap[uniqueDisplayNames[i]] = path;
             });
             // if the user has selected to play all tracks in succession, then transition to the next track after a set amount of loops
             entity.anim.on('transition', (e) => {

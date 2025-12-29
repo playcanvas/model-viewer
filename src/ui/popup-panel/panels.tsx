@@ -25,7 +25,7 @@ class CameraPanel extends React.Component <{
         observerData: ObserverData;
         setProperty: SetProperty; }>): boolean {
 
-        const keys = ['ui', 'debug', 'animation.playing', 'runtime'];
+        const keys = ['ui', 'camera', 'debug', 'animation.playing', 'scene.cameras', 'scene.selectedCamera', 'runtime'];
         const a = extract(nextProps.observerData, keys);
         const b = extract(this.props.observerData, keys);
         return JSON.stringify(a) !== JSON.stringify(b);
@@ -33,17 +33,33 @@ class CameraPanel extends React.Component <{
 
     render() {
         const props = this.props;
+        const sceneCameras: Array<{ name: string, path: string }> = JSON.parse(props.observerData.scene.cameras);
+        const cameraOptions = [{ v: 'viewer', t: 'Viewer' }].concat(
+            sceneCameras.map(c => ({ v: c.path, t: c.name }))
+        );
+        const selectedCamera = props.observerData.scene.selectedCamera || 'viewer';
+        const isViewerCamera = selectedCamera === 'viewer';
+
         return (
             <div className='popup-panel-parent'>
                 <Container class='popup-panel' flex hidden={props.observerData.ui.active !== 'camera'}>
                     <Label text='Camera' class='popup-panel-heading' />
+                    <Select
+                        selectKey={props.observerData.scene.cameras}
+                        label='Active Camera'
+                        type='string'
+                        options={cameraOptions}
+                        value={selectedCamera}
+                        setProperty={(value: string) => props.setProperty('scene.selectedCamera', value === 'viewer' ? '' : value)}
+                        enabled={sceneCameras.length > 0} />
                     <Slider
                         label='Fov'
                         precision={0}
                         min={35}
                         max={150}
                         value={props.observerData.camera.fov}
-                        setProperty={(value: number) => props.setProperty('camera.fov', value)} />
+                        setProperty={(value: number) => props.setProperty('camera.fov', value)}
+                        enabled={isViewerCamera} />
                     <Select
                         label='Tonemap'
                         type='string'
