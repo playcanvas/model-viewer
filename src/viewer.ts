@@ -65,7 +65,8 @@ import {
     Texture,
     TouchDevice,
     Vec3,
-    Vec2
+    Vec2,
+    CameraComponent
 } from 'playcanvas';
 
 import { App } from './app';
@@ -78,7 +79,7 @@ import { PngExporter } from './png-exporter';
 import { ShadowCatcher } from './shadow-catcher';
 import arCloseImage from './svg/ar-close.svg';
 import arModeImage from './svg/ar-mode.svg';
-import { File, HierarchyNode, MorphTargetData } from './types';
+import { File, HierarchyNode, MorphTargetData, SceneCamera } from './types';
 import { XRObjectPlacementController } from './xr-mode';
 import { MeshoptDecoder } from '../lib/meshopt_decoder.module.js';
 
@@ -224,6 +225,10 @@ class Viewer {
     canvasResize = true;
 
     cameraControls: CameraControls;
+
+    sceneCameras: Array<CameraComponent> = [];
+
+    activeSceneCamera: CameraComponent | null = null;
 
     constructor(
         canvas: HTMLCanvasElement,
@@ -652,6 +657,7 @@ class Viewer {
 
             'scene.selectedNode.path': this.setSelectedNode.bind(this),
             'scene.variant.selected': this.setSelectedVariant.bind(this),
+            'scene.selectedCamera': this.setSelectedCamera.bind(this),
 
             centerScene: this.setCenterScene.bind(this)
         };
@@ -896,6 +902,15 @@ class Viewer {
     resetScene() {
         const app = this.app;
 
+        // reset camera state first - switch back to viewer camera before destroying entities
+        if (this.activeSceneCamera) {
+            this.activeSceneCamera.enabled = false;
+            this.activeSceneCamera = null;
+            this.camera.camera.enabled = true;
+            this.cameraControls.enabled = true;
+        }
+        this.sceneCameras = [];
+
         this.entities.forEach((entity) => {
             this.sceneRoot.removeChild(entity);
             this.shadowCatcher.onEntityRemoved(entity);
@@ -1017,6 +1032,22 @@ class Viewer {
         // variant stats
         this.observer.set('scene.variants.list', JSON.stringify(variants));
         this.observer.set('scene.variant.selected', variants[0]);
+
+        // detect cameras in the loaded scene
+        const cameras: Array<SceneCamera> = [];
+
+        this.entities.forEach((entity) => {
+            const cameraComponents = entity.findComponents('camera') as CameraComponent[];
+            cameraComponents.forEach((cameraComponent) => {
+                cameras.push({
+                    name: cameraComponent.entity.name || `Camera ${cameras.length + 1}`,
+                    path: cameraComponent.entity.path
+                });
+            });
+        });
+
+        this.observer.set('scene.cameras', JSON.stringify(cameras));
+        this.observer.set('scene.selectedCamera', '');
     }
 
     downloadPngScreenshot() {
@@ -1403,6 +1434,44 @@ class Viewer {
             });
             this.renderNextFrame();
         }
+    }
+
+    setSelectedCamera(cameraPath: string) {
+        // disable any previously active scene camera
+        if (this.activeSceneCamera) {
+            this.activeSceneCamera.enabled = false;
+            this.activeSceneCamera = null;
+        }
+
+        if (cameraPath) {
+            // find the camera entity by path
+            const cameraEntity = this.app.root.findByPath(cameraPath) as Entity;
+            if (cameraEntity && cameraEntity.camera) {
+                // disable the viewer camera and its controls
+                this.camera.camera.enabled = false;
+                this.cameraControls.enabled = false;
+
+                // enable the scene camera
+                cameraEntity.camera.enabled = true;
+                this.activeSceneCamera = cameraEntity.camera;
+
+                // transfer render target and layers to scene camera
+                cameraEntity.camera.renderTarget = this.camera.camera.renderTarget;
+                cameraEntity.camera.layers = this.camera.camera.layers;
+                cameraEntity.camera.clearColor = this.camera.camera.clearColor;
+                cameraEntity.camera.toneMapping = this.camera.camera.toneMapping;
+            } else {
+                // if the specified camera is not found or invalid, fall back to the viewer camera
+                this.camera.camera.enabled = true;
+                this.cameraControls.enabled = true;
+            }
+        } else {
+            // switch back to viewer camera
+            this.camera.camera.enabled = true;
+            this.cameraControls.enabled = true;
+        }
+
+        this.renderNextFrame();
     }
 
     setCenterScene(value: boolean) {

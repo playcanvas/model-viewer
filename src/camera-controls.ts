@@ -125,6 +125,9 @@ class CameraControls {
         touches: 0
     };
 
+    // when false, camera controls ignore all input
+    enabled = true;
+
     // this gets overridden by the viewer based on scene size
     moveSpeed = 1;
 
@@ -215,12 +218,17 @@ class CameraControls {
     }
 
     update(dt: number) {
-        const { keyCode } = KeyboardMouseSource;
-
+        // read inputs (to clear their state) even when disabled
         const { key, button, mouse, wheel } = this._desktopInput.read();
         const { touch, pinch, count } = this._orbitMobileInput.read();
         const { leftInput, rightInput } = this._flyMobileInput.read();
         const { leftStick, rightStick } = this._gamepadInput.read();
+
+        if (!this.enabled) {
+            return;
+        }
+
+        const { keyCode } = KeyboardMouseSource;
 
         // apply dead zone to gamepad sticks
         applyDeadZone(leftStick, this.gamepadDeadZone.x, this.gamepadDeadZone.y);

@@ -224,13 +224,15 @@ export const Select = (props: {
     setProperty: (value: any) => void,
     type: 'string' | 'number' | 'boolean',
     options: Array<Option>,
-    enabled?: boolean }) => {
+    enabled?: boolean,
+    selectKey?: string }) => {
 
     return <Container class='panel-option' enabled={props.enabled ?? true}>
         <Label
             class='panel-label'
             text={props.label} />
         <SelectInput
+            key={props.selectKey}
             class='panel-value'
             type={props.type}
             options={props.options}
