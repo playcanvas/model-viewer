@@ -41,7 +41,7 @@
         "cross-env": "10.1.0",
         "eslint": "9.39.2",
         "eslint-import-resolver-typescript": "4.4.4",
-        "globals": "16.5.0",
+        "globals": "17.0.0",
         "playcanvas": "2.15.1",
         "qrious": "4.0.2",
         "react": "19.2.3",
