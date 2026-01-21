@@ -20,6 +20,10 @@
     {
       "matchDepTypes": ["dependencies"],
       "rangeStrategy": "widen"
+    },
+    {
+      "matchPackageNames": ["@rollup/plugin-typescript"],
+      "enabled": false
     }
   ]
 }
