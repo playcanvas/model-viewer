@@ -81,6 +81,9 @@ class PopupPanel extends React.Component <{ observerData: ObserverData, setPrope
     }
 
     render() {
+        if (this.props.observerData.runtime.xrActive) {
+            return null;
+        }
         return (<div id='popup' className={this.props.observerData.scene.nodes === '[]' ? 'empty' : null}>
             <PopupPanelControls observerData={this.props.observerData} setProperty={this.props.setProperty} />
             <PopupButtonControls observerData={this.props.observerData} setProperty={this.props.setProperty} />

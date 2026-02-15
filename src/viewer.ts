@@ -34,7 +34,6 @@ import {
     TONEMAP_ACES2,
     math,
     path,
-    ShaderChunks,
     AnimEvents,
     AnimTrack,
     Asset,
@@ -49,7 +48,6 @@ import {
     GSplatComponent,
     GSplatData,
     GSplatResource,
-    GSplatResourceBase,
     Keyboard,
     Mat4,
     Mesh,
@@ -77,8 +75,6 @@ import { Multiframe } from './multiframe';
 import { Picker } from './picker';
 import { PngExporter } from './png-exporter';
 import { ShadowCatcher } from './shadow-catcher';
-import arCloseImage from './svg/ar-close.svg';
-import arModeImage from './svg/ar-mode.svg';
 import { File, HierarchyNode, MorphTargetData, SceneCamera } from './types';
 import { XRObjectPlacementController } from './xr-mode';
 import { MeshoptDecoder } from '../lib/meshopt_decoder.module.js';
@@ -92,28 +88,6 @@ const bbox = new BoundingBox();
 
 const FOCUS_FOV = 75;
 const ZOOM_SCALE_MIN = 0.01;
-
-// override global pick to pack depth instead of meshInstance id
-const pickDepthGlsl = /* glsl */ `
-vec4 packFloat(float depth) {
-    uvec4 u = (uvec4(floatBitsToUint(depth)) >> uvec4(0u, 8u, 16u, 24u)) & 0xffu;
-    return vec4(u) / 255.0;
-}
-vec4 getPickOutput() {
-    return packFloat(gl_FragCoord.z);
-}
-`;
-
-const pickDepthWgsl = /* wgsl */ `
-    fn packFloat(depth: f32) -> vec4f {
-        let u: vec4<u32> = (vec4<u32>(bitcast<u32>(depth)) >> vec4<u32>(0u, 8u, 16u, 24u)) & vec4<u32>(0xffu);
-        return vec4f(u) / 255.0;
-    }
-
-    fn getPickOutput() -> vec4f {
-        return packFloat(pcPosition.z);
-    }
-`;
 
 class Viewer {
     canvas: HTMLCanvasElement;
@@ -247,10 +221,6 @@ class Viewer {
         });
         this.app = app;
         this.skyboxUrls = skyboxUrls;
-
-        // global override depth
-        ShaderChunks.get(this.app.graphicsDevice, 'glsl').set('pickPS', pickDepthGlsl);
-        ShaderChunks.get(this.app.graphicsDevice, 'wgsl').set('pickPS', pickDepthWgsl);
 
         // clustered not needed and has faster startup on windows
         this.app.scene.clusteredLightingEnabled = false;
@@ -447,11 +417,23 @@ class Viewer {
         this.picker = new Picker(app, camera);
         this.cursorWorld = new Vec3();
 
-        // double click handler
-        canvas.addEventListener('dblclick', async (event) => {
-            const result = await this.picker.pick(event.offsetX, event.offsetY);
-            if (result) {
-                this.cameraControls.reset(result, this.camera.getPosition());
+        // detect double taps manually because iOS doesn't fire dblclick events
+        const lastTap = { time: 0, x: 0, y: 0 };
+        canvas.addEventListener('pointerdown', async (event) => {
+            const now = Date.now();
+            const delay = Math.max(0, now - lastTap.time);
+            if (delay < 300 &&
+                Math.abs(event.clientX - lastTap.x) < 8 &&
+                Math.abs(event.clientY - lastTap.y) < 8) {
+                lastTap.time = 0;
+                const result = await this.picker.pick(event.offsetX / canvas.clientWidth, event.offsetY / canvas.clientHeight);
+                if (result) {
+                    this.cameraControls.reset(result, this.camera.getPosition());
+                }
+            } else {
+                lastTap.time = now;
+                lastTap.x = event.clientX;
+                lastTap.y = event.clientY;
             }
         });
 
@@ -467,15 +449,18 @@ class Viewer {
         this.xrMode = new XRObjectPlacementController({
             xr: xr,
             camera: this.camera,
-            content: this.sceneRoot,
-            showUI: true,
-            startArImgSrc: arModeImage.src,
-            stopArImgSrc: arCloseImage.src
+            content: this.sceneRoot
         });
 
         const events = this.xrMode.events;
 
+        events.on('xr:available', (available: boolean) => {
+            this.observer.set('runtime.xrSupported', available);
+        });
+
         events.on('xr:started', () => {
+            this.observer.set('runtime.xrActive', true);
+
             // prepare scene settings for AR mode
             this.setShadowCatcherEnabled(true);
             this.setShadowCatcherIntensity(0.4);
@@ -499,6 +484,8 @@ class Viewer {
         });
 
         events.on('xr:ended', () => {
+            this.observer.set('runtime.xrActive', false);
+
             // reload all user options
             this.reloadSettings();
 
@@ -818,7 +805,6 @@ class Viewer {
 
         // calculate scene size
         const sceneSize = bbox.halfExtents.length();
-        this.cameraControls.moveSpeed = sceneSize * 2.5;
         this.cameraControls.zoomRange = new Vec2(ZOOM_SCALE_MIN, 10 * sceneSize);
 
         // calculate the camera focal point
@@ -1727,7 +1713,7 @@ class Viewer {
     }
 
     update(deltaTime: number) {
-        // update the orbit camera
+        // update the camera
         if (!this.xrMode?.active) {
             this.cameraControls.update(deltaTime);
         }
@@ -1815,7 +1801,10 @@ class Viewer {
                 entity.addComponent('gsplat', { unified, asset });
 
                 // render frame if gaussian splat sorter updates)
-                if (!unified) {
+                if (unified) {
+                    entity.gsplat.splatBudget = 2000000;
+                    entity.gsplat.lodDistances = [10, 25, 50, 100, 200];
+                } else {
                     entity.gsplat.instance.sorter.on('updated', () => {
                         this.renderNextFrame();
                     });
@@ -2221,7 +2210,7 @@ class Viewer {
 
         // resolve the (possibly multisampled) render target
         const rt = this.camera.camera.renderTarget;
-        if (rt.samples > 1) {
+        if (rt?.samples > 1) {
             rt.resolve();
         }
 

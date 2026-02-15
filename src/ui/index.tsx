@@ -42,8 +42,9 @@ class App extends React.Component<{ observer: Observer }> {
     };
 
     render() {
+        const xrActive = this.state?.runtime?.xrActive;
         return <div id="application-container">
-            <Container id="panel-left" flex resizable='right' resizeMin={220} resizeMax={800}>
+            <Container id="panel-left" flex resizable='right' resizeMin={220} resizeMax={800} hidden={xrActive}>
                 <div className="header" style={{ display: 'none' }}>
                     <div id="title">
                         <img src={'static/playcanvas-logo.png'}/>
