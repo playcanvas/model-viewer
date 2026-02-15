@@ -205,10 +205,11 @@ class Picker {
             const normalizedDepth = r / alpha;
             const depth = normalizedDepth * (far - near) + near;
 
-            // get the ray from camera through the screen point (using pixel coords)
+            // get the ray from camera through the screen point
+            // use clientRect dimensions to match what screenToWorld uses internally
             getRay(camera,
-                Math.floor(x * graphicsDevice.canvas.offsetWidth),
-                Math.floor(y * graphicsDevice.canvas.offsetHeight),
+                x * graphicsDevice.clientRect.width,
+                y * graphicsDevice.clientRect.height,
                 ray
             );
 
