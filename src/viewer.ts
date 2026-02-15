@@ -34,6 +34,7 @@ import {
     TONEMAP_ACES2,
     math,
     path,
+    platform,
     AnimEvents,
     AnimTrack,
     Asset,
@@ -1802,8 +1803,7 @@ class Viewer {
 
                 // render frame if gaussian splat sorter updates)
                 if (unified) {
-                    entity.gsplat.splatBudget = 2000000;
-                    entity.gsplat.lodDistances = [10, 25, 50, 100, 200];
+                    entity.gsplat.splatBudget = platform.mobile ? 1500000 : 3000000;
                 } else {
                     entity.gsplat.instance.sorter.on('updated', () => {
                         this.renderNextFrame();
