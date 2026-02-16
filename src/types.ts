@@ -40,7 +40,9 @@ export interface ObserverData {
         multisampleSupported: boolean,
         multisample: boolean,
         hq: boolean,
-        mode: 'orbit' | 'fly'
+        mode: 'orbit' | 'fly',
+        gsaa: boolean,
+        gstwod: boolean
     },
     skybox: {
         value: string,

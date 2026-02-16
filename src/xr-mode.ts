@@ -17,6 +17,8 @@ import {
     GSplatComponent
 } from 'playcanvas';
 
+import arCloseImage from './svg/ar-close.svg';
+
 const vec = new Vec3();
 const vec2 = new Vec3();
 const translation = new Vec3();
@@ -86,9 +88,6 @@ interface XRObjectPlacementOptions {
     xr: XrManager;
     camera: Entity;
     content: Entity;
-    showUI: boolean;
-    startArImgSrc: any;
-    stopArImgSrc: any;
 }
 
 class XRObjectPlacementController {
@@ -110,10 +109,8 @@ class XRObjectPlacementController {
         // create the rotation controller
         xr.domOverlay.root = this._createRotateInput();
 
-        // create dom
-        if (this.options.showUI) {
-            this._createUI();
-        }
+        // create UI elements (overlay close button, and optionally the external launch button)
+        this._createUI();
 
         this._createModelHandler();
 
@@ -137,9 +134,14 @@ class XRObjectPlacementController {
         };
 
         // handle xr mode availability change
-        xr.on(`available: ${XRTYPE_AR}`, (available: boolean) => {
+        xr.on(`available:${XRTYPE_AR}`, (available: boolean) => {
             this.events.fire('xr:available', available);
         });
+
+        // check initial availability in case the async check already completed
+        if (xr.isAvailable(XRTYPE_AR)) {
+            this.events.fire('xr:available', true);
+        }
 
         // handle xr mode starting
         xr.on('start', () => {
@@ -281,47 +283,28 @@ class XRObjectPlacementController {
         return dom;
     }
 
-    // create a dom element and controller for launching and exiting xr mode
+    // create UI elements for XR mode
     private _createUI() {
-        const dom = document.createElement('img');
-        dom.src = this.options.startArImgSrc;
-        dom.style.position = 'fixed';
-        dom.style.right = '20px';
-        dom.style.top = '20px';
-        dom.style.width = '36px';
-        dom.style.height = '36px';
-        dom.style.opacity = '100%';
-        dom.style.display = 'none';
-        document.body.appendChild(dom);
-
-        // disable button during xr mode transitions
-        let enabled = true;
-
-        this.events.on('xr:available', (available: boolean) => {
-            dom.style.display = available ? 'block' : 'none';
+        // close button is always created for the XR DOM overlay
+        const closeButton = document.createElement('img');
+        closeButton.src = arCloseImage.src;
+        closeButton.style.position = 'fixed';
+        closeButton.style.right = '20px';
+        closeButton.style.top = '20px';
+        closeButton.style.width = '36px';
+        closeButton.style.height = '36px';
+        closeButton.style.zIndex = '10000';
+        closeButton.style.cursor = 'pointer';
+        closeButton.addEventListener('click', () => {
+            this.end();
         });
 
         this.events.on('xr:started', () => {
-            enabled = true;
-            dom.src = this.options.stopArImgSrc;
-            this.options.xr.domOverlay.root.appendChild(dom);
+            this.options.xr.domOverlay.root.appendChild(closeButton);
         });
 
         this.events.on('xr:ended', () => {
-            enabled = true;
-            dom.src = this.options.startArImgSrc;
-            document.body.appendChild(dom);
-        });
-
-        dom.addEventListener('click', () => {
-            if (enabled) {
-                enabled = false;
-                if (this.active) {
-                    this.end();
-                } else {
-                    this.start();
-                }
-            }
+            closeButton.remove();
         });
     }
 

@@ -68,7 +68,9 @@ const observerData: ObserverData = {
         multisampleSupported: true,
         multisample: true,
         hq: true,
-        mode: 'orbit'
+        mode: 'orbit',
+        gsaa: false,
+        gstwod: false
     },
     skybox: {
         value: 'Paul Lobe Haus',
@@ -324,7 +326,7 @@ const main = () => {
                     if (observer.has(key)) {
                         switch (typeof observer.get(key)) {
                             case 'boolean':
-                                observer.set(key, value.toLowerCase() === 'true');
+                                observer.set(key, ['1', 'true'].indexOf(value.toLowerCase()) !== -1);
                                 break;
                             case 'number':
                                 observer.set(key, Number(value));
