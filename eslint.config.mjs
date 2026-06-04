@@ -1,16 +1,13 @@
 import reactConfig from '@playcanvas/eslint-config/react';
 import typescriptConfig from '@playcanvas/eslint-config/typescript';
 import globals from 'globals';
-import tseslint from 'typescript-eslint';
 
 export default [
     ...typescriptConfig,
     ...reactConfig,
     {
-        // /typescript only wires the TS parser for **/*.{js,mjs,ts}; this app also has .tsx
         files: ['**/*.ts', '**/*.tsx'],
         languageOptions: {
-            parser: tseslint.parser,
             globals: {
                 ...globals.browser
             }
