@@ -1,3 +1,8 @@
+import type {
+    CameraComponent,
+    ScopeSpace,
+    Shader,
+    GraphicsDevice} from 'playcanvas';
 import {
     BLENDEQUATION_ADD,
     BLENDMODE_CONSTANT,
@@ -10,15 +15,11 @@ import {
     PIXELFORMAT_RGBA32F,
     SEMANTIC_POSITION,
     BlendState,
-    CameraComponent,
     RenderPassShaderQuad,
     RenderTarget,
-    ScopeSpace,
-    Shader,
     ShaderUtils,
     Texture,
     Vec3,
-    GraphicsDevice,
     EventHandler
 } from 'playcanvas';
 

@@ -1,31 +1,31 @@
-export interface MorphTargetData {
+export type MorphTargetData = {
     name: string,
     targetIndex: number,
     weight?: number
 }
 
-export interface File {
+export type File = {
     url: string,
     filename?: string
 }
 
-export interface Option {
+export type Option = {
     v: string | number | null,
     t: string
 }
 
-export interface HierarchyNode {
+export type HierarchyNode = {
     name: string,
     path: string,
-    children: Array<HierarchyNode>
+    children: HierarchyNode[]
 }
 
-export interface SceneCamera {
+export type SceneCamera = {
     name: string,
     path: string
 }
 
-export interface ObserverData {
+export type ObserverData = {
     ui: {
         fullscreen: boolean,
         active?: string,

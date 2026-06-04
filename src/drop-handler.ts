@@ -1,15 +1,15 @@
 import { path } from 'playcanvas';
 
-interface File {
+type File = {
     url: string,
     filename?: string
 }
 
-type DropHandlerFunc = (files: Array<File>, resetScene: boolean) => void;
+type DropHandlerFunc = (files: File[], resetScene: boolean) => void;
 
-const resolveDirectories = (entries: Array<FileSystemEntry>): Promise<Array<FileSystemFileEntry>> => {
-    const promises: Promise<Array<FileSystemFileEntry>>[] = [];
-    const result: Array<FileSystemFileEntry> = [];
+const resolveDirectories = (entries: FileSystemEntry[]): Promise<FileSystemFileEntry[]> => {
+    const promises: Promise<FileSystemFileEntry[]>[] = [];
+    const result: FileSystemFileEntry[] = [];
 
     entries.forEach((entry) => {
         if (entry.isFile) {
@@ -21,13 +21,13 @@ const resolveDirectories = (entries: Array<FileSystemEntry>): Promise<Array<File
                 const p: Promise<any>[] = [];
 
                 const read = () => {
-                    reader.readEntries((children: Array<FileSystemEntry>) => {
+                    reader.readEntries((children: FileSystemEntry[]) => {
                         if (children.length > 0) {
                             p.push(resolveDirectories(children));
                             read();
                         } else {
                             Promise.all(p)
-                            .then((children: Array<Array<FileSystemFileEntry>>) => {
+                            .then((children: FileSystemFileEntry[][]) => {
                                 resolve(children.flat());
                             });
                         }
@@ -39,12 +39,12 @@ const resolveDirectories = (entries: Array<FileSystemEntry>): Promise<Array<File
     });
 
     return Promise.all(promises)
-    .then((children: Array<Array<FileSystemFileEntry>>) => {
+    .then((children: FileSystemFileEntry[][]) => {
         return result.concat(...children);
     });
 };
 
-const removeCommonPrefix = (urls: Array<File>) => {
+const removeCommonPrefix = (urls: File[]) => {
     const split = (pathname: string) => {
         const parts = pathname.split(path.delimiter);
         const base = parts[0];
@@ -90,7 +90,7 @@ const CreateDropHandler = (target: HTMLElement, dropHandler: DropHandlerFunc) =>
             .map(item => item.webkitGetAsEntry());
 
         resolveDirectories(entries)
-        .then((entries: Array<FileSystemFileEntry>) => {
+        .then((entries: FileSystemFileEntry[]) => {
             return Promise.all(entries.map((entry) => {
                 return new Promise((resolve) => {
                     entry.file((entryFile: any) => {
@@ -102,7 +102,7 @@ const CreateDropHandler = (target: HTMLElement, dropHandler: DropHandlerFunc) =>
                 });
             }));
         })
-        .then((files: Array<File>) => {
+        .then((files: File[]) => {
             if (files.length > 1) {
                 removeCommonPrefix(files);
             }

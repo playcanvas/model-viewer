@@ -14,9 +14,9 @@ class AnimationTrackSelect extends React.Component <{ animationData: ObserverDat
     render() {
         const props = this.props;
 
-        const animationsList: Array<string> = JSON.parse(props.animationData.list);
+        const animationsList: string[] = JSON.parse(props.animationData.list);
 
-        const selectTrackOptions: Array<{ v: string, t: string }> = animationsList.map((animation: string) => ({ v: animation, t: animation }));
+        const selectTrackOptions: { v: string, t: string }[] = animationsList.map((animation: string) => ({ v: animation, t: animation }));
 
         return (
             <NakedSelect
@@ -36,7 +36,7 @@ class AnimationSpeedSelect extends React.Component <{ animationData: ObserverDat
     render() {
         const props = this.props;
 
-        const speedOptions: Array<{ v: string, t: string }> = [
+        const speedOptions: { v: string, t: string }[] = [
             { v: '0.25', t: '0.25x' },
             { v: '0.5', t: '0.5x' },
             { v: '1', t: '1x' },
@@ -70,7 +70,7 @@ class AnimationControls extends React.Component <{ animationData: ObserverData['
     render() {
         const props = this.props;
 
-        const animationsList: Array<string> = JSON.parse(props.animationData.list);
+        const animationsList: string[] = JSON.parse(props.animationData.list);
         const enabled: boolean =  animationsList.length > 0;
 
         return enabled ? (

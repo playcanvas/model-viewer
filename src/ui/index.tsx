@@ -4,13 +4,14 @@ import React from 'react';
 import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 
+import { version as appVersion } from '../../package.json';
 import { ObserverData } from '../types';
+
 import { ErrorBox, WarningsBox } from './errors';
 import LeftPanel from './left-panel';
 import LoadControls from './load-controls';
 import PopupPanel from './popup-panel';
 import SelectedNode from './selected-node';
-import { version as appVersion } from '../../package.json';
 
 class App extends React.Component<{ observer: Observer }> {
     state: ObserverData = null;

@@ -6,7 +6,7 @@ import { File, SetProperty } from '../types';
 
 const validUrl = (url: string) => {
     try {
-        /* eslint-disable-next-line no-new */
+         
         new URL(url);
         return true;
     } catch {
@@ -28,7 +28,7 @@ const LoadControls = (props: { setProperty: SetProperty }) => {
         const viewer = (window as any).viewer;
         const files = event.target.files;
         if (viewer && files.length) {
-            const loadList: Array<File> = [];
+            const loadList: File[] = [];
             for (let i = 0; i < files.length; ++i) {
                 const file = files[i];
                 loadList.push({

@@ -1,14 +1,15 @@
+import type {
+    AppBase,
+    BoundingBox,
+    CameraComponent,
+    MeshInstance,
+    RenderComponent} from 'playcanvas';
 import {
     BLEND_PREMULTIPLIED,
     SHADOW_VSM_16F,
     SHADOWUPDATE_REALTIME as SHADOWUPDATE,
-    AppBase,
-    BoundingBox,
-    CameraComponent,
     Entity,
     Layer,
-    MeshInstance,
-    RenderComponent,
     StandardMaterial
 } from 'playcanvas';
 

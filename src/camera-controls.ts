@@ -1,7 +1,6 @@
-import { type Observer } from '@playcanvas/observer';
+import type {Observer} from '@playcanvas/observer';
 import {
     math,
-    AppBase,
     DualGestureSource,
     FlyController,
     GamepadSource,
@@ -12,10 +11,12 @@ import {
     Pose,
     PROJECTION_PERSPECTIVE,
     Vec2,
-    Vec3,
-    type CameraComponent,
-    type InputController
+    Vec3
+    
+    
 } from 'playcanvas';
+import type {
+    AppBase,CameraComponent, InputController} from 'playcanvas';
 
 type CameraControlsState = {
     axis: Vec3;

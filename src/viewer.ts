@@ -1,4 +1,17 @@
-import { Observer } from '@playcanvas/observer';
+import type { Observer } from '@playcanvas/observer';
+import type {
+    AnimTrack,
+    ContainerResource,
+    GraphicsDevice,
+    GraphNode,
+    GSplatComponent,
+    GSplatData,
+    Mesh,
+    MorphInstance,
+    MorphTarget,
+    RenderComponent,
+    CameraComponent
+} from 'playcanvas';
 import {
     ADDRESS_CLAMP_TO_EDGE,
     BLENDMODE_ONE,
@@ -36,37 +49,28 @@ import {
     path,
     platform,
     AnimEvents,
-    AnimTrack,
     Asset,
     BlendState,
     BoundingBox,
     Color,
-    ContainerResource,
     Entity,
     EnvLighting,
-    GraphicsDevice,
-    GraphNode,
-    GSplatComponent,
-    GSplatData,
     GSplatResource,
     Keyboard,
     Mat4,
-    Mesh,
     MeshInstance,
-    MorphInstance,
-    MorphTarget,
     Mouse,
     MiniStats,
     Quat,
-    RenderComponent,
     RenderTarget,
     StandardMaterial,
     Texture,
     TouchDevice,
     Vec3,
-    Vec2,
-    CameraComponent
+    Vec2
 } from 'playcanvas';
+
+import { MeshoptDecoder } from '../lib/meshopt_decoder.module.js';
 
 import { App } from './app';
 import { CameraControls } from './camera-controls';
@@ -76,9 +80,8 @@ import { Multiframe } from './multiframe';
 import { Picker } from './picker';
 import { PngExporter } from './png-exporter';
 import { ShadowCatcher } from './shadow-catcher';
-import { File, HierarchyNode, MorphTargetData, SceneCamera } from './types';
+import type { File, HierarchyNode, MorphTargetData, SceneCamera } from './types';
 import { XRObjectPlacementController } from './xr-mode';
-import { MeshoptDecoder } from '../lib/meshopt_decoder.module.js';
 
 // model filename extensions
 const modelExtensions = ['gltf', 'glb', 'vox'];
@@ -115,19 +118,19 @@ class Viewer {
 
     debugRoot: Entity;
 
-    entities: Array<Entity>;
+    entities: Entity[];
 
-    entityAssets: Array<{ entity: Entity; asset: Asset }>;
+    entityAssets: { entity: Entity; asset: Asset }[];
 
-    assets: Array<Asset>;
+    assets: Asset[];
 
-    meshInstances: Array<MeshInstance>;
+    meshInstances: MeshInstance[];
 
-    wireframeMeshInstances: Array<MeshInstance>;
+    wireframeMeshInstances: MeshInstance[];
 
     wireframeMaterial: StandardMaterial;
 
-    animTracks: Array<AnimTrack>;
+    animTracks: AnimTrack[];
 
     animationMap: Record<string, string>;
 
@@ -201,7 +204,7 @@ class Viewer {
 
     cameraControls: CameraControls;
 
-    sceneCameras: Array<CameraComponent> = [];
+    sceneCameras: CameraComponent[] = [];
 
     activeSceneCamera: CameraComponent | null = null;
 
@@ -252,7 +255,7 @@ class Viewer {
         observer.set('camera.multisample', multisampleSupported && observer.get('camera.multisample'));
 
         // create drop handler
-        CreateDropHandler(document.getElementById('app'), (files: Array<File>, resetScene: boolean) => {
+        CreateDropHandler(document.getElementById('app'), (files: File[], resetScene: boolean) => {
             this.loadFiles(files, resetScene);
         });
 
@@ -503,7 +506,7 @@ class Viewer {
 
     // collects all mesh instances from entity hierarchy
     private collectMeshInstances(entity: Entity) {
-        const meshInstances: Array<MeshInstance> = [];
+        const meshInstances: MeshInstance[] = [];
         if (entity) {
             const components = entity.findComponents('render');
             for (let i = 0; i < components.length; i++) {
@@ -528,7 +531,7 @@ class Viewer {
     }
 
     // calculate the bounding box of the given mesh
-    private static calcMeshBoundingBox(result: BoundingBox, meshInstances: Array<MeshInstance>) {
+    private static calcMeshBoundingBox(result: BoundingBox, meshInstances: MeshInstance[]) {
         if (meshInstances.length > 0) {
             result.copy(meshInstances[0].aabb);
             for (let i = 1; i < meshInstances.length; ++i) {
@@ -688,7 +691,7 @@ class Viewer {
 
     // load the image files into the skybox. this function supports loading a single equirectangular
     // skybox image or 6 cubemap faces.
-    private loadSkybox(files: Array<File>) {
+    private loadSkybox(files: File[]) {
         const app = this.app;
 
         if (files.length !== 6) {
@@ -988,7 +991,7 @@ class Viewer {
             }
         });
 
-        const mapChildren = function (node: GraphNode): Array<HierarchyNode> {
+        const mapChildren = function (node: GraphNode): HierarchyNode[] {
             return node.children.map((child: GraphNode) => ({
                 name: child.name,
                 path: child.path,
@@ -996,7 +999,7 @@ class Viewer {
             }));
         };
 
-        const graph: Array<HierarchyNode> = this.entities.map((entity) => {
+        const graph: HierarchyNode[] = this.entities.map((entity) => {
             return {
                 name: entity.name,
                 path: entity.path,
@@ -1021,7 +1024,7 @@ class Viewer {
         this.observer.set('scene.variant.selected', variants[0]);
 
         // detect cameras in the loaded scene
-        const cameras: Array<SceneCamera> = [];
+        const cameras: SceneCamera[] = [];
 
         this.entities.forEach((entity) => {
             const cameraComponents = entity.findComponents('camera') as CameraComponent[];
@@ -1101,13 +1104,13 @@ class Viewer {
     }
 
     // load gltf model given its url and list of external urls
-    private loadGltf(gltfUrl: File, externalUrls: Array<File>, warnings: string[]) {
+    private loadGltf(gltfUrl: File, externalUrls: File[], warnings: string[]) {
         return new Promise((resolve, reject) => {
             // provide buffer view callback so we can handle models compressed with MeshOptimizer
             // https://github.com/zeux/meshoptimizer
             const processBufferView = (
                 gltfBuffer: any,
-                buffers: Array<any>,
+                buffers: any[],
                 continuation: (err: string, result: any) => void
             ) => {
                 if (gltfBuffer.extensions && gltfBuffer.extensions.EXT_meshopt_compression) {
@@ -1258,7 +1261,7 @@ class Viewer {
         });
     }
 
-    private loadPly(url: File, externalUrls: Array<File>) {
+    private loadPly(url: File, externalUrls: File[]) {
         const urls: any = {};
         externalUrls.forEach((url) => {
             urls[url.filename] = url.url;
@@ -1291,7 +1294,7 @@ class Viewer {
     // load the list of urls.
     // urls can reference glTF files, glb files and skybox textures.
     // returns true if a model was loaded.
-    loadFiles(files: Array<File>, resetScene = false) {
+    loadFiles(files: File[], resetScene = false) {
         // convert single url to list
         if (!Array.isArray(files)) {
             files = [files];

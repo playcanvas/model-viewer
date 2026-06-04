@@ -1,33 +1,24 @@
-import playcanvasConfig from '@playcanvas/eslint-config';
-import tsPlugin from '@typescript-eslint/eslint-plugin';
-import tsParser from '@typescript-eslint/parser';
+import reactConfig from '@playcanvas/eslint-config/react';
+import typescriptConfig from '@playcanvas/eslint-config/typescript';
 import globals from 'globals';
+import tseslint from 'typescript-eslint';
 
 export default [
-    ...playcanvasConfig,
+    ...typescriptConfig,
+    ...reactConfig,
     {
+        // /typescript only wires the TS parser for **/*.{js,mjs,ts}; this app also has .tsx
         files: ['**/*.ts', '**/*.tsx'],
         languageOptions: {
-            parser: tsParser,
+            parser: tseslint.parser,
             globals: {
                 ...globals.browser
             }
         },
-        plugins: {
-            '@typescript-eslint': tsPlugin
-        },
-        settings: {
-            'import/resolver': {
-                typescript: {}
-            }
-        },
         rules: {
-            ...tsPlugin.configs.recommended.rules,
             '@typescript-eslint/ban-ts-comment': 'off',
             '@typescript-eslint/no-explicit-any': 'off',
-            '@typescript-eslint/no-unused-vars': 'off',
-            'jsdoc/require-param-type': 'off',
-            'jsdoc/require-returns-type': 'off'
+            '@typescript-eslint/no-unused-vars': 'off'
         }
     },
     {
@@ -38,7 +29,7 @@ export default [
             }
         },
         rules: {
-            'import/no-unresolved': 'off'
+            'import-x/no-unresolved': 'off'
         }
     }
 ];

@@ -85,7 +85,7 @@ export const ToggleColor = (props: {
 export const SelectColor = (props: {
     label: string,
     selectType: 'string' | 'number' | 'boolean',
-    selectOptions: Array<Option>,
+    selectOptions: Option[],
     selectValue: any,
     setSelectProperty: (value: any) => void,
     colorValue: any,
@@ -223,7 +223,7 @@ export const Select = (props: {
     value:any,
     setProperty: (value: any) => void,
     type: 'string' | 'number' | 'boolean',
-    options: Array<Option>,
+    options: Option[],
     enabled?: boolean,
     selectKey?: string }) => {
 
@@ -251,7 +251,7 @@ export const NakedSelect = (props: {
     setProperty: any,
     width: number,
     type: 'string' | 'number' | 'boolean',
-    options: Array<Option>,
+    options: Option[],
     enabled?: boolean,
     id?: string,
     class?: string }) => {

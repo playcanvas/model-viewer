@@ -1,3 +1,11 @@
+import type {
+    Entity,
+    XrHitTestSource,
+    XrManager,
+    MeshInstance,
+    RenderComponent,
+    GSplatComponent
+} from 'playcanvas';
 import {
     XRSPACE_LOCAL,
     XRSPACE_VIEWER,
@@ -6,15 +14,9 @@ import {
     XRTRACKABLE_MESH,
     XRTYPE_AR,
     BoundingBox,
-    Entity,
     EventHandler,
     Vec3,
-    Mat4,
-    XrHitTestSource,
-    XrManager,
-    MeshInstance,
-    RenderComponent,
-    GSplatComponent
+    Mat4
 } from 'playcanvas';
 
 import arCloseImage from './svg/ar-close.svg';
@@ -28,7 +30,7 @@ const mat = new Mat4();
 // modulo dealing with negative numbers
 const mod = (n: number, m: number) => ((n % m) + m) % m;
 
-type TweenValue = {[key: string]: number};
+type TweenValue = Record<string, number>;
 
 // helper tween class
 class Tween {
@@ -84,7 +86,7 @@ class Tween {
     }
 }
 
-interface XRObjectPlacementOptions {
+type XRObjectPlacementOptions = {
     xr: XrManager;
     camera: Entity;
     content: Entity;
@@ -188,14 +190,14 @@ class XRObjectPlacementController {
     // create an invisible dom element for capturing pointer input
     // rotate the model with two finger tap and twist
     private _createRotateInput() {
-        const touches: Map<
+        const touches = new Map<
             number,
             {
                 start: {x: number; y: number};
                 previous: {x: number; y: number};
                 current: {x: number; y: number};
             }
-        > = new Map();
+        >();
         let baseAngle = 0;
         let angle = 0;
 
