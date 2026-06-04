@@ -1,3 +1,5 @@
+import type {
+    Entity} from 'playcanvas';
 import {
     BLEND_NORMAL,
     BUFFER_DYNAMIC,
@@ -12,7 +14,6 @@ import {
     TYPE_FLOAT32,
     TYPE_UINT8,
     DepthState,
-    Entity,
     GraphNode,
     Layer,
     Mesh,
@@ -25,7 +26,7 @@ import {
     VertexIterator
 } from 'playcanvas';
 
-import { App } from './app';
+import type { App } from './app';
 
 let debugLayerFront: Layer = null;
 let debugLayerBack: Layer = null;
@@ -308,7 +309,7 @@ class DebugLines {
         this.vertexCursor++;
     }
 
-    generateNormals(vertexBuffer: VertexBuffer, worldMat: Mat4, length: number, skinMatrices: Array<Mat4>) {
+    generateNormals(vertexBuffer: VertexBuffer, worldMat: Mat4, length: number, skinMatrices: Mat4[]) {
         const it = new VertexIterator(vertexBuffer);
         const positions = it.element[SEMANTIC_POSITION];
         const normals = it.element[SEMANTIC_NORMAL];

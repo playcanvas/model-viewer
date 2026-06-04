@@ -1,4 +1,4 @@
-import { AppBase } from 'playcanvas';
+import type { AppBase } from 'playcanvas';
 
 class DummyWebGPU {
     constructor(app: AppBase) {

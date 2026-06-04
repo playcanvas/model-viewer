@@ -1,7 +1,7 @@
 import {
-    type AppBase,
-    type Entity,
-    type MeshInstance,
+    
+    
+    
     ADDRESS_CLAMP_TO_EDGE,
     BLENDEQUATION_ADD,
     BLENDMODE_ZERO,
@@ -19,6 +19,7 @@ import {
     BlendState,
     PROJECTION_ORTHOGRAPHIC
 } from 'playcanvas';
+import type {AppBase, Entity, MeshInstance} from 'playcanvas';
 
 const vec = new Vec3();
 const vecb = new Vec3();
