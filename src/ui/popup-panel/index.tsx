@@ -2,10 +2,11 @@ import { Button } from '@playcanvas/pcui/react';
 import { UsdzExporter } from 'playcanvas';
 import React from 'react';
 
-import AnimationControls from './animation-controls';
-import { CameraPanel, SkyboxPanel, LightPanel, SettingsPanel, ViewPanel } from './panels';
 import { addEventListenerOnClickOnly } from '../../helpers';
 import { SetProperty, ObserverData } from '../../types';
+
+import AnimationControls from './animation-controls';
+import { CameraPanel, SkyboxPanel, LightPanel, SettingsPanel, ViewPanel } from './panels';
 
 const PopupPanelControls = (props: { observerData: ObserverData, setProperty: SetProperty }) => {
     return (<>

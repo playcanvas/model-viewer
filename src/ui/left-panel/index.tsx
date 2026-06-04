@@ -4,6 +4,7 @@ import React from 'react';
 import { addEventListenerOnClickOnly } from '../../helpers';
 import { HierarchyNode, SetProperty, ObserverData } from '../../types';
 import { Detail, Select, Vector } from '../components';
+
 import MorphTargetPanel from './morph-target-panel';
 
 const toggleCollapsed = () => {
@@ -49,7 +50,7 @@ class ScenePanel extends React.Component <{ sceneData: ObserverData['scene'], se
 
     render() {
         const scene = this.props.sceneData;
-        const variantListOptions: Array<{ v:string, t:string }> = JSON.parse(scene.variants.list).map((variant: string) => ({ v: variant, t: variant }));
+        const variantListOptions: { v:string, t:string }[] = JSON.parse(scene.variants.list).map((variant: string) => ({ v: variant, t: variant }));
         return (
             <Panel headerText='SCENE' id='scene-panel' flexShrink={'0'} flexGrow={'0'} collapsible={false} >
                 <Detail label='Filename' value={scene.filenames.join(', ')} />
@@ -82,8 +83,8 @@ class HierarchyPanel extends React.Component <{ sceneData: ObserverData['scene']
 
     render() {
         const scene = this.props.sceneData;
-        const modelHierarchy: Array<HierarchyNode> = JSON.parse(scene.nodes);
-        const mapNodes = (nodes: Array<HierarchyNode>) => {
+        const modelHierarchy: HierarchyNode[] = JSON.parse(scene.nodes);
+        const mapNodes = (nodes: HierarchyNode[]) => {
             return nodes.map((node:HierarchyNode) => <TreeViewItem text={`${node.name}`} key={node.path}
                 onSelect={(TreeViewItem: any) => {
                     this.props.setProperty('scene.selectedNode.path', node.path);

@@ -33,7 +33,7 @@ class CameraPanel extends React.Component <{
 
     render() {
         const props = this.props;
-        const sceneCameras: Array<{ name: string, path: string }> = JSON.parse(props.observerData.scene.cameras);
+        const sceneCameras: { name: string, path: string }[] = JSON.parse(props.observerData.scene.cameras);
         const cameraOptions = [{ v: 'viewer', t: 'Viewer' }].concat(
             sceneCameras.map(c => ({ v: c.path, t: c.name }))
         );
@@ -277,7 +277,7 @@ class SettingsPanel extends React.Component <{
                             const message = value ?
                                 'Enable WebGPU? The page will refresh to apply this change.' :
                                 'Disable WebGPU? The page will refresh to apply this change.';
-                            // eslint-disable-next-line no-alert
+                             
                             if (window.confirm(message)) {
                                 props.setProperty('enableWebGPU', value);
                                 setTimeout(() => window.location.reload(), 100);

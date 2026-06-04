@@ -13,8 +13,10 @@ import { initMaterials } from './material';
 import { ObserverData } from './types';
 import initializeUI from './ui';
 import Viewer from './viewer';
+
 import './style.scss';
 import { version as modelViewerVersion } from '../package.json';
+
 import { DummyWebGPU } from './dummy-webgpu';
 
 // Permit some additional properties to be set on the window
