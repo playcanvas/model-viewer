@@ -22,7 +22,7 @@
         "url": "https://github.com/playcanvas/model-viewer.git"
     },
     "devDependencies": {
-        "@playcanvas/eslint-config": "3.0.0-beta.5",
+        "@playcanvas/eslint-config": "3.0.0-beta.6",
         "@playcanvas/observer": "1.7.1",
         "@playcanvas/pcui": "5.8.0",
         "@rollup/plugin-alias": "6.0.0",
