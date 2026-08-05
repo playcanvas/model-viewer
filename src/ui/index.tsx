@@ -5,7 +5,7 @@ import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 
 import { version as appVersion } from '../../package.json';
-import type { ObserverData } from '../types';
+import type { ObserverData, PropertyValue } from '../types';
 
 import { ErrorBox, WarningsBox } from './errors';
 import LeftPanel from './left-panel';
@@ -16,9 +16,9 @@ import SelectedNode from './selected-node';
 class App extends React.Component<{ observer: Observer }> {
     state: ObserverData = null;
 
-    canvasRef: any;
+    canvasRef: React.RefObject<HTMLCanvasElement | null>;
 
-    constructor(props: any) {
+    constructor(props: { observer: Observer }) {
         super(props);
 
         this.canvasRef = React.createRef();
@@ -31,14 +31,14 @@ class App extends React.Component<{ observer: Observer }> {
     }
 
     _retrieveState = () => {
-        const state: any = {};
-        (this.props.observer as any)._keys.forEach((key: string) => {
+        const state = {} as Record<keyof ObserverData, unknown>;
+        (this.props.observer as unknown as { _keys: (keyof ObserverData)[] })._keys.forEach((key) => {
             state[key] = this.props.observer.get(key);
         });
-        return state;
+        return state as unknown as ObserverData;
     };
 
-    _setStateProperty = (path: string, value: string) => {
+    _setStateProperty = (path: string, value: PropertyValue) => {
         this.props.observer.set(path, value);
     };
 

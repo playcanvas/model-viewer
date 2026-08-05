@@ -14,7 +14,7 @@ const toggleCollapsed = () => {
     }
 };
 
-let leftPanel: any;
+let leftPanel: HTMLElement | undefined;
 const openPanel = () => {
     if (!leftPanel) {
         leftPanel = document.getElementById('panel-left');
@@ -97,12 +97,12 @@ class HierarchyPanel extends React.Component<{ sceneData: ObserverData['scene'];
                 <TreeViewItem
                     text={`${node.name}`}
                     key={node.path}
-                    onSelect={(TreeViewItem: any) => {
+                    onSelect={(TreeViewItem) => {
                         this.props.setProperty('scene.selectedNode.path', node.path);
                         const removeEventListener = addEventListenerOnClickOnly(
                             document.body,
                             () => {
-                                TreeViewItem.selected = false;
+                                (TreeViewItem as typeof TreeViewItem & { selected: boolean }).selected = false;
                                 removeEventListener();
                             },
                             4
@@ -134,7 +134,7 @@ class HierarchyPanel extends React.Component<{ sceneData: ObserverData['scene'];
 class LeftPanel extends React.Component<{ observerData: ObserverData; setProperty: SetProperty }> {
     isMobile: boolean;
 
-    constructor(props: any) {
+    constructor(props: { observerData: ObserverData; setProperty: SetProperty }) {
         super(props);
         this.isMobile = /Android|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     }

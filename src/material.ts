@@ -1,8 +1,14 @@
 import { BLEND_NONE, BLENDEQUATION_ADD, BLENDMODE_ONE, BLENDMODE_ONE_MINUS_SRC_ALPHA, Material } from 'playcanvas';
 
-let setBlendTypeOrig: any;
+type BlendMaterial = Material & {
+    _blendState: {
+        setAlphaBlend: (equation: number, source: number, destination: number) => void;
+    };
+};
 
-function setBlendType(type: number) {
+let setBlendTypeOrig: (this: Material, type: number) => void;
+
+function setBlendType(this: BlendMaterial, type: number) {
     // set engine function
     setBlendTypeOrig.call(this, type);
 

@@ -94,6 +94,29 @@ const bbox = new BoundingBox();
 const FOCUS_FOV = 75;
 const ZOOM_SCALE_MIN = 0.01;
 
+type LoaderCallback<T> = (err: string | null, result: T | null) => void;
+type GltfResource = { uri?: string };
+type GltfBufferView = {
+    extensions?: {
+        EXT_meshopt_compression?: {
+            buffer: number;
+            byteOffset?: number;
+            byteLength?: number;
+            count: number;
+            byteStride: number;
+            mode: string;
+            filter: string;
+        };
+    };
+};
+type RenderResource = { meshes: Mesh[] };
+type ContainerStatsResource = ContainerResource & { renders: Asset[]; materials: unknown[]; textures: Asset[] };
+type SceneResource = {
+    renders?: Asset[];
+    animations?: Asset[];
+    instantiateRenderEntity: () => Entity;
+};
+
 class Viewer {
     canvas: HTMLCanvasElement;
 
@@ -577,7 +600,7 @@ class Viewer {
 
     // construct the controls interface and initialize controls
     private bindControlEvents() {
-        const controlEvents: Record<string, (...args: any[]) => void> = {
+        const controlEvents: Record<string, (...args: never[]) => void> = {
             // camera
             'camera.fov': this.setFov.bind(this),
             'camera.tonemapping': this.setTonemapping.bind(this),
@@ -951,12 +974,12 @@ class Viewer {
                 }
             } else {
                 // ContainerResource type isn't picked up correctly for some reason
-                const resource = asset.resource as any;
+                const resource = asset.resource as ContainerStatsResource;
 
                 variants = variants.concat(resource.getMaterialVariants() ?? []);
 
                 resource.renders.forEach((renderAsset: Asset) => {
-                    const res = renderAsset.resource as any;
+                    const res = renderAsset.resource as RenderResource;
                     meshCount += res.meshes.length;
                     res.meshes.forEach((mesh: Mesh) => {
                         vertexCount += mesh.vertexBuffer.getNumVertices();
@@ -1118,9 +1141,9 @@ class Viewer {
             // provide buffer view callback so we can handle models compressed with MeshOptimizer
             // https://github.com/zeux/meshoptimizer
             const processBufferView = (
-                gltfBuffer: any,
-                buffers: any[],
-                continuation: (err: string, result: any) => void
+                gltfBuffer: GltfBufferView,
+                buffers: ArrayBufferView[],
+                continuation: LoaderCallback<Uint8Array>
             ) => {
                 if (gltfBuffer.extensions && gltfBuffer.extensions.EXT_meshopt_compression) {
                     const extensionDef = gltfBuffer.extensions.EXT_meshopt_compression;
@@ -1178,7 +1201,7 @@ class Viewer {
                 return asset;
             };
 
-            const processImage = (gltfImage: any, continuation: (err: string, result: any) => void) => {
+            const processImage = (gltfImage: GltfResource, continuation: LoaderCallback<Asset>) => {
                 const u: File = externalUrls.find((url) => {
                     return url.filename === decodeURIComponent(path.normalize(gltfImage.uri || ''));
                 });
@@ -1206,7 +1229,7 @@ class Viewer {
                 }
             };
 
-            const postProcessTexture = (gltfTexture: any, textureAsset: Asset) => {
+            const postProcessTexture = (gltfTexture: unknown, textureAsset: Asset) => {
                 // Set max anisotropy only for textures that use linear filtering, as anisotropic
                 // filtering only makes sense with linear filtering modes
                 const texture = textureAsset.resource as Texture;
@@ -1215,7 +1238,7 @@ class Viewer {
                 }
             };
 
-            const processBuffer = (gltfBuffer: any, continuation: (err: string, result: any) => void) => {
+            const processBuffer = (gltfBuffer: GltfResource, continuation: LoaderCallback<Uint8Array>) => {
                 const u = externalUrls.find((url) => {
                     return url.filename === decodeURIComponent(path.normalize(gltfBuffer.uri || ''));
                 });
@@ -1278,7 +1301,7 @@ class Viewer {
     }
 
     private loadPly(url: File, externalUrls: File[]) {
-        const urls: any = {};
+        const urls: Record<string, string> = {};
         externalUrls.forEach((url) => {
             urls[url.filename] = url.url;
         });
@@ -1721,7 +1744,7 @@ class Viewer {
             ACES2: TONEMAP_ACES2
         };
 
-        this.camera.camera.toneMapping = Object.prototype.hasOwnProperty.call(mapping, tonemapping)
+        this.camera.camera.toneMapping = Reflect.apply(mapping.hasOwnProperty, mapping, [tonemapping])
             ? mapping[tonemapping]
             : TONEMAP_ACES;
         this.renderNextFrame();
@@ -1800,7 +1823,7 @@ class Viewer {
     // add a loaded asset to the scene
     // asset is a container asset with renders and/or animations
     private addToScene(asset: Asset) {
-        const resource = asset.resource as any;
+        const resource = asset.resource as SceneResource;
         const meshesLoaded = resource.renders && resource.renders.length > 0;
         const animsLoaded = resource.animations && resource.animations.length > 0;
         const prevEntity: Entity = this.entities.length === 0 ? null : this.entities[this.entities.length - 1];
@@ -1815,7 +1838,7 @@ class Viewer {
                 // container/glb
                 entity = resource.instantiateRenderEntity();
             } else {
-                const unified = ((asset.file as any)?.filename ?? '').endsWith('lod-meta.json');
+                const unified = ((asset.file as { filename?: string })?.filename ?? '').endsWith('lod-meta.json');
 
                 // gaussian splat scene
                 entity = new Entity();
@@ -1841,8 +1864,8 @@ class Viewer {
         // create animation component
         if (animsLoaded) {
             // append anim tracks to global list
-            resource.animations.forEach((a: any) => {
-                this.animTracks.push(a.resource);
+            resource.animations.forEach((a) => {
+                this.animTracks.push(a.resource as AnimTrack);
             });
         }
 
@@ -1953,13 +1976,13 @@ class Viewer {
         this.animationMap = {};
         // Build unique display names for animations (handle duplicate names)
         const nameCounts = new Map<string, number>();
-        this.animTracks.forEach((t: any) => {
+        this.animTracks.forEach((t) => {
             nameCounts.set(t.name, (nameCounts.get(t.name) ?? 0) + 1);
         });
 
         // If there are duplicates, append index to make names unique
         const nameIndices = new Map<string, number>();
-        const uniqueDisplayNames: string[] = this.animTracks.map((t: any) => {
+        const uniqueDisplayNames: string[] = this.animTracks.map((t) => {
             const name = t.name;
             if (nameCounts.get(name) > 1) {
                 const index = nameIndices.get(name) ?? 0;
@@ -1982,7 +2005,7 @@ class Viewer {
                 entity.anim.removeStateGraph();
             }
 
-            this.animTracks.forEach((t: any, i: number) => {
+            this.animTracks.forEach((t, i) => {
                 // add an event to each track which transitions to the next track when it ends
                 t.events = new AnimEvents([
                     {

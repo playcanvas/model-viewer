@@ -37,13 +37,13 @@ class Tween {
 
     transitionTime = 0;
 
-    constructor(value: any) {
+    constructor(value: TweenValue) {
         this.value = value;
         this.source = { ...value };
         this.target = { ...value };
     }
 
-    goto(target: any, transitionTime = 0.25) {
+    goto(target: TweenValue, transitionTime = 0.25) {
         if (transitionTime === 0) {
             Tween.copy(this.value, target);
         }
@@ -66,13 +66,13 @@ class Tween {
         return Math.pow(n - 1, 5) + 1;
     }
 
-    static copy(target: any, source: any) {
+    static copy(target: TweenValue, source: TweenValue) {
         Object.keys(target).forEach((key: string) => {
             target[key] = source[key];
         });
     }
 
-    static lerp(target: any, a: any, b: any, t: number) {
+    static lerp(target: TweenValue, a: TweenValue, b: TweenValue, t: number) {
         Object.keys(target).forEach((key: string) => {
             target[key] = a[key] + t * (b[key] - a[key]);
         });

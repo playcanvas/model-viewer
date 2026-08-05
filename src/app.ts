@@ -20,7 +20,23 @@ import {
 } from 'playcanvas';
 
 class App extends AppBase {
-    constructor(canvas: HTMLCanvasElement, options: any) {
+    constructor(
+        canvas: HTMLCanvasElement,
+        options: Pick<AppOptions, 'graphicsDevice'> &
+            Partial<
+                Pick<
+                    AppOptions,
+                    | 'elementInput'
+                    | 'keyboard'
+                    | 'mouse'
+                    | 'touch'
+                    | 'gamepads'
+                    | 'scriptPrefix'
+                    | 'assetPrefix'
+                    | 'scriptsOrder'
+                >
+            >
+    ) {
         super(canvas);
 
         const appOptions = new AppOptions();

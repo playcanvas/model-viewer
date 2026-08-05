@@ -1,5 +1,6 @@
 import { Button } from '@playcanvas/pcui/react';
 import { UsdzExporter } from 'playcanvas';
+import type { Entity } from 'playcanvas';
 import React from 'react';
 
 import { addEventListenerOnClickOnly } from '../../helpers';
@@ -35,10 +36,10 @@ const PopupPanelControls = (props: { observerData: ObserverData; setProperty: Se
 };
 
 class PopupButtonControls extends React.Component<{ observerData: ObserverData; setProperty: SetProperty }> {
-    popupPanelElement: any;
+    popupPanelElement: HTMLElement | undefined;
 
     render() {
-        let removeDeselectEvents: any;
+        let removeDeselectEvents: (() => void) | null | undefined;
         const handleClick = (value: string) => {
             this.props.setProperty('ui.active', this.props.observerData.ui.active === value ? null : value);
 
@@ -47,8 +48,8 @@ class PopupButtonControls extends React.Component<{ observerData: ObserverData; 
             // add the event listener after the current click is complete
             setTimeout(() => {
                 if (removeDeselectEvents) removeDeselectEvents();
-                const deactivateUi = (e: any) => {
-                    if (this.popupPanelElement.contains(e.target)) {
+                const deactivateUi = (e: MouseEvent) => {
+                    if (this.popupPanelElement.contains(e.target as Node)) {
                         return;
                     }
                     this.props.setProperty('ui.active', null);
@@ -116,13 +117,13 @@ const toggleCollapsed = () => {
 class PopupPanel extends React.Component<{ observerData: ObserverData; setProperty: SetProperty }> {
     link: HTMLAnchorElement;
 
-    usdzExporter: any;
+    usdzExporter: UsdzExporter | undefined;
 
     get hasArSupport() {
         return this.props.observerData.runtime.xrSupported || this.usdzExporter;
     }
 
-    constructor(props: any) {
+    constructor(props: { observerData: ObserverData; setProperty: SetProperty }) {
         super(props);
         this.link = document.getElementById('ar-link') as HTMLAnchorElement;
         if (
@@ -151,11 +152,11 @@ class PopupPanel extends React.Component<{ observerData: ObserverData; setProper
                     height={40}
                     onClick={() => {
                         if (this.usdzExporter) {
-                            const sceneRoot = (window as any).viewer.app.root.findByName('sceneRoot');
+                            const sceneRoot = window.viewer.app.root.findByName('sceneRoot') as Entity;
                             // convert the loaded entity into asdz file
                             this.usdzExporter
                                 .build(sceneRoot)
-                                .then((arrayBuffer: any) => {
+                                .then((arrayBuffer: ArrayBuffer) => {
                                     const blob = new Blob([arrayBuffer], { type: 'application/octet-stream' });
                                     this.link.href = URL.createObjectURL(blob);
                                     this.link.click();

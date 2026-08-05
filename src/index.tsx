@@ -8,6 +8,7 @@ import {
     version as engineVersion,
     revision as engineRevision
 } from 'playcanvas';
+import type * as pc from 'playcanvas';
 
 import { version as modelViewerVersion } from '../package.json';
 
@@ -30,9 +31,9 @@ declare global {
         launchQueue: {
             setConsumer: (callback: (launchParams: LaunchParams) => void) => void;
         };
-        pc: any;
+        pc: typeof pc;
         viewer: Viewer;
-        webkit?: any;
+        webkit?: { messageHandlers?: object };
     }
 }
 
@@ -175,7 +176,7 @@ const observerData: ObserverData = {
 };
 
 const saveOptions = (observer: Observer, name: string) => {
-    const options = observer.json() as any;
+    const options = observer.json() as ObserverData;
     window.localStorage.setItem(
         `model-viewer-${name}`,
         JSON.stringify({
@@ -192,17 +193,17 @@ const saveOptions = (observer: Observer, name: string) => {
 const loadOptions = (observer: Observer, name: string, skyboxUrls: Map<string, string>) => {
     const filter = ['skybox.options', 'debug.renderMode'];
 
-    const loadRec = (path: string, value: any) => {
+    const loadRec = (path: string, value: unknown) => {
         if (filter.indexOf(path) !== -1) {
             return;
         }
 
         if (typeof value === 'object') {
-            Object.keys(value).forEach((k) => {
-                loadRec(path ? `${path}.${k}` : k, value[k]);
+            Object.keys(value as object).forEach((k) => {
+                loadRec(path ? `${path}.${k}` : k, (value as Record<string, unknown>)[k]);
             });
         } else {
-            if (path !== 'skybox.value' || value === 'None' || skyboxUrls.has(value)) {
+            if (path !== 'skybox.value' || value === 'None' || skyboxUrls.has(value as string)) {
                 observer.set(path, value);
             }
         }
@@ -293,7 +294,7 @@ const main = () => {
         const files: { url: string; filename: string }[] = [];
 
         // handle OS-based file association in PWA mode
-        const promises: Promise<any>[] = [];
+        const promises: Promise<void>[] = [];
         if ('launchQueue' in window) {
             window.launchQueue.setConsumer((launchParams: LaunchParams) => {
                 for (const fileHandle of launchParams.files) {

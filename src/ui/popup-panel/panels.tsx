@@ -10,7 +10,17 @@ import { Detail, Slider, Toggle, Select, ColorPickerControl, ToggleColor, Numeri
 declare global {
     // eslint-disable-next-line @typescript-eslint/consistent-type-definitions -- declaration merging
     interface Navigator {
-        readonly gpu: any;
+        readonly gpu: {
+            requestAdapter: () => Promise<{
+                requestDevice: () => Promise<{
+                    createCommandEncoder: () => {
+                        beginRenderPass: (descriptor: object) => { end: () => void };
+                        finish: () => unknown;
+                    };
+                    queue: { submit: (commands: unknown[]) => void };
+                }>;
+            }>;
+        };
     }
 }
 
@@ -416,7 +426,12 @@ class ViewPanel extends React.Component<{
         return `${location.origin}${location.pathname}?${this.props.sceneData.urls.map((url: string) => `load=${url}`).join('&')}`;
     }
 
-    constructor(props: any) {
+    constructor(props: {
+        sceneData: ObserverData['scene'];
+        uiData: ObserverData['ui'];
+        runtimeData: ObserverData['runtime'];
+        setProperty: SetProperty;
+    }) {
         super(props);
         this.isMobile = /Android|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     }

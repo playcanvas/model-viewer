@@ -1,19 +1,37 @@
 class PngExporter {
     static WORKER_STR = function () {
+        type LodePng = {
+            _malloc: (size: number) => number;
+            _free: (pointer: number) => void;
+            _lodepng_encode32: (
+                resultData: number,
+                resultSize: number,
+                imageData: number,
+                width: number,
+                height: number
+            ) => void;
+            HEAPU8: Uint8Array;
+            HEAPU32: Uint32Array;
+        };
+        type Scope = typeof self & {
+            __baseHref: string;
+            importScripts: (url: string) => void;
+            lodepng: (options: { locateFile: () => string }) => LodePng | PromiseLike<LodePng>;
+        };
         const initLodepng = () => {
             // This function will be invoked after receiving the base href via an 'init' message
-            return new Promise((resolve) => {
-                const baseHref = (self as any).__baseHref as string;
-                (self as any).importScripts(`${baseHref}static/lib/lodepng/lodepng.js`);
+            return new Promise<LodePng>((resolve) => {
+                const baseHref = (self as unknown as Scope).__baseHref;
+                (self as unknown as Scope).importScripts(`${baseHref}static/lib/lodepng/lodepng.js`);
                 resolve(
-                    (self as any).lodepng({
+                    (self as unknown as Scope).lodepng({
                         locateFile: () => `${baseHref}static/lib/lodepng/lodepng.wasm`
                     })
                 );
             });
         };
 
-        const compress = (lodepng: any, words: any[], width: number, height: number): Uint8Array => {
+        const compress = (lodepng: LodePng, words: Uint32Array, width: number, height: number): Uint8Array => {
             const resultDataPtrPtr = lodepng._malloc(4);
             const resultSizePtr = lodepng._malloc(4);
             const imageData = lodepng._malloc(width * height * 4);
@@ -44,13 +62,13 @@ class PngExporter {
         };
 
         const main = () => {
-            let lodepngPromise: Promise<any> | null = null;
+            let lodepngPromise: Promise<LodePng> | null = null;
 
             self.onmessage = async (message) => {
                 const data = message.data;
 
                 if (data && data.type === 'init') {
-                    (self as any).__baseHref = data.baseHref as string;
+                    (self as unknown as Scope).__baseHref = data.baseHref as string;
                     lodepngPromise = initLodepng();
                     return;
                 }
@@ -74,7 +92,7 @@ class PngExporter {
 
     worker: Worker;
 
-    receiveCallback: (resolve: (result: Uint8Array) => void) => void;
+    receiveCallback: (resolve: (result: Uint8Array<ArrayBuffer>) => void) => void;
 
     constructor() {
         let receiver: (message: MessageEvent) => void = null;
@@ -100,7 +118,7 @@ class PngExporter {
     }
 
     // download the data uri
-    _downloadFile(filename: string, data: any) {
+    _downloadFile(filename: string, data: Uint8Array<ArrayBuffer>) {
         const blob = new Blob([data], { type: 'octet/stream' });
         const url = window.URL.createObjectURL(blob);
 

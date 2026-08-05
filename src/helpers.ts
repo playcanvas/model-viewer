@@ -1,14 +1,14 @@
-const addEventListenerOnClickOnly = (element: any, callback: any, delta = 2) => {
+const addEventListenerOnClickOnly = (element: HTMLElement, callback: (event: MouseEvent) => void, delta = 2) => {
     let startX: number;
     let startY: number;
 
-    const mouseDownEvt = (event: any) => {
+    const mouseDownEvt = (event: MouseEvent) => {
         startX = event.pageX;
         startY = event.pageY;
     };
     element.addEventListener('mousedown', mouseDownEvt);
 
-    const mouseUpEvt = (event: any) => {
+    const mouseUpEvt = (event: MouseEvent) => {
         const diffX = Math.abs(event.pageX - startX);
         const diffY = Math.abs(event.pageY - startY);
 
@@ -25,31 +25,31 @@ const addEventListenerOnClickOnly = (element: any, callback: any, delta = 2) => 
 };
 
 // extract members of the object given a list of paths to extract
-const extract = (obj: any, paths: string[]) => {
-    const resolve = (obj: any, path: string[]) => {
+const extract = <T extends object>(obj: T, paths: string[]) => {
+    const resolve = (obj: object, path: string[]) => {
         for (const p of path) {
-            if (!Object.prototype.hasOwnProperty.call(obj, p)) {
+            if (!Reflect.apply(obj.hasOwnProperty, obj, [p])) {
                 return null;
             }
-            obj = obj[p];
+            obj = (obj as Record<string, unknown>)[p] as object;
         }
         return obj;
     };
 
-    const result: any = {};
+    const result: Record<string, unknown> = {};
 
     for (const pathString of paths) {
         const path = pathString.split('.');
         const value = resolve(obj, path);
 
-        let parent = result;
+        let parent: Record<string, unknown> = result;
         for (let i = 0; i < path.length; ++i) {
             const p = path[i];
             if (i < path.length - 1) {
-                if (!Object.prototype.hasOwnProperty.call(parent, p)) {
+                if (!Reflect.apply(parent.hasOwnProperty, parent, [p])) {
                     parent[p] = {};
                 }
-                parent = parent[p];
+                parent = parent[p] as Record<string, unknown>;
             } else {
                 parent[p] = value;
             }

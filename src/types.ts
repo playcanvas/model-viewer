@@ -142,7 +142,7 @@ export interface ObserverData {
         primitiveCount?: number;
         textureVRAM?: number;
         meshVRAM?: number;
-        bounds?: any;
+        bounds?: string;
         variant: {
             selected: number;
         };
@@ -171,4 +171,7 @@ export interface ObserverData {
     centerScene: boolean;
 }
 
-export type SetProperty = (path: string, value: any) => void;
+export type PropertyValue =
+    string | number | boolean | string[] | { r: number; g: number; b: number } | ObserverData['animation'] | null;
+
+export type SetProperty = (path: string, value: PropertyValue) => void;

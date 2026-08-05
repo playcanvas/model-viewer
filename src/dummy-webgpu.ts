@@ -29,7 +29,13 @@ class DummyWebGPU {
             console.log('Created WebGPU device used for profiling');
 
             // Create a WebGPU context for the new canvas
-            const context = canvas.getContext('webgpu') as any;
+            const context = canvas.getContext('webgpu' as never) as unknown as {
+                configure: (options: {
+                    device: Awaited<ReturnType<typeof adapter.requestDevice>>;
+                    format: string;
+                }) => void;
+                getCurrentTexture: () => { createView: () => unknown };
+            };
 
             // Configure the WebGPU context
             context.configure({ device, format: 'bgra8unorm' });

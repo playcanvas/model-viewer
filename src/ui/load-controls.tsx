@@ -15,16 +15,16 @@ const validUrl = (url: string) => {
 
 const LoadControls = (props: { setProperty: SetProperty }) => {
     const [urlInputValid, setUrlInputValid] = useState(false);
-    const inputFile = useRef(null);
+    const inputFile = useRef<HTMLInputElement>(null);
 
     const onLoadButtonClick = () => {
         // `current` points to the mounted file input element
         inputFile.current.click();
     };
 
-    const onFileSelected = (event: React.ChangeEvent<any>) => {
+    const onFileSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
         // `event` points to the selected file
-        const viewer = (window as any).viewer;
+        const viewer = window.viewer;
         const files = event.target.files;
         if (viewer && files.length) {
             const loadList: File[] = [];
@@ -40,7 +40,7 @@ const LoadControls = (props: { setProperty: SetProperty }) => {
     };
 
     const onUrlSelected = () => {
-        const viewer = (window as any).viewer;
+        const viewer = window.viewer;
         // @ts-ignore
         const value = document.getElementById('glb-url-input').ui.value;
         const url = new URL(value);
