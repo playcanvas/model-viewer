@@ -41,8 +41,7 @@ const LoadControls = (props: { setProperty: SetProperty }) => {
 
     const onUrlSelected = () => {
         const viewer = window.viewer;
-        // @ts-ignore
-        const value = document.getElementById('glb-url-input').ui.value;
+        const value = (document.getElementById('glb-url-input') as HTMLElement & { ui: { value: string } }).ui.value;
         const url = new URL(value);
         const filename = url.pathname.split('/').pop();
         const hasExtension = !!filename.split('.').splice(1).pop();

@@ -1,5 +1,4 @@
 import { Container, Button, Label, TextInput } from '@playcanvas/pcui/react';
-// @ts-ignore no type defs included
 import QRious from 'qrious';
 import React from 'react';
 

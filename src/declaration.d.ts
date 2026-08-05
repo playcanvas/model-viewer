@@ -12,3 +12,8 @@ declare module '*.scss' {
     const value: string;
     export default value;
 }
+
+declare module 'qrious' {
+    const QRious: new (options: { element: HTMLCanvasElement; value: string; size: number }) => object;
+    export default QRious;
+}

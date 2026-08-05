@@ -424,8 +424,10 @@ class XRObjectPlacementController {
             const far = dist + boundRadius;
             const near = Math.max(0.0001, dist < boundRadius ? far / 1024 : dist - boundRadius);
 
-            // @ts-ignore
-            xr._setClipPlanes(near / 1.5, far * 1.5);
+            (xr as unknown as { _setClipPlanes: (near: number, far: number) => void })._setClipPlanes(
+                near / 1.5,
+                far * 1.5
+            );
 
             this.events.fire('xr:update');
         });

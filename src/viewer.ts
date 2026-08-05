@@ -95,6 +95,8 @@ const FOCUS_FOV = 75;
 const ZOOM_SCALE_MIN = 0.01;
 
 type LoaderCallback<T> = (err: string | null, result: T | null) => void;
+type MoveDevice = { _moveHandler: (event: MouseEvent) => void };
+type AssetOptions = NonNullable<ConstructorParameters<typeof Asset>[4]>;
 type GltfResource = { uri?: string };
 type GltfBufferView = {
     extensions?: {
@@ -255,29 +257,24 @@ class Viewer {
 
         // monkeypatch the mouse and touch input devices to ignore touch events
         // when they don't originate from the canvas.
-        // @ts-expect-error engine-private handler override
-        const origMouseHandler = app.mouse._moveHandler;
+        const origMouseHandler = (app.mouse as unknown as MoveDevice)._moveHandler;
         app.mouse.detach();
-        // @ts-expect-error engine-private handler override
-        app.mouse._moveHandler = (event: MouseEvent) => {
+        (app.mouse as unknown as MoveDevice)._moveHandler = (event: MouseEvent) => {
             if (event.target === canvas) {
                 origMouseHandler(event);
             }
         };
         app.mouse.attach(canvas);
 
-        // @ts-expect-error engine-private handler override
-        const origTouchHandler = app.touch._moveHandler;
+        const origTouchHandler = (app.touch as unknown as MoveDevice)._moveHandler;
         app.touch.detach();
-        // @ts-expect-error engine-private handler override
-        app.touch._moveHandler = (event: MouseEvent) => {
+        (app.touch as unknown as MoveDevice)._moveHandler = (event: MouseEvent) => {
             if (event.target === canvas) {
                 origTouchHandler(event);
             }
         };
         app.touch.attach(canvas);
 
-        // @ts-ignore
         const multisampleSupported = app.graphicsDevice.maxSamples > 1;
         observer.set('camera.multisampleSupported', multisampleSupported);
         observer.set('camera.multisample', multisampleSupported && observer.get('camera.multisample'));
@@ -900,7 +897,6 @@ class Viewer {
             });
         };
 
-        // @ts-ignore
         const maxSamples = device.maxSamples;
 
         // in with the new
@@ -1279,7 +1275,6 @@ class Viewer {
             };
 
             const containerAsset = new Asset(gltfUrl.filename, 'container', gltfUrl, null, {
-                // @ts-ignore TODO no definition in pc
                 bufferView: {
                     processAsync: processBufferView
                 },
@@ -1292,6 +1287,11 @@ class Viewer {
                 buffer: {
                     processAsync: processBuffer
                 }
+            } as AssetOptions & {
+                bufferView: { processAsync: typeof processBufferView };
+                image: { processAsync: typeof processImage };
+                texture: { postprocess: typeof postProcessTexture };
+                buffer: { processAsync: typeof processBuffer };
             });
             containerAsset.on('load', () => resolve(containerAsset));
             containerAsset.on('error', (err: string) => reject(err));
@@ -1307,9 +1307,8 @@ class Viewer {
         });
         return new Promise((resolve, reject) => {
             const asset = new Asset(url.filename, 'gsplat', url, null, {
-                // @ts-ignore TODO no definition in pc
                 mapUrl: (mapUrl) => urls[mapUrl]
-            });
+            } as AssetOptions & { mapUrl: (url: string) => string });
             asset.on('load', () => resolve(asset));
             asset.on('error', (err: string) => reject(err));
             this.app.assets.add(asset);
@@ -2170,8 +2169,9 @@ class Viewer {
                 for (let i = 0; i < this.meshInstances.length; ++i) {
                     const meshInstance = this.meshInstances[i];
 
-                    const vertexBuffer = meshInstance.morphInstance // @ts-ignore TODO not defined in pc
-                        ? meshInstance.morphInstance._vertexBuffer
+                    const vertexBuffer = meshInstance.morphInstance
+                        ? (meshInstance.morphInstance as unknown as { _vertexBuffer: Mesh['vertexBuffer'] })
+                              ._vertexBuffer
                         : meshInstance.mesh.vertexBuffer;
 
                     if (vertexBuffer) {
@@ -2180,8 +2180,11 @@ class Viewer {
                         // if there is skinning we need to manually update matrices here otherwise
                         // our normals are always a frame behind
                         if (skinMatrices) {
-                            // @ts-ignore TODO not defined in pc
-                            meshInstance.skinInstance.updateMatrices(meshInstance.node);
+                            (
+                                meshInstance.skinInstance as unknown as {
+                                    updateMatrices: (node: GraphNode) => void;
+                                }
+                            ).updateMatrices(meshInstance.node);
                         }
 
                         this.debugNormals.generateNormals(
