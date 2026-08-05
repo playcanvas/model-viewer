@@ -1,17 +1,14 @@
 declare module '*.png' {
-    const value: string;
+    const value: HTMLImageElement;
     export default value;
 }
 
 declare module '*.svg' {
-    const value: { src: string };
+    const value: HTMLImageElement;
     export default value;
 }
 
-declare module '*.scss' {
-    const value: string;
-    export default value;
-}
+declare module '*.scss' {}
 
 declare module 'qrious' {
     const QRious: new (options: { element: HTMLCanvasElement; value: string; size: number }) => object;
