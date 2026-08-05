@@ -22,7 +22,7 @@
         "url": "https://github.com/playcanvas/model-viewer.git"
     },
     "devDependencies": {
-        "@playcanvas/eslint-config": "3.0.0-beta.6",
+        "@playcanvas/eslint-config": "3.0.0-beta.8",
         "@playcanvas/observer": "1.7.1",
         "@playcanvas/pcui": "5.8.0",
         "@rollup/plugin-alias": "6.0.0",
@@ -35,14 +35,12 @@
         "@rollup/plugin-typescript": "12.1.4",
         "@types/react": "19.2.17",
         "@types/react-dom": "19.2.3",
-        "@typescript-eslint/eslint-plugin": "8.61.1",
-        "@typescript-eslint/parser": "8.61.1",
         "concurrently": "9.2.1",
         "cross-env": "10.1.0",
         "eslint": "9.39.4",
-        "eslint-import-resolver-typescript": "4.4.5",
         "globals": "17.6.0",
         "playcanvas": "2.19.7",
+        "prettier": "^3.6.2",
         "qrious": "4.0.2",
         "react": "19.2.7",
         "react-dom": "19.2.7",
@@ -56,9 +54,12 @@
     "scripts": {
         "build": "rollup -c",
         "develop": "cross-env BUILD_TYPE=debug concurrently --kill-others \"npm run watch\" \"npm run serve\"",
-        "lint": "eslint src rollup.config.mjs eslint.config.mjs",
-        "lint:fix": "eslint src rollup.config.mjs eslint.config.mjs --fix",
+        "fmt": "prettier --check src rollup.config.mjs eslint.config.mjs prettier.config.mjs",
+        "fmt:fix": "prettier --write src rollup.config.mjs eslint.config.mjs prettier.config.mjs",
+        "lint": "eslint src rollup.config.mjs eslint.config.mjs prettier.config.mjs",
+        "lint:fix": "eslint src rollup.config.mjs eslint.config.mjs prettier.config.mjs --fix",
         "serve": "serve --cors dist",
+        "typecheck": "tsc",
         "watch": "rollup -c -w"
     },
     "engines": {

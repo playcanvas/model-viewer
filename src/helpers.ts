@@ -26,10 +26,9 @@ const addEventListenerOnClickOnly = (element: any, callback: any, delta = 2) => 
 
 // extract members of the object given a list of paths to extract
 const extract = (obj: any, paths: string[]) => {
-
     const resolve = (obj: any, path: string[]) => {
         for (const p of path) {
-            if (!obj.hasOwnProperty(p)) {
+            if (!Object.prototype.hasOwnProperty.call(obj, p)) {
                 return null;
             }
             obj = obj[p];
@@ -37,7 +36,7 @@ const extract = (obj: any, paths: string[]) => {
         return obj;
     };
 
-    const result: any = { };
+    const result: any = {};
 
     for (const pathString of paths) {
         const path = pathString.split('.');
@@ -47,8 +46,8 @@ const extract = (obj: any, paths: string[]) => {
         for (let i = 0; i < path.length; ++i) {
             const p = path[i];
             if (i < path.length - 1) {
-                if (!parent.hasOwnProperty(p)) {
-                    parent[p] = { };
+                if (!Object.prototype.hasOwnProperty.call(parent, p)) {
+                    parent[p] = {};
                 }
                 parent = parent[p];
             } else {

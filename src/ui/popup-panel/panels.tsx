@@ -4,27 +4,31 @@ import QRious from 'qrious';
 import React from 'react';
 
 import { extract } from '../../helpers';
-import { SetProperty, ObserverData } from '../../types';
+import type { SetProperty, ObserverData } from '../../types';
 import { Detail, Slider, Toggle, Select, ColorPickerControl, ToggleColor, Numeric } from '../components';
 
 declare global {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-definitions -- declaration merging
     interface Navigator {
-      readonly gpu: any;
+        readonly gpu: any;
     }
 }
 
-const rgbToArr = (rgb: { r: number, g: number, b: number }) => [rgb.r, rgb.g, rgb.b, 1];
+const rgbToArr = (rgb: { r: number; g: number; b: number }) => [rgb.r, rgb.g, rgb.b, 1];
 const arrToRgb = (arr: number[]) => {
     return { r: arr[0], g: arr[1], b: arr[2] };
 };
 
-class CameraPanel extends React.Component <{
-    observerData: ObserverData,
-    setProperty: SetProperty }> {
-    shouldComponentUpdate(nextProps: Readonly<{
-        observerData: ObserverData;
-        setProperty: SetProperty; }>): boolean {
-
+class CameraPanel extends React.Component<{
+    observerData: ObserverData;
+    setProperty: SetProperty;
+}> {
+    shouldComponentUpdate(
+        nextProps: Readonly<{
+            observerData: ObserverData;
+            setProperty: SetProperty;
+        }>
+    ): boolean {
         const keys = ['ui', 'camera', 'debug', 'animation.playing', 'scene.cameras', 'scene.selectedCamera', 'runtime'];
         const a = extract(nextProps.observerData, keys);
         const b = extract(this.props.observerData, keys);
@@ -33,56 +37,68 @@ class CameraPanel extends React.Component <{
 
     render() {
         const props = this.props;
-        const sceneCameras: { name: string, path: string }[] = JSON.parse(props.observerData.scene.cameras);
+        const sceneCameras: { name: string; path: string }[] = JSON.parse(props.observerData.scene.cameras);
         const cameraOptions = [{ v: 'viewer', t: 'Viewer' }].concat(
-            sceneCameras.map(c => ({ v: c.path, t: c.name }))
+            sceneCameras.map((c) => ({ v: c.path, t: c.name }))
         );
         const selectedCamera = props.observerData.scene.selectedCamera || 'viewer';
         const isViewerCamera = selectedCamera === 'viewer';
 
         return (
-            <div className='popup-panel-parent'>
-                <Container class='popup-panel' flex hidden={props.observerData.ui.active !== 'camera'}>
-                    <Label text='Camera' class='popup-panel-heading' />
+            <div className="popup-panel-parent">
+                <Container class="popup-panel" flex hidden={props.observerData.ui.active !== 'camera'}>
+                    <Label text="Camera" class="popup-panel-heading" />
                     <Select
                         selectKey={props.observerData.scene.cameras}
-                        label='Active Camera'
-                        type='string'
+                        label="Active Camera"
+                        type="string"
                         options={cameraOptions}
                         value={selectedCamera}
-                        setProperty={(value: string) => props.setProperty('scene.selectedCamera', value === 'viewer' ? '' : value)}
-                        enabled={sceneCameras.length > 0} />
+                        setProperty={(value: string) =>
+                            props.setProperty('scene.selectedCamera', value === 'viewer' ? '' : value)
+                        }
+                        enabled={sceneCameras.length > 0}
+                    />
                     <Slider
-                        label='Fov'
+                        label="Fov"
                         precision={0}
                         min={35}
                         max={150}
                         value={props.observerData.camera.fov}
                         setProperty={(value: number) => props.setProperty('camera.fov', value)}
-                        enabled={isViewerCamera} />
+                        enabled={isViewerCamera}
+                    />
                     <Select
-                        label='Tonemap'
-                        type='string'
-                        options={['None', 'Linear', 'Neutral', 'Filmic', 'Hejl', 'ACES', 'ACES2'].map(v => ({ v, t: v }))}
+                        label="Tonemap"
+                        type="string"
+                        options={['None', 'Linear', 'Neutral', 'Filmic', 'Hejl', 'ACES', 'ACES2'].map((v) => ({
+                            v,
+                            t: v
+                        }))}
                         value={props.observerData.camera.tonemapping}
-                        setProperty={(value: number) => props.setProperty('camera.tonemapping', value)} />
+                        setProperty={(value: number) => props.setProperty('camera.tonemapping', value)}
+                    />
                     <Select
-                        label='Pixel Scale'
+                        label="Pixel Scale"
                         value={props.observerData.camera.pixelScale}
-                        type='number'
-                        options={[1, 2, 4, 8, 16].map(v => ({ v: v, t: Number(v).toString() }))}
-                        setProperty={(value: number) => props.setProperty('camera.pixelScale', value)} />
-                    <Detail label='Viewport' value={`${props.observerData.runtime.viewportWidth} x ${props.observerData.runtime.viewportHeight}`} />
+                        type="number"
+                        options={[1, 2, 4, 8, 16].map((v) => ({ v: v, t: Number(v).toString() }))}
+                        setProperty={(value: number) => props.setProperty('camera.pixelScale', value)}
+                    />
+                    <Detail
+                        label="Viewport"
+                        value={`${props.observerData.runtime.viewportWidth} x ${props.observerData.runtime.viewportHeight}`}
+                    />
                     <Toggle
-                        label='Multisample'
+                        label="Multisample"
                         value={props.observerData.camera.multisample}
                         enabled={props.observerData.camera.multisampleSupported}
                         setProperty={(value: boolean) => props.setProperty('camera.multisample', value)}
                     />
                     <Toggle
-                        label='High Quality'
+                        label="High Quality"
                         value={props.observerData.camera.hq}
-                        enabled={!props.observerData.animation.playing && !props.observerData.debug.stats }
+                        enabled={!props.observerData.animation.playing && !props.observerData.debug.stats}
                         setProperty={(value: boolean) => props.setProperty('camera.hq', value)}
                     />
                 </Container>
@@ -91,62 +107,75 @@ class CameraPanel extends React.Component <{
     }
 }
 
-class SkyboxPanel extends React.Component <{
-    skyboxData: ObserverData['skybox'],
-    uiData: ObserverData['ui'],
-    setProperty: SetProperty }> {
-    shouldComponentUpdate(nextProps: Readonly<{
-        skyboxData: ObserverData['skybox'];
-        uiData: ObserverData['ui'];
-        setProperty: SetProperty; }>): boolean {
-
-        return JSON.stringify(nextProps.skyboxData) !== JSON.stringify(this.props.skyboxData) ||
-                JSON.stringify(nextProps.uiData) !== JSON.stringify(this.props.uiData);
+class SkyboxPanel extends React.Component<{
+    skyboxData: ObserverData['skybox'];
+    uiData: ObserverData['ui'];
+    setProperty: SetProperty;
+}> {
+    shouldComponentUpdate(
+        nextProps: Readonly<{
+            skyboxData: ObserverData['skybox'];
+            uiData: ObserverData['ui'];
+            setProperty: SetProperty;
+        }>
+    ): boolean {
+        return (
+            JSON.stringify(nextProps.skyboxData) !== JSON.stringify(this.props.skyboxData) ||
+            JSON.stringify(nextProps.uiData) !== JSON.stringify(this.props.uiData)
+        );
     }
 
     render() {
         const props = this.props;
 
         return (
-            <div className='popup-panel-parent'>
-                <Container class='popup-panel' flex hidden={props.uiData.active !== 'skybox'}>
-                    <Label text='Sky' class='popup-panel-heading' />
+            <div className="popup-panel-parent">
+                <Container class="popup-panel" flex hidden={props.uiData.active !== 'skybox'}>
+                    <Label text="Sky" class="popup-panel-heading" />
                     <Select
-                        label='Environment'
-                        type='string'
+                        label="Environment"
+                        type="string"
                         options={JSON.parse(props.skyboxData.options)}
                         value={props.skyboxData.value}
-                        setProperty={(value: string) => props.setProperty('skybox.value', value)} />
+                        setProperty={(value: string) => props.setProperty('skybox.value', value)}
+                    />
                     <Slider
-                        label='Exposure'
+                        label="Exposure"
                         value={props.skyboxData.exposure}
                         setProperty={(value: number) => props.setProperty('skybox.exposure', value)}
                         precision={2}
                         min={-6}
                         max={6}
-                        enabled={props.skyboxData.value !== 'None'} />
+                        enabled={props.skyboxData.value !== 'None'}
+                    />
                     <Slider
-                        label='Rotation'
+                        label="Rotation"
                         precision={0}
                         min={-180}
                         max={180}
                         value={props.skyboxData.rotation}
                         setProperty={(value: number) => props.setProperty('skybox.rotation', value)}
-                        enabled={props.skyboxData.value !== 'None'} />
+                        enabled={props.skyboxData.value !== 'None'}
+                    />
                     <Select
-                        label='Background'
-                        type='string'
-                        options={['Solid Color', 'Infinite Sphere', 'Projective Dome', 'Projective Box'].map(v => ({ v, t: v }))}
+                        label="Background"
+                        type="string"
+                        options={['Solid Color', 'Infinite Sphere', 'Projective Dome', 'Projective Box'].map((v) => ({
+                            v,
+                            t: v
+                        }))}
                         value={props.skyboxData.background}
                         setProperty={(value: string) => props.setProperty('skybox.background', value)}
-                        enabled={props.skyboxData.value !== 'None'} />
+                        enabled={props.skyboxData.value !== 'None'}
+                    />
                     <ColorPickerControl
-                        label='Background Color'
+                        label="Background Color"
                         value={rgbToArr(props.skyboxData.backgroundColor)}
                         setProperty={(value: number[]) => props.setProperty('skybox.backgroundColor', arrToRgb(value))}
-                        enabled={props.skyboxData.value === 'None' || props.skyboxData.background === 'Solid Color'} />
+                        enabled={props.skyboxData.value === 'None' || props.skyboxData.background === 'Solid Color'}
+                    />
                     <Slider
-                        label='Blur'
+                        label="Blur"
                         // type='number'
                         // options={[0, 1, 2, 3, 4, 5].map(v => ({ v: v, t: v === 0 ? 'Disabled' : `Mip ${v}` }))}
                         value={props.skyboxData.blur}
@@ -155,94 +184,126 @@ class SkyboxPanel extends React.Component <{
                         min={0}
                         max={5}
                         precision={0}
-                        step={1}/>
+                        step={1}
+                    />
                     <Numeric
-                        label='Scale'
+                        label="Scale"
                         value={props.skyboxData.domeProjection.domeRadius}
                         setProperty={(value: number) => props.setProperty('skybox.domeProjection.domeRadius', value)}
                         min={0}
                         max={1000}
-                        enabled={props.skyboxData.value !== 'None' && ['Projective Dome', 'Projective Box'].indexOf(props.skyboxData.background) !== -1} />
+                        enabled={
+                            props.skyboxData.value !== 'None' &&
+                            ['Projective Dome', 'Projective Box'].indexOf(props.skyboxData.background) !== -1
+                        }
+                    />
                     <Slider
-                        label='Tripod Offset'
+                        label="Tripod Offset"
                         value={props.skyboxData.domeProjection.tripodOffset}
                         setProperty={(value: number) => props.setProperty('skybox.domeProjection.tripodOffset', value)}
                         min={0}
                         max={1}
                         precision={2}
-                        enabled={props.skyboxData.value !== 'None' && ['Projective Dome', 'Projective Box'].indexOf(props.skyboxData.background) !== -1} />
+                        enabled={
+                            props.skyboxData.value !== 'None' &&
+                            ['Projective Dome', 'Projective Box'].indexOf(props.skyboxData.background) !== -1
+                        }
+                    />
                 </Container>
             </div>
         );
     }
 }
 
-class LightPanel extends React.Component <{
-    lightData: ObserverData['light'],
-    uiData: ObserverData['ui'],
-    shadowCatcherData: ObserverData['shadowCatcher'],
-    setProperty: SetProperty }> {
-    shouldComponentUpdate(nextProps: Readonly<{
-        lightData: ObserverData['light'];
-        uiData: ObserverData['ui'];
-        setProperty: SetProperty; }>): boolean {
-
-        return JSON.stringify(nextProps.lightData) !== JSON.stringify(this.props.lightData) ||
-               JSON.stringify(nextProps.uiData) !== JSON.stringify(this.props.uiData);
+class LightPanel extends React.Component<{
+    lightData: ObserverData['light'];
+    uiData: ObserverData['ui'];
+    shadowCatcherData: ObserverData['shadowCatcher'];
+    setProperty: SetProperty;
+}> {
+    shouldComponentUpdate(
+        nextProps: Readonly<{
+            lightData: ObserverData['light'];
+            uiData: ObserverData['ui'];
+            setProperty: SetProperty;
+        }>
+    ): boolean {
+        return (
+            JSON.stringify(nextProps.lightData) !== JSON.stringify(this.props.lightData) ||
+            JSON.stringify(nextProps.uiData) !== JSON.stringify(this.props.uiData)
+        );
     }
 
     render() {
         const props = this.props;
 
         return (
-            <div className='popup-panel-parent'>
-                <Container class='popup-panel' flex hidden={props.uiData.active !== 'light'}>
-                    <Label text='Light' class='popup-panel-heading' />
+            <div className="popup-panel-parent">
+                <Container class="popup-panel" flex hidden={props.uiData.active !== 'light'}>
+                    <Label text="Light" class="popup-panel-heading" />
                     <Toggle
-                        label='Enabled'
+                        label="Enabled"
                         value={props.lightData.enabled}
-                        setProperty={(value: boolean) => props.setProperty('light.enabled', value)} />
-                    <Toggle label='Follow Camera'
+                        setProperty={(value: boolean) => props.setProperty('light.enabled', value)}
+                    />
+                    <Toggle
+                        label="Follow Camera"
                         value={props.lightData.follow}
-                        setProperty={(value: boolean) => props.setProperty('light.follow', value)} />
+                        setProperty={(value: boolean) => props.setProperty('light.follow', value)}
+                    />
                     <ColorPickerControl
-                        label='Color'
+                        label="Color"
                         value={rgbToArr(props.lightData.color)}
-                        setProperty={(value: number[]) => props.setProperty('light.color', arrToRgb(value))} />
+                        setProperty={(value: number[]) => props.setProperty('light.color', arrToRgb(value))}
+                    />
                     <Slider
-                        label='Intensity'
-                        precision={2} min={0} max={6}
+                        label="Intensity"
+                        precision={2}
+                        min={0}
+                        max={6}
                         value={props.lightData.intensity}
-                        setProperty={(value: number) => props.setProperty('light.intensity', value)} />
+                        setProperty={(value: number) => props.setProperty('light.intensity', value)}
+                    />
                     <Toggle
-                        label='Cast Shadow'
+                        label="Cast Shadow"
                         value={props.lightData.shadow}
-                        setProperty={(value: boolean) => props.setProperty('light.shadow', value)} />
+                        setProperty={(value: boolean) => props.setProperty('light.shadow', value)}
+                    />
                     <Toggle
-                        label='Shadow Catcher'
+                        label="Shadow Catcher"
                         value={props.shadowCatcherData.enabled}
-                        setProperty={(value: boolean) => props.setProperty('shadowCatcher.enabled', value)} />
+                        setProperty={(value: boolean) => props.setProperty('shadowCatcher.enabled', value)}
+                    />
                     <Slider
-                        label='Catcher Intensity'
-                        precision={2} min={0} max={1}
+                        label="Catcher Intensity"
+                        precision={2}
+                        min={0}
+                        max={1}
                         value={props.shadowCatcherData.intensity}
-                        setProperty={(value: number) => props.setProperty('shadowCatcher.intensity', value)} />
+                        setProperty={(value: number) => props.setProperty('shadowCatcher.intensity', value)}
+                    />
                 </Container>
             </div>
         );
     }
 }
 
-class SettingsPanel extends React.Component <{
-    observerData: ObserverData,
-    setProperty: SetProperty }> {
-    shouldComponentUpdate(nextProps: Readonly<{
-        observerData: ObserverData;
-        setProperty: SetProperty; }>): boolean {
-        return JSON.stringify(nextProps.observerData.debug) !== JSON.stringify(this.props.observerData.debug) ||
-               JSON.stringify(nextProps.observerData.ui) !== JSON.stringify(this.props.observerData.ui) ||
-               nextProps.observerData.enableWebGPU !== this.props.observerData.enableWebGPU ||
-               nextProps.observerData.runtime.activeDeviceType !== this.props.observerData.runtime.activeDeviceType;
+class SettingsPanel extends React.Component<{
+    observerData: ObserverData;
+    setProperty: SetProperty;
+}> {
+    shouldComponentUpdate(
+        nextProps: Readonly<{
+            observerData: ObserverData;
+            setProperty: SetProperty;
+        }>
+    ): boolean {
+        return (
+            JSON.stringify(nextProps.observerData.debug) !== JSON.stringify(this.props.observerData.debug) ||
+            JSON.stringify(nextProps.observerData.ui) !== JSON.stringify(this.props.observerData.ui) ||
+            nextProps.observerData.enableWebGPU !== this.props.observerData.enableWebGPU ||
+            nextProps.observerData.runtime.activeDeviceType !== this.props.observerData.runtime.activeDeviceType
+        );
     }
 
     render() {
@@ -264,20 +325,20 @@ class SettingsPanel extends React.Component <{
         const debugData = props.observerData.debug;
         const activeDevice = props.observerData.runtime.activeDeviceType;
         return (
-            <div className='popup-panel-parent'>
-                <Container class='popup-panel' flex hidden={props.observerData.ui.active !== 'settings'}>
-                    <Label text='Settings' class='popup-panel-heading' />
-                    <Detail label='Current Device' value={activeDevice === 'webgpu' ? 'WebGPU' : 'WebGL 2'} />
+            <div className="popup-panel-parent">
+                <Container class="popup-panel" flex hidden={props.observerData.ui.active !== 'settings'}>
+                    <Label text="Settings" class="popup-panel-heading" />
+                    <Detail label="Current Device" value={activeDevice === 'webgpu' ? 'WebGPU' : 'WebGL 2'} />
                     <Toggle
-                        label='Use WebGPU'
+                        label="Use WebGPU"
                         value={props.observerData.enableWebGPU}
                         enabled={navigator.gpu !== undefined}
                         setProperty={(value: boolean) => {
                             if (value === props.observerData.enableWebGPU) return;
-                            const message = value ?
-                                'Enable WebGPU? The page will refresh to apply this change.' :
-                                'Disable WebGPU? The page will refresh to apply this change.';
-                             
+                            const message = value
+                                ? 'Enable WebGPU? The page will refresh to apply this change.'
+                                : 'Disable WebGPU? The page will refresh to apply this change.';
+
                             if (window.confirm(message)) {
                                 props.setProperty('enableWebGPU', value);
                                 setTimeout(() => window.location.reload(), 100);
@@ -289,42 +350,51 @@ class SettingsPanel extends React.Component <{
                         }}
                     />
                     <Select
-                        label='Render Mode'
-                        type='string'
+                        label="Render Mode"
+                        type="string"
                         options={renderModeOptions}
                         value={debugData.renderMode}
-                        setProperty={(value: string) => props.setProperty('debug.renderMode', value)} />
+                        setProperty={(value: string) => props.setProperty('debug.renderMode', value)}
+                    />
                     <ToggleColor
-                        label='Wireframe'
+                        label="Wireframe"
                         booleanValue={debugData.wireframe}
                         setBooleanProperty={(value: boolean) => props.setProperty('debug.wireframe', value)}
                         colorValue={rgbToArr(debugData.wireframeColor)}
-                        setColorProperty={(value: number[]) => props.setProperty('debug.wireframeColor', arrToRgb(value))} />
+                        setColorProperty={(value: number[]) =>
+                            props.setProperty('debug.wireframeColor', arrToRgb(value))
+                        }
+                    />
                     <Toggle
-                        label='Grid'
+                        label="Grid"
                         value={debugData.grid}
-                        setProperty={(value: boolean) => props.setProperty('debug.grid', value)}/>
+                        setProperty={(value: boolean) => props.setProperty('debug.grid', value)}
+                    />
                     <Toggle
-                        label='Axes'
+                        label="Axes"
                         value={debugData.axes}
-                        setProperty={(value: boolean) => props.setProperty('debug.axes', value)} />
+                        setProperty={(value: boolean) => props.setProperty('debug.axes', value)}
+                    />
                     <Toggle
-                        label='Skeleton'
+                        label="Skeleton"
                         value={debugData.skeleton}
-                        setProperty={(value: boolean) => props.setProperty('debug.skeleton', value)} />
+                        setProperty={(value: boolean) => props.setProperty('debug.skeleton', value)}
+                    />
                     <Toggle
-                        label='Bounds'
+                        label="Bounds"
                         value={debugData.bounds}
-                        setProperty={(value: boolean) => props.setProperty('debug.bounds', value)} />
+                        setProperty={(value: boolean) => props.setProperty('debug.bounds', value)}
+                    />
                     <Slider
-                        label='Normals'
+                        label="Normals"
                         precision={2}
                         min={0}
                         max={1}
                         setProperty={(value: number) => props.setProperty('debug.normals', value)}
-                        value={debugData.normals} />
+                        value={debugData.normals}
+                    />
                     <Toggle
-                        label='Stats'
+                        label="Stats"
                         value={debugData.stats}
                         setProperty={(value: boolean) => props.setProperty('debug.stats', value)}
                     />
@@ -334,11 +404,12 @@ class SettingsPanel extends React.Component <{
     }
 }
 
-class ViewPanel extends React.Component <{
-    sceneData: ObserverData['scene'],
-    uiData: ObserverData['ui'],
-    runtimeData: ObserverData['runtime'],
-    setProperty: SetProperty }> {
+class ViewPanel extends React.Component<{
+    sceneData: ObserverData['scene'];
+    uiData: ObserverData['ui'];
+    runtimeData: ObserverData['runtime'];
+    setProperty: SetProperty;
+}> {
     isMobile: boolean;
 
     get shareUrl() {
@@ -347,15 +418,20 @@ class ViewPanel extends React.Component <{
 
     constructor(props: any) {
         super(props);
-        this.isMobile = (/Android|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+        this.isMobile = /Android|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     }
 
-    shouldComponentUpdate(nextProps: Readonly<{
-        sceneData: ObserverData['scene'];
-        uiData: ObserverData['ui'];
-        setProperty: SetProperty; }>): boolean {
-        return JSON.stringify(nextProps.sceneData) !== JSON.stringify(this.props.sceneData) ||
-               JSON.stringify(nextProps.uiData) !== JSON.stringify(this.props.uiData);
+    shouldComponentUpdate(
+        nextProps: Readonly<{
+            sceneData: ObserverData['scene'];
+            uiData: ObserverData['ui'];
+            setProperty: SetProperty;
+        }>
+    ): boolean {
+        return (
+            JSON.stringify(nextProps.sceneData) !== JSON.stringify(this.props.sceneData) ||
+            JSON.stringify(nextProps.uiData) !== JSON.stringify(this.props.uiData)
+        );
     }
 
     get hasQRCode() {
@@ -386,27 +462,32 @@ class ViewPanel extends React.Component <{
     render() {
         const props = this.props;
         return (
-            <div className='popup-panel-parent'>
-                <Container id='view-panel' class='popup-panel' flex hidden={props.uiData.active !== 'view'}>
-                    { this.hasQRCode ?
+            <div className="popup-panel-parent">
+                <Container id="view-panel" class="popup-panel" flex hidden={props.uiData.active !== 'view'}>
+                    {this.hasQRCode ? (
                         <>
-                            <Label text='View and share on mobile with QR code' />
-                            <div id='qr-wrapper'>
-                                <canvas id='share-qr' />
+                            <Label text="View and share on mobile with QR code" />
+                            <div id="qr-wrapper">
+                                <canvas id="share-qr" />
                             </div>
-                            <Label text='View and share on mobile with URL' />
-                            <div id='share-url-wrapper'>
-                                <TextInput class='secondary' value={this.shareUrl} enabled={false} />
-                                <Button id='copy-button' icon='E126' onClick={() => {
-                                    if (navigator.clipboard && window.isSecureContext) {
-                                        navigator.clipboard.writeText(this.shareUrl);
-                                    }
-                                }}/>
+                            <Label text="View and share on mobile with URL" />
+                            <div id="share-url-wrapper">
+                                <TextInput class="secondary" value={this.shareUrl} enabled={false} />
+                                <Button
+                                    id="copy-button"
+                                    icon="E126"
+                                    onClick={() => {
+                                        if (navigator.clipboard && window.isSecureContext) {
+                                            navigator.clipboard.writeText(this.shareUrl);
+                                        }
+                                    }}
+                                />
                             </div>
-                        </> : null }
+                        </>
+                    ) : null}
                     <Button
-                        class='secondary'
-                        text='TAKE A SNAPSHOT AS PNG'
+                        class="secondary"
+                        text="TAKE A SNAPSHOT AS PNG"
                         onClick={() => {
                             if (window.viewer) window.viewer.downloadPngScreenshot();
                         }}
@@ -417,10 +498,4 @@ class ViewPanel extends React.Component <{
     }
 }
 
-export {
-    CameraPanel,
-    SkyboxPanel,
-    LightPanel,
-    SettingsPanel,
-    ViewPanel
-};
+export { CameraPanel, SkyboxPanel, LightPanel, SettingsPanel, ViewPanel };

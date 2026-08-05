@@ -1,11 +1,4 @@
-import type {
-    Entity,
-    XrHitTestSource,
-    XrManager,
-    MeshInstance,
-    RenderComponent,
-    GSplatComponent
-} from 'playcanvas';
+import type { Entity, XrHitTestSource, XrManager, MeshInstance, RenderComponent, GSplatComponent } from 'playcanvas';
 import {
     XRSPACE_LOCAL,
     XRSPACE_VIEWER,
@@ -90,7 +83,7 @@ type XRObjectPlacementOptions = {
     xr: XrManager;
     camera: Entity;
     content: Entity;
-}
+};
 
 class XRObjectPlacementController {
     options: XRObjectPlacementOptions;
@@ -193,9 +186,9 @@ class XRObjectPlacementController {
         const touches = new Map<
             number,
             {
-                start: {x: number; y: number};
-                previous: {x: number; y: number};
-                current: {x: number; y: number};
+                start: { x: number; y: number };
+                previous: { x: number; y: number };
+                current: { x: number; y: number };
             }
         >();
         let baseAngle = 0;
@@ -338,16 +331,17 @@ class XRObjectPlacementController {
         events.on('xr:start', () => {
             hovering = true;
 
-            meshInstances = this.options.content.findComponents('render')
-            .map((render: RenderComponent) => {
-                return render.meshInstances;
-            })
-            .flat()
-            .concat(this.options.content.findComponents('gsplat')
-            .map((gsplat: GSplatComponent) => {
-                return gsplat.instance.meshInstance;
-            })
-            );
+            meshInstances = this.options.content
+                .findComponents('render')
+                .map((render: RenderComponent) => {
+                    return render.meshInstances;
+                })
+                .flat()
+                .concat(
+                    this.options.content.findComponents('gsplat').map((gsplat: GSplatComponent) => {
+                        return gsplat.instance.meshInstance;
+                    })
+                );
 
             updateBound();
 

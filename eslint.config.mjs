@@ -19,14 +19,9 @@ export default [
         }
     },
     {
-        files: ['**/*.js', '**/*.mjs'],
-        languageOptions: {
-            globals: {
-                ...globals.node
-            }
-        },
+        files: ['src/types.ts'],
         rules: {
-            'import-x/no-unresolved': 'off'
+            '@typescript-eslint/consistent-type-definitions': 'off'
         }
     }
 ];

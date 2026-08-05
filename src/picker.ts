@@ -1,9 +1,5 @@
-import {
-    type AppBase,
-    type Entity,
-    Picker as EnginePicker,
-    Vec3
-} from 'playcanvas';
+import { Picker as EnginePicker } from 'playcanvas';
+import type { AppBase, Entity, Vec3 } from 'playcanvas';
 
 const pickerScale = 0.25;
 

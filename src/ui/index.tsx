@@ -1,11 +1,11 @@
-import { Observer } from '@playcanvas/observer';
+import type { Observer } from '@playcanvas/observer';
 import { Container, Spinner } from '@playcanvas/pcui/react';
 import React from 'react';
 import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 
 import { version as appVersion } from '../../package.json';
-import { ObserverData } from '../types';
+import type { ObserverData } from '../types';
 
 import { ErrorBox, WarningsBox } from './errors';
 import LeftPanel from './left-panel';
@@ -44,35 +44,39 @@ class App extends React.Component<{ observer: Observer }> {
 
     render() {
         const xrActive = this.state?.runtime?.xrActive;
-        return <div id="application-container">
-            <Container id="panel-left" flex resizable='right' resizeMin={220} resizeMax={800} hidden={xrActive}>
-                <div className="header" style={{ display: 'none' }}>
-                    <div id="title">
-                        <img src={'static/playcanvas-logo.png'}/>
-                        <div>{`MODEL VIEWER v${appVersion}`}</div>
+        return (
+            <div id="application-container">
+                <Container id="panel-left" flex resizable="right" resizeMin={220} resizeMax={800} hidden={xrActive}>
+                    <div className="header" style={{ display: 'none' }}>
+                        <div id="title">
+                            {/* eslint-disable-next-line jsx-a11y/alt-text -- preserve markup */}
+                            <img src={'static/playcanvas-logo.png'} />
+                            <div>{`MODEL VIEWER v${appVersion}`}</div>
+                        </div>
                     </div>
+                    <div id="panel-toggle">
+                        {/* eslint-disable-next-line jsx-a11y/alt-text -- preserve markup */}
+                        <img src={'static/playcanvas-logo.png'} />
+                    </div>
+                    <LeftPanel observerData={this.state} setProperty={this._setStateProperty} />
+                </Container>
+                <div id="canvas-wrapper">
+                    <canvas id="application-canvas" ref={this.canvasRef} />
+                    <LoadControls setProperty={this._setStateProperty} />
+                    <SelectedNode sceneData={this.state.scene} />
+                    <PopupPanel observerData={this.state} setProperty={this._setStateProperty} />
+                    <ErrorBox observerData={this.state} setProperty={this._setStateProperty} />
+                    <WarningsBox observerData={this.state} setProperty={this._setStateProperty} />
+                    <Spinner id="spinner" size={30} hidden={true} />
                 </div>
-                <div id="panel-toggle">
-                    <img src={'static/playcanvas-logo.png'}/>
-                </div>
-                <LeftPanel observerData={this.state} setProperty={this._setStateProperty} />
-            </Container>
-            <div id='canvas-wrapper'>
-                <canvas id="application-canvas" ref={this.canvasRef} />
-                <LoadControls setProperty={this._setStateProperty}/>
-                <SelectedNode sceneData={this.state.scene} />
-                <PopupPanel observerData={this.state} setProperty={this._setStateProperty} />
-                <ErrorBox observerData={this.state} setProperty={this._setStateProperty} />
-                <WarningsBox observerData={this.state} setProperty={this._setStateProperty} />
-                <Spinner id="spinner" size={30} hidden={true} />
             </div>
-        </div>;
+        );
     }
 }
 
 export default (observer: Observer) => {
     const root = createRoot(document.getElementById('app'));
-    root.render(<App observer={observer}/>);
+    root.render(<App observer={observer} />);
 
     // Commit the initial mount synchronously
     flushSync(() => {

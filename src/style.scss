@@ -68,7 +68,7 @@ body {
     font-size: 14px;
     margin-right: 10px;
     text-align: center;
-    color: #FAD961;
+    color: #fad961;
     position: absolute;
     left: 33%;
     top: 67%;
@@ -76,7 +76,7 @@ body {
 }
 
 .pcui-panel.pcui-collapsible > .pcui-panel-header:before {
-    color: #FAD961 !important;
+    color: #fad961 !important;
 }
 
 #panel-toggle:hover::before {
@@ -177,7 +177,7 @@ input {
 }
 
 .header span {
-    color: #b1b8ba;;
+    color: #b1b8ba;
 }
 
 .pcui-infobox {
@@ -296,7 +296,8 @@ input {
     left: 20px;
 }
 
-.download-button::before, .fullscreen-button::before {
+.download-button::before,
+.fullscreen-button::before {
     font-size: 16px !important;
 }
 
@@ -353,7 +354,8 @@ input {
     width: 100%;
 }
 
-.scene-hierarchy-panel, .selected-node-panel {
+.scene-hierarchy-panel,
+.selected-node-panel {
     border: 1px solid rgb(41, 53, 56);
 }
 
@@ -407,7 +409,7 @@ input {
 
 .load-button-panel {
     width: 500px;
-    background-color: #28282880;;
+    background-color: #28282880;
     padding: 0px 16px 16px 16px;
     border-radius: 0;
     font-size: 16px;
@@ -425,7 +427,7 @@ input {
 #drag-drop {
     height: 145px;
     background-color: #28282840;
-    border: 1px dashed #FFFFFF;
+    border: 1px dashed #ffffff;
     display: block;
     display: flex;
     align-items: center;
@@ -626,7 +628,6 @@ input {
 }
 
 .panel-value-boolean {
-    
 }
 
 .morph-label {
@@ -678,7 +679,6 @@ input {
 }
 
 @media only screen and (max-width: 950px) {
-
     #panel-left.collapsed {
         overflow: visible !important;
     }
@@ -764,7 +764,7 @@ input {
     position: fixed;
 }
 
-#panel-left:not(.collapsed)> #panel-toggle > img {
+#panel-left:not(.collapsed) > #panel-toggle > img {
     display: none;
 }
 
@@ -831,7 +831,8 @@ input {
 @keyframes animation-spin {
     from {
         transform: rotate(0deg);
-    } to {
+    }
+    to {
         transform: rotate(360deg);
     }
 }
@@ -843,7 +844,8 @@ input {
     top: calc(50% - 15px);
 }
 
-#panel-left.collapsed #scene-container, #panel-left.collapsed .header {
+#panel-left.collapsed #scene-container,
+#panel-left.collapsed .header {
     display: none !important;
 }
 
@@ -922,7 +924,9 @@ input {
     opacity: 0 !important;
 }
 
-.pcui-label, .pcui-button, .pcui-text-input {
+.pcui-label,
+.pcui-button,
+.pcui-text-input {
     color: white !important;
     font-size: 12px !important;
     font-weight: 400 !important;
@@ -937,6 +941,9 @@ input {
     color: #aaaaaa !important;
 }
 
-.pcui-select-input:not(.pcui-disabled):not(.pcui-readonly) .pcui-select-input-list > *:hover, .pcui-select-input:not(.pcui-disabled):not(.pcui-readonly) .pcui-select-input-list > .pcui-select-input-label-highlighted {
+.pcui-select-input:not(.pcui-disabled):not(.pcui-readonly) .pcui-select-input-list > *:hover,
+.pcui-select-input:not(.pcui-disabled):not(.pcui-readonly)
+    .pcui-select-input-list
+    > .pcui-select-input-label-highlighted {
     background-color: $bcg-primary;
 }

@@ -5,9 +5,11 @@ class PngExporter {
             return new Promise((resolve) => {
                 const baseHref = (self as any).__baseHref as string;
                 (self as any).importScripts(`${baseHref}static/lib/lodepng/lodepng.js`);
-                resolve((self as any).lodepng({
-                    locateFile: () => `${baseHref}static/lib/lodepng/lodepng.wasm`
-                }));
+                resolve(
+                    (self as any).lodepng({
+                        locateFile: () => `${baseHref}static/lib/lodepng/lodepng.wasm`
+                    })
+                );
             });
         };
 
@@ -29,7 +31,10 @@ class PngExporter {
             lodepng._lodepng_encode32(resultDataPtrPtr, resultSizePtr, imageData, width, height);
 
             // read results
-            const result = lodepng.HEAPU8.slice(lodepng.HEAPU32[resultDataPtrPtr / 4], lodepng.HEAPU32[resultDataPtrPtr / 4] + lodepng.HEAPU32[resultSizePtr / 4]);
+            const result = lodepng.HEAPU8.slice(
+                lodepng.HEAPU32[resultDataPtrPtr / 4],
+                lodepng.HEAPU32[resultDataPtrPtr / 4] + lodepng.HEAPU32[resultSizePtr / 4]
+            );
 
             lodepng._free(resultDataPtrPtr);
             lodepng._free(resultSizePtr);
@@ -108,16 +113,17 @@ class PngExporter {
     }
 
     async export(filename: string, words: Uint32Array, width: number, height: number) {
-        this.worker.postMessage({
-            type: 'encode',
-            words: words,
-            width: width,
-            height: height
-        }, [words.buffer]);
+        this.worker.postMessage(
+            {
+                type: 'encode',
+                words: words,
+                width: width,
+                height: height
+            },
+            [words.buffer]
+        );
         this._downloadFile(filename, await new Promise(this.receiveCallback));
     }
 }
 
-export {
-    PngExporter
-};
+export { PngExporter };

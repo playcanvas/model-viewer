@@ -1,5 +1,6 @@
 import type { AppBase } from 'playcanvas';
 
+// eslint-disable-next-line @typescript-eslint/no-extraneous-class -- preserve constructor api
 class DummyWebGPU {
     constructor(app: AppBase) {
         if (app.graphicsDevice.isWebGPU) {
@@ -45,12 +46,14 @@ class DummyWebGPU {
 
                 // Create a render pass descriptor with a red background
                 const renderPassDescriptor = {
-                    colorAttachments: [{
-                        view: textureView,
-                        clearValue: { r: 1.0, g: 0.0, b: 0.0, a: 1.0 },  // Red background
-                        loadOp: 'clear',
-                        storeOp: 'store'
-                    }]
+                    colorAttachments: [
+                        {
+                            view: textureView,
+                            clearValue: { r: 1.0, g: 0.0, b: 0.0, a: 1.0 }, // Red background
+                            loadOp: 'clear',
+                            storeOp: 'store'
+                        }
+                    ]
                 };
 
                 // render pass

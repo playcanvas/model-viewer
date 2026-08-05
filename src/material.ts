@@ -1,10 +1,4 @@
-import {
-    BLEND_NONE,
-    BLENDEQUATION_ADD,
-    BLENDMODE_ONE,
-    BLENDMODE_ONE_MINUS_SRC_ALPHA,
-    Material
-} from 'playcanvas';
+import { BLEND_NONE, BLENDEQUATION_ADD, BLENDMODE_ONE, BLENDMODE_ONE_MINUS_SRC_ALPHA, Material } from 'playcanvas';
 
 let setBlendTypeOrig: any;
 
@@ -42,6 +36,4 @@ const initMaterials = () => {
     });
 };
 
-export {
-    initMaterials
-};
+export { initMaterials };

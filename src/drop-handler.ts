@@ -1,9 +1,9 @@
 import { path } from 'playcanvas';
 
 type File = {
-    url: string,
-    filename?: string
-}
+    url: string;
+    filename?: string;
+};
 
 type DropHandlerFunc = (files: File[], resetScene: boolean) => void;
 
@@ -15,31 +15,31 @@ const resolveDirectories = (entries: FileSystemEntry[]): Promise<FileSystemFileE
         if (entry.isFile) {
             result.push(entry as FileSystemFileEntry);
         } else if (entry.isDirectory) {
-            promises.push(new Promise<any>((resolve) => {
-                const reader = (entry as FileSystemDirectoryEntry).createReader();
+            promises.push(
+                new Promise<any>((resolve) => {
+                    const reader = (entry as FileSystemDirectoryEntry).createReader();
 
-                const p: Promise<any>[] = [];
+                    const p: Promise<any>[] = [];
 
-                const read = () => {
-                    reader.readEntries((children: FileSystemEntry[]) => {
-                        if (children.length > 0) {
-                            p.push(resolveDirectories(children));
-                            read();
-                        } else {
-                            Promise.all(p)
-                            .then((children: FileSystemFileEntry[][]) => {
-                                resolve(children.flat());
-                            });
-                        }
-                    });
-                };
-                read();
-            }));
+                    const read = () => {
+                        reader.readEntries((children: FileSystemEntry[]) => {
+                            if (children.length > 0) {
+                                p.push(resolveDirectories(children));
+                                read();
+                            } else {
+                                Promise.all(p).then((children: FileSystemFileEntry[][]) => {
+                                    resolve(children.flat());
+                                });
+                            }
+                        });
+                    };
+                    read();
+                })
+            );
         }
     });
 
-    return Promise.all(promises)
-    .then((children: FileSystemFileEntry[][]) => {
+    return Promise.all(promises).then((children: FileSystemFileEntry[][]) => {
         return result.concat(...children);
     });
 };
@@ -70,45 +70,57 @@ const removeCommonPrefix = (urls: File[]) => {
 
 // configure drag and drop
 const CreateDropHandler = (target: HTMLElement, dropHandler: DropHandlerFunc) => {
-    target.addEventListener('dragstart', (ev) => {
-        ev.preventDefault();
-        ev.stopPropagation();
-        ev.dataTransfer.effectAllowed = 'all';
-    }, false);
+    target.addEventListener(
+        'dragstart',
+        (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            ev.dataTransfer.effectAllowed = 'all';
+        },
+        false
+    );
 
-    target.addEventListener('dragover', (ev) => {
-        ev.preventDefault();
-        ev.stopPropagation();
-        ev.dataTransfer.effectAllowed = 'all';
-    }, false);
+    target.addEventListener(
+        'dragover',
+        (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            ev.dataTransfer.effectAllowed = 'all';
+        },
+        false
+    );
 
-    target.addEventListener('drop', (ev) => {
-        ev.preventDefault();
+    target.addEventListener(
+        'drop',
+        (ev) => {
+            ev.preventDefault();
 
-        const entries =
-            Array.from(ev.dataTransfer.items)
-            .map(item => item.webkitGetAsEntry());
+            const entries = Array.from(ev.dataTransfer.items).map((item) => item.webkitGetAsEntry());
 
-        resolveDirectories(entries)
-        .then((entries: FileSystemFileEntry[]) => {
-            return Promise.all(entries.map((entry) => {
-                return new Promise((resolve) => {
-                    entry.file((entryFile: any) => {
-                        resolve({
-                            url: URL.createObjectURL(entryFile),
-                            filename: entry.fullPath.substring(1)
-                        });
-                    });
+            resolveDirectories(entries)
+                .then((entries: FileSystemFileEntry[]) => {
+                    return Promise.all(
+                        entries.map((entry) => {
+                            return new Promise((resolve) => {
+                                entry.file((entryFile: any) => {
+                                    resolve({
+                                        url: URL.createObjectURL(entryFile),
+                                        filename: entry.fullPath.substring(1)
+                                    });
+                                });
+                            });
+                        })
+                    );
+                })
+                .then((files: File[]) => {
+                    if (files.length > 1) {
+                        removeCommonPrefix(files);
+                    }
+                    dropHandler(files, !ev.shiftKey);
                 });
-            }));
-        })
-        .then((files: File[]) => {
-            if (files.length > 1) {
-                removeCommonPrefix(files);
-            }
-            dropHandler(files, !ev.shiftKey);
-        });
-    }, false);
+        },
+        false
+    );
 };
 
 export { CreateDropHandler, File };

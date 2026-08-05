@@ -1,10 +1,10 @@
 import { Button, InfoBox } from '@playcanvas/pcui/react';
 import React from 'react';
 
-import { ObserverData, SetProperty } from '../types';
+import type { ObserverData, SetProperty } from '../types';
 
 // InfoBox that shows an error
-const ErrorBox = (props: { observerData: ObserverData, setProperty: SetProperty }) => {
+const ErrorBox = (props: { observerData: ObserverData; setProperty: SetProperty }) => {
     const error = props.observerData.ui.error;
 
     const handleDismiss = () => {
@@ -15,19 +15,16 @@ const ErrorBox = (props: { observerData: ObserverData, setProperty: SetProperty 
         return null;
     }
 
-    return <div className="pcui-error-container">
-        <InfoBox
-            class="pcui-error"
-            title='Error'
-            text={error}
-            icon='E218'
-        />
-        <Button text="OK" onClick={handleDismiss} />
-    </div>;
+    return (
+        <div className="pcui-error-container">
+            <InfoBox class="pcui-error" title="Error" text={error} icon="E218" />
+            <Button text="OK" onClick={handleDismiss} />
+        </div>
+    );
 };
 
 // InfoBox that shows warnings (e.g., missing textures)
-const WarningsBox = (props: { observerData: ObserverData, setProperty: SetProperty }) => {
+const WarningsBox = (props: { observerData: ObserverData; setProperty: SetProperty }) => {
     const warnings = props.observerData.ui.warnings;
     const hasWarnings = warnings && warnings.length > 0;
 
@@ -52,15 +49,12 @@ const WarningsBox = (props: { observerData: ObserverData, setProperty: SetProper
         return null;
     }
 
-    return <div className="pcui-warning-container">
-        <InfoBox
-            class="pcui-warning"
-            title={title}
-            text={warningText}
-            icon='E218'
-        />
-        <Button text="OK" onClick={handleDismiss} />
-    </div>;
+    return (
+        <div className="pcui-warning-container">
+            <InfoBox class="pcui-warning" title={title} text={warningText} icon="E218" />
+            <Button text="OK" onClick={handleDismiss} />
+        </div>
+    );
 };
 
 export { ErrorBox, WarningsBox };

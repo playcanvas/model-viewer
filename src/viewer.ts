@@ -70,8 +70,6 @@ import {
     Vec2
 } from 'playcanvas';
 
-import { MeshoptDecoder } from '../lib/meshopt_decoder.module.js';
-
 import { App } from './app';
 import { CameraControls } from './camera-controls';
 import { DebugLines } from './debug-lines';
@@ -82,6 +80,9 @@ import { PngExporter } from './png-exporter';
 import { ShadowCatcher } from './shadow-catcher';
 import type { File, HierarchyNode, MorphTargetData, SceneCamera } from './types';
 import { XRObjectPlacementController } from './xr-mode';
+
+// eslint-disable-next-line import-x/order -- preserve module initialization order
+import { MeshoptDecoder } from '../lib/meshopt_decoder.module.js';
 
 // model filename extensions
 const modelExtensions = ['gltf', 'glb', 'vox'];
@@ -231,8 +232,10 @@ class Viewer {
 
         // monkeypatch the mouse and touch input devices to ignore touch events
         // when they don't originate from the canvas.
+        // @ts-expect-error engine-private handler override
         const origMouseHandler = app.mouse._moveHandler;
         app.mouse.detach();
+        // @ts-expect-error engine-private handler override
         app.mouse._moveHandler = (event: MouseEvent) => {
             if (event.target === canvas) {
                 origMouseHandler(event);
@@ -240,8 +243,10 @@ class Viewer {
         };
         app.mouse.attach(canvas);
 
+        // @ts-expect-error engine-private handler override
         const origTouchHandler = app.touch._moveHandler;
         app.touch.detach();
+        // @ts-expect-error engine-private handler override
         app.touch._moveHandler = (event: MouseEvent) => {
             if (event.target === canvas) {
                 origTouchHandler(event);
@@ -426,11 +431,12 @@ class Viewer {
         canvas.addEventListener('pointerdown', async (event) => {
             const now = Date.now();
             const delay = Math.max(0, now - lastTap.time);
-            if (delay < 300 &&
-                Math.abs(event.clientX - lastTap.x) < 8 &&
-                Math.abs(event.clientY - lastTap.y) < 8) {
+            if (delay < 300 && Math.abs(event.clientX - lastTap.x) < 8 && Math.abs(event.clientY - lastTap.y) < 8) {
                 lastTap.time = 0;
-                const result = await this.picker.pick(event.offsetX / canvas.clientWidth, event.offsetY / canvas.clientHeight);
+                const result = await this.picker.pick(
+                    event.offsetX / canvas.clientWidth,
+                    event.offsetY / canvas.clientHeight
+                );
                 if (result) {
                     this.cameraControls.reset(result, this.camera.getPosition());
                 }
@@ -756,7 +762,7 @@ class Viewer {
 
             // construct the cubemap asset
             const cubemapAsset = new Asset('skybox_cubemap', 'cubemap', null, {
-                textures: faceAssets.map(faceAsset => faceAsset.id)
+                textures: faceAssets.map((faceAsset) => faceAsset.id)
             });
             cubemapAsset.loadFaces = true;
             cubemapAsset.on('load', () => {
@@ -1063,16 +1069,19 @@ class Viewer {
         this.renderNextFrame();
         this.app.once('postrender', () => {
             const texture = this.camera.camera.renderTarget.colorBuffer;
-            texture.read(0, 0, texture.width, texture.height).then((typedArray: Uint32Array) => {
-                this.pngExporter.export(
-                    `${filename}.png`,
-                    new Uint32Array(typedArray.buffer.slice(0)),
-                    texture.width,
-                    texture.height
-                );
-            }).catch((err: unknown) => {
-                console.error('Failed to capture PNG screenshot from render target:', err);
-            });
+            texture
+                .read(0, 0, texture.width, texture.height)
+                .then((typedArray: Uint32Array) => {
+                    this.pngExporter.export(
+                        `${filename}.png`,
+                        new Uint32Array(typedArray.buffer.slice(0)),
+                        texture.width,
+                        texture.height
+                    );
+                })
+                .catch((err: unknown) => {
+                    console.error('Failed to capture PNG screenshot from render target:', err);
+                });
         });
     }
 
@@ -1156,7 +1165,7 @@ class Viewer {
                 const pixels = texture.lock();
                 for (let i = 0; i < 4; i++) {
                     pixels[i * 4 + 0] = 255; // R
-                    pixels[i * 4 + 1] = 0;   // G
+                    pixels[i * 4 + 1] = 0; // G
                     pixels[i * 4 + 2] = 255; // B
                     pixels[i * 4 + 3] = 255; // A
                 }
@@ -1226,13 +1235,20 @@ class Viewer {
                 } else if (gltfBuffer.uri && !gltfBuffer.uri.startsWith('data:')) {
                     // External buffer file referenced but not provided
                     // Check if only the current .gltf file was dragged (no other files provided)
-                    const onlyGltfFile = externalUrls.length === 1 &&
+                    const onlyGltfFile =
+                        externalUrls.length === 1 &&
                         this.isModelFilename(externalUrls[0].filename) &&
                         externalUrls[0].filename === gltfUrl.filename;
                     if (onlyGltfFile) {
-                        continuation(`External buffer file '${gltfBuffer.uri}' not found. Try dragging the folder containing the .gltf file instead of the file itself.`, null);
+                        continuation(
+                            `External buffer file '${gltfBuffer.uri}' not found. Try dragging the folder containing the .gltf file instead of the file itself.`,
+                            null
+                        );
                     } else {
-                        continuation(`External buffer file not found: '${gltfBuffer.uri}'. Make sure to include the associated .bin file(s).`, null);
+                        continuation(
+                            `External buffer file not found: '${gltfBuffer.uri}'. Make sure to include the associated .bin file(s).`,
+                            null
+                        );
                     }
                 } else {
                     continuation(null, null);
@@ -1269,7 +1285,7 @@ class Viewer {
         return new Promise((resolve, reject) => {
             const asset = new Asset(url.filename, 'gsplat', url, null, {
                 // @ts-ignore TODO no definition in pc
-                mapUrl: mapUrl => urls[mapUrl]
+                mapUrl: (mapUrl) => urls[mapUrl]
             });
             asset.on('load', () => resolve(asset));
             asset.on('error', (err: string) => reject(err));
@@ -1323,53 +1339,53 @@ class Viewer {
 
             // load asset files
             const promises = files.map((file) => {
-                return this.isModelFilename(file.filename) ?
-                    this.loadGltf(file, files, warnings) :
-                    this.isGSplatFilename(file.filename) ?
-                        this.loadPly(file, files) :
-                        null;
+                return this.isModelFilename(file.filename)
+                    ? this.loadGltf(file, files, warnings)
+                    : this.isGSplatFilename(file.filename)
+                      ? this.loadPly(file, files)
+                      : null;
             });
 
             Promise.all(promises)
-            .then((assets: Asset[]) => {
-                this.loadTimestamp = loadTimestamp;
+                .then((assets: Asset[]) => {
+                    this.loadTimestamp = loadTimestamp;
 
-                // add assets to the scene
-                assets.forEach((asset) => {
-                    if (asset) {
-                        this.addToScene(asset);
+                    // add assets to the scene
+                    assets.forEach((asset) => {
+                        if (asset) {
+                            this.addToScene(asset);
+                        }
+                    });
+
+                    // prepare scene post load
+                    this.postSceneLoad();
+
+                    // update scene urls
+                    const urls = files.map((f) => f.url);
+                    const filenames = files.map((f) => f.filename.split('/').pop());
+                    if (resetScene) {
+                        this.observer.set('scene.urls', urls);
+                        this.observer.set('scene.filenames', filenames);
+                    } else {
+                        this.observer.set('scene.urls', this.observer.get('scene.urls').concat(urls));
+                        this.observer.set('scene.filenames', this.observer.get('scene.filenames').concat(filenames));
                     }
+
+                    // Show any warnings that occurred during loading
+                    if (warnings.length > 0) {
+                        // Log all warnings to console for full details
+                        console.warn(`Model loaded with ${warnings.length} warning(s):`);
+                        warnings.forEach((w) => console.warn(`  - ${w}`));
+                        this.observer.set('ui.warnings', warnings);
+                    }
+                })
+                .catch((err) => {
+                    console.log(err);
+                    this.observer.set('ui.error', err?.toString() || err);
+                })
+                .finally(() => {
+                    this.observer.set('ui.spinner', false);
                 });
-
-                // prepare scene post load
-                this.postSceneLoad();
-
-                // update scene urls
-                const urls = files.map(f => f.url);
-                const filenames = files.map(f => f.filename.split('/').pop());
-                if (resetScene) {
-                    this.observer.set('scene.urls', urls);
-                    this.observer.set('scene.filenames', filenames);
-                } else {
-                    this.observer.set('scene.urls', this.observer.get('scene.urls').concat(urls));
-                    this.observer.set('scene.filenames', this.observer.get('scene.filenames').concat(filenames));
-                }
-
-                // Show any warnings that occurred during loading
-                if (warnings.length > 0) {
-                    // Log all warnings to console for full details
-                    console.warn(`Model loaded with ${warnings.length} warning(s):`);
-                    warnings.forEach(w => console.warn(`  - ${w}`));
-                    this.observer.set('ui.warnings', warnings);
-                }
-            })
-            .catch((err) => {
-                console.log(err);
-                this.observer.set('ui.error', err?.toString() || err);
-            })
-            .finally(() => {
-                this.observer.set('ui.spinner', false);
-            });
         } else {
             // load skybox
             this.loadSkybox(files);
@@ -1705,7 +1721,9 @@ class Viewer {
             ACES2: TONEMAP_ACES2
         };
 
-        this.camera.camera.toneMapping = mapping.hasOwnProperty(tonemapping) ? mapping[tonemapping] : TONEMAP_ACES;
+        this.camera.camera.toneMapping = Object.prototype.hasOwnProperty.call(mapping, tonemapping)
+            ? mapping[tonemapping]
+            : TONEMAP_ACES;
         this.renderNextFrame();
     }
 
@@ -1836,10 +1854,10 @@ class Viewer {
     private postSceneLoad() {
         // construct a list of meshInstances so we can quickly access them when configuring wireframe rendering etc.
         this.meshInstances = this.entities
-        .map((entity) => {
-            return this.collectMeshInstances(entity);
-        })
-        .flat();
+            .map((entity) => {
+                return this.collectMeshInstances(entity);
+            })
+            .flat();
 
         // if no meshes are currently loaded, then enable skeleton rendering so user can see something
         if (this.meshInstances.length === 0) {
@@ -2001,7 +2019,11 @@ class Viewer {
 
         let first = true;
 
-        const renderComponents = entities.map(e => e.findComponents('render') as RenderComponent[]).flat().map(rc => rc.meshInstances).flat();
+        const renderComponents = entities
+            .map((e) => e.findComponents('render') as RenderComponent[])
+            .flat()
+            .map((rc) => rc.meshInstances)
+            .flat();
         if (renderComponents.length) {
             for (let i = 0; i < renderComponents.length; ++i) {
                 if (first) {
@@ -2013,10 +2035,16 @@ class Viewer {
             }
         }
 
-        const gsplatComponents = entities.map(e => e.findComponents('gsplat') as GSplatComponent[]).flat().filter(gc => !!gc.customAabb);
+        const gsplatComponents = entities
+            .map((e) => e.findComponents('gsplat') as GSplatComponent[])
+            .flat()
+            .filter((gc) => !!gc.customAabb);
         if (gsplatComponents.length) {
             for (let i = 0; i < gsplatComponents.length; ++i) {
-                bbox.setFromTransformedAabb(gsplatComponents[i].customAabb, gsplatComponents[i].entity.getWorldTransform());
+                bbox.setFromTransformedAabb(
+                    gsplatComponents[i].customAabb,
+                    gsplatComponents[i].entity.getWorldTransform()
+                );
                 if (first) {
                     result.copy(bbox);
                     first = false;
@@ -2119,9 +2147,9 @@ class Viewer {
                 for (let i = 0; i < this.meshInstances.length; ++i) {
                     const meshInstance = this.meshInstances[i];
 
-                    const vertexBuffer = meshInstance.morphInstance ? // @ts-ignore TODO not defined in pc
-                        meshInstance.morphInstance._vertexBuffer :
-                        meshInstance.mesh.vertexBuffer;
+                    const vertexBuffer = meshInstance.morphInstance // @ts-ignore TODO not defined in pc
+                        ? meshInstance.morphInstance._vertexBuffer
+                        : meshInstance.mesh.vertexBuffer;
 
                     if (vertexBuffer) {
                         const skinMatrices = meshInstance.skinInstance ? meshInstance.skinInstance.matrices : null;

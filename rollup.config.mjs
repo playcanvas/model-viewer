@@ -16,7 +16,9 @@ import { copyAndWatch } from './plugins/copy-and-watch.mjs';
 
 // debug, profile, release
 const BUILD_TYPE = process.env.BUILD_TYPE || 'release';
-const ENGINE_DIR = path.resolve(`node_modules/playcanvas/build/playcanvas${BUILD_TYPE === 'debug' ? '.dbg' : ''}/src/index.js`);
+const ENGINE_DIR = path.resolve(
+    `node_modules/playcanvas/build/playcanvas${BUILD_TYPE === 'debug' ? '.dbg' : ''}/src/index.js`
+);
 
 const BLUE_OUT = '\x1b[34m';
 const BOLD_OUT = '\x1b[1m';
@@ -27,16 +29,19 @@ const title = [
     'Building PlayCanvas Model Viewer',
     `type ${BOLD_OUT}${BUILD_TYPE}${REGULAR_OUT}`,
     `engine ${BOLD_OUT}${ENGINE_DIR}${REGULAR_OUT}`
-].map(l => `${BLUE_OUT}${l}`).join('\n');
+]
+    .map((l) => `${BLUE_OUT}${l}`)
+    .join('\n');
 console.log(`${BLUE_OUT}${title}${RESET_OUT}\n`);
 
 const TARGETS = [
     {
         src: 'src/index.html',
         transform: (contents) => {
-            return contents.toString()
-            .replace('__BASE_HREF__', process.env.BASE_HREF || '')
-            .replace('__');
+            return contents
+                .toString()
+                .replace('__BASE_HREF__', process.env.BASE_HREF || '')
+                .replace('__');
         }
     },
     { src: 'src/manifest.json' },
@@ -77,7 +82,7 @@ export default {
         image({ dom: true }),
         alias({
             entries: {
-                'playcanvas': ENGINE_DIR
+                playcanvas: ENGINE_DIR
             }
         }),
         commonjs(),
@@ -86,11 +91,12 @@ export default {
             tsconfig: './tsconfig.json'
         }),
         json(),
-        (BUILD_TYPE !== 'debug') && terser({
-            mangle: {
-                // script classes can't be mangeled
-                reserved: ['CameraControls']
-            }
-        })
+        BUILD_TYPE !== 'debug' &&
+            terser({
+                mangle: {
+                    // script classes can't be mangeled
+                    reserved: ['CameraControls']
+                }
+            })
     ]
 };
