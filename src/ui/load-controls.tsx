@@ -4,6 +4,8 @@ import React, { useRef, useState } from 'react';
 import { version as appVersion } from '../../package.json';
 import type { File, SetProperty } from '../types';
 
+import { IconButton } from './components';
+
 const validUrl = (url: string) => {
     try {
         new URL(url);
@@ -57,12 +59,12 @@ const LoadControls = (props: { setProperty: SetProperty }) => {
         <div id="load-controls">
             <Container class="load-button-panel" enabled flex>
                 <div className="header">
-                    {/* eslint-disable-next-line jsx-a11y/alt-text -- preserve markup */}
-                    <img src={'static/playcanvas-logo.png'} />
+                    <img src={'static/playcanvas-logo.png'} alt="" />
                     <div>
                         <Label text={`MODEL VIEWER v${appVersion}`} />
                     </div>
-                    <Button
+                    <IconButton
+                        label="Open Model Viewer on GitHub"
                         onClick={() => {
                             window.open('https://github.com/playcanvas/model-viewer', '_blank').focus();
                         }}
@@ -78,9 +80,18 @@ const LoadControls = (props: { setProperty: SetProperty }) => {
                     ref={inputFile}
                     style={{ display: 'none' }}
                 />
-                {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- preserve drag-drop behavior */}
-                <div id="drag-drop" onClick={onLoadButtonClick}>
-                    <Button id="drag-drop-search-icon" icon="E129" />
+                <div
+                    id="drag-drop"
+                    role="button"
+                    tabIndex={0}
+                    onClick={onLoadButtonClick}
+                    onKeyDown={(event) => {
+                        if (event.key !== 'Enter' && event.key !== ' ') return;
+                        event.preventDefault();
+                        onLoadButtonClick();
+                    }}
+                >
+                    <span id="drag-drop-search-icon" aria-hidden="true" />
                     <Label class="desktop" text="Drag & drop .glb, .gltf, or .ply files, or click to open files" />
                     <Label class="mobile" text="Click to open files" />
                 </div>

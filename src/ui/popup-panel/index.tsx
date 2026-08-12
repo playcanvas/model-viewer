@@ -1,10 +1,10 @@
-import { Button } from '@playcanvas/pcui/react';
 import { UsdzExporter } from 'playcanvas';
 import type { Entity } from 'playcanvas';
 import React from 'react';
 
 import { addEventListenerOnClickOnly } from '../../helpers';
 import type { SetProperty, ObserverData } from '../../types';
+import { IconButton } from '../components';
 
 import AnimationControls from './animation-controls';
 import { CameraPanel, SkyboxPanel, LightPanel, SettingsPanel, ViewPanel } from './panels';
@@ -70,35 +70,40 @@ class PopupButtonControls extends React.Component<{ observerData: ObserverData; 
                     animationData={this.props.observerData.animation}
                     setProperty={this.props.setProperty}
                 />
-                <Button
+                <IconButton
+                    label="Camera"
                     class={buildClass('camera')}
                     icon="E212"
                     width={40}
                     height={40}
                     onClick={() => handleClick('camera')}
                 />
-                <Button
+                <IconButton
+                    label="Environment"
                     class={buildClass('skybox')}
                     icon="E200"
                     width={40}
                     height={40}
                     onClick={() => handleClick('skybox')}
                 />
-                <Button
+                <IconButton
+                    label="Light"
                     class={buildClass('light')}
                     icon="E194"
                     width={40}
                     height={40}
                     onClick={() => handleClick('light')}
                 />
-                <Button
+                <IconButton
+                    label="Settings"
                     class={buildClass('settings')}
                     icon="E134"
                     width={40}
                     height={40}
                     onClick={() => handleClick('settings')}
                 />
-                <Button
+                <IconButton
+                    label="View and share"
                     class={buildClass('view')}
                     icon="E301"
                     width={40}
@@ -143,7 +148,8 @@ class PopupPanel extends React.Component<{ observerData: ObserverData; setProper
             <div id="popup" className={this.props.observerData.scene.nodes === '[]' ? 'empty' : null}>
                 <PopupPanelControls observerData={this.props.observerData} setProperty={this.props.setProperty} />
                 <PopupButtonControls observerData={this.props.observerData} setProperty={this.props.setProperty} />
-                <Button
+                <IconButton
+                    label="Launch AR"
                     class="popup-button"
                     id="launch-ar-button"
                     icon="E189"
@@ -168,7 +174,8 @@ class PopupPanel extends React.Component<{ observerData: ObserverData; setProper
                     }}
                 />
                 <div id="floating-top-parent">
-                    <Button
+                    <IconButton
+                        label="Toggle inspector"
                         class="popup-button"
                         id="fullscreen-button"
                         icon="E127"
@@ -180,7 +187,8 @@ class PopupPanel extends React.Component<{ observerData: ObserverData; setProper
                     />
                 </div>
                 <div id="floating-bottom-parent">
-                    <Button
+                    <IconButton
+                        label={`Switch to ${this.props.observerData.camera.mode === 'orbit' ? 'fly' : 'orbit'} mode`}
                         class={['popup-button', 'camera-mode-button', this.props.observerData.camera.mode]}
                         id="camera-mode-button"
                         width={40}

@@ -1,5 +1,6 @@
 import {
     BooleanInput,
+    Button,
     ColorPicker,
     Container,
     Label,
@@ -11,6 +12,19 @@ import {
 import React from 'react';
 
 import type { Option } from '../../types';
+
+export const IconButton = ({ label, ...props }: React.ComponentProps<typeof Button> & { label: string }) => {
+    const ref = React.useRef<React.ElementRef<typeof Button>>(null);
+
+    React.useEffect(() => {
+        const dom = ref.current?.element.dom;
+        if (!dom) return;
+        dom.setAttribute('aria-label', label);
+        dom.title = label;
+    }, [label]);
+
+    return <Button ref={ref} {...props} />;
+};
 
 export const Detail = (props: { label: string; value: string | number }) => {
     return (

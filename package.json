@@ -46,11 +46,12 @@
     "scripts": {
         "build": "vite build",
         "develop": "cross-env BUILD_TYPE=debug concurrently --kill-others \"npm run watch\" \"npm run serve\"",
-        "fmt": "prettier --check src vite.config.mjs eslint.config.mjs prettier.config.mjs",
-        "fmt:fix": "prettier --write src vite.config.mjs eslint.config.mjs prettier.config.mjs",
-        "lint": "eslint src vite.config.mjs eslint.config.mjs prettier.config.mjs",
-        "lint:fix": "eslint src vite.config.mjs eslint.config.mjs prettier.config.mjs --fix",
+        "fmt": "prettier --check src test vite.config.mjs eslint.config.mjs prettier.config.mjs",
+        "fmt:fix": "prettier --write src test vite.config.mjs eslint.config.mjs prettier.config.mjs",
+        "lint": "eslint src test vite.config.mjs eslint.config.mjs prettier.config.mjs",
+        "lint:fix": "eslint src test vite.config.mjs eslint.config.mjs prettier.config.mjs --fix",
         "serve": "serve --cors dist",
+        "test": "node --test",
         "typecheck": "tsc",
         "watch": "vite build --watch"
     },
