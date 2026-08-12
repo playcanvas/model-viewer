@@ -44,14 +44,14 @@ Some URL query parameters are available to override certain aspects of the viewe
 
 ## How to build
 
-Ensure you have [Node.js](https://nodejs.org) installed (v18.0+). Then, from a command prompt, run:
+Ensure you have [Node.js](https://nodejs.org) installed (v22.22+). Then, from a command prompt, run:
 
 ```
 npm install
 npm run build
 ```
 
-This will invoke Rollup and output the built viewer to the `dist` folder. To invoke Rollup with the `--watch` flag (which rebuilds the viewer on saving any source file), do:
+This will invoke Vite and esbuild and output the built viewer to the `dist` folder. To rebuild the viewer on saving any source file, do:
 
 ```
 npm run watch

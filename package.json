@@ -25,18 +25,11 @@
         "@playcanvas/eslint-config": "3.0.0-beta.8",
         "@playcanvas/observer": "1.7.1",
         "@playcanvas/pcui": "5.8.0",
-        "@rollup/plugin-alias": "6.0.0",
-        "@rollup/plugin-commonjs": "29.0.3",
-        "@rollup/plugin-image": "3.0.3",
-        "@rollup/plugin-json": "6.1.0",
-        "@rollup/plugin-node-resolve": "16.0.3",
-        "@rollup/plugin-replace": "6.0.3",
-        "@rollup/plugin-terser": "0.4.4",
-        "@rollup/plugin-typescript": "12.1.4",
         "@types/react": "19.2.17",
         "@types/react-dom": "19.2.3",
         "concurrently": "9.2.1",
         "cross-env": "10.1.0",
+        "esbuild": "0.28.1",
         "eslint": "9.39.4",
         "globals": "17.6.0",
         "playcanvas": "2.19.7",
@@ -45,24 +38,23 @@
         "react": "19.2.7",
         "react-dom": "19.2.7",
         "react-intersection-observer": "10.0.3",
-        "rollup": "4.62.0",
-        "rollup-plugin-sass": "1.15.3",
+        "sass-embedded": "1.98.0",
         "serve": "14.2.6",
-        "tslib": "2.8.1",
-        "typescript": "5.9.3"
+        "typescript": "5.9.3",
+        "vite": "7.3.5"
     },
     "scripts": {
-        "build": "rollup -c",
+        "build": "vite build",
         "develop": "cross-env BUILD_TYPE=debug concurrently --kill-others \"npm run watch\" \"npm run serve\"",
-        "fmt": "prettier --check src rollup.config.mjs eslint.config.mjs prettier.config.mjs",
-        "fmt:fix": "prettier --write src rollup.config.mjs eslint.config.mjs prettier.config.mjs",
-        "lint": "eslint src rollup.config.mjs eslint.config.mjs prettier.config.mjs",
-        "lint:fix": "eslint src rollup.config.mjs eslint.config.mjs prettier.config.mjs --fix",
+        "fmt": "prettier --check src vite.config.mjs eslint.config.mjs prettier.config.mjs",
+        "fmt:fix": "prettier --write src vite.config.mjs eslint.config.mjs prettier.config.mjs",
+        "lint": "eslint src vite.config.mjs eslint.config.mjs prettier.config.mjs",
+        "lint:fix": "eslint src vite.config.mjs eslint.config.mjs prettier.config.mjs --fix",
         "serve": "serve --cors dist",
         "typecheck": "tsc",
-        "watch": "rollup -c -w"
+        "watch": "vite build --watch"
     },
     "engines": {
-        "node": ">=18.0.0"
+        "node": ">=22.22.0"
     }
 }

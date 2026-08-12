@@ -282,7 +282,7 @@ class XRObjectPlacementController {
     private _createUI() {
         // close button is always created for the XR DOM overlay
         const closeButton = document.createElement('img');
-        closeButton.src = arCloseImage.src;
+        closeButton.src = arCloseImage;
         closeButton.style.position = 'fixed';
         closeButton.style.right = '20px';
         closeButton.style.top = '20px';

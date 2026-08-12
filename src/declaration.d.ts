@@ -4,7 +4,7 @@ declare module '*.png' {
 }
 
 declare module '*.svg' {
-    const value: HTMLImageElement;
+    const value: string;
     export default value;
 }
 
