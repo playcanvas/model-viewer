@@ -413,6 +413,28 @@ class SettingsPanel extends React.Component<{
     }
 }
 
+const ShareControls = (props: { url: string }) => (
+    <>
+        <Label text="View and share on mobile with QR code" />
+        <div id="qr-wrapper">
+            <canvas id="share-qr" />
+        </div>
+        <Label text="View and share on mobile with URL" />
+        <div id="share-url-wrapper">
+            <TextInput class="secondary" value={props.url} enabled={false} />
+            <Button
+                id="copy-button"
+                icon="E126"
+                onClick={() => {
+                    if (navigator.clipboard && window.isSecureContext) {
+                        navigator.clipboard.writeText(props.url);
+                    }
+                }}
+            />
+        </div>
+    </>
+);
+
 class ViewPanel extends React.Component<{
     sceneData: ObserverData['scene'];
     uiData: ObserverData['ui'];
@@ -478,27 +500,7 @@ class ViewPanel extends React.Component<{
         return (
             <div className="popup-panel-parent">
                 <Container id="view-panel" class="popup-panel" flex hidden={props.uiData.active !== 'view'}>
-                    {this.hasQRCode ? (
-                        <>
-                            <Label text="View and share on mobile with QR code" />
-                            <div id="qr-wrapper">
-                                <canvas id="share-qr" />
-                            </div>
-                            <Label text="View and share on mobile with URL" />
-                            <div id="share-url-wrapper">
-                                <TextInput class="secondary" value={this.shareUrl} enabled={false} />
-                                <Button
-                                    id="copy-button"
-                                    icon="E126"
-                                    onClick={() => {
-                                        if (navigator.clipboard && window.isSecureContext) {
-                                            navigator.clipboard.writeText(this.shareUrl);
-                                        }
-                                    }}
-                                />
-                            </div>
-                        </>
-                    ) : null}
+                    {this.hasQRCode ? <ShareControls url={this.shareUrl} /> : null}
                     <Button
                         class="secondary"
                         text="TAKE A SNAPSHOT AS PNG"
