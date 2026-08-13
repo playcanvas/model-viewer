@@ -110,6 +110,7 @@ body {
 
 #canvas-wrapper {
     position: relative;
+    container-type: inline-size;
     width: 0 !important;
     flex-grow: 1;
     display: flex;
@@ -736,16 +737,6 @@ input {
         display: none;
     }
 
-    #popup > #popup-buttons-parent > .animation-controls-panel-parent {
-        flex-wrap: wrap;
-        height: fit-content !important;
-        width: 220px;
-        position: absolute;
-        bottom: 50px;
-        left: -8px;
-        padding: 6px !important;
-    }
-
     .selected-node-panel {
         position: fixed !important;
         width: inherit;
@@ -868,7 +859,7 @@ input {
     color: var(--ui-text);
     border: 0 !important;
     border-radius: var(--ui-radius) !important;
-    background: transparent !important;
+    background-color: transparent !important;
     box-shadow: none !important;
     transition:
         color 150ms ease,
@@ -878,7 +869,7 @@ input {
 
 .popup-button:hover {
     color: white;
-    background: rgba(255, 255, 255, 0.1) !important;
+    background-color: rgba(255, 255, 255, 0.1) !important;
 }
 
 .popup-button:active {
@@ -887,7 +878,7 @@ input {
 
 .popup-button.selected {
     color: white;
-    background: var(--ui-accent) !important;
+    background-color: var(--ui-accent) !important;
 }
 
 .popup-panel,
@@ -946,12 +937,12 @@ input {
 #launch-ar-button {
     left: max(16px, env(safe-area-inset-left));
     bottom: max(16px, env(safe-area-inset-bottom));
-    background: rgba(0, 0, 0, 0.32) !important;
+    background-color: rgba(0, 0, 0, 0.32) !important;
 }
 
 #fullscreen-button,
 #camera-mode-button {
-    background: rgba(0, 0, 0, 0.32) !important;
+    background-color: rgba(0, 0, 0, 0.32) !important;
     border: 1px solid var(--ui-border) !important;
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
@@ -960,7 +951,7 @@ input {
 #fullscreen-button:hover,
 #camera-mode-button:hover,
 #launch-ar-button:hover {
-    background: rgba(255, 255, 255, 0.1) !important;
+    background-color: rgba(255, 255, 255, 0.1) !important;
 }
 
 .load-button-panel {
@@ -1076,6 +1067,10 @@ input {
         height: 44px !important;
     }
 
+    #popup > #popup-buttons-parent > .pcui-button {
+        margin: 0 !important;
+    }
+
     #fullscreen-button {
         display: none;
     }
@@ -1088,7 +1083,7 @@ input {
     }
 
     .selected-node-panel {
-        top: max(12px, env(safe-area-inset-top));
+        top: max(54px, calc(env(safe-area-inset-top) + 12px));
         right: 12px;
         left: 12px;
         width: auto;
@@ -1098,6 +1093,48 @@ input {
     .load-button-panel {
         width: calc(100% - 72px);
         max-height: calc(100% - 48px);
+    }
+}
+
+@container (max-width: 920px) {
+    #popup > #popup-buttons-parent > .animation-controls-panel-parent {
+        position: absolute;
+        left: 50%;
+        bottom: 62px;
+        box-sizing: border-box;
+        width: min(360px, calc(100cqw - 32px));
+        height: 48px !important;
+        padding: 4px !important;
+        gap: 4px;
+        border-right: 0;
+        transform: translateX(-50%);
+    }
+
+    #anim-track-select {
+        width: 100px !important;
+        min-width: 0;
+    }
+
+    #anim-scrub-slider {
+        width: auto !important;
+        min-width: 80px;
+        flex: 1;
+    }
+
+    #anim-speed-select {
+        width: 52px !important;
+        min-width: 52px;
+    }
+
+    #popup:has(.animation-controls-panel-parent) > .popup-panel-parent > .popup-panel {
+        bottom: calc(max(12px, env(safe-area-inset-bottom)) + 136px);
+        max-height: calc(100% - 220px);
+    }
+}
+
+@media only screen and (max-width: 950px) and (max-height: 430px) {
+    .load-button-panel {
+        width: min(500px, calc(100% - 142px));
     }
 }
 
