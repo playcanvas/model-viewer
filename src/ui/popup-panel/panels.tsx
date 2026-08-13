@@ -4,7 +4,7 @@ import React from 'react';
 
 import { extract } from '../../helpers';
 import type { SetProperty, ObserverData } from '../../types';
-import { Detail, Slider, Toggle, Select, ColorPickerControl, ToggleColor, Numeric } from '../components';
+import { Detail, Slider, Toggle, Select, ColorPickerControl, ToggleColor, Numeric, IconButton } from '../components';
 
 declare global {
     // eslint-disable-next-line @typescript-eslint/consistent-type-definitions -- declaration merging
@@ -422,7 +422,8 @@ const ShareControls = (props: { url: string }) => (
         <Label text="View and share on mobile with URL" />
         <div id="share-url-wrapper">
             <TextInput class="secondary" value={props.url} enabled={false} />
-            <Button
+            <IconButton
+                label="Copy share URL"
                 id="copy-button"
                 icon="E126"
                 onClick={() => {

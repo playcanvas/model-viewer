@@ -1,8 +1,7 @@
-import { Button } from '@playcanvas/pcui/react';
 import React from 'react';
 
 import type { SetProperty, ObserverData } from '../../types';
-import { NakedSelect, NakedSlider } from '../components';
+import { IconButton, NakedSelect, NakedSlider } from '../components';
 
 class AnimationTrackSelect extends React.Component<{
     animationData: ObserverData['animation'];
@@ -98,7 +97,8 @@ class AnimationControls extends React.Component<{
 
         return enabled ? (
             <div className="animation-controls-panel-parent">
-                <Button
+                <IconButton
+                    label={props.animationData.playing ? 'Pause animation' : 'Play animation'}
                     class="anim-control-button"
                     width={30}
                     height={30}
