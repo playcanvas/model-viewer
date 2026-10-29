@@ -22,11 +22,9 @@ import './style.scss';
 
 // Permit some additional properties to be set on the window
 declare global {
-    // eslint-disable-next-line @typescript-eslint/consistent-type-definitions -- declaration merging
     interface LaunchParams {
         readonly files: FileSystemFileHandle[];
     }
-    // eslint-disable-next-line @typescript-eslint/consistent-type-definitions -- declaration merging
     interface Window {
         launchQueue: {
             setConsumer: (callback: (launchParams: LaunchParams) => void) => void;

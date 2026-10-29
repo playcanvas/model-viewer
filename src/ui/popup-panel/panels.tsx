@@ -7,7 +7,6 @@ import type { SetProperty, ObserverData } from '../../types';
 import { Detail, Slider, Toggle, Select, ColorPickerControl, ToggleColor, Numeric } from '../components';
 
 declare global {
-    // eslint-disable-next-line @typescript-eslint/consistent-type-definitions -- declaration merging
     interface Navigator {
         readonly gpu: {
             requestAdapter: () => Promise<{
